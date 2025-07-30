@@ -89,44 +89,133 @@ export type Database = {
         }
         Relationships: []
       }
+      client_documents: {
+        Row: {
+          client_id: string
+          document_name: string
+          document_type: string
+          file_size: number | null
+          file_url: string
+          id: string
+          notes: string | null
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          client_id: string
+          document_name: string
+          document_type: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          notes?: string | null
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          client_id?: string
+          document_name?: string
+          document_type?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          notes?: string | null
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
           assigned_to: string | null
+          budget_max: number | null
+          budget_min: number | null
+          client_status: string | null
           created_at: string
           created_by: string
           email: string | null
           id: string
+          internal_notes: string | null
+          last_contacted: string | null
           name: string
+          nationality: string | null
           notes: string | null
           phone: string
+          planned_purchase_date: string | null
           preferences: string | null
+          preferred_contact_method: string | null
+          preferred_language: string | null
+          preferred_location: string | null
+          preferred_payment_method: string | null
+          previous_deals_count: number | null
+          property_type_interest: string | null
+          purchase_purpose: string | null
+          source: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
           assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          client_status?: string | null
           created_at?: string
           created_by: string
           email?: string | null
           id?: string
+          internal_notes?: string | null
+          last_contacted?: string | null
           name: string
+          nationality?: string | null
           notes?: string | null
           phone: string
+          planned_purchase_date?: string | null
           preferences?: string | null
+          preferred_contact_method?: string | null
+          preferred_language?: string | null
+          preferred_location?: string | null
+          preferred_payment_method?: string | null
+          previous_deals_count?: number | null
+          property_type_interest?: string | null
+          purchase_purpose?: string | null
+          source?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
           assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          client_status?: string | null
           created_at?: string
           created_by?: string
           email?: string | null
           id?: string
+          internal_notes?: string | null
+          last_contacted?: string | null
           name?: string
+          nationality?: string | null
           notes?: string | null
           phone?: string
+          planned_purchase_date?: string | null
           preferences?: string | null
+          preferred_contact_method?: string | null
+          preferred_language?: string | null
+          preferred_location?: string | null
+          preferred_payment_method?: string | null
+          previous_deals_count?: number | null
+          property_type_interest?: string | null
+          purchase_purpose?: string | null
+          source?: string | null
           updated_at?: string
         }
         Relationships: []
