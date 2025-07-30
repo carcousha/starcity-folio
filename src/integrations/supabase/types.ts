@@ -954,6 +954,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       log_financial_activity: {
         Args: {
           p_operation_type: string
