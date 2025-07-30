@@ -156,14 +156,27 @@ export default function Staff() {
         return;
       }
 
-      // Direct insert into profiles table without user_id (for staff without auth accounts)
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newEmployee.email.trim())) {
+        toast({
+          title: "خطأ",
+          description: "يرجى إدخال بريد إلكتروني صحيح",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Adding new employee:', newEmployee);
+
+      // Insert employee profile without user_id (staff member without auth account)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
-          user_id: null, // No auth account for this employee
+          user_id: null, // No auth account initially
           first_name: newEmployee.first_name.trim(),
           last_name: newEmployee.last_name.trim(),
-          email: newEmployee.email.trim(),
+          email: newEmployee.email.trim().toLowerCase(),
           phone: newEmployee.phone.trim() || null,
           role: newEmployee.role,
           is_active: true
@@ -173,6 +186,17 @@ export default function Staff() {
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
+        
+        // Handle specific errors
+        if (profileError.code === '23505') { // Unique constraint violation
+          toast({
+            title: "خطأ",
+            description: "هذا البريد الإلكتروني مستخدم مسبقاً",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw new Error('فشل في إنشاء الملف الشخصي: ' + profileError.message);
       }
 
@@ -191,10 +215,8 @@ export default function Staff() {
         commission_rate: 2.5
       });
       
-      // Refresh the staff list after a short delay
-      setTimeout(() => {
-        fetchStaff();
-      }, 1500);
+      // Refresh the staff list immediately
+      await fetchStaff();
       
     } catch (error: any) {
       console.error('Error adding employee:', error);
