@@ -1,4 +1,5 @@
 import { useLocation, Link } from "react-router-dom";
+import { useState } from "react";
 import { 
   Home, 
   Users, 
@@ -12,7 +13,13 @@ import {
   UserCheck,
   Calculator,
   Brain,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Target,
+  CheckSquare,
+  Megaphone,
+  PieChart
 } from "lucide-react";
 
 import {
@@ -33,15 +40,38 @@ export function AppSidebar() {
   const location = useLocation();
   const { profile } = useAuth();
   const currentPath = location.pathname;
+  const [expandedSections, setExpandedSections] = useState<string[]>(['crm']);
 
   const collapsed = state === "collapsed";
 
   const isActive = (path: string) => currentPath === path;
   
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => 
+      prev.includes(section) 
+        ? prev.filter(s => s !== section)
+        : [...prev, section]
+    );
+  };
+
   // Main navigation items
   const mainItems = [
     { title: "الرئيسية", url: "/", icon: Home },
-    { title: "إدارة العلاقات العامة", url: "/crm", icon: Brain },
+    { 
+      title: "إدارة العلاقات العامة", 
+      url: "/crm", 
+      icon: Brain,
+      hasSubmenu: true,
+      submenu: [
+        { title: "العملاء", url: "/crm/clients", icon: Users },
+        { title: "الليدات", url: "/crm/leads", icon: Target },
+        { title: "العقارات", url: "/crm/properties", icon: Building },
+        { title: "المهام", url: "/crm/tasks", icon: CheckSquare },
+        { title: "الحملات التسويقية", url: "/crm/campaigns", icon: Megaphone },
+        { title: "الصفقات", url: "/crm/deals", icon: FileText },
+        { title: "التحليلات والتقارير", url: "/crm/analytics", icon: PieChart },
+      ]
+    },
     { title: "إدارة الحسابات", url: "/accounting", icon: BarChart3 },
   ];
 
@@ -112,24 +142,67 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {mainItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild
-                      className={`
-                        mx-3 mb-1 rounded-lg transition-all duration-200 h-12
-                        ${isActive(item.url) 
-                          ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                        }
-                        ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
-                      `}
-                    >
-                      <Link to={item.url} className="flex items-center w-full">
-                        <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
-                        {!collapsed && <span className="font-medium">{item.title}</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <div key={item.title}>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild={!item.hasSubmenu}
+                        className={`
+                          mx-3 mb-1 rounded-lg transition-all duration-200 h-12
+                          ${isActive(item.url) 
+                            ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                          }
+                          ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
+                        `}
+                        onClick={item.hasSubmenu ? () => toggleSection('crm') : undefined}
+                      >
+                        {item.hasSubmenu ? (
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center">
+                              <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
+                              {!collapsed && <span className="font-medium">{item.title}</span>}
+                            </div>
+                            {!collapsed && (
+                              expandedSections.includes('crm') 
+                                ? <ChevronDown className="h-4 w-4" />
+                                : <ChevronRight className="h-4 w-4" />
+                            )}
+                          </div>
+                        ) : (
+                          <Link to={item.url} className="flex items-center w-full">
+                            <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
+                            {!collapsed && <span className="font-medium">{item.title}</span>}
+                          </Link>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    
+                    {/* Submenu */}
+                    {item.hasSubmenu && expandedSections.includes('crm') && !collapsed && (
+                      <div className="mr-4 space-y-1">
+                        {item.submenu?.map((subItem) => (
+                          <SidebarMenuItem key={subItem.title}>
+                            <SidebarMenuButton 
+                              asChild
+                              className={`
+                                mx-3 mb-1 rounded-lg transition-all duration-200 h-10
+                                ${isActive(subItem.url) 
+                                  ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                                }
+                                justify-start px-6
+                              `}
+                            >
+                              <Link to={subItem.url} className="flex items-center w-full">
+                                <subItem.icon className="h-4 w-4 ml-3" />
+                                <span className="text-sm">{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
