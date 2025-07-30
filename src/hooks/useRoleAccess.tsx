@@ -70,6 +70,7 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
   },
   accountant: {
     // Financial modules only
+    crmAccess: true,
     canViewAllClients: false,
     canManageClients: false,
     canViewAllDeals: false,
@@ -95,6 +96,7 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
   },
   employee: {
     // Limited access to own data only
+    crmAccess: true,
     canViewAllClients: false,
     canManageClients: false,
     canViewAllDeals: false,
