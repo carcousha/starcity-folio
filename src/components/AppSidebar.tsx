@@ -72,7 +72,20 @@ export function AppSidebar() {
         { title: "التحليلات والتقارير", url: "/crm/analytics", icon: PieChart },
       ]
     },
-    { title: "إدارة الحسابات", url: "/accounting", icon: BarChart3 },
+    { 
+      title: "إدارة الحسابات", 
+      url: "/accounting", 
+      icon: BarChart3,
+      hasSubmenu: true,
+      submenu: [
+        { title: "المصروفات", url: "/accounting/expenses", icon: HandCoins },
+        { title: "الإيرادات", url: "/accounting/revenues", icon: TrendingUp },
+        { title: "العمولات", url: "/accounting/commissions", icon: Calculator },
+        { title: "المديونيات", url: "/accounting/debts", icon: FileText },
+        { title: "السيارات", url: "/accounting/vehicles", icon: Car },
+        { title: "الموظفين", url: "/accounting/staff", icon: UserCheck },
+      ]
+    },
   ];
 
   // Current modules based on user role
@@ -154,7 +167,7 @@ export function AppSidebar() {
                           }
                           ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
                         `}
-                        onClick={item.hasSubmenu ? () => toggleSection('crm') : undefined}
+                        onClick={item.hasSubmenu ? () => toggleSection(item.title === 'إدارة العلاقات العامة' ? 'crm' : 'accounting') : undefined}
                       >
                         {item.hasSubmenu ? (
                           <div className="flex items-center justify-between w-full">
@@ -163,7 +176,7 @@ export function AppSidebar() {
                               {!collapsed && <span className="font-medium">{item.title}</span>}
                             </div>
                             {!collapsed && (
-                              expandedSections.includes('crm') 
+                              expandedSections.includes(item.title === 'إدارة العلاقات العامة' ? 'crm' : 'accounting') 
                                 ? <ChevronDown className="h-4 w-4" />
                                 : <ChevronRight className="h-4 w-4" />
                             )}
@@ -178,7 +191,7 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     
                     {/* Submenu */}
-                    {item.hasSubmenu && expandedSections.includes('crm') && !collapsed && (
+                    {item.hasSubmenu && expandedSections.includes(item.title === 'إدارة العلاقات العامة' ? 'crm' : 'accounting') && !collapsed && (
                       <div className="mr-4 space-y-1">
                         {item.submenu?.map((subItem) => (
                           <SidebarMenuItem key={subItem.title}>
