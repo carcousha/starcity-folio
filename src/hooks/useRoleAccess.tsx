@@ -6,6 +6,7 @@ export type UserRole = 'admin' | 'accountant' | 'employee';
 
 export interface RolePermissions {
   // CRM Permissions
+  crmAccess: boolean;
   canViewAllClients: boolean;
   canManageClients: boolean;
   canViewAllDeals: boolean;
@@ -43,6 +44,7 @@ export interface RolePermissions {
 const rolePermissions: Record<UserRole, RolePermissions> = {
   admin: {
     // Full access to everything
+    crmAccess: true,
     canViewAllClients: true,
     canManageClients: true,
     canViewAllDeals: true,

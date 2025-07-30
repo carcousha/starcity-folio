@@ -414,6 +414,201 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_activities: {
+        Row: {
+          activity_date: string | null
+          activity_type: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          lead_id: string
+          next_action: string | null
+          outcome: string | null
+          title: string
+        }
+        Insert: {
+          activity_date?: string | null
+          activity_type: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lead_id: string
+          next_action?: string | null
+          outcome?: string | null
+          title: string
+        }
+        Update: {
+          activity_date?: string | null
+          activity_type?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          lead_id?: string
+          next_action?: string | null
+          outcome?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_property_preferences: {
+        Row: {
+          created_at: string | null
+          feedback: string | null
+          id: string
+          interest_level: string | null
+          lead_id: string
+          property_id: string | null
+          viewing_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          interest_level?: string | null
+          lead_id: string
+          property_id?: string | null
+          viewing_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          interest_level?: string | null
+          lead_id?: string
+          property_id?: string | null
+          viewing_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_property_preferences_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_property_preferences_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          budget_max: number | null
+          budget_min: number | null
+          conversion_date: string | null
+          converted_client_id: string | null
+          converted_to_client: boolean | null
+          created_at: string | null
+          created_by: string
+          email: string | null
+          full_name: string
+          id: string
+          lead_score: number | null
+          lead_source: string
+          nationality: string | null
+          next_follow_up: string | null
+          notes: string | null
+          phone: string
+          preferred_language: string
+          preferred_location: string | null
+          property_type: string
+          purchase_purpose: string
+          stage: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          conversion_date?: string | null
+          converted_client_id?: string | null
+          converted_to_client?: boolean | null
+          created_at?: string | null
+          created_by: string
+          email?: string | null
+          full_name: string
+          id?: string
+          lead_score?: number | null
+          lead_source: string
+          nationality?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          phone: string
+          preferred_language?: string
+          preferred_location?: string | null
+          property_type: string
+          purchase_purpose: string
+          stage?: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          conversion_date?: string | null
+          converted_client_id?: string | null
+          converted_to_client?: boolean | null
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          lead_score?: number | null
+          lead_source?: string
+          nationality?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string
+          preferred_language?: string
+          preferred_location?: string | null
+          property_type?: string
+          purchase_purpose?: string
+          stage?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -895,6 +1090,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_lead_score: {
+        Args: { lead_record: Database["public"]["Tables"]["leads"]["Row"] }
+        Returns: number
+      }
+      convert_lead_to_client: {
+        Args: { lead_id_param: string }
+        Returns: string
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
