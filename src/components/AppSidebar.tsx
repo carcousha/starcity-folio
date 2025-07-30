@@ -92,6 +92,12 @@ export function AppSidebar() {
         { title: "سجل النشاطات", url: "/accounting/activity-log", icon: BarChart3 },
       ]
     },
+    { 
+      title: "التقارير المالية", 
+      url: "/reports", 
+      icon: BarChart3,
+      hasSubmenu: false
+    }
   ];
 
   // Current modules based on user role

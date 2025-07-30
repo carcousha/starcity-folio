@@ -20,6 +20,9 @@ import VehicleExpenses from "./pages/accounting/VehicleExpenses";
 import Staff from "./pages/accounting/Staff";
 import Treasury from "./pages/accounting/Treasury";
 import ActivityLogPage from "./pages/accounting/ActivityLog";
+import ReportsIndex from "./pages/reports/index";
+import EmployeeReports from "./pages/reports/EmployeeReports";
+import VehicleReports from "./pages/reports/VehicleReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -97,6 +100,23 @@ const App = () => (
               <Route path="/accounting/activity-log" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <ActivityLogPage />
+                </ProtectedRoute>
+              } />
+              
+              {/* Reports Routes - Admin and Accountant */}
+              <Route path="/reports" element={
+                <ProtectedRoute requiredPermission="canViewAllReports">
+                  <ReportsIndex />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/employees" element={
+                <ProtectedRoute requiredPermission="canViewAllStaff">
+                  <EmployeeReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/vehicles" element={
+                <ProtectedRoute requiredPermission="canViewAllVehicles">
+                  <VehicleReports />
                 </ProtectedRoute>
               } />
               
