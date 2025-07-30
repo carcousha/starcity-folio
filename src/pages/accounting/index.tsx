@@ -43,6 +43,13 @@ export default function AccountingOverview() {
       color: "bg-purple-500"
     },
     {
+      title: "مصروفات السيارات",
+      description: "تفاصيل مصروفات كل سيارة والربط مع الديون",
+      icon: FileText,
+      path: "/accounting/vehicle-expenses", 
+      color: "bg-cyan-500"
+    },
+    {
       title: "الموظفين",
       description: "إدارة الموظفين ونسب العمولات",
       icon: UserCheck,

@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Car, Fuel, Wrench } from "lucide-react";
+import { Plus, Car, Fuel, Wrench, AlertTriangle, Calendar, Users, Download, Search, Filter, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Vehicle {
   id: string;
@@ -18,16 +24,103 @@ interface Vehicle {
   assigned_to?: string;
   purchase_price?: number;
   purchase_date?: string;
+  license_expiry?: string;
+  insurance_expiry?: string;
+  last_maintenance?: string;
+  next_maintenance?: string;
+  odometer_reading?: number;
+  notes?: string;
+  created_at: string;
+}
+
+interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  user_id: string;
+}
+
+interface VehicleExpense {
+  id: string;
+  vehicle_id: string;
+  expense_type: string;
+  amount: number;
+  expense_date: string;
+  description?: string;
+  odometer_reading?: number;
 }
 
 export default function Vehicles() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [vehicleExpenses, setVehicleExpenses] = useState<VehicleExpense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const [formData, setFormData] = useState({
+    make: "",
+    model: "",
+    year: "",
+    license_plate: "",
+    color: "",
+    assigned_to: "",
+    purchase_price: "",
+    purchase_date: "",
+    license_expiry: "",
+    insurance_expiry: "",
+    next_maintenance: "",
+    odometer_reading: "",
+    notes: ""
+  });
+
+  const statusOptions = [
+    { value: "active", label: "نشطة", color: "bg-green-100 text-green-800" },
+    { value: "maintenance", label: "صيانة", color: "bg-orange-100 text-orange-800" },
+    { value: "retired", label: "خارج الخدمة", color: "bg-red-100 text-red-800" }
+  ];
 
   useEffect(() => {
     fetchVehicles();
+    fetchProfiles();
+    fetchVehicleExpenses();
   }, []);
+
+  useEffect(() => {
+    filterVehicles();
+  }, [vehicles, searchTerm, statusFilter]);
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, user_id')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    }
+  };
+
+  const fetchVehicleExpenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_expenses')
+        .select('*')
+        .order('expense_date', { ascending: false });
+
+      if (error) throw error;
+      setVehicleExpenses(data || []);
+    } catch (error) {
+      console.error('Error fetching vehicle expenses:', error);
+    }
+  };
 
   const fetchVehicles = async () => {
     try {
@@ -49,6 +142,135 @@ export default function Vehicles() {
     }
   };
 
+  const filterVehicles = () => {
+    let filtered = vehicles;
+
+    if (searchTerm) {
+      filtered = filtered.filter(vehicle => 
+        vehicle.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.license_plate.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter) {
+      filtered = filtered.filter(vehicle => vehicle.status === statusFilter);
+    }
+
+    setFilteredVehicles(filtered);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const insertData: any = {
+        make: formData.make,
+        model: formData.model,
+        year: parseInt(formData.year),
+        license_plate: formData.license_plate,
+        color: formData.color || null,
+        assigned_to: formData.assigned_to || null,
+        purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
+        purchase_date: formData.purchase_date || null,
+        license_expiry: formData.license_expiry || null,
+        insurance_expiry: formData.insurance_expiry || null,
+        next_maintenance: formData.next_maintenance || null,
+        odometer_reading: formData.odometer_reading ? parseInt(formData.odometer_reading) : 0,
+        notes: formData.notes || null
+      };
+
+      const { error } = await supabase
+        .from('vehicles')
+        .insert([insertData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "نجح الحفظ",
+        description: "تم إضافة السيارة بنجاح",
+      });
+
+      setIsDialogOpen(false);
+      setFormData({
+        make: "",
+        model: "",
+        year: "",
+        license_plate: "",
+        color: "",
+        assigned_to: "",
+        purchase_price: "",
+        purchase_date: "",
+        license_expiry: "",
+        insurance_expiry: "",
+        next_maintenance: "",
+        odometer_reading: "",
+        notes: ""
+      });
+      fetchVehicles();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في حفظ البيانات",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Calculate statistics
+  const activeVehicles = vehicles.filter(v => v.status === 'active').length;
+  const maintenanceVehicles = vehicles.filter(v => v.status === 'maintenance').length;
+  const retiredVehicles = vehicles.filter(v => v.status === 'retired').length;
+
+  // Check for expiring documents
+  const expiringLicenses = vehicles.filter(v => {
+    if (!v.license_expiry) return false;
+    const expiryDate = new Date(v.license_expiry);
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    return expiryDate <= thirtyDaysFromNow && expiryDate >= new Date();
+  });
+
+  const expiringInsurance = vehicles.filter(v => {
+    if (!v.insurance_expiry) return false;
+    const expiryDate = new Date(v.insurance_expiry);
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    return expiryDate <= thirtyDaysFromNow && expiryDate >= new Date();
+  });
+
+  // Calculate total vehicle expenses
+  const totalExpenses = vehicleExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  const exportToCSV = () => {
+    const headers = ['الماركة', 'الموديل', 'السنة', 'رقم اللوحة', 'اللون', 'الحالة', 'الموظف المخصص', 'سعر الشراء', 'انتهاء الترخيص', 'انتهاء التأمين'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredVehicles.map(vehicle => {
+        const employee = profiles.find(p => p.user_id === vehicle.assigned_to);
+        const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : '-';
+        return [
+          vehicle.make,
+          vehicle.model,
+          vehicle.year,
+          vehicle.license_plate,
+          vehicle.color || '-',
+          vehicle.status === 'active' ? 'نشطة' : vehicle.status === 'maintenance' ? 'صيانة' : 'خارج الخدمة',
+          employeeName,
+          vehicle.purchase_price ? `${vehicle.purchase_price} درهم` : '-',
+          vehicle.license_expiry ? new Date(vehicle.license_expiry).toLocaleDateString('ar-AE') : '-',
+          vehicle.insurance_expiry ? new Date(vehicle.insurance_expiry).toLocaleDateString('ar-AE') : '-'
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `vehicles_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
   }
@@ -60,9 +282,203 @@ export default function Vehicles() {
           <h1 className="text-3xl font-bold text-gray-900">إدارة السيارات</h1>
           <p className="text-gray-600 mt-2">إدارة أسطول سيارات الشركة ومصروفاته</p>
         </div>
+        <div className="flex gap-2">
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="h-4 w-4 ml-2" />
+            تصدير
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة سيارة
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+              <DialogHeader>
+                <DialogTitle>إضافة سيارة جديدة</DialogTitle>
+                <DialogDescription>
+                  أدخل تفاصيل السيارة الجديدة
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="make">الماركة</Label>
+                    <Input
+                      id="make"
+                      value={formData.make}
+                      onChange={(e) => setFormData(prev => ({ ...prev, make: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="model">الموديل</Label>
+                    <Input
+                      id="model"
+                      value={formData.model}
+                      onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="year">السنة</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      min="1990"
+                      max="2030"
+                      value={formData.year}
+                      onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="license_plate">رقم اللوحة</Label>
+                    <Input
+                      id="license_plate"
+                      value={formData.license_plate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, license_plate: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="color">اللون</Label>
+                    <Input
+                      id="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="assigned_to">الموظف المخصص</Label>
+                    <Select value={formData.assigned_to} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الموظف" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">بدون موظف</SelectItem>
+                        {profiles.map((profile) => (
+                          <SelectItem key={profile.user_id} value={profile.user_id}>
+                            {profile.first_name} {profile.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="purchase_price">سعر الشراء (درهم)</Label>
+                    <Input
+                      id="purchase_price"
+                      type="number"
+                      step="0.01"
+                      value={formData.purchase_price}
+                      onChange={(e) => setFormData(prev => ({ ...prev, purchase_price: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="purchase_date">تاريخ الشراء</Label>
+                    <Input
+                      id="purchase_date"
+                      type="date"
+                      value={formData.purchase_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, purchase_date: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="license_expiry">انتهاء الترخيص</Label>
+                    <Input
+                      id="license_expiry"
+                      type="date"
+                      value={formData.license_expiry}
+                      onChange={(e) => setFormData(prev => ({ ...prev, license_expiry: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="insurance_expiry">انتهاء التأمين</Label>
+                    <Input
+                      id="insurance_expiry"
+                      type="date"
+                      value={formData.insurance_expiry}
+                      onChange={(e) => setFormData(prev => ({ ...prev, insurance_expiry: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="next_maintenance">الصيانة القادمة</Label>
+                    <Input
+                      id="next_maintenance"
+                      type="date"
+                      value={formData.next_maintenance}
+                      onChange={(e) => setFormData(prev => ({ ...prev, next_maintenance: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="odometer_reading">قراءة العداد</Label>
+                    <Input
+                      id="odometer_reading"
+                      type="number"
+                      value={formData.odometer_reading}
+                      onChange={(e) => setFormData(prev => ({ ...prev, odometer_reading: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">ملاحظات</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full">
+                  حفظ السيارة
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Alerts Section */}
+      {(expiringLicenses.length > 0 || expiringInsurance.length > 0) && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <Bell className="h-5 w-5" />
+              تنبيهات مهمة
+            </CardTitle>
+            <CardDescription className="text-orange-600">
+              {expiringLicenses.length > 0 && (
+                <div>• {expiringLicenses.length} سيارة تحتاج تجديد ترخيص خلال 30 يوماً</div>
+              )}
+              {expiringInsurance.length > 0 && (
+                <div>• {expiringInsurance.length} سيارة تحتاج تجديد تأمين خلال 30 يوماً</div>
+              )}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">إجمالي السيارات</CardTitle>
@@ -77,12 +493,10 @@ export default function Vehicles() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">السيارات النشطة</CardTitle>
-            <Fuel className="h-4 w-4 text-muted-foreground" />
+            <Fuel className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {vehicles.filter(v => v.status === 'active').length}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{activeVehicles}</div>
             <p className="text-xs text-muted-foreground">سيارة نشطة</p>
           </CardContent>
         </Card>
@@ -90,20 +504,69 @@ export default function Vehicles() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">تحتاج صيانة</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
+            <Wrench className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {vehicles.filter(v => v.status === 'maintenance').length}
-            </div>
+            <div className="text-2xl font-bold text-orange-600">{maintenanceVehicles}</div>
             <p className="text-xs text-muted-foreground">سيارة في الصيانة</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي المصروفات</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {totalExpenses.toLocaleString('ar-AE')} درهم
+            </div>
+            <p className="text-xs text-muted-foreground">مصروفات السيارات</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Search and Filter */}
+      <Card>
+        <CardHeader>
+          <CardTitle>البحث والتصفية</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="البحث في السيارات..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 ml-2" />
+                <SelectValue placeholder="تصفية حسب الحالة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">جميع الحالات</SelectItem>
+                {statusOptions.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Vehicles Table */}
       <Card>
         <CardHeader>
           <CardTitle>قائمة السيارات</CardTitle>
+          <CardDescription>جميع سيارات الشركة وحالتها</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -114,31 +577,66 @@ export default function Vehicles() {
                 <TableHead>رقم اللوحة</TableHead>
                 <TableHead>اللون</TableHead>
                 <TableHead>الحالة</TableHead>
+                <TableHead>الموظف المخصص</TableHead>
+                <TableHead>انتهاء الترخيص</TableHead>
                 <TableHead>سعر الشراء</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vehicles.map((vehicle) => (
-                <TableRow key={vehicle.id}>
-                  <TableCell className="font-medium">
-                    {vehicle.make} {vehicle.model}
-                  </TableCell>
-                  <TableCell>{vehicle.year}</TableCell>
-                  <TableCell>{vehicle.license_plate}</TableCell>
-                  <TableCell>{vehicle.color || "-"}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={vehicle.status === 'active' ? 'default' : 'secondary'}
-                      className={vehicle.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}
-                    >
-                      {vehicle.status === 'active' ? 'نشطة' : 'صيانة'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {vehicle.purchase_price ? `${vehicle.purchase_price.toLocaleString('ar-EG')} ج.م` : "-"}
+              {filteredVehicles.map((vehicle) => {
+                const employee = profiles.find(p => p.user_id === vehicle.assigned_to);
+                const statusOption = statusOptions.find(s => s.value === vehicle.status);
+                const isLicenseExpiring = vehicle.license_expiry && new Date(vehicle.license_expiry) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                
+                return (
+                  <TableRow key={vehicle.id} className={isLicenseExpiring ? 'bg-orange-50' : ''}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Car className="h-4 w-4 text-gray-400" />
+                        {vehicle.make} {vehicle.model}
+                      </div>
+                    </TableCell>
+                    <TableCell>{vehicle.year}</TableCell>
+                    <TableCell className="font-mono">{vehicle.license_plate}</TableCell>
+                    <TableCell>{vehicle.color || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={statusOption?.color}>
+                        {statusOption?.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {employee ? (
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-gray-400" />
+                          <span>{employee.first_name} {employee.last_name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">غير مخصصة</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {vehicle.license_expiry ? (
+                        <div className={`flex items-center gap-2 ${isLicenseExpiring ? 'text-orange-600 font-semibold' : ''}`}>
+                          {isLicenseExpiring && <AlertTriangle className="h-4 w-4" />}
+                          {new Date(vehicle.license_expiry).toLocaleDateString('ar-AE')}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {vehicle.purchase_price ? `${vehicle.purchase_price.toLocaleString('ar-AE')} درهم` : "-"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {filteredVehicles.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    لا توجد سيارات لعرضها
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
