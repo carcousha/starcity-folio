@@ -43,7 +43,7 @@ export default function Revenues() {
   const [typeFilter, setTypeFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -166,7 +166,7 @@ export default function Revenues() {
         amount: parseFloat(formData.amount),
         source: formData.source,
         revenue_date: formData.revenue_date,
-        recorded_by: user?.id
+        recorded_by: profile?.user_id
       };
 
       if (formData.revenue_type) {

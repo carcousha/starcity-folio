@@ -45,7 +45,7 @@ export default function Debts() {
   const [typeFilter, setTypeFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [formData, setFormData] = useState({
     debtor_name: "",
@@ -173,7 +173,7 @@ export default function Debts() {
         description: formData.description,
         due_date: formData.due_date || null,
         status: 'pending',
-        recorded_by: user?.id
+        recorded_by: profile?.user_id
       };
 
       if (formData.debtor_id && formData.debtor_id !== "unassigned") {
