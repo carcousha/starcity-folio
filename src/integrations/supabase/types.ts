@@ -56,38 +56,97 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_employees: {
+        Row: {
+          calculated_share: number
+          commission_id: string
+          created_at: string
+          deducted_debt: number
+          employee_id: string
+          id: string
+          net_share: number
+          percentage: number
+          updated_at: string
+        }
+        Insert: {
+          calculated_share?: number
+          commission_id: string
+          created_at?: string
+          deducted_debt?: number
+          employee_id: string
+          id?: string
+          net_share?: number
+          percentage: number
+          updated_at?: string
+        }
+        Update: {
+          calculated_share?: number
+          commission_id?: string
+          created_at?: string
+          deducted_debt?: number
+          employee_id?: string
+          id?: string
+          net_share?: number
+          percentage?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_employees_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "commissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commissions: {
         Row: {
           amount: number
+          client_name: string | null
           created_at: string
           deal_id: string
           employee_id: string
           id: string
+          notes: string | null
+          office_share: number | null
           paid_at: string | null
           percentage: number
+          remaining_for_employees: number | null
           status: string
+          total_commission: number | null
           updated_at: string
         }
         Insert: {
           amount: number
+          client_name?: string | null
           created_at?: string
           deal_id: string
           employee_id: string
           id?: string
+          notes?: string | null
+          office_share?: number | null
           paid_at?: string | null
           percentage: number
+          remaining_for_employees?: number | null
           status?: string
+          total_commission?: number | null
           updated_at?: string
         }
         Update: {
           amount?: number
+          client_name?: string | null
           created_at?: string
           deal_id?: string
           employee_id?: string
           id?: string
+          notes?: string | null
+          office_share?: number | null
           paid_at?: string | null
           percentage?: number
+          remaining_for_employees?: number | null
           status?: string
+          total_commission?: number | null
           updated_at?: string
         }
         Relationships: [
