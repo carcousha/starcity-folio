@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, TrendingUp } from "lucide-react";
+import { Plus, Search, Filter, TrendingUp, Download, Calendar, BarChart3, Users, PieChart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,15 +22,26 @@ interface Revenue {
   revenue_date: string;
   recorded_by: string;
   created_at: string;
+  employee_id?: string;
+  revenue_type?: string;
+}
+
+interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
 }
 
 export default function Revenues() {
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [filteredRevenues, setFilteredRevenues] = useState<Revenue[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -39,25 +50,50 @@ export default function Revenues() {
     description: "",
     amount: "",
     source: "",
+    revenue_type: "",
+    employee_id: "",
     revenue_date: new Date().toISOString().split('T')[0]
   });
 
   const sources = [
     "مبيعات عقارات",
-    "إيجارات",
+    "إيجارات", 
     "عمولات",
     "خدمات استشارية",
     "خدمات إدارية",
+    "استثمارات",
+    "أخرى"
+  ];
+
+  const revenueTypes = [
+    "صفقة",
+    "عمولة", 
+    "دفعة مستثمر",
     "أخرى"
   ];
 
   useEffect(() => {
     fetchRevenues();
+    fetchProfiles();
   }, []);
 
   useEffect(() => {
     filterRevenues();
-  }, [revenues, searchTerm, sourceFilter]);
+  }, [revenues, searchTerm, sourceFilter, typeFilter, dateFilter]);
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    }
+  };
 
   const fetchRevenues = async () => {
     try {
@@ -93,6 +129,21 @@ export default function Revenues() {
       filtered = filtered.filter(revenue => revenue.source === sourceFilter);
     }
 
+    if (typeFilter) {
+      filtered = filtered.filter(revenue => revenue.revenue_type === typeFilter);
+    }
+
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter);
+      const filterMonth = filterDate.getMonth();
+      const filterYear = filterDate.getFullYear();
+      
+      filtered = filtered.filter(revenue => {
+        const revenueDate = new Date(revenue.revenue_date);
+        return revenueDate.getMonth() === filterMonth && revenueDate.getFullYear() === filterYear;
+      });
+    }
+
     setFilteredRevenues(filtered);
   };
 
@@ -100,16 +151,26 @@ export default function Revenues() {
     e.preventDefault();
     
     try {
+      const insertData: any = {
+        title: formData.title,
+        description: formData.description,
+        amount: parseFloat(formData.amount),
+        source: formData.source,
+        revenue_date: formData.revenue_date,
+        recorded_by: user?.id
+      };
+
+      if (formData.revenue_type) {
+        insertData.revenue_type = formData.revenue_type;
+      }
+
+      if (formData.employee_id) {
+        insertData.employee_id = formData.employee_id;
+      }
+
       const { error } = await supabase
         .from('revenues')
-        .insert([{
-          title: formData.title,
-          description: formData.description,
-          amount: parseFloat(formData.amount),
-          source: formData.source,
-          revenue_date: formData.revenue_date,
-          recorded_by: user?.id
-        }]);
+        .insert([insertData]);
 
       if (error) throw error;
 
@@ -124,6 +185,8 @@ export default function Revenues() {
         description: "",
         amount: "",
         source: "",
+        revenue_type: "",
+        employee_id: "",
         revenue_date: new Date().toISOString().split('T')[0]
       });
       fetchRevenues();
@@ -138,6 +201,59 @@ export default function Revenues() {
 
   const totalRevenues = filteredRevenues.reduce((sum, revenue) => sum + revenue.amount, 0);
 
+  // Chart data preparation
+  const monthlyData = revenues.reduce((acc: any[], revenue) => {
+    const date = new Date(revenue.revenue_date);
+    const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const monthName = date.toLocaleDateString('ar-AE', { year: 'numeric', month: 'short' });
+    const existing = acc.find(item => item.month === month);
+    if (existing) {
+      existing.amount += revenue.amount;
+      existing.count += 1;
+    } else {
+      acc.push({ month, monthName, amount: revenue.amount, count: 1 });
+    }
+    return acc;
+  }, []).sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
+
+  const sourceData = sources.map(source => ({
+    name: source,
+    value: revenues.filter(rev => rev.source === source).reduce((sum, rev) => sum + rev.amount, 0)
+  })).filter(item => item.value > 0);
+
+  const typeData = revenueTypes.map(type => ({
+    name: type,
+    value: revenues.filter(rev => rev.revenue_type === type).reduce((sum, rev) => sum + rev.amount, 0)
+  })).filter(item => item.value > 0);
+
+  const COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#ec4899', '#10b981', '#f97316'];
+
+  const exportToCSV = () => {
+    const headers = ['العنوان', 'المصدر', 'النوع', 'المبلغ', 'التاريخ', 'الموظف المسؤول', 'الوصف'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredRevenues.map(revenue => {
+        const employee = profiles.find(p => p.id === revenue.employee_id);
+        const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : '-';
+        return [
+          revenue.title,
+          revenue.source,
+          revenue.revenue_type || '-',
+          revenue.amount,
+          revenue.revenue_date,
+          employeeName,
+          revenue.description || ''
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `revenues_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
   }
@@ -149,13 +265,18 @@ export default function Revenues() {
           <h1 className="text-3xl font-bold text-gray-900">إدارة الإيرادات</h1>
           <p className="text-gray-600 mt-2">تسجيل ومتابعة جميع إيرادات الشركة</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة إيراد
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="h-4 w-4 ml-2" />
+            تصدير
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة إيراد
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md" dir="rtl">
             <DialogHeader>
               <DialogTitle>إضافة إيراد جديد</DialogTitle>
@@ -217,26 +338,187 @@ export default function Revenues() {
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                 />
-              </div>
-              <Button type="submit" className="w-full">
-                حفظ الإيراد
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                </div>
+                <div>
+                  <Label htmlFor="revenue_type">نوع الدخل</Label>
+                  <Select value={formData.revenue_type} onValueChange={(value) => setFormData(prev => ({ ...prev, revenue_type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر نوع الدخل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {revenueTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="employee_id">الموظف المسؤول (اختياري)</Label>
+                  <Select value={formData.employee_id} onValueChange={(value) => setFormData(prev => ({ ...prev, employee_id: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الموظف" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">بدون موظف محدد</SelectItem>
+                      {profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.first_name} {profile.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="submit" className="w-full">
+                  حفظ الإيراد
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <TrendingUp className="h-5 w-5 ml-2 text-green-600" />
-            إجمالي الإيرادات
-          </CardTitle>
-          <CardDescription>
-            {totalRevenues.toLocaleString('ar-EG')} جنيه - {filteredRevenues.length} إيراد
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="grid md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {totalRevenues.toLocaleString('ar-AE')} درهم
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {filteredRevenues.length} إيراد
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">متوسط الإيراد</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {filteredRevenues.length > 0 ? (totalRevenues / filteredRevenues.length).toLocaleString('ar-AE') : '0'} درهم
+            </div>
+            <p className="text-xs text-muted-foreground">
+              لكل إيراد
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">أكثر مصدر إيراداً</CardTitle>
+            <PieChart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {sourceData.length > 0 ? sourceData.reduce((prev, current) => (prev.value > current.value) ? prev : current).name : '-'}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {sourceData.length > 0 ? `${sourceData.reduce((prev, current) => (prev.value > current.value) ? prev : current).value.toLocaleString('ar-AE')} درهم` : 'لا توجد بيانات'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">الإيرادات الشهرية</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].amount.toLocaleString('ar-AE') : '0'} درهم
+            </div>
+            <p className="text-xs text-muted-foreground">
+              الشهر الحالي
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {monthlyData.length > 0 && (
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                الإيرادات الشهرية
+              </CardTitle>
+              <CardDescription>تطور الإيرادات خلال الشهور الماضية</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {monthlyData.map((month, index) => {
+                  const maxAmount = Math.max(...monthlyData.map(m => m.amount));
+                  const percentage = (month.amount / maxAmount) * 100;
+                  return (
+                    <div key={month.month} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">{month.monthName}</span>
+                        <span className="text-green-600 font-semibold">
+                          {month.amount.toLocaleString('ar-AE')} درهم
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {month.count} إيراد
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="h-5 w-5" />
+                توزيع الإيرادات حسب المصدر
+              </CardTitle>
+              <CardDescription>نسبة كل مصدر من إجمالي الإيرادات</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {sourceData.map((source, index) => {
+                  const totalAmount = sourceData.reduce((sum, src) => sum + src.value, 0);
+                  const percentage = ((source.value / totalAmount) * 100).toFixed(1);
+                  const color = COLORS[index % COLORS.length];
+                  return (
+                    <div key={source.name} className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="font-medium">{source.name}</span>
+                        </div>
+                        <span className="text-green-600 font-semibold">
+                          {source.value.toLocaleString('ar-AE')} درهم
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>{percentage}% من الإجمالي</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -269,6 +551,27 @@ export default function Revenues() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 ml-2" />
+                <SelectValue placeholder="تصفية حسب النوع" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">جميع الأنواع</SelectItem>
+                {revenueTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="month"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-[200px]"
+              placeholder="تصفية حسب الشهر"
+            />
           </div>
         </CardContent>
       </Card>
@@ -283,32 +586,54 @@ export default function Revenues() {
               <TableRow>
                 <TableHead>العنوان</TableHead>
                 <TableHead>المصدر</TableHead>
+                <TableHead>النوع</TableHead>
                 <TableHead>المبلغ</TableHead>
                 <TableHead>التاريخ</TableHead>
+                <TableHead>الموظف المسؤول</TableHead>
                 <TableHead>الوصف</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRevenues.map((revenue) => (
-                <TableRow key={revenue.id}>
-                  <TableCell className="font-medium">{revenue.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-green-50 text-green-700">
-                      {revenue.source}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-green-600 font-semibold">
-                    {revenue.amount.toLocaleString('ar-EG')} ج.م
-                  </TableCell>
-                  <TableCell>{new Date(revenue.revenue_date).toLocaleDateString('ar-EG')}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {revenue.description || "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filteredRevenues.map((revenue) => {
+                const employee = profiles.find(p => p.id === revenue.employee_id);
+                return (
+                  <TableRow key={revenue.id}>
+                    <TableCell className="font-medium">{revenue.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-green-50 text-green-700">
+                        {revenue.source}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {revenue.revenue_type ? (
+                        <Badge variant="secondary">{revenue.revenue_type}</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-green-600 font-semibold">
+                      {revenue.amount.toLocaleString('ar-AE')} درهم
+                    </TableCell>
+                    <TableCell>{new Date(revenue.revenue_date).toLocaleDateString('ar-AE')}</TableCell>
+                    <TableCell>
+                      {employee ? (
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-gray-400" />
+                          <span>{employee.first_name} {employee.last_name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {revenue.description || "-"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {filteredRevenues.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     لا توجد إيرادات لعرضها
                   </TableCell>
                 </TableRow>
