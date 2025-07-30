@@ -83,6 +83,7 @@ export function AppSidebar() {
         { title: "العمولات", url: "/accounting/commissions", icon: Calculator },
         { title: "المديونيات", url: "/accounting/debts", icon: FileText },
         { title: "السيارات", url: "/accounting/vehicles", icon: Car },
+        { title: "مصروفات السيارات", url: "/accounting/vehicle-expenses", icon: FileText },
         { title: "الموظفين", url: "/accounting/staff", icon: UserCheck },
       ]
     },
