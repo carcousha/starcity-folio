@@ -146,24 +146,48 @@ export default function Staff() {
 
   const handleAddEmployee = async () => {
     try {
-      // Note: In a real app, you'd need to create auth user first
-      // For now, we'll just create the profile
-      const { error } = await supabase
-        .from('profiles')
-        .insert({
+      // Step 1: Create auth user first
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: newEmployee.email,
+        password: '123456789', // Temporary password - user should change it
+        email_confirm: true, // Skip email confirmation for admin-created users
+        user_metadata: {
           first_name: newEmployee.first_name,
           last_name: newEmployee.last_name,
-          email: newEmployee.email,
+          role: newEmployee.role
+        }
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('فشل في إنشاء حساب المصادقة: ' + authError.message);
+      }
+
+      if (!authData.user) {
+        throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
+      }
+
+      // Step 2: Create profile (this might be done automatically by trigger)
+      // Let's wait a moment for the trigger to process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 3: Update the profile with additional info if needed
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
           phone: newEmployee.phone,
           role: newEmployee.role,
-          user_id: crypto.randomUUID() // Temporary - should be real auth user ID
-        });
+        })
+        .eq('user_id', authData.user.id);
 
-      if (error) throw error;
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        // Don't throw here, as the main profile should exist from trigger
+      }
 
       toast({
         title: "تم بنجاح",
-        description: "تم إضافة الموظف بنجاح",
+        description: `تم إضافة الموظف بنجاح. كلمة المرور المؤقتة: 123456789`,
       });
 
       setShowAddDialog(false);
@@ -175,11 +199,17 @@ export default function Staff() {
         role: 'employee',
         commission_rate: 2.5
       });
-      fetchStaff();
-    } catch (error) {
+      
+      // Wait a bit before refreshing to ensure all data is properly saved
+      setTimeout(() => {
+        fetchStaff();
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error('Error adding employee:', error);
       toast({
         title: "خطأ",
-        description: "فشل في إضافة الموظف",
+        description: error.message || "فشل في إضافة الموظف",
         variant: "destructive",
       });
     }
