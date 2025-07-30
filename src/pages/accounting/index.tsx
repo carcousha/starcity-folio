@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HandCoins, TrendingUp, Calculator, FileText, Car, UserCheck, Plus } from "lucide-react";
+import { HandCoins, TrendingUp, Calculator, FileText, Car, UserCheck, Plus, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function AccountingOverview() {
@@ -55,6 +55,13 @@ export default function AccountingOverview() {
       icon: UserCheck,
       path: "/accounting/staff",
       color: "bg-indigo-500"
+    },
+    {
+      title: "الخزينة والبنوك",
+      description: "إدارة الأرصدة والحركات المالية",
+      icon: Wallet,
+      path: "/accounting/treasury",
+      color: "bg-emerald-500"
     }
   ];
 

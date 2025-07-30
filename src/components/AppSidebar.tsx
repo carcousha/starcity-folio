@@ -19,7 +19,8 @@ import {
   Target,
   CheckSquare,
   Megaphone,
-  PieChart
+  PieChart,
+  Wallet
 } from "lucide-react";
 
 import {
@@ -85,6 +86,7 @@ export function AppSidebar() {
         { title: "السيارات", url: "/accounting/vehicles", icon: Car },
         { title: "مصروفات السيارات", url: "/accounting/vehicle-expenses", icon: FileText },
         { title: "الموظفين", url: "/accounting/staff", icon: UserCheck },
+        { title: "الخزينة والبنوك", url: "/accounting/treasury", icon: Wallet },
       ]
     },
   ];

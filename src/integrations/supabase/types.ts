@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string
+          table_name: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id: string
+          table_name: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string
+          table_name?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string | null
@@ -437,6 +470,114 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      treasury_accounts: {
+        Row: {
+          account_number: string | null
+          account_type: string
+          bank_name: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          current_balance: number
+          iban: string | null
+          id: string
+          is_active: boolean
+          name: string
+          opening_balance: number
+          updated_at: string
+        }
+        Insert: {
+          account_number?: string | null
+          account_type: string
+          bank_name?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          current_balance?: number
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          opening_balance?: number
+          updated_at?: string
+        }
+        Update: {
+          account_number?: string | null
+          account_type?: string
+          bank_name?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          current_balance?: number
+          iban?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          opening_balance?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      treasury_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          from_account_id: string | null
+          id: string
+          processed_by: string
+          reference_id: string | null
+          reference_type: string | null
+          to_account_id: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          from_account_id?: string | null
+          id?: string
+          processed_by: string
+          reference_id?: string | null
+          reference_type?: string | null
+          to_account_id?: string | null
+          transaction_date?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          from_account_id?: string | null
+          id?: string
+          processed_by?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          to_account_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treasury_transactions_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "treasury_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treasury_transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "treasury_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
