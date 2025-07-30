@@ -204,7 +204,7 @@ export default function Commissions() {
         .insert({
           amount: parseFloat(formData.total_commission),
           deal_id: 'manual-entry',
-          employee_id: employeeShares[0]?.employee_id || user?.id,
+          employee_id: employeeShares[0]?.employee_id || profile?.user_id,
           percentage: 100,
           total_commission: parseFloat(formData.total_commission),
           client_name: formData.client_name,
