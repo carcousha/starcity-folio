@@ -892,7 +892,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_roles_view: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          is_active: boolean | null
+          last_name: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          role_name_ar: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          role_name_ar?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          role_name_ar?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_employee_financial_summary: {
