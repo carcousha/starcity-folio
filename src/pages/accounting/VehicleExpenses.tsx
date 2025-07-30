@@ -55,7 +55,7 @@ export default function VehicleExpenses() {
   const [vehicleFilter, setVehicleFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [formData, setFormData] = useState({
     vehicle_id: "",
@@ -64,7 +64,8 @@ export default function VehicleExpenses() {
     expense_date: new Date().toISOString().split('T')[0],
     odometer_reading: "",
     description: "",
-    debt_assignment: "company"
+    debt_assignment: "company",
+    assigned_employee: ""
   });
 
   const expenseTypes = [
@@ -171,6 +172,33 @@ export default function VehicleExpenses() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.vehicle_id || !formData.expense_type || !formData.amount) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.debt_assignment === 'employee' && !formData.assigned_employee) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار الموظف المخصص له الدين",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!profile?.user_id) {
+      toast({
+        title: "خطأ",
+        description: "يجب تسجيل الدخول أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const insertData = {
         vehicle_id: formData.vehicle_id,
@@ -179,8 +207,7 @@ export default function VehicleExpenses() {
         expense_date: formData.expense_date,
         odometer_reading: formData.odometer_reading ? parseInt(formData.odometer_reading) : null,
         description: formData.description || null,
-        debt_assignment: formData.debt_assignment,
-        recorded_by: user?.id
+        recorded_by: profile.user_id
       };
 
       const { error } = await supabase
@@ -201,12 +228,30 @@ export default function VehicleExpenses() {
           amount: parseFloat(formData.amount),
           category: "مواصلات",
           expense_date: formData.expense_date,
-          recorded_by: user?.id
+          recorded_by: profile.user_id
         }]);
+
+      // If assigned to employee, add to debts
+      if (formData.debt_assignment === 'employee' && formData.assigned_employee) {
+        const employee = profiles.find(p => p.user_id === formData.assigned_employee);
+        if (employee) {
+          await supabase
+            .from('debts')
+            .insert([{
+              debtor_type: 'employee',
+              debtor_name: `${employee.first_name} ${employee.last_name}`,
+              debtor_id: formData.assigned_employee,
+              amount: parseFloat(formData.amount),
+              description: `مصروف سيارة: ${expenseTypeLabel} - ${vehicle?.make} ${vehicle?.model} (${vehicle?.license_plate})`,
+              recorded_by: profile.user_id,
+              status: 'pending'
+            }]);
+        }
+      }
 
       toast({
         title: "نجح الحفظ",
-        description: `تم إضافة مصروف السيارة بنجاح${formData.debt_assignment === 'employee' ? ' وتم ربطه بديون الموظف' : ''}`,
+        description: `تم إضافة مصروف السيارة بنجاح${formData.debt_assignment === 'employee' ? ' وتم إضافته للمديونيات' : ''}`,
       });
 
       setIsDialogOpen(false);
@@ -217,13 +262,15 @@ export default function VehicleExpenses() {
         expense_date: new Date().toISOString().split('T')[0],
         odometer_reading: "",
         description: "",
-        debt_assignment: "company"
+        debt_assignment: "company",
+        assigned_employee: ""
       });
       fetchExpenses();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error saving vehicle expense:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حفظ البيانات",
+        description: `فشل في حفظ البيانات: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -384,7 +431,7 @@ export default function VehicleExpenses() {
 
                 <div>
                   <Label htmlFor="debt_assignment">تخصيص الدين</Label>
-                  <Select value={formData.debt_assignment} onValueChange={(value) => setFormData(prev => ({ ...prev, debt_assignment: value }))}>
+                  <Select value={formData.debt_assignment} onValueChange={(value) => setFormData(prev => ({ ...prev, debt_assignment: value, assigned_employee: "" }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -394,6 +441,24 @@ export default function VehicleExpenses() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {formData.debt_assignment === 'employee' && (
+                  <div>
+                    <Label htmlFor="assigned_employee">اختيار الموظف</Label>
+                    <Select value={formData.assigned_employee} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_employee: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الموظف" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {profiles.map((profile) => (
+                          <SelectItem key={profile.user_id} value={profile.user_id}>
+                            {profile.first_name} {profile.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="description">الوصف</Label>
