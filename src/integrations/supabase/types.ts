@@ -892,6 +892,19 @@ export type Database = {
       }
     }
     Views: {
+      employee_financial_summary: {
+        Row: {
+          email: string | null
+          first_name: string | null
+          last_name: string | null
+          net_commissions: number | null
+          total_commissions: number | null
+          total_deals: number | null
+          total_debts: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       user_roles_view: {
         Row: {
           created_at: string | null
