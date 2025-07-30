@@ -35,11 +35,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
+  const { checkPermission } = useRoleAccess();
   const currentPath = location.pathname;
   const [expandedSections, setExpandedSections] = useState<string[]>(['crm']);
 
@@ -197,26 +199,56 @@ export function AppSidebar() {
                     {/* Submenu */}
                     {item.hasSubmenu && expandedSections.includes(item.title === 'إدارة العلاقات العامة' ? 'crm' : 'accounting') && !collapsed && (
                       <div className="mr-4 space-y-1">
-                        {item.submenu?.map((subItem) => (
-                          <SidebarMenuItem key={subItem.title}>
-                            <SidebarMenuButton 
-                              asChild
-                              className={`
-                                mx-3 mb-1 rounded-lg transition-all duration-200 h-10
-                                ${isActive(subItem.url) 
-                                  ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
-                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                                }
-                                justify-start px-6
-                              `}
-                            >
-                              <Link to={subItem.url} className="flex items-center w-full">
-                                <subItem.icon className="h-4 w-4 ml-3" />
-                                <span className="text-sm">{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
+                         {item.submenu?.filter(subItem => {
+                           // Check permissions for each submenu item
+                           if (subItem.url.includes('/crm/')) {
+                             return checkPermission('canViewAllClients');
+                           }
+                           if (subItem.url.includes('/accounting/expenses')) {
+                             return checkPermission('canManageExpenses');
+                           }
+                           if (subItem.url.includes('/accounting/revenues')) {
+                             return checkPermission('canManageRevenues');
+                           }
+                           if (subItem.url.includes('/accounting/commissions')) {
+                             return checkPermission('canManageCommissions');
+                           }
+                           if (subItem.url.includes('/accounting/debts')) {
+                             return checkPermission('canManageDebts');
+                           }
+                           if (subItem.url.includes('/accounting/vehicles')) {
+                             return checkPermission('canViewAllVehicles');
+                           }
+                           if (subItem.url.includes('/accounting/staff')) {
+                             return checkPermission('canViewAllStaff');
+                           }
+                           if (subItem.url.includes('/accounting/treasury')) {
+                             return checkPermission('canViewTreasury');
+                           }
+                           if (subItem.url.includes('/accounting/activity-log')) {
+                             return checkPermission('canViewActivityLogs');
+                           }
+                           return true; // Default allow
+                         }).map((subItem) => (
+                           <SidebarMenuItem key={subItem.title}>
+                             <SidebarMenuButton 
+                               asChild
+                               className={`
+                                 mx-3 mb-1 rounded-lg transition-all duration-200 h-10
+                                 ${isActive(subItem.url) 
+                                   ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                                 }
+                                 justify-start px-6
+                               `}
+                             >
+                               <Link to={subItem.url} className="flex items-center w-full">
+                                 <subItem.icon className="h-4 w-4 ml-3" />
+                                 <span className="text-sm">{subItem.title}</span>
+                               </Link>
+                             </SidebarMenuButton>
+                           </SidebarMenuItem>
+                         ))}
                       </div>
                     )}
                   </div>
@@ -275,7 +307,10 @@ export function AppSidebar() {
                   </p>
                 </div>
               </div>
-              <button className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+              <button 
+                onClick={signOut}
+                className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
                 <LogOut className="h-4 w-4 ml-2" />
                 تسجيل الخروج
               </button>

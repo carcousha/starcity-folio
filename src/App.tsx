@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
 import { DashboardHome } from "@/components/DashboardHome";
 import Auth from "./pages/Auth";
@@ -34,18 +35,71 @@ const App = () => (
             <Routes>
               <Route path="/" element={<DashboardHome />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/crm" element={<CRMIndex />} />
-              <Route path="/crm/clients" element={<Clients />} />
-              <Route path="/accounting" element={<AccountingIndex />} />
-              <Route path="/accounting/expenses" element={<Expenses />} />
-              <Route path="/accounting/revenues" element={<Revenues />} />
-              <Route path="/accounting/commissions" element={<Commissions />} />
-              <Route path="/accounting/debts" element={<Debts />} />
-              <Route path="/accounting/vehicles" element={<Vehicles />} />
-              <Route path="/accounting/vehicle-expenses" element={<VehicleExpenses />} />
-          <Route path="/accounting/staff" element={<Staff />} />
-          <Route path="/accounting/treasury" element={<Treasury />} />
-          <Route path="/accounting/activity-log" element={<ActivityLogPage />} />
+              
+              {/* CRM Routes - Admin and some for employees */}
+              <Route path="/crm" element={
+                <ProtectedRoute requiredPermission="canViewAllClients">
+                  <CRMIndex />
+                </ProtectedRoute>
+              } />
+              <Route path="/crm/clients" element={
+                <ProtectedRoute requiredPermission="canViewAllClients">
+                  <Clients />
+                </ProtectedRoute>
+              } />
+              
+              {/* Accounting Routes - Admin and Accountant */}
+              <Route path="/accounting" element={
+                <ProtectedRoute requiredPermission="canViewFinancials">
+                  <AccountingIndex />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/expenses" element={
+                <ProtectedRoute requiredPermission="canManageExpenses">
+                  <Expenses />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/revenues" element={
+                <ProtectedRoute requiredPermission="canManageRevenues">
+                  <Revenues />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/commissions" element={
+                <ProtectedRoute requiredPermission="canManageCommissions">
+                  <Commissions />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/debts" element={
+                <ProtectedRoute requiredPermission="canManageDebts">
+                  <Debts />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/vehicles" element={
+                <ProtectedRoute requiredPermission="canViewAllVehicles">
+                  <Vehicles />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/vehicle-expenses" element={
+                <ProtectedRoute requiredPermission="canViewAllVehicles">
+                  <VehicleExpenses />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/staff" element={
+                <ProtectedRoute requiredPermission="canViewAllStaff">
+                  <Staff />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/treasury" element={
+                <ProtectedRoute requiredPermission="canViewTreasury">
+                  <Treasury />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/activity-log" element={
+                <ProtectedRoute requiredPermission="canViewActivityLogs">
+                  <ActivityLogPage />
+                </ProtectedRoute>
+              } />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
