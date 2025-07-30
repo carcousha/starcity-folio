@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, AlertTriangle, CheckCircle } from "lucide-react";
+import { Plus, AlertTriangle, CheckCircle, Search, Filter, Download, Calendar, Users, Bell, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,16 +27,30 @@ interface Debt {
   created_at: string;
 }
 
+interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  user_id: string;
+}
+
 export default function Debts() {
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [filteredDebts, setFilteredDebts] = useState<Debt[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     debtor_name: "",
     debtor_type: "",
+    debtor_id: "",
     amount: "",
     description: "",
     due_date: ""
@@ -50,9 +64,34 @@ export default function Debts() {
     "أخرى"
   ];
 
+  const statuses = [
+    { value: "pending", label: "معلقة" },
+    { value: "paid", label: "مسددة" },
+    { value: "overdue", label: "متأخرة" }
+  ];
+
   useEffect(() => {
     fetchDebts();
+    fetchProfiles();
   }, []);
+
+  useEffect(() => {
+    filterDebts();
+  }, [debts, searchTerm, statusFilter, typeFilter, dateFilter]);
+
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, user_id')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    }
+  };
 
   const fetchDebts = async () => {
     try {
@@ -74,21 +113,67 @@ export default function Debts() {
     }
   };
 
+  const filterDebts = () => {
+    let filtered = debts;
+
+    if (searchTerm) {
+      filtered = filtered.filter(debt => 
+        debt.debtor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        debt.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter) {
+      if (statusFilter === "overdue") {
+        filtered = filtered.filter(debt => 
+          debt.status === 'pending' && 
+          debt.due_date && 
+          new Date(debt.due_date) < new Date()
+        );
+      } else {
+        filtered = filtered.filter(debt => debt.status === statusFilter);
+      }
+    }
+
+    if (typeFilter) {
+      filtered = filtered.filter(debt => debt.debtor_type === typeFilter);
+    }
+
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter);
+      const filterMonth = filterDate.getMonth();
+      const filterYear = filterDate.getFullYear();
+      
+      filtered = filtered.filter(debt => {
+        const debtDate = new Date(debt.created_at);
+        return debtDate.getMonth() === filterMonth && debtDate.getFullYear() === filterYear;
+      });
+    }
+
+    setFilteredDebts(filtered);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      const insertData: any = {
+        debtor_name: formData.debtor_name,
+        debtor_type: formData.debtor_type,
+        amount: parseFloat(formData.amount),
+        description: formData.description,
+        due_date: formData.due_date || null,
+        status: 'pending',
+        recorded_by: user?.id
+      };
+
+      if (formData.debtor_id) {
+        insertData.debtor_id = formData.debtor_id;
+      }
+
       const { error } = await supabase
         .from('debts')
-        .insert([{
-          debtor_name: formData.debtor_name,
-          debtor_type: formData.debtor_type,
-          amount: parseFloat(formData.amount),
-          description: formData.description,
-          due_date: formData.due_date || null,
-          status: 'pending',
-          recorded_by: user?.id
-        }]);
+        .insert([insertData]);
 
       if (error) throw error;
 
@@ -101,6 +186,7 @@ export default function Debts() {
       setFormData({
         debtor_name: "",
         debtor_type: "",
+        debtor_id: "",
         amount: "",
         description: "",
         due_date: ""
@@ -142,19 +228,51 @@ export default function Debts() {
     }
   };
 
-  const totalPendingDebt = debts
+  const totalPendingDebt = filteredDebts
     .filter(debt => debt.status === 'pending')
     .reduce((sum, debt) => sum + debt.amount, 0);
 
-  const totalPaidDebt = debts
+  const totalPaidDebt = filteredDebts
     .filter(debt => debt.status === 'paid')
     .reduce((sum, debt) => sum + debt.amount, 0);
 
-  const overdueDebts = debts.filter(debt => 
+  const overdueDebts = filteredDebts.filter(debt => 
     debt.status === 'pending' && 
     debt.due_date && 
     new Date(debt.due_date) < new Date()
   );
+
+  const employeeDebts = profiles.map(profile => {
+    const userDebts = debts.filter(debt => debt.debtor_id === profile.user_id && debt.status === 'pending');
+    const totalAmount = userDebts.reduce((sum, debt) => sum + debt.amount, 0);
+    return {
+      name: `${profile.first_name} ${profile.last_name}`,
+      amount: totalAmount,
+      count: userDebts.length
+    };
+  }).filter(emp => emp.amount > 0);
+
+  const exportToCSV = () => {
+    const headers = ['المدين', 'النوع', 'المبلغ', 'تاريخ الاستحقاق', 'الحالة', 'تاريخ السداد', 'الوصف'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredDebts.map(debt => [
+        debt.debtor_name,
+        debt.debtor_type,
+        debt.amount,
+        debt.due_date || '-',
+        debt.status === 'paid' ? 'مسددة' : debt.due_date && new Date(debt.due_date) < new Date() ? 'متأخرة' : 'معلقة',
+        debt.paid_at ? new Date(debt.paid_at).toLocaleDateString('ar-AE') : '-',
+        debt.description || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `debts_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
 
   if (loading) {
     return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
@@ -167,84 +285,129 @@ export default function Debts() {
           <h1 className="text-3xl font-bold text-gray-900">إدارة المديونيات</h1>
           <p className="text-gray-600 mt-2">متابعة مديونيات الموظفين والعملاء</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة مديونية
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md" dir="rtl">
-            <DialogHeader>
-              <DialogTitle>إضافة مديونية جديدة</DialogTitle>
-              <DialogDescription>
-                أدخل تفاصيل المديونية الجديدة
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="debtor_name">اسم المدين</Label>
-                <Input
-                  id="debtor_name"
-                  value={formData.debtor_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, debtor_name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="debtor_type">نوع المدين</Label>
-                <Select value={formData.debtor_type} onValueChange={(value) => setFormData(prev => ({ ...prev, debtor_type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر نوع المدين" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {debtorTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="amount">المبلغ</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="due_date">تاريخ الاستحقاق (اختياري)</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">الوصف/السبب</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                حفظ المديونية
+        <div className="flex gap-2">
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="h-4 w-4 ml-2" />
+            تصدير
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة مديونية
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-md" dir="rtl">
+              <DialogHeader>
+                <DialogTitle>إضافة مديونية جديدة</DialogTitle>
+                <DialogDescription>
+                  أدخل تفاصيل المديونية الجديدة
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="debtor_name">اسم المدين</Label>
+                  <Input
+                    id="debtor_name"
+                    value={formData.debtor_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, debtor_name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="debtor_type">نوع المدين</Label>
+                  <Select value={formData.debtor_type} onValueChange={(value) => setFormData(prev => ({ ...prev, debtor_type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر نوع المدين" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {debtorTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.debtor_type === "موظف" && (
+                  <div>
+                    <Label htmlFor="debtor_id">الموظف (اختياري)</Label>
+                    <Select value={formData.debtor_id} onValueChange={(value) => {
+                      const selectedProfile = profiles.find(p => p.user_id === value);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        debtor_id: value,
+                        debtor_name: selectedProfile ? `${selectedProfile.first_name} ${selectedProfile.last_name}` : prev.debtor_name
+                      }));
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الموظف" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">بدون ربط</SelectItem>
+                        {profiles.map((profile) => (
+                          <SelectItem key={profile.user_id} value={profile.user_id}>
+                            {profile.first_name} {profile.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="amount">المبلغ</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="due_date">تاريخ الاستحقاق (اختياري)</Label>
+                  <Input
+                    id="due_date"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">الوصف/السبب</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  حفظ المديونية
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {overdueDebts.length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-800">
+              <Bell className="h-5 w-5" />
+              تنبيه: مديونيات متأخرة
+            </CardTitle>
+            <CardDescription className="text-red-600">
+              يوجد {overdueDebts.length} مديونية متأخرة عن موعد الاستحقاق بإجمالي {overdueDebts.reduce((sum, debt) => sum + debt.amount, 0).toLocaleString('ar-AE')} درهم
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">المديونيات المعلقة</CardTitle>
@@ -252,10 +415,10 @@ export default function Debts() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {totalPendingDebt.toLocaleString('ar-EG')} ج.م
+              {totalPendingDebt.toLocaleString('ar-AE')} درهم
             </div>
             <p className="text-xs text-muted-foreground">
-              {debts.filter(d => d.status === 'pending').length} مديونية معلقة
+              {filteredDebts.filter(d => d.status === 'pending').length} مديونية معلقة
             </p>
           </CardContent>
         </Card>
@@ -267,10 +430,10 @@ export default function Debts() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {totalPaidDebt.toLocaleString('ar-EG')} ج.م
+              {totalPaidDebt.toLocaleString('ar-AE')} درهم
             </div>
             <p className="text-xs text-muted-foreground">
-              {debts.filter(d => d.status === 'paid').length} مديونية مسددة
+              {filteredDebts.filter(d => d.status === 'paid').length} مديونية مسددة
             </p>
           </CardContent>
         </Card>
@@ -289,7 +452,110 @@ export default function Debts() {
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي المديونيات</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(totalPendingDebt + totalPaidDebt).toLocaleString('ar-AE')} درهم
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {filteredDebts.length} مديونية إجمالية
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
+      {employeeDebts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              مديونيات الموظفين
+            </CardTitle>
+            <CardDescription>تفاصيل المديونيات المعلقة لكل موظف</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {employeeDebts.map((emp, index) => (
+                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">{emp.name}</span>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-lg font-bold text-red-600">
+                      {emp.amount.toLocaleString('ar-AE')} درهم
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {emp.count} مديونية
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>البحث والتصفية</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="البحث في المديونيات..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 ml-2" />
+                <SelectValue placeholder="تصفية حسب الحالة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">جميع الحالات</SelectItem>
+                {statuses.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[200px]">
+                <Filter className="h-4 w-4 ml-2" />
+                <SelectValue placeholder="تصفية حسب النوع" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">جميع الأنواع</SelectItem>
+                {debtorTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="month"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-[200px]"
+              placeholder="تصفية حسب الشهر"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -312,21 +578,29 @@ export default function Debts() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {debts.map((debt) => {
+              {filteredDebts.map((debt) => {
                 const isOverdue = debt.status === 'pending' && debt.due_date && new Date(debt.due_date) < new Date();
+                const employee = profiles.find(p => p.user_id === debt.debtor_id);
                 
                 return (
                   <TableRow key={debt.id} className={isOverdue ? 'bg-red-50' : ''}>
-                    <TableCell className="font-medium">{debt.debtor_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {debt.debtor_type === "موظف" && employee && (
+                          <Users className="h-4 w-4 text-gray-400" />
+                        )}
+                        {debt.debtor_name}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{debt.debtor_type}</Badge>
                     </TableCell>
                     <TableCell className="font-semibold text-red-600">
-                      {debt.amount.toLocaleString('ar-EG')} ج.م
+                      {debt.amount.toLocaleString('ar-AE')} درهم
                     </TableCell>
                     <TableCell>
                       {debt.due_date 
-                        ? new Date(debt.due_date).toLocaleDateString('ar-EG')
+                        ? new Date(debt.due_date).toLocaleDateString('ar-AE')
                         : "-"
                       }
                     </TableCell>
@@ -360,7 +634,7 @@ export default function Debts() {
                   </TableRow>
                 );
               })}
-              {debts.length === 0 && (
+              {filteredDebts.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     لا توجد مديونيات لعرضها
