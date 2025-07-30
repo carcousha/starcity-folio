@@ -34,7 +34,7 @@ import ActivityLog from "@/components/ActivityLog";
 
 interface Staff {
   id: string;
-  user_id: string;
+  user_id: string | null;
   first_name: string;
   last_name: string;
   email: string;
@@ -156,14 +156,11 @@ export default function Staff() {
         return;
       }
 
-      // Generate a valid UUID for user_id
-      const tempUserId = crypto.randomUUID();
-      
-      // Direct insert into profiles table with valid UUID
+      // Direct insert into profiles table without user_id (for staff without auth accounts)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
-          user_id: tempUserId,
+          user_id: null, // No auth account for this employee
           first_name: newEmployee.first_name.trim(),
           last_name: newEmployee.last_name.trim(),
           email: newEmployee.email.trim(),
@@ -222,12 +219,14 @@ export default function Staff() {
 
   const openEmployeeProfile = async (employee: Staff) => {
     setSelectedEmployee(employee);
-    await fetchEmployeeStats(employee.user_id);
+    if (employee.user_id) {
+      await fetchEmployeeStats(employee.user_id);
+    }
     setShowProfileDialog(true);
   };
 
   const EmployeeProfileContent = ({ employee }: { employee: Staff }) => {
-    const { data: financialData, loading: financialLoading } = useEmployeeFinancialData(employee.user_id);
+    const { data: financialData, loading: financialLoading } = useEmployeeFinancialData(employee.user_id || "");
 
     return (
       <Tabs defaultValue="info" className="w-full">
@@ -398,7 +397,7 @@ export default function Staff() {
         </TabsContent>
 
         <TabsContent value="activities">
-          <ActivityLog userId={employee.user_id} limit={20} showHeader={false} />
+          <ActivityLog userId={employee.user_id || undefined} limit={20} showHeader={false} />
         </TabsContent>
       </Tabs>
     );
