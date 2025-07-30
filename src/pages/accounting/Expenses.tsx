@@ -95,7 +95,7 @@ export default function Expenses() {
       );
     }
 
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== "all") {
       filtered = filtered.filter(expense => expense.category === categoryFilter);
     }
 
@@ -429,7 +429,7 @@ export default function Expenses() {
                 <SelectValue placeholder="تصفية حسب الفئة" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الفئات</SelectItem>
+                <SelectItem value="all">جميع الفئات</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}

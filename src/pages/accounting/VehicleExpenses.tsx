@@ -146,11 +146,11 @@ export default function VehicleExpenses() {
       );
     }
 
-    if (typeFilter) {
+    if (typeFilter && typeFilter !== "all") {
       filtered = filtered.filter(expense => expense.expense_type === typeFilter);
     }
 
-    if (vehicleFilter) {
+    if (vehicleFilter && vehicleFilter !== "all") {
       filtered = filtered.filter(expense => expense.vehicle_id === vehicleFilter);
     }
 
@@ -614,7 +614,7 @@ export default function VehicleExpenses() {
                 <SelectValue placeholder="تصفية حسب النوع" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الأنواع</SelectItem>
+                <SelectItem value="all">جميع الأنواع</SelectItem>
                 {expenseTypes.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
                     {type.label}
@@ -628,7 +628,7 @@ export default function VehicleExpenses() {
                 <SelectValue placeholder="تصفية حسب السيارة" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع السيارات</SelectItem>
+                <SelectItem value="all">جميع السيارات</SelectItem>
                 {vehicles.map((vehicle) => (
                   <SelectItem key={vehicle.id} value={vehicle.id}>
                     {vehicle.make} {vehicle.model} ({vehicle.license_plate})

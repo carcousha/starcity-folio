@@ -123,7 +123,7 @@ export default function Debts() {
       );
     }
 
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== "all") {
       if (statusFilter === "overdue") {
         filtered = filtered.filter(debt => 
           debt.status === 'pending' && 
@@ -135,7 +135,7 @@ export default function Debts() {
       }
     }
 
-    if (typeFilter) {
+    if (typeFilter && typeFilter !== "all") {
       filtered = filtered.filter(debt => debt.debtor_type === typeFilter);
     }
 
@@ -167,7 +167,7 @@ export default function Debts() {
         recorded_by: user?.id
       };
 
-      if (formData.debtor_id) {
+      if (formData.debtor_id && formData.debtor_id !== "unassigned") {
         insertData.debtor_id = formData.debtor_id;
       }
 
@@ -344,7 +344,7 @@ export default function Debts() {
                         <SelectValue placeholder="اختر الموظف" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون ربط</SelectItem>
+                        <SelectItem value="unassigned">بدون ربط</SelectItem>
                         {profiles.map((profile) => (
                           <SelectItem key={profile.user_id} value={profile.user_id}>
                             {profile.first_name} {profile.last_name}
@@ -524,7 +524,7 @@ export default function Debts() {
                 <SelectValue placeholder="تصفية حسب الحالة" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الحالات</SelectItem>
+                <SelectItem value="all">جميع الحالات</SelectItem>
                 {statuses.map((status) => (
                   <SelectItem key={status.value} value={status.value}>
                     {status.label}
@@ -538,7 +538,7 @@ export default function Debts() {
                 <SelectValue placeholder="تصفية حسب النوع" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الأنواع</SelectItem>
+                <SelectItem value="all">جميع الأنواع</SelectItem>
                 {debtorTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}

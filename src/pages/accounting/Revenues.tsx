@@ -125,11 +125,11 @@ export default function Revenues() {
       );
     }
 
-    if (sourceFilter) {
+    if (sourceFilter && sourceFilter !== "all") {
       filtered = filtered.filter(revenue => revenue.source === sourceFilter);
     }
 
-    if (typeFilter) {
+    if (typeFilter && typeFilter !== "all") {
       filtered = filtered.filter(revenue => revenue.revenue_type === typeFilter);
     }
 
@@ -164,7 +164,7 @@ export default function Revenues() {
         insertData.revenue_type = formData.revenue_type;
       }
 
-      if (formData.employee_id) {
+      if (formData.employee_id && formData.employee_id !== "unassigned") {
         insertData.employee_id = formData.employee_id;
       }
 
@@ -361,7 +361,7 @@ export default function Revenues() {
                       <SelectValue placeholder="اختر الموظف" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">بدون موظف محدد</SelectItem>
+                      <SelectItem value="unassigned">بدون موظف محدد</SelectItem>
                       {profiles.map((profile) => (
                         <SelectItem key={profile.id} value={profile.id}>
                           {profile.first_name} {profile.last_name}
@@ -543,7 +543,7 @@ export default function Revenues() {
                 <SelectValue placeholder="تصفية حسب المصدر" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع المصادر</SelectItem>
+                <SelectItem value="all">جميع المصادر</SelectItem>
                 {sources.map((source) => (
                   <SelectItem key={source} value={source}>
                     {source}
@@ -557,7 +557,7 @@ export default function Revenues() {
                 <SelectValue placeholder="تصفية حسب النوع" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الأنواع</SelectItem>
+                <SelectItem value="all">جميع الأنواع</SelectItem>
                 {revenueTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}

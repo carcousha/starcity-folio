@@ -153,7 +153,7 @@ export default function Vehicles() {
       );
     }
 
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== "all") {
       filtered = filtered.filter(vehicle => vehicle.status === statusFilter);
     }
 
@@ -170,7 +170,7 @@ export default function Vehicles() {
         year: parseInt(formData.year),
         license_plate: formData.license_plate,
         color: formData.color || null,
-        assigned_to: formData.assigned_to || null,
+        assigned_to: formData.assigned_to === "unassigned" ? null : formData.assigned_to || null,
         purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
         purchase_date: formData.purchase_date || null,
         license_expiry: formData.license_expiry || null,
@@ -363,7 +363,7 @@ export default function Vehicles() {
                         <SelectValue placeholder="اختر الموظف" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون موظف</SelectItem>
+                        <SelectItem value="unassigned">بدون موظف</SelectItem>
                         {profiles.map((profile) => (
                           <SelectItem key={profile.user_id} value={profile.user_id}>
                             {profile.first_name} {profile.last_name}
@@ -550,7 +550,7 @@ export default function Vehicles() {
                 <SelectValue placeholder="تصفية حسب الحالة" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الحالات</SelectItem>
+                <SelectItem value="all">جميع الحالات</SelectItem>
                 {statusOptions.map((status) => (
                   <SelectItem key={status.value} value={status.value}>
                     {status.label}
