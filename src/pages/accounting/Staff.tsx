@@ -146,65 +146,33 @@ export default function Staff() {
 
   const handleAddEmployee = async () => {
     try {
-      // Generate a strong password for the new employee
-      const tempPassword = `Emp${Math.random().toString(36).slice(2)}${Date.now().toString().slice(-4)}!`;
-      
-      // Create the user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newEmployee.email,
-        password: tempPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            first_name: newEmployee.first_name,
-            last_name: newEmployee.last_name,
-            role: newEmployee.role
-          }
-        }
-      });
-
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw new Error('فشل في إنشاء حساب المصادقة: ' + authError.message);
-      }
-
-      if (!authData.user) {
-        throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
-      }
-
-      // Wait a moment for the trigger to create the profile
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Update the profile with additional data
-      const { error: updateError } = await supabase
+      // Direct insert into profiles table instead of using auth signup
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .update({
+        .insert({
+          first_name: newEmployee.first_name,
+          last_name: newEmployee.last_name,
+          email: newEmployee.email,
           phone: newEmployee.phone,
-          role: newEmployee.role
+          role: newEmployee.role,
+          user_id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`, // Temporary user_id
+          is_active: true
         })
-        .eq('user_id', authData.user.id);
+        .select()
+        .single();
 
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        // Don't throw error here as the main profile was created by trigger
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw new Error('فشل في إنشاء الملف الشخصي: ' + profileError.message);
       }
 
-      // Add role to user_roles table
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: newEmployee.role
-        });
-
-      if (roleError) {
-        console.error('Role assignment error:', roleError);
-        // Don't throw error as the role might already exist from trigger
+      if (!profileData) {
+        throw new Error('لم يتم إنشاء الملف الشخصي بشكل صحيح');
       }
 
       toast({
         title: "تم بنجاح",
-        description: `تم إضافة الموظف بنجاح. كلمة المرور المؤقتة: ${tempPassword}`,
+        description: "تم إضافة الموظف بنجاح",
       });
 
       setShowAddDialog(false);
