@@ -132,9 +132,11 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 space-x-reverse">
-              <div className="p-2 rounded-lg bg-primary text-primary-foreground">
-                <Building className="h-6 w-6" />
-              </div>
+              <img 
+                src="/lovable-uploads/0ebdd2d6-a147-4eaa-a1ee-3b88e1c3739f.png" 
+                alt="ستار سيتي العقارية"
+                className="h-10 w-auto"
+              />
               <div>
                 <h1 className="text-xl font-bold">ستار سيتي العقارية</h1>
                 <p className="text-sm text-muted-foreground">نظام إدارة العقارات</p>

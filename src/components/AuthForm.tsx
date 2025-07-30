@@ -124,9 +124,11 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="p-3 rounded-full bg-primary text-primary-foreground">
-              <Building className="h-8 w-8" />
-            </div>
+            <img 
+              src="/lovable-uploads/0ebdd2d6-a147-4eaa-a1ee-3b88e1c3739f.png" 
+              alt="ستار سيتي العقارية"
+              className="h-20 w-auto"
+            />
           </div>
           <CardTitle className="text-2xl font-bold">ستار سيتي العقارية</CardTitle>
           <CardDescription>
