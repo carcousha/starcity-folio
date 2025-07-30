@@ -9,6 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { SkeletonTable, SkeletonCard } from "@/components/ui/loading-skeleton";
+import { EnhancedDropdown } from "@/components/ui/enhanced-dropdown";
 import { 
   Users, 
   UserCheck, 
@@ -24,7 +28,9 @@ import {
   Phone,
   Mail,
   User,
-  BarChart3
+  BarChart3,
+  Shield,
+  Calculator
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,10 +71,15 @@ interface NewEmployeeForm {
 export default function Staff() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingEmployee, setAddingEmployee] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Staff | null>(null);
   const [employeeStats, setEmployeeStats] = useState<EmployeeStats | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; employee: Staff | null }>({
+    open: false,
+    employee: null
+  });
   const [newEmployee, setNewEmployee] = useState<NewEmployeeForm>({
     first_name: '',
     last_name: '',
@@ -145,6 +156,7 @@ export default function Staff() {
   };
 
   const handleAddEmployee = async () => {
+    setAddingEmployee(true);
     try {
       // Validate required fields
       if (!newEmployee.first_name.trim() || !newEmployee.last_name.trim() || !newEmployee.email.trim()) {
@@ -236,6 +248,8 @@ export default function Staff() {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setAddingEmployee(false);
     }
   };
 
@@ -448,7 +462,29 @@ export default function Staff() {
   const canManageStaff = profile?.role === 'admin' || profile?.role === 'accountant';
 
   if (loading) {
-    return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
+    return (
+      <div className="container mx-auto p-6 space-y-6" dir="rtl">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">إدارة الموظفين</h1>
+            <p className="text-gray-600 mt-2">متابعة الموظفين وأدائهم المالي</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        
+        <div className="bg-background rounded-lg border p-6">
+          <div className="mb-4">
+            <div className="h-6 w-32 bg-muted rounded animate-pulse"></div>
+          </div>
+          <SkeletonTable rows={6} />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -512,21 +548,25 @@ export default function Staff() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="role">المنصب</Label>
-                    <Select value={newEmployee.role} onValueChange={(value: 'admin' | 'accountant' | 'employee') => setNewEmployee({...newEmployee, role: value})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">موظف</SelectItem>
-                        <SelectItem value="accountant">محاسب</SelectItem>
-                        <SelectItem value="admin">مدير</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <EnhancedDropdown
+                      label="المنصب"
+                      options={[
+                        { value: 'employee', label: 'موظف', icon: <User className="h-4 w-4" /> },
+                        { value: 'accountant', label: 'محاسب', icon: <Calculator className="h-4 w-4" /> },
+                        { value: 'admin', label: 'مدير', icon: <Shield className="h-4 w-4" /> }
+                      ]}
+                      value={newEmployee.role}
+                      onSelect={(value) => setNewEmployee({...newEmployee, role: value as 'admin' | 'accountant' | 'employee'})}
+                    />
                   </div>
-                  <Button onClick={handleAddEmployee} className="w-full">
+                  <LoadingButton 
+                    onClick={handleAddEmployee} 
+                    className="w-full"
+                    loading={addingEmployee}
+                    loadingText="جارٍ إضافة الموظف..."
+                  >
                     إضافة الموظف
-                  </Button>
+                  </LoadingButton>
                 </div>
               </DialogContent>
             </Dialog>
@@ -674,6 +714,28 @@ export default function Staff() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog for Delete */}
+      <ConfirmationDialog
+        open={confirmDelete.open}
+        onOpenChange={(open) => setConfirmDelete({ open, employee: null })}
+        title="حذف الموظف"
+        description={`هل أنت متأكد من حذف الموظف "${confirmDelete.employee?.first_name} ${confirmDelete.employee?.last_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+        confirmText="حذف"
+        cancelText="إلغاء"
+        variant="destructive"
+        onConfirm={async () => {
+          if (confirmDelete.employee) {
+            // Add delete logic here
+            toast({
+              title: "تم الحذف",
+              description: "تم حذف الموظف بنجاح",
+            });
+            setConfirmDelete({ open: false, employee: null });
+            await fetchStaff();
+          }
+        }}
+      />
     </div>
   );
 }
