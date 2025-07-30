@@ -146,16 +146,29 @@ export default function Staff() {
 
   const handleAddEmployee = async () => {
     try {
-      // Direct insert into profiles table instead of using auth signup
+      // Validate required fields
+      if (!newEmployee.first_name.trim() || !newEmployee.last_name.trim() || !newEmployee.email.trim()) {
+        toast({
+          title: "خطأ",
+          description: "يرجى ملء جميع الحقول المطلوبة",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Generate a valid UUID for user_id
+      const tempUserId = crypto.randomUUID();
+      
+      // Direct insert into profiles table with valid UUID
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
-          first_name: newEmployee.first_name,
-          last_name: newEmployee.last_name,
-          email: newEmployee.email,
-          phone: newEmployee.phone,
+          user_id: tempUserId,
+          first_name: newEmployee.first_name.trim(),
+          last_name: newEmployee.last_name.trim(),
+          email: newEmployee.email.trim(),
+          phone: newEmployee.phone.trim() || null,
           role: newEmployee.role,
-          user_id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`, // Temporary user_id
           is_active: true
         })
         .select()
@@ -164,10 +177,6 @@ export default function Staff() {
       if (profileError) {
         console.error('Profile creation error:', profileError);
         throw new Error('فشل في إنشاء الملف الشخصي: ' + profileError.message);
-      }
-
-      if (!profileData) {
-        throw new Error('لم يتم إنشاء الملف الشخصي بشكل صحيح');
       }
 
       toast({
