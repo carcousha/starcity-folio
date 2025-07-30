@@ -946,6 +946,10 @@ export type Database = {
       }
     }
     Functions: {
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       get_employee_financial_summary: {
         Args: { employee_user_id: string }
         Returns: {
@@ -984,6 +988,13 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: string
+      }
+      secure_role_change: {
+        Args: {
+          target_user_id: string
+          new_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
       }
     }
     Enums: {
