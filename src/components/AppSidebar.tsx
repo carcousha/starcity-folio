@@ -10,7 +10,9 @@ import {
   Settings,
   BarChart3,
   UserCheck,
-  Calculator
+  Calculator,
+  Brain,
+  LogOut
 } from "lucide-react";
 
 import {
@@ -36,123 +38,157 @@ export function AppSidebar() {
 
   const isActive = (path: string) => currentPath === path;
   
-  // Core navigation items available to all users
-  const coreItems = [
+  // Main navigation items
+  const mainItems = [
     { title: "الرئيسية", url: "/", icon: Home },
-    { title: "العقارات", url: "/properties", icon: Building },
-    { title: "العملاء", url: "/clients", icon: Users },
+    { title: "إدارة العلاقات العامة", url: "/crm", icon: Brain },
+    { title: "إدارة الحسابات", url: "/accounting", icon: BarChart3 },
   ];
 
-  // Employee-specific items
-  const employeeItems = [
-    { title: "صفقاتي", url: "/my-deals", icon: FileText },
-    { title: "عمولاتي", url: "/my-commissions", icon: HandCoins },
-  ];
+  // Current modules based on user role
+  const getCurrentModules = () => {
+    if (!profile) return [];
 
-  // Accountant and Admin items
-  const accountantItems = [
-    { title: "المحاسبة", url: "/accounting", icon: Calculator },
-    { title: "التقارير المالية", url: "/reports", icon: BarChart3 },
-    { title: "إدارة العمولات", url: "/commissions", icon: HandCoins },
-    { title: "إدارة السيارات", url: "/vehicles", icon: Car },
-  ];
-
-  // Admin-only items
-  const adminItems = [
-    { title: "إدارة المستخدمين", url: "/users", icon: UserCheck },
-    { title: "الإعدادات", url: "/settings", icon: Settings },
-  ];
-
-  const getNavigationItems = () => {
-    if (!profile) return coreItems;
-
-    let items = [...coreItems];
+    const baseModules = [
+      { title: "العقارات", url: "/properties", icon: Building },
+      { title: "العملاء", url: "/clients", icon: Users },
+    ];
 
     switch (profile.role) {
-      case 'admin':
-        items = [...items, ...adminItems, ...accountantItems];
-        break;
-      case 'accountant':
-        items = [...items, ...accountantItems];
-        break;
       case 'employee':
-        items = [...items, ...employeeItems];
-        break;
+        return [
+          ...baseModules,
+          { title: "صفقاتي", url: "/my-deals", icon: FileText },
+          { title: "عمولاتي", url: "/my-commissions", icon: HandCoins },
+        ];
+      case 'accountant':
+        return [
+          ...baseModules,
+          { title: "التقارير المالية", url: "/reports", icon: TrendingUp },
+          { title: "إدارة العمولات", url: "/commissions", icon: HandCoins },
+          { title: "إدارة السيارات", url: "/vehicles", icon: Car },
+        ];
+      case 'admin':
+        return [
+          ...baseModules,
+          { title: "التقارير المالية", url: "/reports", icon: TrendingUp },
+          { title: "إدارة العمولات", url: "/commissions", icon: HandCoins },
+          { title: "إدارة السيارات", url: "/vehicles", icon: Car },
+          { title: "إدارة المستخدمين", url: "/users", icon: UserCheck },
+          { title: "الإعدادات", url: "/settings", icon: Settings },
+        ];
+      default:
+        return baseModules;
     }
-
-    return items;
   };
-
-  const navigationItems = getNavigationItems();
 
   return (
     <Sidebar
-      className={`${collapsed ? "w-16" : "w-64"} transition-all duration-300 border-l border-sidebar-border`}
+      className="border-l border-gray-200 bg-white"
       collapsible="icon"
       side="right"
     >
-      <SidebarContent className="bg-sidebar">
-        <div className="p-4">
-          {!collapsed && (
-            <div className="flex items-center space-x-3 space-x-reverse mb-6">
-              <img 
-                src="/lovable-uploads/0ebdd2d6-a147-4eaa-a1ee-3b88e1c3739f.png" 
-                alt="ستار سيتي العقارية"
-                className="h-8 w-auto"
-              />
+      <SidebarContent className="bg-white text-gray-900">
+        {/* Logo Section */}
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center space-x-3 space-x-reverse">
+            <img 
+              src="/lovable-uploads/0ebdd2d6-a147-4eaa-a1ee-3b88e1c3739f.png" 
+              alt="ستار سيتي العقارية"
+              className="h-10 w-auto"
+            />
+            {!collapsed && (
               <div>
-                <h2 className="text-lg font-bold text-sidebar-primary">ستار سيتي</h2>
-                <p className="text-xs text-sidebar-foreground/60">نظام إدارة العقارات</p>
+                <h2 className="text-lg font-bold text-gray-900">ستار سيتي</h2>
+                <p className="text-xs text-gray-500">نظام إدارة العقارات</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={`${collapsed ? 'px-2' : 'px-4'} text-sidebar-foreground/60`}>
-            {!collapsed && "القائمة الرئيسية"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild
-                    className={`
-                      mx-2 mb-1 rounded-lg transition-all duration-200
-                      ${isActive(item.url) 
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md hover:bg-sidebar-primary/90' 
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                      }
-                      ${collapsed ? 'justify-center px-2' : 'justify-start px-4'}
-                    `}
-                  >
-                    <Link to={item.url} className="flex items-center">
-                      <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
-                      {!collapsed && <span className="font-medium">{item.title}</span>}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Main Navigation */}
+        <div className="py-4">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {mainItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild
+                      className={`
+                        mx-3 mb-1 rounded-lg transition-all duration-200 h-12
+                        ${isActive(item.url) 
+                          ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        }
+                        ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
+                      `}
+                    >
+                      <Link to={item.url} className="flex items-center w-full">
+                        <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
+                        {!collapsed && <span className="font-medium">{item.title}</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
+          {/* Current Modules */}
+          <SidebarGroup>
+            <SidebarGroupLabel className="px-6 py-2 text-gray-500 text-sm font-medium">
+              {!collapsed && "الوحدات الحالية"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {getCurrentModules().map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild
+                      className={`
+                        mx-3 mb-1 rounded-lg transition-all duration-200 h-11
+                        ${isActive(item.url) 
+                          ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                        }
+                        ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
+                      `}
+                    >
+                      <Link to={item.url} className="flex items-center w-full">
+                        <item.icon className={`h-4 w-4 ${collapsed ? '' : 'ml-3'}`} />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
+
+        {/* User Card */}
         {!collapsed && profile && (
-          <div className="mt-auto p-4 border-t border-sidebar-border">
-            <div className="flex items-center space-x-3 space-x-reverse">
-              <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-sm font-bold">
-                {profile.first_name[0]}{profile.last_name[0]}
+          <div className="mt-auto p-4 border-t border-gray-100 bg-gray-50">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3 space-x-reverse">
+                <div className="w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">
+                  {profile.first_name[0]}{profile.last_name[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {profile.first_name} {profile.last_name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {profile.role === 'admin' ? 'مدير' : 
+                     profile.role === 'accountant' ? 'محاسب' : 'موظف'}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {profile.first_name} {profile.last_name}
-                </p>
-                <p className="text-xs text-sidebar-foreground/60">
-                  {profile.role === 'admin' ? 'مدير' : 
-                   profile.role === 'accountant' ? 'محاسب' : 'موظف'}
-                </p>
-              </div>
+              <button className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <LogOut className="h-4 w-4 ml-2" />
+                تسجيل الخروج
+              </button>
             </div>
           </div>
         )}
