@@ -12,12 +12,89 @@ import {
   PlusCircle,
   Calendar,
   DollarSign,
-  BarChart3
+  BarChart3,
+  Target,
+  AlertTriangle,
+  CheckCircle,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 export function DashboardHome() {
   const { profile } = useAuth();
+  const { checkPermission } = useRoleAccess();
+
+  // Fetch real data based on user role
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ['dashboard-data', profile?.user_id],
+    queryFn: async () => {
+      if (!profile) return null;
+      
+      const results: any = {};
+      
+      try {
+        // Get basic counts for admin/accountant
+        if (checkPermission('canViewAllClients')) {
+          const [clientsCount, propertiesCount] = await Promise.all([
+            supabase.from('clients').select('id', { count: 'exact' }),
+            supabase.from('properties').select('id', { count: 'exact' })
+          ]);
+          results.clientsCount = clientsCount.count || 0;
+          results.propertiesCount = propertiesCount.count || 0;
+        }
+        
+        // Get financial data for admin/accountant
+        if (checkPermission('canViewFinancials')) {
+          const [revenues, expenses, commissions] = await Promise.all([
+            supabase.from('revenues').select('amount'),
+            supabase.from('expenses').select('amount'),
+            supabase.from('commissions').select('total_commission')
+          ]);
+          
+          results.totalRevenues = revenues.data?.reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+          results.totalExpenses = expenses.data?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+          results.totalCommissions = commissions.data?.reduce((sum, c) => sum + Number(c.total_commission), 0) || 0;
+        }
+        
+        // Get employee-specific data
+        if (profile.role === 'employee') {
+          const [myClients, myProperties, myCommissions, myDebts] = await Promise.all([
+            supabase.from('clients').select('id').eq('assigned_to', profile.user_id),
+            supabase.from('properties').select('id').eq('listed_by', profile.user_id),
+            supabase.from('commission_employees').select('calculated_share, net_share').eq('employee_id', profile.user_id),
+            supabase.from('debts').select('amount').eq('debtor_id', profile.user_id).eq('status', 'pending')
+          ]);
+          
+          results.myClientsCount = myClients.data?.length || 0;
+          results.myPropertiesCount = myProperties.data?.length || 0;
+          results.myTotalCommissions = myCommissions.data?.reduce((sum, c) => sum + Number(c.calculated_share), 0) || 0;
+          results.myNetCommissions = myCommissions.data?.reduce((sum, c) => sum + Number(c.net_share), 0) || 0;
+          results.myDebts = myDebts.data?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
+        }
+        
+        // Get staff count for admin
+        if (checkPermission('canViewAllStaff')) {
+          const staffCount = await supabase.from('profiles').select('id', { count: 'exact' });
+          results.staffCount = staffCount.count || 0;
+        }
+        
+        // Get vehicles count for admin/accountant
+        if (checkPermission('canViewAllVehicles')) {
+          const vehiclesCount = await supabase.from('vehicles').select('id', { count: 'exact' });
+          results.vehiclesCount = vehiclesCount.count || 0;
+        }
+        
+        return results;
+      } catch (error) {
+        console.error('Dashboard data fetch error:', error);
+        return {};
+      }
+    },
+    enabled: !!profile
+  });
 
   if (!profile) return null;
 
@@ -29,29 +106,36 @@ export function DashboardHome() {
   };
 
   const getRoleSpecificStats = () => {
+    if (isLoading || !dashboardData) {
+      return [
+        { title: "جارٍ التحميل...", value: "...", icon: Clock, color: "text-gray-400", bgColor: "bg-gray-50" }
+      ];
+    }
+
     switch (profile.role) {
       case 'admin':
         return [
-          { title: "إجمالي العقارات", value: "0", icon: Building, color: "text-blue-600", bgColor: "bg-blue-50" },
-          { title: "إجمالي العملاء", value: "0", icon: Users, color: "text-green-600", bgColor: "bg-green-50" },
-          { title: "إجمالي الصفقات", value: "0", icon: FileText, color: "text-purple-600", bgColor: "bg-purple-50" },
-          { title: "إجمالي الإيرادات", value: "0 درهم", icon: DollarSign, color: "text-yellow-600", bgColor: "bg-yellow-50" },
-          { title: "عدد الموظفين", value: "0", icon: Users, color: "text-indigo-600", bgColor: "bg-indigo-50" },
-          { title: "عدد السيارات", value: "0", icon: Car, color: "text-red-600", bgColor: "bg-red-50" },
+          { title: "إجمالي العقارات", value: dashboardData.propertiesCount?.toString() || "0", icon: Building, color: "text-blue-600", bgColor: "bg-blue-50" },
+          { title: "إجمالي العملاء", value: dashboardData.clientsCount?.toString() || "0", icon: Users, color: "text-green-600", bgColor: "bg-green-50" },
+          { title: "إجمالي الإيرادات", value: `${dashboardData.totalRevenues?.toLocaleString() || "0"} د.إ`, icon: DollarSign, color: "text-yellow-600", bgColor: "bg-yellow-50" },
+          { title: "إجمالي المصروفات", value: `${dashboardData.totalExpenses?.toLocaleString() || "0"} د.إ`, icon: BarChart3, color: "text-red-600", bgColor: "bg-red-50" },
+          { title: "عدد الموظفين", value: dashboardData.staffCount?.toString() || "0", icon: Users, color: "text-indigo-600", bgColor: "bg-indigo-50" },
+          { title: "عدد السيارات", value: dashboardData.vehiclesCount?.toString() || "0", icon: Car, color: "text-purple-600", bgColor: "bg-purple-50" },
         ];
       case 'accountant':
         return [
-          { title: "الإيرادات الشهرية", value: "0 درهم", icon: TrendingUp, color: "text-green-600", bgColor: "bg-green-50" },
-          { title: "المصروفات الشهرية", value: "0 درهم", icon: BarChart3, color: "text-red-600", bgColor: "bg-red-50" },
-          { title: "العمولات المستحقة", value: "0 درهم", icon: HandCoins, color: "text-yellow-600", bgColor: "bg-yellow-50" },
-          { title: "مصروفات السيارات", value: "0 درهم", icon: Car, color: "text-blue-600", bgColor: "bg-blue-50" },
+          { title: "إجمالي الإيرادات", value: `${dashboardData.totalRevenues?.toLocaleString() || "0"} د.إ`, icon: TrendingUp, color: "text-green-600", bgColor: "bg-green-50" },
+          { title: "إجمالي المصروفات", value: `${dashboardData.totalExpenses?.toLocaleString() || "0"} د.إ`, icon: BarChart3, color: "text-red-600", bgColor: "bg-red-50" },
+          { title: "إجمالي العمولات", value: `${dashboardData.totalCommissions?.toLocaleString() || "0"} د.إ`, icon: HandCoins, color: "text-yellow-600", bgColor: "bg-yellow-50" },
+          { title: "عدد السيارات", value: dashboardData.vehiclesCount?.toString() || "0", icon: Car, color: "text-blue-600", bgColor: "bg-blue-50" },
         ];
       case 'employee':
         return [
-          { title: "عقاراتي النشطة", value: "0", icon: Building, color: "text-blue-600", bgColor: "bg-blue-50" },
-          { title: "عملائي", value: "0", icon: Users, color: "text-green-600", bgColor: "bg-green-50" },
-          { title: "صفقاتي المفتوحة", value: "0", icon: FileText, color: "text-purple-600", bgColor: "bg-purple-50" },
-          { title: "عمولاتي المستحقة", value: "0 درهم", icon: HandCoins, color: "text-yellow-600", bgColor: "bg-yellow-50" },
+          { title: "عقاراتي", value: dashboardData.myPropertiesCount?.toString() || "0", icon: Building, color: "text-blue-600", bgColor: "bg-blue-50" },
+          { title: "عملائي", value: dashboardData.myClientsCount?.toString() || "0", icon: Users, color: "text-green-600", bgColor: "bg-green-50" },
+          { title: "عمولاتي الإجمالية", value: `${dashboardData.myTotalCommissions?.toLocaleString() || "0"} د.إ`, icon: HandCoins, color: "text-yellow-600", bgColor: "bg-yellow-50" },
+          { title: "عمولاتي الصافية", value: `${dashboardData.myNetCommissions?.toLocaleString() || "0"} د.إ`, icon: CheckCircle, color: "text-emerald-600", bgColor: "bg-emerald-50" },
+          { title: "مديونياتي", value: `${dashboardData.myDebts?.toLocaleString() || "0"} د.إ`, icon: AlertTriangle, color: "text-red-600", bgColor: "bg-red-50" },
         ];
       default:
         return [];
@@ -59,31 +143,30 @@ export function DashboardHome() {
   };
 
   const getQuickActions = () => {
-    const commonActions = [
-      { title: "إضافة عقار جديد", description: "أضف عقار للنظام", icon: Building, href: "/properties/new" },
-      { title: "إضافة عميل جديد", description: "سجل عميل جديد", icon: Users, href: "/clients/new" },
-    ];
-
     switch (profile.role) {
       case 'admin':
         return [
-          ...commonActions,
-          { title: "إضافة موظف جديد", description: "تسجيل موظف في النظام", icon: Users, href: "/users/new" },
-          { title: "إضافة سيارة", description: "تسجيل سيارة جديدة", icon: Car, href: "/vehicles/new" },
+          { title: "إدارة العملاء", description: "عرض وإدارة جميع العملاء", icon: Users, href: "/crm/clients" },
+          { title: "إدارة الموظفين", description: "عرض وإدارة الموظفين", icon: Users, href: "/accounting/staff" },
+          { title: "إدارة السيارات", description: "عرض وإدارة السيارات", icon: Car, href: "/accounting/vehicles" },
+          { title: "التقارير المالية", description: "عرض التقارير والإحصائيات", icon: BarChart3, href: "/reports" },
         ];
       case 'accountant':
         return [
-          ...commonActions,
-          { title: "إضافة مصروف", description: "تسجيل مصروف جديد", icon: FileText, href: "/expenses/new" },
-          { title: "إضافة إيراد", description: "تسجيل إيراد جديد", icon: TrendingUp, href: "/revenues/new" },
+          { title: "إدارة المصروفات", description: "عرض وإضافة المصروفات", icon: FileText, href: "/accounting/expenses" },
+          { title: "إدارة الإيرادات", description: "عرض وإضافة الإيرادات", icon: TrendingUp, href: "/accounting/revenues" },
+          { title: "إدارة العمولات", description: "عرض وإدارة العمولات", icon: HandCoins, href: "/accounting/commissions" },
+          { title: "إدارة الخزينة", description: "عرض حسابات الخزينة", icon: DollarSign, href: "/accounting/treasury" },
         ];
       case 'employee':
         return [
-          ...commonActions,
-          { title: "إضافة صفقة جديدة", description: "تسجيل صفقة جديدة", icon: FileText, href: "/deals/new" },
+          { title: "عمولاتي", description: "عرض تفاصيل عمولاتي", icon: HandCoins, href: "/my-commissions" },
+          { title: "مديونياتي", description: "عرض المديونيات المستحقة", icon: AlertTriangle, href: "/accounting/debts" },
+          { title: "أهدافي", description: "عرض الأهداف والإنجازات", icon: Target, href: "/my-goals" },
+          { title: "تقييمي", description: "عرض التقييم الشخصي", icon: CheckCircle, href: "/my-evaluation" },
         ];
       default:
-        return commonActions;
+        return [];
     }
   };
 
@@ -141,20 +224,21 @@ export function DashboardHome() {
         <h2 className="text-2xl font-bold text-foreground">الإجراءات السريعة</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {getQuickActions().map((action, index) => (
-            <Card key={index} className="hover-scale hover-glow cursor-pointer group">
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                    <action.icon className="h-5 w-5 text-primary" />
+            <Link key={index} to={action.href}>
+              <Card className="hover-scale hover-glow cursor-pointer group h-full">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center space-x-3 space-x-reverse">
+                    <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <action.icon className="h-5 w-5 text-primary" />
+                    </div>
                   </div>
-                  <PlusCircle className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <CardTitle className="text-lg mb-2">{action.title}</CardTitle>
-                <CardDescription>{action.description}</CardDescription>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <CardTitle className="text-lg mb-2">{action.title}</CardTitle>
+                  <CardDescription>{action.description}</CardDescription>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

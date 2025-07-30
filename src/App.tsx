@@ -23,6 +23,9 @@ import ActivityLogPage from "./pages/accounting/ActivityLog";
 import ReportsIndex from "./pages/reports/index";
 import EmployeeReports from "./pages/reports/EmployeeReports";
 import VehicleReports from "./pages/reports/VehicleReports";
+import MyCommissions from "./pages/employee/MyCommissions";
+import MyGoals from "./pages/employee/MyGoals";
+import MyEvaluation from "./pages/employee/MyEvaluation";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 
@@ -118,6 +121,23 @@ const App = () => (
               <Route path="/reports/vehicles" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
                   <VehicleReports />
+                </ProtectedRoute>
+              } />
+              
+              {/* Employee Routes */}
+              <Route path="/my-commissions" element={
+                <ProtectedRoute requiredPermission="canViewAllCommissions">
+                  <MyCommissions />
+                </ProtectedRoute>
+              } />
+              <Route path="/my-goals" element={
+                <ProtectedRoute requiredPermission="canViewActivityLogs">
+                  <MyGoals />
+                </ProtectedRoute>
+              } />
+              <Route path="/my-evaluation" element={
+                <ProtectedRoute requiredPermission="canViewActivityLogs">
+                  <MyEvaluation />
                 </ProtectedRoute>
               } />
               
