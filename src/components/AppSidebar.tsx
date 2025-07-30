@@ -83,57 +83,36 @@ export function AppSidebar() {
       submenu: [
         { title: "المصروفات", url: "/accounting/expenses", icon: HandCoins },
         { title: "الإيرادات", url: "/accounting/revenues", icon: TrendingUp },
-        { title: "العمولات", url: "/accounting/commissions", icon: Calculator },
         { title: "المديونيات", url: "/accounting/debts", icon: FileText },
-        { title: "السيارات", url: "/accounting/vehicles", icon: Car },
         { title: "مصروفات السيارات", url: "/accounting/vehicle-expenses", icon: FileText },
         { title: "الموظفين", url: "/accounting/staff", icon: UserCheck },
         { title: "الخزينة والبنوك", url: "/accounting/treasury", icon: Wallet },
         { title: "سجل النشاطات", url: "/accounting/activity-log", icon: BarChart3 },
+        { title: "التقارير المالية", url: "/reports", icon: BarChart3 },
       ]
-    },
-    { 
-      title: "التقارير المالية", 
-      url: "/reports", 
-      icon: BarChart3,
-      hasSubmenu: false
     }
   ];
 
-  // Current modules based on user role
+  // Current modules based on user role  
   const getCurrentModules = () => {
     if (!profile) return [];
-
-    const baseModules = [
-      { title: "العقارات", url: "/properties", icon: Building },
-      { title: "العملاء", url: "/clients", icon: Users },
-    ];
 
     switch (profile.role) {
       case 'employee':
         return [
-          ...baseModules,
           { title: "صفقاتي", url: "/my-deals", icon: FileText },
           { title: "عمولاتي", url: "/my-commissions", icon: HandCoins },
         ];
       case 'accountant':
         return [
-          ...baseModules,
-          { title: "التقارير المالية", url: "/reports", icon: TrendingUp },
-          { title: "إدارة العمولات", url: "/commissions", icon: HandCoins },
-          { title: "إدارة السيارات", url: "/vehicles", icon: Car },
+          { title: "الإعدادات", url: "/settings", icon: Settings },
         ];
       case 'admin':
         return [
-          ...baseModules,
-          { title: "التقارير المالية", url: "/reports", icon: TrendingUp },
-          { title: "إدارة العمولات", url: "/commissions", icon: HandCoins },
-          { title: "إدارة السيارات", url: "/vehicles", icon: Car },
-          { title: "إدارة المستخدمين", url: "/users", icon: UserCheck },
           { title: "الإعدادات", url: "/settings", icon: Settings },
         ];
       default:
-        return baseModules;
+        return [];
     }
   };
 
@@ -216,15 +195,12 @@ export function AppSidebar() {
                            if (subItem.url.includes('/accounting/revenues')) {
                              return checkPermission('canManageRevenues');
                            }
-                           if (subItem.url.includes('/accounting/commissions')) {
-                             return checkPermission('canManageCommissions');
-                           }
-                           if (subItem.url.includes('/accounting/debts')) {
-                             return checkPermission('canManageDebts');
-                           }
-                           if (subItem.url.includes('/accounting/vehicles')) {
-                             return checkPermission('canViewAllVehicles');
-                           }
+                            if (subItem.url.includes('/accounting/debts')) {
+                              return checkPermission('canManageDebts');
+                            }
+                            if (subItem.url.includes('/reports')) {
+                              return checkPermission('canViewAllReports');
+                            }
                            if (subItem.url.includes('/accounting/staff')) {
                              return checkPermission('canViewAllStaff');
                            }
@@ -263,36 +239,38 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Current Modules */}
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-6 py-2 text-gray-500 text-sm font-medium">
-              {!collapsed && "الوحدات الحالية"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {getCurrentModules().map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild
-                      className={`
-                        mx-3 mb-1 rounded-lg transition-all duration-200 h-11
-                        ${isActive(item.url) 
-                          ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                        }
-                        ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
-                      `}
-                    >
-                      <Link to={item.url} className="flex items-center w-full">
-                        <item.icon className={`h-4 w-4 ${collapsed ? '' : 'ml-3'}`} />
-                        {!collapsed && <span className="text-sm">{item.title}</span>}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {/* Additional Modules */}
+          {getCurrentModules().length > 0 && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="px-6 py-2 text-gray-500 text-sm font-medium">
+                {!collapsed && "وحدات إضافية"}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {getCurrentModules().map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton 
+                        asChild
+                        className={`
+                          mx-3 mb-1 rounded-lg transition-all duration-200 h-11
+                          ${isActive(item.url) 
+                            ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                          }
+                          ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
+                        `}
+                      >
+                        <Link to={item.url} className="flex items-center w-full">
+                          <item.icon className={`h-4 w-4 ${collapsed ? '' : 'ml-3'}`} />
+                          {!collapsed && <span className="text-sm">{item.title}</span>}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
         </div>
 
         {/* User Card */}
