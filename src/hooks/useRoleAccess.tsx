@@ -114,7 +114,7 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canManageVehicles: false,
     canViewAllReports: false,
     canExportReports: false,
-    canViewActivityLogs: false,
+    canViewActivityLogs: true, // السماح للموظفين برؤية سجل النشاطات
   },
 };
 
@@ -130,6 +130,16 @@ export const useRoleAccess = () => {
   };
 
   const requirePermission = (permission: keyof RolePermissions, redirectPath = '/') => {
+    if (!profile) {
+      toast({
+        title: "غير مصرح",
+        description: "يجب تسجيل الدخول أولاً",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return false;
+    }
+
     if (!checkPermission(permission)) {
       toast({
         title: "غير مصرح",

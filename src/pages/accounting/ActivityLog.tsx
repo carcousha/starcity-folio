@@ -68,14 +68,22 @@ export default function ActivityLogPage() {
         .order('created_at', { ascending: false })
         .limit(200);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching activities:', error);
+        // إظهار رسالة خطأ أكثر تفصيلاً
+        toast({
+          title: "تحذير",
+          description: `لم يتم العثور على أي نشاطات مسجلة. ${error.message}`,
+          variant: "destructive",
+        });
+        setActivities([]);
+        return;
+      }
+      
       setActivities(data as any || []);
     } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "فشل في تحميل سجل النشاطات",
-        variant: "destructive",
-      });
+      console.error('Error fetching activities:', error);
+      setActivities([]);
     } finally {
       setLoading(false);
     }

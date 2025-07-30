@@ -66,10 +66,17 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching activities:', error);
+        // تجاهل الأخطاء واستمر مع قائمة فارغة
+        setActivities([]);
+        return;
+      }
+      
       setActivities(data as any || []);
     } catch (error) {
       console.error('Error fetching activities:', error);
+      setActivities([]);
     } finally {
       setLoading(false);
     }
