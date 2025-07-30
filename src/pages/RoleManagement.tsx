@@ -52,12 +52,13 @@ export default function RoleManagement() {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: 'admin' | 'accountant' | 'employee' }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('user_id', userId);
+      const { data, error } = await supabase.rpc('secure_role_change', {
+        target_user_id: userId,
+        new_role: newRole
+      });
       
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });

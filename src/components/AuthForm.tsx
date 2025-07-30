@@ -194,57 +194,7 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
                     {isLoading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
                   </Button>
                   
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full" 
-                    disabled={isLoading}
-                    onClick={async () => {
-                      setSignInForm({ email: "admin@test.com", password: "123456" });
-                      setIsLoading(true);
-                      setError("");
-                      
-                      try {
-                        const { error } = await supabase.auth.signInWithPassword({
-                          email: "admin@test.com",
-                          password: "123456",
-                        });
-
-                        if (error) {
-                          // إذا لم يوجد المستخدم، أنشئه
-                          const { error: signUpError } = await supabase.auth.signUp({
-                            email: "admin@test.com",
-                            password: "123456",
-                            options: {
-                              emailRedirectTo: `${window.location.origin}/`,
-                              data: {
-                                first_name: "مدير",
-                                last_name: "النظام",
-                              }
-                            }
-                          });
-
-                          if (!signUpError) {
-                            // محاولة تسجيل الدخول مرة أخرى بعد إنشاء الحساب
-                            setTimeout(async () => {
-                              await supabase.auth.signInWithPassword({
-                                email: "admin@test.com",
-                                password: "123456",
-                              });
-                            }, 1000);
-                          }
-                        } else {
-                          onSuccess();
-                        }
-                      } catch (err) {
-                        setError("فشل في الدخول السريع");
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                  >
-                    دخول سريع للاختبار (admin@test.com)
-                  </Button>
+                  {/* Quick test login removed for security */}
                 </div>
               </form>
             </TabsContent>
