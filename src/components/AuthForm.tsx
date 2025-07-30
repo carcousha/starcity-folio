@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Eye, EyeOff, Building } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Building, Shield, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,7 +17,35 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const [lastAttempt, setLastAttempt] = useState<Date | null>(null);
   const { toast } = useToast();
+  
+  // Security: Rate limiting check
+  const isRateLimited = () => {
+    if (!lastAttempt || attempts < 3) return false;
+    const timeSinceLastAttempt = Date.now() - lastAttempt.getTime();
+    return timeSinceLastAttempt < 300000; // 5 minutes
+  };
+  
+  // Security: Password strength validation
+  const validatePasswordStrength = (password: string) => {
+    const minLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    return {
+      isValid: minLength && hasUpperCase && hasLowerCase && hasNumbers,
+      suggestions: [
+        !minLength && "8 أحرف على الأقل",
+        !hasUpperCase && "حرف كبير واحد على الأقل",
+        !hasLowerCase && "حرف صغير واحد على الأقل", 
+        !hasNumbers && "رقم واحد على الأقل"
+      ].filter(Boolean)
+    };
+  };
 
   const [signInForm, setSignInForm] = useState({
     email: "",
@@ -34,24 +62,47 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Security: Check rate limiting
+    if (isRateLimited()) {
+      setError("تم تجاوز عدد المحاولات المسموح. يرجى المحاولة مرة أخرى بعد 5 دقائق.");
+      return;
+    }
+    
     setIsLoading(true);
     setError("");
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: signInForm.email,
+        email: signInForm.email.trim().toLowerCase(),
         password: signInForm.password,
       });
 
       if (error) {
+        // Track failed attempts
+        setAttempts(prev => prev + 1);
+        setLastAttempt(new Date());
+        
         if (error.message.includes("Invalid login credentials")) {
           setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
         } else {
           setError(error.message);
         }
+        
+        // Log security event
+        console.warn('Failed login attempt:', {
+          email: signInForm.email.trim().toLowerCase(),
+          timestamp: new Date().toISOString(),
+          attempt: attempts + 1
+        });
+        
         return;
       }
 
+      // Reset attempts on successful login
+      setAttempts(0);
+      setLastAttempt(null);
+      
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: "مرحباً بك في نظام ستار سيتي العقاري",
@@ -76,8 +127,10 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
       return;
     }
 
-    if (signUpForm.password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    // Enhanced password validation
+    const passwordValidation = validatePasswordStrength(signUpForm.password);
+    if (!passwordValidation.isValid) {
+      setError(`كلمة المرور ضعيفة. يجب أن تحتوي على: ${passwordValidation.suggestions.join('، ')}`);
       setIsLoading(false);
       return;
     }
@@ -86,13 +139,13 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signUp({
-        email: signUpForm.email,
+        email: signUpForm.email.trim().toLowerCase(),
         password: signUpForm.password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            first_name: signUpForm.firstName,
-            last_name: signUpForm.lastName,
+            first_name: signUpForm.firstName.trim(),
+            last_name: signUpForm.lastName.trim(),
           }
         }
       });
