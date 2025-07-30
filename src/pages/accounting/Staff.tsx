@@ -154,6 +154,7 @@ export default function Staff() {
         email: newEmployee.email,
         password: tempPassword,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             first_name: newEmployee.first_name,
             last_name: newEmployee.last_name,
