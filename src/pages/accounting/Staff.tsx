@@ -146,51 +146,32 @@ export default function Staff() {
 
   const handleAddEmployee = async () => {
     try {
-      // Generate a temporary password
-      const tempPassword = `temp${Math.random().toString(36).slice(2)}!`;
+      // Generate a temporary user ID for demonstration
+      const tempUserId = crypto.randomUUID();
       
-      // Step 1: Create auth user using regular signup
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newEmployee.email,
-        password: tempPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            first_name: newEmployee.first_name,
-            last_name: newEmployee.last_name,
-            role: newEmployee.role
-          }
-        }
-      });
-
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw new Error('فشل في إنشاء حساب المصادقة: ' + authError.message);
-      }
-
-      if (!authData.user) {
-        throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
-      }
-
-      // Step 2: Wait for trigger to create profile
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 3: Update the profile with additional info
-      const { error: profileError } = await supabase
+      // Create employee profile
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .update({
+        .insert({
+          user_id: tempUserId,
+          first_name: newEmployee.first_name,
+          last_name: newEmployee.last_name,
+          email: newEmployee.email,
           phone: newEmployee.phone,
           role: newEmployee.role,
+          is_active: true
         })
-        .eq('user_id', authData.user.id);
+        .select()
+        .single();
 
       if (profileError) {
-        console.error('Profile update error:', profileError);
+        console.error('Profile creation error:', profileError);
+        throw new Error('فشل في إنشاء بيانات الموظف: ' + profileError.message);
       }
 
       toast({
         title: "تم بنجاح",
-        description: `تم إضافة الموظف بنجاح. كلمة المرور المؤقتة: ${tempPassword}`,
+        description: "تم إضافة الموظف بنجاح (كبيانات أساسية فقط - بدون حساب دخول)",
       });
 
       setShowAddDialog(false);
@@ -203,16 +184,14 @@ export default function Staff() {
         commission_rate: 2.5
       });
       
-      // Wait before refreshing
-      setTimeout(() => {
-        fetchStaff();
-      }, 2000);
+      // Refresh the staff list
+      fetchStaff();
       
     } catch (error: any) {
       console.error('Error adding employee:', error);
       toast({
         title: "خطأ",
-        description: error.message || "فشل في إضافة الموظف. تأكد من أن البريد الإلكتروني غير مستخدم مسبقاً",
+        description: error.message || "فشل في إضافة الموظف",
         variant: "destructive",
       });
     }
