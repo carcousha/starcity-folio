@@ -99,7 +99,7 @@ export default function Vehicles() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, user_id')
-        .eq('is_active', true);
+        .not('user_id', 'is', null); // Only get profiles with user_id
 
       if (error) throw error;
       setProfiles(data || []);
@@ -184,6 +184,9 @@ export default function Vehicles() {
         assigned_to: (formData.assigned_to && formData.assigned_to !== "unassigned") ? formData.assigned_to : null,
         purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
         purchase_date: formData.purchase_date || null,
+        license_expiry: formData.license_expiry || null,
+        insurance_expiry: formData.insurance_expiry || null,
+        next_maintenance: formData.next_maintenance || null,
         odometer_reading: formData.odometer_reading ? parseInt(formData.odometer_reading) : 0,
         notes: formData.notes ? formData.notes.trim() : null
       };

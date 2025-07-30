@@ -701,9 +701,15 @@ export type Database = {
           color: string | null
           created_at: string
           id: string
+          insurance_expiry: string | null
+          last_maintenance: string | null
+          license_expiry: string | null
           license_plate: string
           make: string
           model: string
+          next_maintenance: string | null
+          notes: string | null
+          odometer_reading: number | null
           purchase_date: string | null
           purchase_price: number | null
           status: string
@@ -715,9 +721,15 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          insurance_expiry?: string | null
+          last_maintenance?: string | null
+          license_expiry?: string | null
           license_plate: string
           make: string
           model: string
+          next_maintenance?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
           status?: string
@@ -729,9 +741,15 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          insurance_expiry?: string | null
+          last_maintenance?: string | null
+          license_expiry?: string | null
           license_plate?: string
           make?: string
           model?: string
+          next_maintenance?: string | null
+          notes?: string | null
+          odometer_reading?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
           status?: string
