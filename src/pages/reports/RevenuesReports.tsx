@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRange } from "react-day-picker";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, ComposedChart
@@ -27,7 +28,7 @@ export default function RevenuesReports() {
   const { checkPermission } = useRoleAccess();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSource, setSelectedSource] = useState("all");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showCalendar, setShowCalendar] = useState(false);
 
   // Fetch revenues and expenses data
@@ -313,7 +314,7 @@ export default function RevenuesReports() {
                   mode="range"
                   selected={dateRange}
                   onSelect={(range) => {
-                    setDateRange(range || {});
+                    setDateRange(range);
                     setShowCalendar(false);
                   }}
                   numberOfMonths={2}

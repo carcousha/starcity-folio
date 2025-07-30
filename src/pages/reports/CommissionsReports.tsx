@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRange } from "react-day-picker";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart
@@ -27,7 +28,7 @@ export default function CommissionsReports() {
   const { checkPermission } = useRoleAccess();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showCalendar, setShowCalendar] = useState(false);
 
   // Fetch commissions data with employee details
@@ -52,11 +53,11 @@ export default function CommissionsReports() {
         query = query.eq('status', selectedStatus);
       }
       
-      if (dateRange.from) {
+      if (dateRange?.from) {
         query = query.gte('created_at', format(dateRange.from, 'yyyy-MM-dd'));
       }
       
-      if (dateRange.to) {
+      if (dateRange?.to) {
         query = query.lte('created_at', format(dateRange.to, 'yyyy-MM-dd'));
       }
 
@@ -302,7 +303,7 @@ export default function CommissionsReports() {
                   mode="range"
                   selected={dateRange}
                   onSelect={(range) => {
-                    setDateRange(range || {});
+                    setDateRange(range);
                     setShowCalendar(false);
                   }}
                   numberOfMonths={2}

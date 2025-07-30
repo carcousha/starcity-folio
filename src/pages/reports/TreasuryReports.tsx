@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRange } from "react-day-picker";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, ComposedChart
@@ -28,7 +29,7 @@ export default function TreasuryReports() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAccount, setSelectedAccount] = useState("all");
   const [selectedTransactionType, setSelectedTransactionType] = useState("all");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showCalendar, setShowCalendar] = useState(false);
 
   // Fetch treasury accounts
@@ -54,8 +55,8 @@ export default function TreasuryReports() {
         .from('treasury_transactions')
         .select(`
           *,
-          from_account:from_account_id(name, account_type),
-          to_account:to_account_id(name, account_type)
+          from_account:treasury_accounts!treasury_transactions_from_account_id_fkey(name, account_type),
+          to_account:treasury_accounts!treasury_transactions_to_account_id_fkey(name, account_type)
         `);
       
       if (selectedAccount !== 'all') {
@@ -66,11 +67,11 @@ export default function TreasuryReports() {
         query = query.eq('transaction_type', selectedTransactionType);
       }
       
-      if (dateRange.from) {
+      if (dateRange?.from) {
         query = query.gte('transaction_date', format(dateRange.from, 'yyyy-MM-dd'));
       }
       
-      if (dateRange.to) {
+      if (dateRange?.to) {
         query = query.lte('transaction_date', format(dateRange.to, 'yyyy-MM-dd'));
       }
 
@@ -375,7 +376,7 @@ export default function TreasuryReports() {
                   mode="range"
                   selected={dateRange}
                   onSelect={(range) => {
-                    setDateRange(range || {});
+                    setDateRange(range);
                     setShowCalendar(false);
                   }}
                   numberOfMonths={2}

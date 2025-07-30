@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRange } from "react-day-picker";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart
@@ -28,7 +29,7 @@ export default function DebtsReports() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [showCalendar, setShowCalendar] = useState(false);
 
   // Fetch debts data with debtor profiles
@@ -45,11 +46,11 @@ export default function DebtsReports() {
         query = query.eq('debtor_type', selectedType);
       }
       
-      if (dateRange.from) {
+      if (dateRange?.from) {
         query = query.gte('created_at', format(dateRange.from, 'yyyy-MM-dd'));
       }
       
-      if (dateRange.to) {
+      if (dateRange?.to) {
         query = query.lte('created_at', format(dateRange.to, 'yyyy-MM-dd'));
       }
 
@@ -329,7 +330,7 @@ export default function DebtsReports() {
                   mode="range"
                   selected={dateRange}
                   onSelect={(range) => {
-                    setDateRange(range || {});
+                    setDateRange(range);
                     setShowCalendar(false);
                   }}
                   numberOfMonths={2}
