@@ -1,4 +1,6 @@
 import { ReactNode, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { useRoleAccess, RolePermissions } from '@/hooks/useRoleAccess';
 
 interface ProtectedRouteProps {
@@ -12,11 +14,32 @@ export const ProtectedRoute = ({
   requiredPermission, 
   fallback 
 }: ProtectedRouteProps) => {
+  const { user, loading } = useAuth();
   const { checkPermission, requirePermission } = useRoleAccess();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    requirePermission(requiredPermission);
-  }, [requiredPermission, requirePermission]);
+    if (!loading && !user) {
+      navigate('/auth');
+      return;
+    }
+    
+    if (user) {
+      requirePermission(requiredPermission);
+    }
+  }, [user, loading, requiredPermission, requirePermission, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">جاري التحميل...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // سيتم التوجيه لصفحة الدخول
+  }
 
   if (!checkPermission(requiredPermission)) {
     return fallback || (

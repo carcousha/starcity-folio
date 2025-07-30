@@ -426,7 +426,7 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           avatar_url?: string | null
@@ -439,7 +439,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           avatar_url?: string | null
@@ -452,7 +452,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
