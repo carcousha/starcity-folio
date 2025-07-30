@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          amount: number | null
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          operation_type: string
+          related_id: string | null
+          related_table: string | null
+          source_id: string
+          source_table: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          operation_type: string
+          related_id?: string | null
+          related_table?: string | null
+          source_id: string
+          source_table: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          operation_type?: string
+          related_id?: string | null
+          related_table?: string | null
+          source_id?: string
+          source_table?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -703,6 +745,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_employee_financial_summary: {
+        Args: { employee_user_id: string }
+        Returns: {
+          total_commissions: number
+          total_debts: number
+          net_commissions: number
+          total_deals: number
+          recent_activities: Json
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -713,6 +765,20 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      log_financial_activity: {
+        Args: {
+          p_operation_type: string
+          p_description: string
+          p_amount: number
+          p_source_table: string
+          p_source_id: string
+          p_related_table?: string
+          p_related_id?: string
+          p_user_id?: string
+          p_metadata?: Json
+        }
+        Returns: string
       }
     }
     Enums: {

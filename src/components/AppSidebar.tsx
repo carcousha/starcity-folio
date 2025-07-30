@@ -87,6 +87,7 @@ export function AppSidebar() {
         { title: "مصروفات السيارات", url: "/accounting/vehicle-expenses", icon: FileText },
         { title: "الموظفين", url: "/accounting/staff", icon: UserCheck },
         { title: "الخزينة والبنوك", url: "/accounting/treasury", icon: Wallet },
+        { title: "سجل النشاطات", url: "/accounting/activity-log", icon: BarChart3 },
       ]
     },
   ];

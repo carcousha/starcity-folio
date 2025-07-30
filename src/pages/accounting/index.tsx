@@ -62,6 +62,13 @@ export default function AccountingOverview() {
       icon: Wallet,
       path: "/accounting/treasury",
       color: "bg-emerald-500"
+    },
+    {
+      title: "سجل النشاطات",
+      description: "متابعة جميع العمليات المالية والتغييرات",
+      icon: TrendingUp,
+      path: "/accounting/activity-log",
+      color: "bg-orange-500"
     }
   ];
 

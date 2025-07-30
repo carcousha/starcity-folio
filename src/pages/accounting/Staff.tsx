@@ -29,6 +29,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmployeeFinancialData } from "@/hooks/useFinancialIntegration";
+import ActivityLog from "@/components/ActivityLog";
 
 interface Staff {
   id: string;
@@ -187,6 +189,184 @@ export default function Staff() {
     setSelectedEmployee(employee);
     await fetchEmployeeStats(employee.user_id);
     setShowProfileDialog(true);
+  };
+
+  const EmployeeProfileContent = ({ employee }: { employee: Staff }) => {
+    const { data: financialData, loading: financialLoading } = useEmployeeFinancialData(employee.user_id);
+
+    return (
+      <Tabs defaultValue="info" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="info">البيانات الشخصية</TabsTrigger>
+          <TabsTrigger value="financial">الملف المالي</TabsTrigger>
+          <TabsTrigger value="commissions">العمولات</TabsTrigger>
+          <TabsTrigger value="activities">النشاطات</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="info" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">المعلومات الأساسية</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-3 space-x-reverse">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={employee.avatar_url} />
+                    <AvatarFallback className="text-lg">
+                      {employee.first_name[0]}{employee.last_name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-xl font-bold">
+                      {employee.first_name} {employee.last_name}
+                    </h3>
+                    <Badge variant="outline">
+                      {employee.role === 'admin' ? 'مدير' : 
+                       employee.role === 'accountant' ? 'محاسب' : 'موظف'}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span>{employee.email}</span>
+                  </div>
+                  {employee.phone && (
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span>{employee.phone}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span>انضم في {new Date(employee.created_at).toLocaleDateString('ar-EG')}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {financialData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">الملخص المالي</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {financialData.totalDeals}
+                      </div>
+                      <div className="text-sm text-gray-500">إجمالي الصفقات</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {financialData.totalCommissions.toFixed(2)} د.إ
+                      </div>
+                      <div className="text-sm text-gray-500">إجمالي العمولات</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">
+                        {financialData.totalDebts.toFixed(2)} د.إ
+                      </div>
+                      <div className="text-sm text-gray-500">المديونيات</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {financialData.netCommissions.toFixed(2)} د.إ
+                      </div>
+                      <div className="text-sm text-gray-500">صافي الأرباح</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="financial">
+          <Card>
+            <CardHeader>
+              <CardTitle>التفاصيل المالية</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {financialLoading ? (
+                <div className="text-center py-8">جاري تحميل البيانات المالية...</div>
+              ) : financialData ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-lg">العمولات والأرباح</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>إجمالي العمولات المحسوبة:</span>
+                        <span className="font-medium text-green-600">
+                          {financialData.totalCommissions.toFixed(2)} د.إ
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>المديونيات المخصومة:</span>
+                        <span className="font-medium text-red-600">
+                          {financialData.totalDebts.toFixed(2)} د.إ
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-bold border-t pt-2">
+                        <span>صافي الأرباح:</span>
+                        <span className="text-purple-600">
+                          {financialData.netCommissions.toFixed(2)} د.إ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-lg">إحصائيات الأداء</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>عدد الصفقات المنجزة:</span>
+                        <span className="font-medium">{financialData.totalDeals}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>متوسط العمولة لكل صفقة:</span>
+                        <span className="font-medium">
+                          {financialData.totalDeals > 0 
+                            ? (financialData.totalCommissions / financialData.totalDeals).toFixed(2)
+                            : '0.00'
+                          } د.إ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>لا توجد بيانات مالية متاحة</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="commissions">
+          <Card>
+            <CardHeader>
+              <CardTitle>سجل العمولات</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <HandCoins className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>سيتم عرض تفاصيل العمولات هنا</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="activities">
+          <ActivityLog userId={employee.user_id} limit={20} showHeader={false} />
+        </TabsContent>
+      </Tabs>
+    );
   };
 
   const exportStaffReport = () => {
@@ -434,138 +614,7 @@ export default function Staff() {
           </DialogHeader>
 
           {selectedEmployee && (
-            <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="info">البيانات الشخصية</TabsTrigger>
-                <TabsTrigger value="commissions">العمولات</TabsTrigger>
-                <TabsTrigger value="debts">المديونيات</TabsTrigger>
-                <TabsTrigger value="performance">الأداء</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="info" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">المعلومات الأساسية</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <Avatar className="h-16 w-16">
-                          <AvatarImage src={selectedEmployee.avatar_url} />
-                          <AvatarFallback className="text-lg">
-                            {selectedEmployee.first_name[0]}{selectedEmployee.last_name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="text-xl font-bold">
-                            {selectedEmployee.first_name} {selectedEmployee.last_name}
-                          </h3>
-                          <Badge variant="outline">
-                            {selectedEmployee.role === 'admin' ? 'مدير' : 
-                             selectedEmployee.role === 'accountant' ? 'محاسب' : 'موظف'}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <Mail className="h-4 w-4 text-gray-500" />
-                          <span>{selectedEmployee.email}</span>
-                        </div>
-                        {selectedEmployee.phone && (
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <Phone className="h-4 w-4 text-gray-500" />
-                            <span>{selectedEmployee.phone}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span>انضم في {new Date(selectedEmployee.created_at).toLocaleDateString('ar-EG')}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {employeeStats && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">إحصائيات سريعة</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-green-600">
-                              {employeeStats.totalDeals}
-                            </div>
-                            <div className="text-sm text-gray-500">إجمالي الصفقات</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-blue-600">
-                              {employeeStats.totalCommissions.toFixed(2)} د.إ
-                            </div>
-                            <div className="text-sm text-gray-500">إجمالي العمولات</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-red-600">
-                              {employeeStats.totalDebts.toFixed(2)} د.إ
-                            </div>
-                            <div className="text-sm text-gray-500">المديونيات</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-purple-600">
-                              {employeeStats.netEarnings.toFixed(2)} د.إ
-                            </div>
-                            <div className="text-sm text-gray-500">صافي الأرباح</div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="commissions">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>سجل العمولات</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-gray-500">
-                      <HandCoins className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>سيتم عرض تفاصيل العمولات هنا</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="debts">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>المديونيات</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-gray-500">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>سيتم عرض تفاصيل المديونيات هنا</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="performance">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>تقرير الأداء</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-gray-500">
-                      <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>سيتم عرض تحليل الأداء هنا</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            <EmployeeProfileContent employee={selectedEmployee} />
           )}
         </DialogContent>
       </Dialog>
