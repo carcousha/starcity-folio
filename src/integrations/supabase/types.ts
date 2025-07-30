@@ -14,16 +14,509 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          address: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          preferences: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          preferences?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          preferences?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      commissions: {
+        Row: {
+          amount: number
+          created_at: string
+          deal_id: string
+          employee_id: string
+          id: string
+          paid_at: string | null
+          percentage: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          deal_id: string
+          employee_id: string
+          id?: string
+          paid_at?: string | null
+          percentage: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deal_id?: string
+          employee_id?: string
+          id?: string
+          paid_at?: string | null
+          percentage?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deals: {
+        Row: {
+          amount: number
+          client_id: string
+          closed_at: string | null
+          commission_amount: number | null
+          commission_rate: number
+          created_at: string
+          deal_type: string
+          handled_by: string
+          id: string
+          notes: string | null
+          property_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          closed_at?: string | null
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          deal_type: string
+          handled_by: string
+          id?: string
+          notes?: string | null
+          property_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          closed_at?: string | null
+          commission_amount?: number | null
+          commission_rate?: number
+          created_at?: string
+          deal_type?: string
+          handled_by?: string
+          id?: string
+          notes?: string | null
+          property_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debts: {
+        Row: {
+          amount: number
+          created_at: string
+          debtor_id: string | null
+          debtor_name: string
+          debtor_type: string
+          description: string | null
+          due_date: string | null
+          id: string
+          paid_at: string | null
+          recorded_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          debtor_id?: string | null
+          debtor_name: string
+          debtor_type: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          recorded_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          debtor_id?: string | null
+          debtor_name?: string
+          debtor_type?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          recorded_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          expense_date: string
+          id: string
+          receipt_url: string | null
+          recorded_by: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          recorded_by: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          recorded_by?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          is_active?: boolean
+          last_name: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      properties: {
+        Row: {
+          area: number | null
+          bathrooms: number | null
+          bedrooms: number | null
+          created_at: string
+          description: string | null
+          features: string[] | null
+          id: string
+          images: string[] | null
+          listed_by: string
+          location: string
+          price: number
+          property_type: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          area?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          created_at?: string
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          listed_by: string
+          location: string
+          price: number
+          property_type: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          area?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          created_at?: string
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          listed_by?: string
+          location?: string
+          price?: number
+          property_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      revenues: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          recorded_by: string
+          revenue_date: string
+          source: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          recorded_by: string
+          revenue_date?: string
+          source: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          recorded_by?: string
+          revenue_date?: string
+          source?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          expense_date: string
+          expense_type: string
+          id: string
+          odometer_reading: number | null
+          receipt_url: string | null
+          recorded_by: string
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          expense_type: string
+          id?: string
+          odometer_reading?: number | null
+          receipt_url?: string | null
+          recorded_by: string
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          expense_type?: string
+          id?: string
+          odometer_reading?: number | null
+          receipt_url?: string | null
+          recorded_by?: string
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_expenses_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          assigned_to: string | null
+          color: string | null
+          created_at: string
+          id: string
+          license_plate: string
+          make: string
+          model: string
+          purchase_date: string | null
+          purchase_price: number | null
+          status: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          assigned_to?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          license_plate: string
+          make: string
+          model: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          status?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          assigned_to?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          license_plate?: string
+          make?: string
+          model?: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          status?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "accountant" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +643,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "accountant", "employee"],
+    },
   },
 } as const
