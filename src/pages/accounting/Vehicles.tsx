@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Car, Fuel, Wrench, AlertTriangle, Calendar, Users, Download, Search, Filter, Bell } from "lucide-react";
+import { Plus, Car, Fuel, Wrench, AlertTriangle, Calendar, Users, Download, Search, Filter, Bell, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -57,6 +57,8 @@ export default function Vehicles() {
   const [vehicleExpenses, setVehicleExpenses] = useState<VehicleExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const { toast } = useToast();
@@ -174,13 +176,12 @@ export default function Vehicles() {
         return;
       }
 
-      const insertData: any = {
+      const vehicleData: any = {
         make: formData.make.trim(),
         model: formData.model.trim(),
         year: parseInt(formData.year),
         license_plate: formData.license_plate.trim(),
         color: formData.color ? formData.color.trim() : null,
-        status: 'active', // Default status
         assigned_to: (formData.assigned_to && formData.assigned_to !== "unassigned") ? formData.assigned_to : null,
         purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
         purchase_date: formData.purchase_date || null,
@@ -191,43 +192,45 @@ export default function Vehicles() {
         notes: formData.notes ? formData.notes.trim() : null
       };
 
-      console.log('Inserting vehicle data:', insertData);
+      // If not editing, set default status
+      if (!isEditMode) {
+        vehicleData.status = 'active';
+      }
 
-      const { data, error } = await supabase
-        .from('vehicles')
-        .insert([insertData])
-        .select();
+      let data, error;
+
+      if (isEditMode && selectedVehicle) {
+        // Update existing vehicle
+        const response = await supabase
+          .from('vehicles')
+          .update(vehicleData)
+          .eq('id', selectedVehicle.id)
+          .select();
+        
+        data = response.data;
+        error = response.error;
+      } else {
+        // Insert new vehicle
+        const response = await supabase
+          .from('vehicles')
+          .insert([vehicleData])
+          .select();
+        
+        data = response.data;
+        error = response.error;
+      }
 
       if (error) {
         console.error('Supabase error:', error);
         throw new Error(`خطأ في قاعدة البيانات: ${error.message}`);
       }
 
-      console.log('Vehicle inserted successfully:', data);
-
       toast({
         title: "نجح الحفظ",
-        description: "تم إضافة السيارة بنجاح",
+        description: isEditMode ? "تم تحديث السيارة بنجاح" : "تم إضافة السيارة بنجاح",
       });
 
-      setIsDialogOpen(false);
-      setFormData({
-        make: "",
-        model: "",
-        year: "",
-        license_plate: "",
-        color: "",
-        assigned_to: "",
-        purchase_price: "",
-        purchase_date: "",
-        license_expiry: "",
-        insurance_expiry: "",
-        next_maintenance: "",
-        odometer_reading: "",
-        notes: ""
-      });
-      
-      // Refresh the vehicles list
+      closeDialog();
       await fetchVehicles();
       
     } catch (error: any) {
@@ -245,6 +248,97 @@ export default function Vehicles() {
       toast({
         title: "خطأ",
         description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openAddDialog = () => {
+    setIsEditMode(false);
+    setSelectedVehicle(null);
+    setFormData({
+      make: "",
+      model: "",
+      year: "",
+      license_plate: "",
+      color: "",
+      assigned_to: "",
+      purchase_price: "",
+      purchase_date: "",
+      license_expiry: "",
+      insurance_expiry: "",
+      next_maintenance: "",
+      odometer_reading: "",
+      notes: ""
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (vehicle: Vehicle) => {
+    setIsEditMode(true);
+    setSelectedVehicle(vehicle);
+    setFormData({
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year.toString(),
+      license_plate: vehicle.license_plate,
+      color: vehicle.color || "",
+      assigned_to: vehicle.assigned_to || "",
+      purchase_price: vehicle.purchase_price?.toString() || "",
+      purchase_date: vehicle.purchase_date || "",
+      license_expiry: vehicle.license_expiry || "",
+      insurance_expiry: vehicle.insurance_expiry || "",
+      next_maintenance: vehicle.next_maintenance || "",
+      odometer_reading: vehicle.odometer_reading?.toString() || "",
+      notes: vehicle.notes || ""
+    });
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setIsEditMode(false);
+    setSelectedVehicle(null);
+    setFormData({
+      make: "",
+      model: "",
+      year: "",
+      license_plate: "",
+      color: "",
+      assigned_to: "",
+      purchase_price: "",
+      purchase_date: "",
+      license_expiry: "",
+      insurance_expiry: "",
+      next_maintenance: "",
+      odometer_reading: "",
+      notes: ""
+    });
+  };
+
+  const handleDelete = async (vehicle: Vehicle) => {
+    if (!window.confirm(`هل أنت متأكد من حذف السيارة ${vehicle.make} ${vehicle.model}؟`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('id', vehicle.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف السيارة بنجاح",
+      });
+
+      await fetchVehicles();
+    } catch (error: any) {
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف السيارة",
         variant: "destructive",
       });
     }
@@ -320,18 +414,18 @@ export default function Vehicles() {
             <Download className="h-4 w-4 ml-2" />
             تصدير
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={openAddDialog}>
                 <Plus className="h-4 w-4 ml-2" />
                 إضافة سيارة
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
               <DialogHeader>
-                <DialogTitle>إضافة سيارة جديدة</DialogTitle>
+                <DialogTitle>{isEditMode ? "تعديل السيارة" : "إضافة سيارة جديدة"}</DialogTitle>
                 <DialogDescription>
-                  أدخل تفاصيل السيارة الجديدة
+                  {isEditMode ? "تعديل تفاصيل السيارة" : "أدخل تفاصيل السيارة الجديدة"}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -482,7 +576,7 @@ export default function Vehicles() {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  حفظ السيارة
+                  {isEditMode ? "تحديث السيارة" : "حفظ السيارة"}
                 </Button>
               </form>
             </DialogContent>
@@ -613,6 +707,7 @@ export default function Vehicles() {
                 <TableHead>الموظف المخصص</TableHead>
                 <TableHead>انتهاء الترخيص</TableHead>
                 <TableHead>سعر الشراء</TableHead>
+                <TableHead>الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -660,12 +755,31 @@ export default function Vehicles() {
                     <TableCell>
                       {vehicle.purchase_price ? `${vehicle.purchase_price.toLocaleString('ar-AE')} درهم` : "-"}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(vehicle)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(vehicle)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 );
               })}
               {filteredVehicles.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                     لا توجد سيارات لعرضها
                   </TableCell>
                 </TableRow>
