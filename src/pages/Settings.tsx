@@ -154,9 +154,21 @@ export default function Settings() {
         setGeneralSettings(prev => ({
           ...prev,
           ...Object.keys(settingsMap.general).reduce((acc, key) => {
-            acc[key] = typeof settingsMap.general[key] === 'string' 
-              ? JSON.parse(settingsMap.general[key]) 
-              : settingsMap.general[key];
+            const value = settingsMap.general[key];
+            if (typeof value === 'string') {
+              try {
+                // Only parse if it looks like JSON (starts with { or [)
+                if (value.startsWith('{') || value.startsWith('[')) {
+                  acc[key] = JSON.parse(value);
+                } else {
+                  acc[key] = value;
+                }
+              } catch {
+                acc[key] = value;
+              }
+            } else {
+              acc[key] = value;
+            }
             return acc;
           }, {} as any)
         }));
@@ -166,9 +178,21 @@ export default function Settings() {
         setAccountingSettings(prev => ({
           ...prev,
           ...Object.keys(settingsMap.accounting).reduce((acc, key) => {
-            acc[key] = typeof settingsMap.accounting[key] === 'string' 
-              ? JSON.parse(settingsMap.accounting[key]) 
-              : settingsMap.accounting[key];
+            const value = settingsMap.accounting[key];
+            if (typeof value === 'string') {
+              try {
+                // Only parse if it looks like JSON (starts with { or [)
+                if (value.startsWith('{') || value.startsWith('[')) {
+                  acc[key] = JSON.parse(value);
+                } else {
+                  acc[key] = value;
+                }
+              } catch {
+                acc[key] = value;
+              }
+            } else {
+              acc[key] = value;
+            }
             return acc;
           }, {} as any)
         }));
@@ -178,9 +202,21 @@ export default function Settings() {
         setUISettings(prev => ({
           ...prev,
           ...Object.keys(settingsMap.ui).reduce((acc, key) => {
-            acc[key] = typeof settingsMap.ui[key] === 'string' 
-              ? JSON.parse(settingsMap.ui[key]) 
-              : settingsMap.ui[key];
+            const value = settingsMap.ui[key];
+            if (typeof value === 'string') {
+              try {
+                // Only parse if it looks like JSON (starts with { or [)
+                if (value.startsWith('{') || value.startsWith('[')) {
+                  acc[key] = JSON.parse(value);
+                } else {
+                  acc[key] = value;
+                }
+              } catch {
+                acc[key] = value;
+              }
+            } else {
+              acc[key] = value;
+            }
             return acc;
           }, {} as any)
         }));
@@ -190,9 +226,21 @@ export default function Settings() {
         setNotificationSettings(prev => ({
           ...prev,
           ...Object.keys(settingsMap.notifications).reduce((acc, key) => {
-            acc[key] = typeof settingsMap.notifications[key] === 'string' 
-              ? JSON.parse(settingsMap.notifications[key]) 
-              : settingsMap.notifications[key];
+            const value = settingsMap.notifications[key];
+            if (typeof value === 'string') {
+              try {
+                // Only parse if it looks like JSON (starts with { or [)
+                if (value.startsWith('{') || value.startsWith('[')) {
+                  acc[key] = JSON.parse(value);
+                } else {
+                  acc[key] = value;
+                }
+              } catch {
+                acc[key] = value;
+              }
+            } else {
+              acc[key] = value;
+            }
             return acc;
           }, {} as any)
         }));
@@ -202,9 +250,21 @@ export default function Settings() {
         setSecuritySettings(prev => ({
           ...prev,
           ...Object.keys(settingsMap.security).reduce((acc, key) => {
-            acc[key] = typeof settingsMap.security[key] === 'string' 
-              ? JSON.parse(settingsMap.security[key]) 
-              : settingsMap.security[key];
+            const value = settingsMap.security[key];
+            if (typeof value === 'string') {
+              try {
+                // Only parse if it looks like JSON (starts with { or [)
+                if (value.startsWith('{') || value.startsWith('[')) {
+                  acc[key] = JSON.parse(value);
+                } else {
+                  acc[key] = value;
+                }
+              } catch {
+                acc[key] = value;
+              }
+            } else {
+              acc[key] = value;
+            }
             return acc;
           }, {} as any)
         }));
