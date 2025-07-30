@@ -83,7 +83,9 @@ export function AppSidebar() {
       submenu: [
         { title: "المصروفات", url: "/accounting/expenses", icon: HandCoins },
         { title: "الإيرادات", url: "/accounting/revenues", icon: TrendingUp },
+        { title: "العمولات", url: "/accounting/commissions", icon: Calculator },
         { title: "المديونيات", url: "/accounting/debts", icon: FileText },
+        { title: "السيارات", url: "/accounting/vehicles", icon: Car },
         { title: "مصروفات السيارات", url: "/accounting/vehicle-expenses", icon: FileText },
         { title: "الموظفين", url: "/accounting/staff", icon: UserCheck },
         { title: "الخزينة والبنوك", url: "/accounting/treasury", icon: Wallet },
@@ -192,25 +194,34 @@ export function AppSidebar() {
                            if (subItem.url.includes('/accounting/expenses')) {
                              return checkPermission('canManageExpenses');
                            }
-                           if (subItem.url.includes('/accounting/revenues')) {
-                             return checkPermission('canManageRevenues');
-                           }
-                            if (subItem.url.includes('/accounting/debts')) {
-                              return checkPermission('canManageDebts');
+                            if (subItem.url.includes('/accounting/revenues')) {
+                              return checkPermission('canManageRevenues');
                             }
-                            if (subItem.url.includes('/reports')) {
-                              return checkPermission('canViewAllReports');
+                            if (subItem.url.includes('/accounting/commissions')) {
+                              return checkPermission('canManageRevenues');
                             }
-                           if (subItem.url.includes('/accounting/staff')) {
-                             return checkPermission('canViewAllStaff');
-                           }
-                           if (subItem.url.includes('/accounting/treasury')) {
-                             return checkPermission('canViewTreasury');
-                           }
-                           if (subItem.url.includes('/accounting/activity-log')) {
-                             return checkPermission('canViewActivityLogs');
-                           }
-                           return true; // Default allow
+                             if (subItem.url.includes('/accounting/debts')) {
+                               return checkPermission('canManageDebts');
+                             }
+                             if (subItem.url.includes('/accounting/vehicles')) {
+                               return checkPermission('canManageVehicles');
+                             }
+                             if (subItem.url.includes('/accounting/vehicle-expenses')) {
+                               return checkPermission('canManageVehicles');
+                             }
+                             if (subItem.url.includes('/reports')) {
+                               return checkPermission('canViewAllReports');
+                             }
+                            if (subItem.url.includes('/accounting/staff')) {
+                              return checkPermission('canViewAllStaff');
+                            }
+                            if (subItem.url.includes('/accounting/treasury')) {
+                              return checkPermission('canViewTreasury');
+                            }
+                            if (subItem.url.includes('/accounting/activity-log')) {
+                              return checkPermission('canViewActivityLogs');
+                            }
+                            return true; // Default allow
                          }).map((subItem) => (
                            <SidebarMenuItem key={subItem.title}>
                              <SidebarMenuButton 

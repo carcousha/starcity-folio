@@ -86,7 +86,7 @@ const rolePermissions: Record<UserRole, RolePermissions> = {
     canViewAllCommissions: true,
     canManageRoles: false,
     canViewAllVehicles: true,
-    canManageVehicles: false,
+    canManageVehicles: true,
     canViewAllReports: true,
     canExportReports: true,
     canViewActivityLogs: true,
