@@ -156,22 +156,39 @@ export default function Revenues() {
       });
       return;
     }
+
+    if (!profile?.user_id) {
+      toast({
+        title: "خطأ",
+        description: "يجب تسجيل الدخول أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       const insertData = {
-        title: formData.title,
-        description: formData.description,
+        title: formData.title.trim(),
+        description: formData.description?.trim() || null,
         amount: parseFloat(formData.amount),
-        source: formData.source,
+        source: formData.source.trim(),
         revenue_date: formData.revenue_date,
-        recorded_by: profile?.user_id
+        recorded_by: profile.user_id
       };
 
-      const { error } = await supabase
-        .from('revenues')
-        .insert([insertData]);
+      console.log('Inserting revenue data:', insertData);
 
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('revenues')
+        .insert([insertData])
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Revenue inserted successfully:', data);
 
       toast({
         title: "نجح الحفظ",
@@ -187,10 +204,17 @@ export default function Revenues() {
         revenue_date: new Date().toISOString().split('T')[0]
       });
       fetchRevenues();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error saving revenue:', error);
+      
+      let errorMessage = "فشل في حفظ البيانات";
+      if (error?.message) {
+        errorMessage = `خطأ: ${error.message}`;
+      }
+      
       toast({
         title: "خطأ",
-        description: "فشل في حفظ البيانات",
+        description: errorMessage,
         variant: "destructive",
       });
     }
