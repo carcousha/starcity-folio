@@ -24,6 +24,7 @@ import ReportsIndex from "./pages/reports/index";
 import EmployeeReports from "./pages/reports/EmployeeReports";
 import VehicleReports from "./pages/reports/VehicleReports";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,13 @@ const App = () => (
               <Route path="/reports/vehicles" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
                   <VehicleReports />
+                </ProtectedRoute>
+              } />
+              
+              {/* Settings Route - Admin only */}
+              <Route path="/settings" element={
+                <ProtectedRoute requiredPermission="canManageStaff">
+                  <Settings />
                 </ProtectedRoute>
               } />
               

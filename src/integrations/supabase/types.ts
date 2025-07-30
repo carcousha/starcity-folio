@@ -381,6 +381,39 @@ export type Database = {
         }
         Relationships: []
       }
+      file_uploads: {
+        Row: {
+          category: string | null
+          created_at: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          filename: string
+          id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          filename: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          filename?: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -513,6 +546,75 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json | null
+        }
+        Relationships: []
+      }
+      themes: {
+        Row: {
+          colors: Json | null
+          created_at: string
+          created_by: string | null
+          fonts: Json | null
+          id: string
+          is_default: boolean | null
+          layout: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          colors?: Json | null
+          created_at?: string
+          created_by?: string | null
+          fonts?: Json | null
+          id?: string
+          is_default?: boolean | null
+          layout?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          colors?: Json | null
+          created_at?: string
+          created_by?: string | null
+          fonts?: Json | null
+          id?: string
+          is_default?: boolean | null
+          layout?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       treasury_accounts: {
         Row: {
           account_number: string | null
@@ -620,6 +722,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted: boolean | null
+          granted_by: string | null
+          id: string
+          module_name: string
+          permission_type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          granted?: boolean | null
+          granted_by?: string | null
+          id?: string
+          module_name: string
+          permission_type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          granted?: boolean | null
+          granted_by?: string | null
+          id?: string
+          module_name?: string
+          permission_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
