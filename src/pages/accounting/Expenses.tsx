@@ -67,14 +67,23 @@ export default function Expenses() {
 
   const fetchExpenses = async () => {
     try {
+      console.log('بدء تحميل المصروفات...');
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
         .order('expense_date', { ascending: false });
 
-      if (error) throw error;
+      console.log('نتيجة الاستعلام:', { data, error });
+      
+      if (error) {
+        console.error('خطأ في الاستعلام:', error);
+        throw error;
+      }
+      
       setExpenses(data || []);
+      console.log('تم تحميل المصروفات بنجاح:', data?.length || 0);
     } catch (error) {
+      console.error('خطأ في fetchExpenses:', error);
       toast({
         title: "خطأ",
         description: "فشل في تحميل البيانات",
