@@ -50,8 +50,6 @@ export default function Revenues() {
     description: "",
     amount: "",
     source: "",
-    revenue_type: "",
-    employee_id: "",
     revenue_date: new Date().toISOString().split('T')[0]
   });
 
@@ -160,7 +158,7 @@ export default function Revenues() {
     }
     
     try {
-      const insertData: any = {
+      const insertData = {
         title: formData.title,
         description: formData.description,
         amount: parseFloat(formData.amount),
@@ -168,14 +166,6 @@ export default function Revenues() {
         revenue_date: formData.revenue_date,
         recorded_by: profile?.user_id
       };
-
-      if (formData.revenue_type) {
-        insertData.revenue_type = formData.revenue_type;
-      }
-
-      if (formData.employee_id && formData.employee_id !== "unassigned") {
-        insertData.employee_id = formData.employee_id;
-      }
 
       const { error } = await supabase
         .from('revenues')
@@ -194,8 +184,6 @@ export default function Revenues() {
         description: "",
         amount: "",
         source: "",
-        revenue_type: "",
-        employee_id: "",
         revenue_date: new Date().toISOString().split('T')[0]
       });
       fetchRevenues();
@@ -347,37 +335,6 @@ export default function Revenues() {
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                 />
-                </div>
-                <div>
-                  <Label htmlFor="revenue_type">نوع الدخل</Label>
-                  <Select value={formData.revenue_type} onValueChange={(value) => setFormData(prev => ({ ...prev, revenue_type: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع الدخل" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {revenueTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="employee_id">الموظف المسؤول (اختياري)</Label>
-                  <Select value={formData.employee_id} onValueChange={(value) => setFormData(prev => ({ ...prev, employee_id: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الموظف" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">بدون موظف محدد</SelectItem>
-                      {profiles.map((profile) => (
-                        <SelectItem key={profile.id} value={profile.id}>
-                          {profile.first_name} {profile.last_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
                 <Button type="submit" className="w-full">
                   حفظ الإيراد
