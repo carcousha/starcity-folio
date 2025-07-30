@@ -146,32 +146,65 @@ export default function Staff() {
 
   const handleAddEmployee = async () => {
     try {
-      // Generate a temporary user ID for demonstration
-      const tempUserId = crypto.randomUUID();
+      // Generate a strong password for the new employee
+      const tempPassword = `Emp${Math.random().toString(36).slice(2)}${Date.now().toString().slice(-4)}!`;
       
-      // Create employee profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: tempUserId,
-          first_name: newEmployee.first_name,
-          last_name: newEmployee.last_name,
-          email: newEmployee.email,
-          phone: newEmployee.phone,
-          role: newEmployee.role,
-          is_active: true
-        })
-        .select()
-        .single();
+      // Create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newEmployee.email,
+        password: tempPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            first_name: newEmployee.first_name,
+            last_name: newEmployee.last_name,
+            role: newEmployee.role
+          }
+        }
+      });
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        throw new Error('فشل في إنشاء بيانات الموظف: ' + profileError.message);
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('فشل في إنشاء حساب المصادقة: ' + authError.message);
+      }
+
+      if (!authData.user) {
+        throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
+      }
+
+      // Wait a moment for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Update the profile with additional data
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          phone: newEmployee.phone,
+          role: newEmployee.role
+        })
+        .eq('user_id', authData.user.id);
+
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        // Don't throw error here as the main profile was created by trigger
+      }
+
+      // Add role to user_roles table
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: newEmployee.role
+        });
+
+      if (roleError) {
+        console.error('Role assignment error:', roleError);
+        // Don't throw error as the role might already exist from trigger
       }
 
       toast({
         title: "تم بنجاح",
-        description: "تم إضافة الموظف بنجاح (كبيانات أساسية فقط - بدون حساب دخول)",
+        description: `تم إضافة الموظف بنجاح. كلمة المرور المؤقتة: ${tempPassword}`,
       });
 
       setShowAddDialog(false);
@@ -184,14 +217,27 @@ export default function Staff() {
         commission_rate: 2.5
       });
       
-      // Refresh the staff list
-      fetchStaff();
+      // Refresh the staff list after a short delay
+      setTimeout(() => {
+        fetchStaff();
+      }, 1500);
       
     } catch (error: any) {
       console.error('Error adding employee:', error);
+      
+      // Handle specific error messages
+      let errorMessage = "فشل في إضافة الموظف";
+      if (error.message.includes('already registered')) {
+        errorMessage = "هذا البريد الإلكتروني مستخدم مسبقاً";
+      } else if (error.message.includes('Password')) {
+        errorMessage = "خطأ في كلمة المرور - يجب أن تكون 6 أحرف على الأقل";
+      } else if (error.message.includes('email')) {
+        errorMessage = "صيغة البريد الإلكتروني غير صحيحة";
+      }
+      
       toast({
         title: "خطأ",
-        description: error.message || "فشل في إضافة الموظف",
+        description: errorMessage,
         variant: "destructive",
       });
     }

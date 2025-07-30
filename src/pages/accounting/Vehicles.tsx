@@ -164,27 +164,43 @@ export default function Vehicles() {
     e.preventDefault();
     
     try {
+      // Validate required fields
+      if (!formData.make || !formData.model || !formData.year || !formData.license_plate) {
+        toast({
+          title: "خطأ في البيانات",
+          description: "يرجى ملء جميع الحقول المطلوبة",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const insertData: any = {
-        make: formData.make,
-        model: formData.model,
+        make: formData.make.trim(),
+        model: formData.model.trim(),
         year: parseInt(formData.year),
-        license_plate: formData.license_plate,
-        color: formData.color || null,
-        assigned_to: formData.assigned_to === "unassigned" ? null : formData.assigned_to || null,
+        license_plate: formData.license_plate.trim(),
+        color: formData.color ? formData.color.trim() : null,
+        status: 'active', // Default status
+        assigned_to: (formData.assigned_to && formData.assigned_to !== "unassigned") ? formData.assigned_to : null,
         purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : null,
         purchase_date: formData.purchase_date || null,
-        license_expiry: formData.license_expiry || null,
-        insurance_expiry: formData.insurance_expiry || null,
-        next_maintenance: formData.next_maintenance || null,
         odometer_reading: formData.odometer_reading ? parseInt(formData.odometer_reading) : 0,
-        notes: formData.notes || null
+        notes: formData.notes ? formData.notes.trim() : null
       };
 
-      const { error } = await supabase
-        .from('vehicles')
-        .insert([insertData]);
+      console.log('Inserting vehicle data:', insertData);
 
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('vehicles')
+        .insert([insertData])
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(`خطأ في قاعدة البيانات: ${error.message}`);
+      }
+
+      console.log('Vehicle inserted successfully:', data);
 
       toast({
         title: "نجح الحفظ",
@@ -207,11 +223,25 @@ export default function Vehicles() {
         odometer_reading: "",
         notes: ""
       });
-      fetchVehicles();
-    } catch (error) {
+      
+      // Refresh the vehicles list
+      await fetchVehicles();
+      
+    } catch (error: any) {
+      console.error('Error saving vehicle:', error);
+      
+      let errorMessage = "فشل في حفظ البيانات";
+      if (error.message.includes('unique')) {
+        errorMessage = "رقم اللوحة مستخدم مسبقاً";
+      } else if (error.message.includes('foreign key')) {
+        errorMessage = "الموظف المحدد غير صحيح";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "خطأ",
-        description: "فشل في حفظ البيانات",
+        description: errorMessage,
         variant: "destructive",
       });
     }
