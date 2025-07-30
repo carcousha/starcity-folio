@@ -132,10 +132,13 @@ export default function Expenses() {
           amount: parseFloat(formData.amount),
           category: formData.category,
           expense_date: formData.expense_date,
-          recorded_by: user?.id
+          recorded_by: user?.id || '00000000-0000-0000-0000-000000000000'
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
       toast({
         title: "نجح الحفظ",
@@ -152,9 +155,10 @@ export default function Expenses() {
       });
       fetchExpenses();
     } catch (error) {
+      console.error('Submit error:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حفظ البيانات",
+        description: "فشل في حفظ البيانات: " + (error as any)?.message,
         variant: "destructive",
       });
     }
