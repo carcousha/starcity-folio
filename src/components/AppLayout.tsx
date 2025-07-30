@@ -72,7 +72,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               {profile && (
                 <div className="hidden md:block">
                   <h1 className="text-xl font-bold text-foreground">
-                    مرحباً، {profile.first_name}!
+                    مرحباً، {profile.first_name} {profile.last_name}!
                   </h1>
                   <p className="text-sm text-muted-foreground">
                     {profile.role === 'admin' ? 'لوحة تحكم المدير' : 
