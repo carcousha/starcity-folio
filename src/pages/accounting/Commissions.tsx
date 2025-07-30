@@ -203,9 +203,12 @@ export default function Commissions() {
         .from('commissions')
         .insert({
           amount: parseFloat(formData.total_commission),
-          deal_id: formData.deal_id || 'manual-entry',
+          deal_id: 'manual-entry',
           employee_id: employeeShares[0]?.employee_id || user?.id,
           percentage: 100,
+          total_commission: parseFloat(formData.total_commission),
+          client_name: formData.client_name,
+          notes: formData.notes,
           status: 'pending'
         })
         .select()
@@ -447,15 +450,15 @@ export default function Commissions() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>إجمالي العمولة:</span>
-                    <span className="font-semibold">{previewData.total_commission.toLocaleString('ar-EG')} ج.م</span>
+                    <span className="font-semibold">{previewData.total_commission.toLocaleString('ar-AE')} درهم</span>
                   </div>
                   <div className="flex justify-between">
                     <span>نصيب المكتب (50% + غير مستخدم):</span>
-                    <span className="font-semibold text-green-600">{previewData.office_share.toLocaleString('ar-EG')} ج.م</span>
+                    <span className="font-semibold text-green-600">{previewData.office_share.toLocaleString('ar-AE')} درهم</span>
                   </div>
                   <div className="flex justify-between">
                     <span>مجموع الموظفين:</span>
-                    <span className="font-semibold">{previewData.employee_pool.toLocaleString('ar-EG')} ج.م</span>
+                    <span className="font-semibold">{previewData.employee_pool.toLocaleString('ar-AE')} درهم</span>
                   </div>
                 </div>
               </div>
@@ -472,7 +475,7 @@ export default function Commissions() {
                       </div>
                       <div className="flex justify-between">
                         <span>المبلغ المحسوب:</span>
-                        <span>{emp.calculated_share.toLocaleString('ar-EG')} ج.م</span>
+                        <span>{emp.calculated_share.toLocaleString('ar-AE')} درهم</span>
                       </div>
                     </div>
                   </div>
@@ -495,7 +498,7 @@ export default function Commissions() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {totalPendingCommissions.toLocaleString('ar-EG')} ج.م
+              {totalPendingCommissions.toLocaleString('ar-AE')} درهم
             </div>
             <p className="text-xs text-muted-foreground">
               {commissions.filter(c => c.status === 'pending').length} عمولة معلقة
@@ -510,7 +513,7 @@ export default function Commissions() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {totalOfficeShare.toLocaleString('ar-EG')} ج.م
+              {totalOfficeShare.toLocaleString('ar-AE')} درهم
             </div>
             <p className="text-xs text-muted-foreground">50% + النسب غير المستخدمة</p>
           </CardContent>
@@ -523,7 +526,7 @@ export default function Commissions() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {totalEmployeeShare.toLocaleString('ar-EG')} ج.م
+              {totalEmployeeShare.toLocaleString('ar-AE')} درهم
             </div>
             <p className="text-xs text-muted-foreground">موزعة حسب النسب المحددة</p>
           </CardContent>
@@ -555,13 +558,13 @@ export default function Commissions() {
                     {commission.client_name || commission.deal_id || "غير محدد"}
                   </TableCell>
                   <TableCell className="font-semibold">
-                    {commission.total_commission.toLocaleString('ar-EG')} ج.م
+                    {commission.total_commission.toLocaleString('ar-AE')} درهم
                   </TableCell>
                   <TableCell className="text-green-600 font-semibold">
-                    {commission.office_share.toLocaleString('ar-EG')} ج.م
+                    {commission.office_share.toLocaleString('ar-AE')} درهم
                   </TableCell>
                   <TableCell className="text-blue-600 font-semibold">
-                    {commission.remaining_for_employees.toLocaleString('ar-EG')} ج.م
+                    {commission.remaining_for_employees.toLocaleString('ar-AE')} درهم
                   </TableCell>
                   <TableCell>
                     <Badge 
@@ -572,7 +575,7 @@ export default function Commissions() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(commission.created_at).toLocaleDateString('ar-EG')}
+                    {new Date(commission.created_at).toLocaleDateString('ar-AE')}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

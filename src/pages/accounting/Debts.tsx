@@ -156,10 +156,19 @@ export default function Debts() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.debtor_name || !formData.debtor_type || !formData.amount || !formData.description) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const insertData: any = {
         debtor_name: formData.debtor_name,
-        debtor_type: formData.debtor_type,
+        debtor_type: formData.debtor_type === "موظف" ? "employee" : formData.debtor_type.toLowerCase(),
         amount: parseFloat(formData.amount),
         description: formData.description,
         due_date: formData.due_date || null,

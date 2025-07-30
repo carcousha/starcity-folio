@@ -657,12 +657,28 @@ export default function Treasury() {
                         <div className="text-sm text-gray-500">
                           الرصيد الافتتاحي: {account.opening_balance.toFixed(2)} {account.currency}
                         </div>
-                        {account.account_type === 'bank' && (
-                          <div className="text-sm text-gray-600">
-                            <div>البنك: {account.bank_name}</div>
-                            <div>رقم الحساب: {account.account_number}</div>
-                          </div>
-                        )}
+                         {account.account_type === 'bank' && (
+                           <div className="text-sm text-gray-600 space-y-1">
+                             <div>البنك: {account.bank_name}</div>
+                             <div>رقم الحساب: {account.account_number}</div>
+                             <div>IBAN: {account.iban}</div>
+                             <Button
+                               size="sm"
+                               variant="outline"
+                               className="mt-2"
+                               onClick={() => {
+                                 const accountInfo = `اسم البنك: ${account.bank_name}\nرقم الحساب: ${account.account_number}\nIBAN: ${account.iban}\nالعملة: ${account.currency}`;
+                                 navigator.clipboard.writeText(accountInfo);
+                                 toast({
+                                   title: "تم النسخ",
+                                   description: "تم نسخ بيانات الحساب للحافظة",
+                                 });
+                               }}
+                             >
+                               نسخ البيانات
+                             </Button>
+                           </div>
+                         )}
                       </div>
                     </CardContent>
                   </Card>

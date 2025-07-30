@@ -105,6 +105,15 @@ export default function Expenses() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.title || !formData.amount || !formData.category) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('expenses')

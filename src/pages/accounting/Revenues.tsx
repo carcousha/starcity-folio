@@ -150,6 +150,15 @@ export default function Revenues() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.title || !formData.amount || !formData.source) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const insertData: any = {
         title: formData.title,
