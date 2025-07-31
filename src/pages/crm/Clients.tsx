@@ -67,7 +67,7 @@ export default function Clients() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [sourceFilter, setSourceFilter] = useState<string>("");
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   useEffect(() => {
     fetchClients();
@@ -143,11 +143,19 @@ export default function Clients() {
   };
 
   const canEditClient = (client: Client) => {
-    return user && (client.assigned_to === user.id || client.created_by === user.id);
+    if (!user) return false;
+    return profile?.role === 'admin' || 
+           profile?.role === 'accountant' || 
+           client.assigned_to === user.id || 
+           client.created_by === user.id;
   };
 
   const canDeleteClient = (client: Client) => {
-    return user && (client.assigned_to === user.id || client.created_by === user.id);
+    if (!user) return false;
+    return profile?.role === 'admin' || 
+           profile?.role === 'accountant' || 
+           client.assigned_to === user.id || 
+           client.created_by === user.id;
   };
 
   const filteredClients = clients.filter(client =>

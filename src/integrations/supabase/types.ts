@@ -799,9 +799,11 @@ export type Database = {
           amount: number
           created_at: string
           description: string | null
+          employee_id: string | null
           id: string
           recorded_by: string
           revenue_date: string
+          revenue_type: string | null
           source: string
           title: string
           updated_at: string
@@ -810,9 +812,11 @@ export type Database = {
           amount: number
           created_at?: string
           description?: string | null
+          employee_id?: string | null
           id?: string
           recorded_by: string
           revenue_date?: string
+          revenue_type?: string | null
           source: string
           title: string
           updated_at?: string
@@ -821,9 +825,11 @@ export type Database = {
           amount?: number
           created_at?: string
           description?: string | null
+          employee_id?: string | null
           id?: string
           recorded_by?: string
           revenue_date?: string
+          revenue_type?: string | null
           source?: string
           title?: string
           updated_at?: string
@@ -1065,6 +1071,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          debt_assignment: string | null
           description: string | null
           expense_date: string
           expense_type: string
@@ -1078,6 +1085,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          debt_assignment?: string | null
           description?: string | null
           expense_date?: string
           expense_type: string
@@ -1091,6 +1099,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          debt_assignment?: string | null
           description?: string | null
           expense_date?: string
           expense_type?: string
