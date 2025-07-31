@@ -286,42 +286,26 @@ const AdvancedContractGenerator = () => {
                 نوع العقد / Contract Type
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contract_type_ar">نوع العقد (عربي)</Label>
-                  <Select value={contractData.contract_type_ar} onValueChange={(value) => handleInputChange('contract_type_ar', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع العقد" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="سكني">سكني</SelectItem>
-                      <SelectItem value="تجاري">تجاري</SelectItem>
-                      <SelectItem value="استثماري">استثماري</SelectItem>
-                      <SelectItem value="سكن عمال">سكن عمال</SelectItem>
-                      <SelectItem value="عقد موظفين">عقد موظفين</SelectItem>
-                      <SelectItem value="مستودع">مستودع</SelectItem>
-                      <SelectItem value="حكومي">حكومي</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contract_type_en">Contract Type (English)</Label>
-                  <Select value={contractData.contract_type_en} onValueChange={(value) => handleInputChange('contract_type_en', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Contract Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Residential">Residential</SelectItem>
-                      <SelectItem value="Commercial">Commercial</SelectItem>
-                      <SelectItem value="Investment">Investment</SelectItem>
-                      <SelectItem value="Labour Camp">Labour Camp</SelectItem>
-                      <SelectItem value="Staff">Staff</SelectItem>
-                      <SelectItem value="Store">Store</SelectItem>
-                      <SelectItem value="Government">Government</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="contract_type">نوع العقد / Contract Type</Label>
+                <Select value={contractData.contract_type_ar} onValueChange={(value) => {
+                  const [english, arabic] = value.split(' // ');
+                  handleInputChange('contract_type_ar', arabic);
+                  handleInputChange('contract_type_en', english);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر نوع العقد / Select Contract Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Residential // سكني">Residential // سكني</SelectItem>
+                    <SelectItem value="Commercial // تجاري">Commercial // تجاري</SelectItem>
+                    <SelectItem value="Investment // استثماري">Investment // استثماري</SelectItem>
+                    <SelectItem value="Labour Camp // سكن عمال">Labour Camp // سكن عمال</SelectItem>
+                    <SelectItem value="Staff // عقد موظفين">Staff // عقد موظفين</SelectItem>
+                    <SelectItem value="Store // مستودع">Store // مستودع</SelectItem>
+                    <SelectItem value="Government // حكومي">Government // حكومي</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -582,42 +566,26 @@ const AdvancedContractGenerator = () => {
               </div>
 
               {/* أغراض الاستعمال */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="purpose_of_use_ar">أغراض الاستعمال (عربي)</Label>
-                  <Select value={contractData.purpose_of_use_ar} onValueChange={(value) => handleInputChange('purpose_of_use_ar', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الغرض من الاستعمال" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="سكني">سكني</SelectItem>
-                      <SelectItem value="تجاري">تجاري</SelectItem>
-                      <SelectItem value="استثماري">استثماري</SelectItem>
-                      <SelectItem value="سكن عمال">سكن عمال</SelectItem>
-                      <SelectItem value="عقد موظفين">عقد موظفين</SelectItem>
-                      <SelectItem value="مستودع">مستودع</SelectItem>
-                      <SelectItem value="حكومي">حكومي</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="purpose_of_use_en">Purposes of use (English)</Label>
-                  <Select value={contractData.purpose_of_use_en} onValueChange={(value) => handleInputChange('purpose_of_use_en', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select purpose of use" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Residential">Residential</SelectItem>
-                      <SelectItem value="Commercial">Commercial</SelectItem>
-                      <SelectItem value="Investment">Investment</SelectItem>
-                      <SelectItem value="Labour Camp">Labour Camp</SelectItem>
-                      <SelectItem value="Staff">Staff</SelectItem>
-                      <SelectItem value="Store">Store</SelectItem>
-                      <SelectItem value="Government">Government</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="purpose_of_use">أغراض الاستعمال / Purposes of use</Label>
+                <Select value={contractData.purpose_of_use_ar} onValueChange={(value) => {
+                  const [english, arabic] = value.split(' // ');
+                  handleInputChange('purpose_of_use_ar', arabic);
+                  handleInputChange('purpose_of_use_en', english);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر الغرض من الاستعمال / Select Purpose" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Residential // سكني">Residential // سكني</SelectItem>
+                    <SelectItem value="Commercial // تجاري">Commercial // تجاري</SelectItem>
+                    <SelectItem value="Investment // استثماري">Investment // استثماري</SelectItem>
+                    <SelectItem value="Labour Camp // سكن عمال">Labour Camp // سكن عمال</SelectItem>
+                    <SelectItem value="Staff // عقد موظفين">Staff // عقد موظفين</SelectItem>
+                    <SelectItem value="Store // مستودع">Store // مستودع</SelectItem>
+                    <SelectItem value="Government // حكومي">Government // حكومي</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* رقم الوحدة */}
@@ -636,66 +604,38 @@ const AdvancedContractGenerator = () => {
               </div>
 
               {/* نوع الوحدة */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="unit_type_ar">نوع الوحدة (عربي)</Label>
-                  <Select value={contractData.unit_type_ar} onValueChange={(value) => handleInputChange('unit_type_ar', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع الوحدة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="متجر">متجر</SelectItem>
-                      <SelectItem value="معرض">معرض</SelectItem>
-                      <SelectItem value="شقة">شقة</SelectItem>
-                      <SelectItem value="استوديو">استوديو</SelectItem>
-                      <SelectItem value="مكتب">مكتب</SelectItem>
-                      <SelectItem value="طابق سطح">طابق سطح</SelectItem>
-                      <SelectItem value="بنت هاوس">بنت هاوس</SelectItem>
-                      <SelectItem value="كشك">كشك</SelectItem>
-                      <SelectItem value="مساحة إعلانات">مساحة إعلانات</SelectItem>
-                      <SelectItem value="برج إرسال">برج إرسال</SelectItem>
-                      <SelectItem value="مصنع">مصنع</SelectItem>
-                      <SelectItem value="شبرة">شبرة</SelectItem>
-                      <SelectItem value="أرض">أرض</SelectItem>
-                      <SelectItem value="فيلا">فيلا</SelectItem>
-                      <SelectItem value="سكن عمال">سكن عمال</SelectItem>
-                      <SelectItem value="مجمع تجاري">مجمع تجاري</SelectItem>
-                      <SelectItem value="مجمع سكن عمال">مجمع سكن عمال</SelectItem>
-                      <SelectItem value="مبنى">مبنى</SelectItem>
-                      <SelectItem value="شاحنة طعام">شاحنة طعام</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="unit_type_en">Unit Type (English)</Label>
-                  <Select value={contractData.unit_type_en} onValueChange={(value) => handleInputChange('unit_type_en', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select unit type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SHOP">SHOP</SelectItem>
-                      <SelectItem value="SHOW ROOM">SHOW ROOM</SelectItem>
-                      <SelectItem value="FLAT">FLAT</SelectItem>
-                      <SelectItem value="STUDIO">STUDIO</SelectItem>
-                      <SelectItem value="OFFICE">OFFICE</SelectItem>
-                      <SelectItem value="ROOF">ROOF</SelectItem>
-                      <SelectItem value="PENT HOUSE">PENT HOUSE</SelectItem>
-                      <SelectItem value="BOOTH">BOOTH</SelectItem>
-                      <SelectItem value="ADVERTISING">ADVERTISING</SelectItem>
-                      <SelectItem value="ANTENNA TOWWER">ANTENNA TOWWER</SelectItem>
-                      <SelectItem value="FACTORY">FACTORY</SelectItem>
-                      <SelectItem value="Shed">Shed</SelectItem>
-                      <SelectItem value="LAND">LAND</SelectItem>
-                      <SelectItem value="VILLA">VILLA</SelectItem>
-                      <SelectItem value="labour camp">labour camp</SelectItem>
-                      <SelectItem value="MALL">MALL</SelectItem>
-                      <SelectItem value="LabourCamp">LabourCamp</SelectItem>
-                      <SelectItem value="Building">Building</SelectItem>
-                      <SelectItem value="Food Truck">Food Truck</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="unit_type">نوع الوحدة العقارية / Unit Type</Label>
+                <Select value={contractData.unit_type_ar} onValueChange={(value) => {
+                  const [english, arabic] = value.split(' // ');
+                  handleInputChange('unit_type_ar', arabic);
+                  handleInputChange('unit_type_en', english);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر نوع الوحدة / Select Unit Type" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto">
+                    <SelectItem value="SHOP // متجر">SHOP // متجر</SelectItem>
+                    <SelectItem value="SHOW ROOM // معرض">SHOW ROOM // معرض</SelectItem>
+                    <SelectItem value="FLAT // شقة">FLAT // شقة</SelectItem>
+                    <SelectItem value="STUDIO // استوديو">STUDIO // استوديو</SelectItem>
+                    <SelectItem value="OFFICE // مكتب">OFFICE // مكتب</SelectItem>
+                    <SelectItem value="ROOF // طابق سطح">ROOF // طابق سطح</SelectItem>
+                    <SelectItem value="PENT HOUSE // بنت هاوس">PENT HOUSE // بنت هاوس</SelectItem>
+                    <SelectItem value="BOOTH // كشك">BOOTH // كشك</SelectItem>
+                    <SelectItem value="ADVERTISING // مساحة إعلانات">ADVERTISING // مساحة إعلانات</SelectItem>
+                    <SelectItem value="ANTENNA TOWWER // برج إرسال">ANTENNA TOWWER // برج إرسال</SelectItem>
+                    <SelectItem value="FACTORY // مصنع">FACTORY // مصنع</SelectItem>
+                    <SelectItem value="Shed // شبرة">Shed // شبرة</SelectItem>
+                    <SelectItem value="LAND // أرض">LAND // أرض</SelectItem>
+                    <SelectItem value="VILLA // فيلا">VILLA // فيلا</SelectItem>
+                    <SelectItem value="labour camp // سكن عمال">labour camp // سكن عمال</SelectItem>
+                    <SelectItem value="MALL // مجمع تجاري">MALL // مجمع تجاري</SelectItem>
+                    <SelectItem value="LabourCamp // مجمع سكن عمال">LabourCamp // مجمع سكن عمال</SelectItem>
+                    <SelectItem value="Building // مبنى">Building // مبنى</SelectItem>
+                    <SelectItem value="Food Truck // شاحنة طعام">Food Truck // شاحنة طعام</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
