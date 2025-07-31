@@ -46,12 +46,67 @@ const AddCommissionForm = () => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
 
+      // الحصول على العميل والعقار الافتراضيين
+      const { data: defaultClient, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('name', 'عميل افتراضي - عمولات يدوية')
+        .maybeSingle();
+
+      const { data: defaultProperty, error: propertyError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('title', 'عقار افتراضي - عمولات يدوية')
+        .maybeSingle();
+
+      // إنشاء العميل الافتراضي إذا لم يكن موجوداً
+      let clientId = defaultClient?.id;
+      if (!clientId) {
+        const { data: newClient, error: newClientError } = await supabase
+          .from('clients')
+          .insert({
+            name: 'عميل افتراضي - عمولات يدوية',
+            phone: '0000000000',
+            email: 'default@manual-commission.local',
+            notes: 'عميل افتراضي للعمولات اليدوية - لا يُستخدم في المراسلات',
+            client_status: 'inactive',
+            created_by: user.id,
+            assigned_to: user.id
+          })
+          .select('id')
+          .single();
+        
+        if (newClientError) throw newClientError;
+        clientId = newClient.id;
+      }
+
+      // إنشاء العقار الافتراضي إذا لم يكن موجوداً
+      let propertyId = defaultProperty?.id;
+      if (!propertyId) {
+        const { data: newProperty, error: newPropertyError } = await supabase
+          .from('properties')
+          .insert({
+            title: 'عقار افتراضي - عمولات يدوية',
+            description: 'عقار افتراضي للعمولات اليدوية والمعاملات الخارجية',
+            property_type: 'أخرى',
+            location: 'افتراضي',
+            price: 0,
+            status: 'unavailable',
+            listed_by: user.id
+          })
+          .select('id')
+          .single();
+        
+        if (newPropertyError) throw newPropertyError;
+        propertyId = newProperty.id;
+      }
+
       // إنشاء صفقة وهمية لهذه العمولة
       const { data: dealData, error: dealError } = await supabase
         .from('deals')
         .insert({
-          client_id: null, // يمكن تركه فارغ للعمولات اليدوية
-          property_id: null, // يمكن تركه فارغ للعمولات اليدوية
+          client_id: clientId,
+          property_id: propertyId,
           amount: commissionAmount,
           deal_type: transactionType,
           status: 'closed',
@@ -64,7 +119,7 @@ const AddCommissionForm = () => {
         })
         .select()
         .single();
-
+        
       if (dealError) throw dealError;
 
       // إضافة العمولة الجديدة
@@ -229,6 +284,7 @@ const AddCommissionForm = () => {
                   <SelectValue placeholder="اختر الموظف المسؤول عن العمولة" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">بدون موظف محدد</SelectItem>
                   {employees.map((employee) => (
                     <SelectItem key={employee.user_id} value={employee.user_id}>
                       {employee.first_name} {employee.last_name}
