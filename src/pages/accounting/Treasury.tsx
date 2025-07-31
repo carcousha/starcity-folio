@@ -148,19 +148,54 @@ export default function Treasury() {
   };
 
   const fetchTransactions = async () => {
-    const { data, error } = await supabase
-      .from('treasury_transactions')
-      .select(`
-        *,
-        from_account:treasury_accounts!treasury_transactions_from_account_id_fkey(*),
-        to_account:treasury_accounts!treasury_transactions_to_account_id_fkey(*),
-        processor:profiles!treasury_transactions_processed_by_fkey(first_name, last_name)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(100);
+    try {
+      // جلب المعاملات أولاً
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('treasury_transactions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-    if (error) throw error;
-    setTransactions(data as any || []);
+      if (transactionsError) throw transactionsError;
+
+      // جلب بيانات الحسابات للربط
+      const { data: accountsData, error: accountsError } = await supabase
+        .from('treasury_accounts')
+        .select('*');
+
+      if (accountsError) throw accountsError;
+
+      // جلب بيانات المستخدمين للربط
+      const userIds = [...new Set(transactionsData?.map(t => t.processed_by).filter(Boolean))];
+      let usersData: any[] = [];
+
+      if (userIds.length > 0) {
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        if (!usersError && users) {
+          usersData = users;
+        }
+      }
+
+      // دمج البيانات
+      const transactionsWithDetails = transactionsData?.map(transaction => ({
+        ...transaction,
+        from_account: transaction.from_account_id 
+          ? accountsData.find(acc => acc.id === transaction.from_account_id) 
+          : null,
+        to_account: transaction.to_account_id 
+          ? accountsData.find(acc => acc.id === transaction.to_account_id) 
+          : null,
+        processor: usersData.find(user => user.user_id === transaction.processed_by)
+      })) || [];
+
+      setTransactions(transactionsWithDetails);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const filterTransactions = () => {
