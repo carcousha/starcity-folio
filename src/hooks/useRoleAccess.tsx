@@ -145,13 +145,24 @@ export const useRoleAccess = () => {
       return false;
     }
 
-    // Server-side permission validation
+    // Server-side permission validation - CRITICAL: No client-side fallback
     try {
-      const { data: hasPermission, error } = await supabase.rpc('validate_role_access', {
+      const { data: hasValidRole, error } = await supabase.rpc('validate_user_role', {
         required_role: userRole
       });
 
-      if (error || !hasPermission) {
+      if (error) {
+        console.error('Permission validation error:', error);
+        toast({
+          title: "خطأ في التحقق من الصلاحيات",
+          description: "حدث خطأ في التحقق من صلاحياتك",
+          variant: "destructive",
+        });
+        navigate(redirectPath);
+        return false;
+      }
+
+      if (!hasValidRole) {
         toast({
           title: "غير مصرح",
           description: "لا تملك الصلاحية للوصول لهذه الصفحة",
@@ -160,9 +171,8 @@ export const useRoleAccess = () => {
         navigate(redirectPath);
         return false;
       }
-    } catch (error) {
-      console.error('Permission validation error:', error);
-      // Fall back to client-side check
+
+      // Additional permission check based on role
       if (!checkPermission(permission)) {
         toast({
           title: "غير مصرح",
@@ -172,6 +182,15 @@ export const useRoleAccess = () => {
         navigate(redirectPath);
         return false;
       }
+    } catch (error) {
+      console.error('Critical permission validation error:', error);
+      toast({
+        title: "خطأ أمني",
+        description: "فشل في التحقق من الصلاحيات",
+        variant: "destructive",
+      });
+      navigate(redirectPath);
+      return false;
     }
     
     return true;
