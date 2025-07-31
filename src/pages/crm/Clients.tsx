@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ interface Client {
   created_at: string;
   updated_at: string;
   assigned_to?: string;
+  created_by?: string;
 }
 
 const CLIENT_STATUSES = [
@@ -139,6 +140,14 @@ export default function Clients() {
         variant: "destructive",
       });
     }
+  };
+
+  const canEditClient = (client: Client) => {
+    return user && (client.assigned_to === user.id || client.created_by === user.id);
+  };
+
+  const canDeleteClient = (client: Client) => {
+    return user && (client.assigned_to === user.id || client.created_by === user.id);
   };
 
   const filteredClients = clients.filter(client =>
@@ -328,21 +337,25 @@ export default function Clients() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(client)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(client.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canEditClient(client) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(client)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDeleteClient(client) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(client.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -365,6 +378,9 @@ export default function Clients() {
       {/* Client Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="sr-only">
+            {editingClient ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}
+          </DialogTitle>
           <ClientForm
             client={editingClient}
             onSuccess={() => {

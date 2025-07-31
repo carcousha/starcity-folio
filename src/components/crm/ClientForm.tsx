@@ -156,6 +156,9 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
     try {
       const clientData = {
         ...data,
+        // تحويل التواريخ الفارغة إلى null
+        planned_purchase_date: data.planned_purchase_date || null,
+        last_contacted: data.last_contacted || null,
         created_by: user?.id,
         assigned_to: user?.id
       };
