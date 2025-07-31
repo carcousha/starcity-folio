@@ -181,14 +181,7 @@ export const CommissionsFixed = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">إدارة العمولات</h1>
-          <p className="text-muted-foreground">حساب وإدارة عمولات الصفقات</p>
-        </div>
-      </div>
-
+    <div className="space-y-6">
       {/* الإحصائيات */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -223,7 +216,7 @@ export const CommissionsFixed = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي العمولات</CardTitle>
+            <CardTitle className="text-sm font-medium">عدد العمولات</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

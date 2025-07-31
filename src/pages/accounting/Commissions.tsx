@@ -70,10 +70,13 @@ export default function Commissions() {
                   ✅ حساب تلقائي للعمولات عند إغلاق الصفقات<br/>
                   ✅ حماية من الأخطاء والمشاكل<br/>
                   ✅ تسجيل آمن للبيانات<br/>
-                  ✅ واجهة سهلة الاستخدام
+                  ✅ واجهة سهلة الاستخدام<br/>
+                  ✅ إمكانية إضافة عمولات يدوياً للصفقات المكتملة
                 </CardDescription>
               </CardHeader>
             </Card>
+            
+            {/* إضافة المحتوى مباشرة بدلاً من Component منفصل */}
             <CommissionsFixed />
           </div>
         </TabsContent>
