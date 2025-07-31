@@ -52,7 +52,7 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
         .from('activity_logs')
         .select(`
           *,
-          user:profiles!activity_logs_user_id_fkey(first_name, last_name)
+          user:profiles(first_name, last_name)
         `)
         .order('created_at', { ascending: false });
 
