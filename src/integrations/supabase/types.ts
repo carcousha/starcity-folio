@@ -2309,6 +2309,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_contract_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_rental_installments: {
         Args: {
           p_contract_id: string
@@ -2318,6 +2322,24 @@ export type Database = {
           p_amount_per_installment: number
         }
         Returns: undefined
+      }
+      get_contracts_report: {
+        Args: { p_start_date?: string; p_end_date?: string; p_status?: string }
+        Returns: {
+          contract_id: string
+          contract_number: string
+          property_title: string
+          tenant_name: string
+          rent_amount: number
+          start_date: string
+          end_date: string
+          contract_status: string
+          total_installments: number
+          paid_installments: number
+          pending_installments: number
+          total_paid: number
+          total_pending: number
+        }[]
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
