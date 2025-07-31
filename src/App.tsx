@@ -21,6 +21,7 @@ import VehicleExpenses from "./pages/accounting/VehicleExpenses";
 import Staff from "./pages/accounting/Staff";
 import Treasury from "./pages/accounting/Treasury";
 import ActivityLogPage from "./pages/accounting/ActivityLog";
+import AdvancedDebts from "./pages/accounting/AdvancedDebts";
 import ReportsIndex from "./pages/reports/index";
 import EmployeeReports from "./pages/reports/EmployeeReports";
 import VehicleReports from "./pages/reports/VehicleReports";
@@ -92,6 +93,11 @@ const App = () => (
               <Route path="/accounting/debts" element={
                 <ProtectedRoute requiredPermission="canManageDebts">
                   <Debts />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/advanced-debts" element={
+                <ProtectedRoute requiredPermission="canManageDebts">
+                  <AdvancedDebts />
                 </ProtectedRoute>
               } />
               <Route path="/accounting/vehicles" element={

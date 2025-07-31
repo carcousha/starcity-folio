@@ -295,6 +295,10 @@ export default function Debts() {
           <p className="text-gray-600 mt-2">متابعة مديونيات الموظفين والعملاء</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => window.location.href = '/accounting/advanced-debts'} variant="outline">
+            <BarChart3 className="h-4 w-4 ml-2" />
+            النظام المتقدم
+          </Button>
           <Button onClick={exportToCSV} variant="outline">
             <Download className="h-4 w-4 ml-2" />
             تصدير

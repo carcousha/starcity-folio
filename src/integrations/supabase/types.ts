@@ -458,45 +458,188 @@ export type Database = {
           },
         ]
       }
-      debts: {
+      debt_installments: {
         Row: {
           amount: number
           created_at: string
-          debtor_id: string | null
-          debtor_name: string
-          debtor_type: string
-          description: string | null
-          due_date: string | null
+          debt_id: string
+          due_date: string
           id: string
+          installment_number: number
+          notes: string | null
+          paid_amount: number | null
           paid_at: string | null
-          recorded_by: string
           status: string
           updated_at: string
         }
         Insert: {
           amount: number
           created_at?: string
-          debtor_id?: string | null
-          debtor_name: string
-          debtor_type: string
-          description?: string | null
-          due_date?: string | null
+          debt_id: string
+          due_date: string
           id?: string
+          installment_number: number
+          notes?: string | null
+          paid_amount?: number | null
           paid_at?: string | null
-          recorded_by: string
           status?: string
           updated_at?: string
         }
         Update: {
           amount?: number
           created_at?: string
+          debt_id?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debt_installments_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debt_notifications: {
+        Row: {
+          created_at: string
+          debt_id: string | null
+          id: string
+          installment_id: string | null
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          notification_type: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          target_user_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          debt_id?: string | null
+          id?: string
+          installment_id?: string | null
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          target_user_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          debt_id?: string | null
+          id?: string
+          installment_id?: string | null
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          target_user_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debt_notifications_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debt_notifications_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "debt_installments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debts: {
+        Row: {
+          amount: number
+          auto_deduct_from_commission: boolean | null
+          contract_reference: string | null
+          created_at: string
+          debtor_id: string | null
+          debtor_name: string
+          debtor_type: string
+          description: string | null
+          due_date: string | null
+          grace_period_days: number | null
+          guarantor_name: string | null
+          guarantor_phone: string | null
+          id: string
+          installment_count: number | null
+          installment_frequency: string | null
+          late_fee_amount: number | null
+          paid_at: string | null
+          payment_method: string | null
+          priority_level: number | null
+          recorded_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          auto_deduct_from_commission?: boolean | null
+          contract_reference?: string | null
+          created_at?: string
+          debtor_id?: string | null
+          debtor_name: string
+          debtor_type: string
+          description?: string | null
+          due_date?: string | null
+          grace_period_days?: number | null
+          guarantor_name?: string | null
+          guarantor_phone?: string | null
+          id?: string
+          installment_count?: number | null
+          installment_frequency?: string | null
+          late_fee_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          priority_level?: number | null
+          recorded_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          auto_deduct_from_commission?: boolean | null
+          contract_reference?: string | null
+          created_at?: string
           debtor_id?: string | null
           debtor_name?: string
           debtor_type?: string
           description?: string | null
           due_date?: string | null
+          grace_period_days?: number | null
+          guarantor_name?: string | null
+          guarantor_phone?: string | null
           id?: string
+          installment_count?: number | null
+          installment_frequency?: string | null
+          late_fee_amount?: number | null
           paid_at?: string | null
+          payment_method?: string | null
+          priority_level?: number | null
           recorded_by?: string
           status?: string
           updated_at?: string
@@ -1512,6 +1655,15 @@ export type Database = {
         Args: { lead_id_param: string }
         Returns: string
       }
+      create_debt_installments: {
+        Args: {
+          p_debt_id: string
+          p_installment_count: number
+          p_frequency: string
+          p_start_date: string
+        }
+        Returns: undefined
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1566,6 +1718,19 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: string
+      }
+      process_installment_payment: {
+        Args: {
+          p_installment_id: string
+          p_payment_amount: number
+          p_payment_method?: string
+          p_notes?: string
+        }
+        Returns: boolean
+      }
+      schedule_debt_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       secure_role_change: {
         Args: {
