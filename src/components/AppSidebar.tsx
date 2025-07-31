@@ -254,7 +254,6 @@ export function AppSidebar() {
           {getCurrentModules().length > 0 && (
             <SidebarGroup>
               <SidebarGroupLabel className="px-6 py-2 text-gray-500 text-sm font-medium">
-                {!collapsed && "وحدات إضافية"}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
