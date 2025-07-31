@@ -56,6 +56,42 @@ export type Database = {
         }
         Relationships: []
       }
+      applied_incentives: {
+        Row: {
+          achievement_percentage: number
+          applied_at: string
+          calculated_amount: number
+          created_by: string
+          employee_id: string
+          id: string
+          incentive_rule_id: string
+          notes: string | null
+          target_id: string
+        }
+        Insert: {
+          achievement_percentage: number
+          applied_at?: string
+          calculated_amount: number
+          created_by: string
+          employee_id: string
+          id?: string
+          incentive_rule_id: string
+          notes?: string | null
+          target_id: string
+        }
+        Update: {
+          achievement_percentage?: number
+          applied_at?: string
+          calculated_amount?: number
+          created_by?: string
+          employee_id?: string
+          id?: string
+          incentive_rule_id?: string
+          notes?: string | null
+          target_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -467,6 +503,60 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_targets: {
+        Row: {
+          achieved_at: string | null
+          commission_target: number
+          created_at: string
+          created_by: string
+          current_commission: number
+          current_deals: number
+          current_sales: number
+          deals_target: number
+          employee_id: string
+          id: string
+          is_achieved: boolean
+          sales_target: number
+          target_period: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          achieved_at?: string | null
+          commission_target?: number
+          created_at?: string
+          created_by: string
+          current_commission?: number
+          current_deals?: number
+          current_sales?: number
+          deals_target?: number
+          employee_id: string
+          id?: string
+          is_achieved?: boolean
+          sales_target?: number
+          target_period: string
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          achieved_at?: string | null
+          commission_target?: number
+          created_at?: string
+          created_by?: string
+          current_commission?: number
+          current_deals?: number
+          current_sales?: number
+          deals_target?: number
+          employee_id?: string
+          id?: string
+          is_achieved?: boolean
+          sales_target?: number
+          target_period?: string
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expense_attachments: {
         Row: {
           expense_id: string
@@ -584,6 +674,48 @@ export type Database = {
           filename?: string
           id?: string
           uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      incentive_rules: {
+        Row: {
+          achievement_percentage: number
+          created_at: string
+          created_by: string
+          id: string
+          incentive_type: string
+          incentive_value: number
+          is_active: boolean
+          max_incentive_amount: number | null
+          rule_name: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          achievement_percentage?: number
+          created_at?: string
+          created_by: string
+          id?: string
+          incentive_type: string
+          incentive_value: number
+          is_active?: boolean
+          max_incentive_amount?: number | null
+          rule_name: string
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          achievement_percentage?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          incentive_type?: string
+          incentive_value?: number
+          is_active?: boolean
+          max_incentive_amount?: number | null
+          rule_name?: string
+          target_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -781,6 +913,87 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      notification_logs: {
+        Row: {
+          channel: string
+          created_at: string
+          employee_id: string
+          error_message: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          notification_type: string
+          sent_at: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          employee_id: string
+          error_message?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          sent_at?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          employee_id?: string
+          error_message?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          commission_alerts: boolean
+          created_at: string
+          debt_alerts: boolean
+          email_notifications: boolean
+          employee_id: string
+          id: string
+          target_alerts: boolean
+          updated_at: string
+          whatsapp_notifications: boolean
+          whatsapp_number: string | null
+        }
+        Insert: {
+          commission_alerts?: boolean
+          created_at?: string
+          debt_alerts?: boolean
+          email_notifications?: boolean
+          employee_id: string
+          id?: string
+          target_alerts?: boolean
+          updated_at?: string
+          whatsapp_notifications?: boolean
+          whatsapp_number?: string | null
+        }
+        Update: {
+          commission_alerts?: boolean
+          created_at?: string
+          debt_alerts?: boolean
+          email_notifications?: boolean
+          employee_id?: string
+          id?: string
+          target_alerts?: boolean
+          updated_at?: string
+          whatsapp_notifications?: boolean
+          whatsapp_number?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1269,9 +1482,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      employee_commission_statement: {
+        Row: {
+          current_total_debts: number | null
+          employee_email: string | null
+          employee_id: string | null
+          employee_name: string | null
+          total_calculated_commissions: number | null
+          total_commissions_count: number | null
+          total_deducted_debts: number | null
+          total_incentives: number | null
+          total_net_commissions: number | null
+          total_paid_commissions: number | null
+          total_pending_commissions: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      calculate_and_apply_incentives: {
+        Args: { target_id_param: string }
+        Returns: Json
+      }
       calculate_lead_score: {
         Args: { lead_record: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: number
@@ -1341,6 +1573,18 @@ export type Database = {
           new_role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      send_commission_notification: {
+        Args: {
+          employee_id_param: string
+          commission_id_param: string
+          commission_amount: number
+        }
+        Returns: string
+      }
+      update_employee_targets_progress: {
+        Args: { employee_id_param: string }
+        Returns: undefined
       }
     }
     Enums: {
