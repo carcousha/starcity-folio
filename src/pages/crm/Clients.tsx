@@ -79,11 +79,11 @@ export default function Clients() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (statusFilter) {
+      if (statusFilter && statusFilter !== "all") {
         query = query.eq('client_status', statusFilter);
       }
 
-      if (sourceFilter) {
+      if (sourceFilter && sourceFilter !== "all") {
         query = query.eq('source', sourceFilter);
       }
 
@@ -217,7 +217,7 @@ export default function Clients() {
                   <SelectValue placeholder="جميع الحالات" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع الحالات</SelectItem>
+                  <SelectItem value="all">جميع الحالات</SelectItem>
                   {CLIENT_STATUSES.map((status) => (
                     <SelectItem key={status.value} value={status.value}>
                       {status.label}
@@ -233,7 +233,7 @@ export default function Clients() {
                   <SelectValue placeholder="جميع المصادر" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع المصادر</SelectItem>
+                  <SelectItem value="all">جميع المصادر</SelectItem>
                   {SOURCES.map((source) => (
                     <SelectItem key={source.value} value={source.value}>
                       {source.label}
