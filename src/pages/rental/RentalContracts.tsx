@@ -678,7 +678,7 @@ export default function RentalContracts() {
       </div>
 
       <Tabs defaultValue="create-contract" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="create-contract" className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             إنشاء عقد جديد
@@ -690,6 +690,10 @@ export default function RentalContracts() {
           <TabsTrigger value="upload-templates" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
             قوالب Word
+          </TabsTrigger>
+          <TabsTrigger value="pdf-templates" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            قوالب PDF
           </TabsTrigger>
         </TabsList>
         
@@ -703,6 +707,21 @@ export default function RentalContracts() {
         
         <TabsContent value="upload-templates">
           <ContractTemplateUpload />
+        </TabsContent>
+        
+        <TabsContent value="pdf-templates">
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 className="font-medium text-blue-900 mb-2">رفع قوالب PDF</h3>
+            <p className="text-blue-700 text-sm">
+              لرفع قوالب PDF، يرجى الذهاب إلى{" "}
+              <a 
+                href="/rental/contracts-new" 
+                className="underline font-medium hover:text-blue-900"
+              >
+                صفحة إدارة عقود PDF
+              </a>
+            </p>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
