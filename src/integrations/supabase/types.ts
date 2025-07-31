@@ -1382,6 +1382,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          field_positions: Json
+          file_path: string
+          id: string
+          is_active: boolean
+          template_name: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          field_positions?: Json
+          file_path: string
+          id?: string
+          is_active?: boolean
+          template_name: string
+          template_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          field_positions?: Json
+          file_path?: string
+          id?: string
+          is_active?: boolean
+          template_name?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1489,10 +1525,12 @@ export type Database = {
           created_by: string
           end_date: string
           generated_contract_path: string | null
+          generated_pdf_path: string | null
           id: string
           installment_frequency: string
           installments_count: number
           payment_method: string | null
+          pdf_template_id: string | null
           property_id: string | null
           property_title: string | null
           renewal_notice_days: number | null
@@ -1515,10 +1553,12 @@ export type Database = {
           created_by: string
           end_date: string
           generated_contract_path?: string | null
+          generated_pdf_path?: string | null
           id?: string
           installment_frequency?: string
           installments_count?: number
           payment_method?: string | null
+          pdf_template_id?: string | null
           property_id?: string | null
           property_title?: string | null
           renewal_notice_days?: number | null
@@ -1541,10 +1581,12 @@ export type Database = {
           created_by?: string
           end_date?: string
           generated_contract_path?: string | null
+          generated_pdf_path?: string | null
           id?: string
           installment_frequency?: string
           installments_count?: number
           payment_method?: string | null
+          pdf_template_id?: string | null
           property_id?: string | null
           property_title?: string | null
           renewal_notice_days?: number | null
@@ -1558,6 +1600,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rental_contracts_pdf_template_id_fkey"
+            columns: ["pdf_template_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rental_contracts_property_id_fkey"
             columns: ["property_id"]
