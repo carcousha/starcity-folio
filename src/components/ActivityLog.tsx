@@ -50,10 +50,7 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
     try {
       let query = supabase
         .from('activity_logs')
-        .select(`
-          *,
-          user:profiles(first_name, last_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (userId) {
@@ -64,16 +61,36 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
         query = query.limit(limit);
       }
 
-      const { data, error } = await query;
+      const { data: activitiesData, error } = await query;
 
       if (error) {
         console.error('Error fetching activities:', error);
-        // تجاهل الأخطاء واستمر مع قائمة فارغة
         setActivities([]);
         return;
       }
+
+      // جلب بيانات المستخدمين بشكل منفصل
+      const userIds = [...new Set(activitiesData?.map(activity => activity.user_id).filter(Boolean))];
+      let usersData: any[] = [];
+
+      if (userIds.length > 0) {
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        if (!usersError && users) {
+          usersData = users;
+        }
+      }
+
+      // دمج البيانات
+      const activitiesWithUsers = activitiesData?.map(activity => ({
+        ...activity,
+        user: usersData.find(user => user.user_id === activity.user_id)
+      })) || [];
       
-      setActivities(data as any || []);
+      setActivities(activitiesWithUsers);
     } catch (error) {
       console.error('Error fetching activities:', error);
       setActivities([]);
@@ -168,7 +185,7 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
                         <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
                         <div className="flex items-center space-x-2 space-x-reverse text-xs text-gray-500 mt-1">
                           <span>
-                            بواسطة: {activity.user?.first_name} {activity.user?.last_name}
+                            بواسطة: {activity.user?.first_name || 'غير محدد'} {activity.user?.last_name || ''}
                           </span>
                           <span>•</span>
                           <span>
