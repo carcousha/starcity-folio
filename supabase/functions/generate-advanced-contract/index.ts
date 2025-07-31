@@ -176,9 +176,18 @@ serve(async (req) => {
       installments_count: { x: 400, y: height - 460 }
     };
 
+    // Helper function to safely encode text for PDF
+    const safeText = (text: string) => {
+      // Convert Arabic text to Latin transliteration to avoid encoding issues
+      return text.replace(/[^\x00-\x7F]/g, function(char) {
+        // Replace Arabic characters with their Unicode code points
+        return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`;
+      });
+    };
+
     // إضافة البيانات إلى PDF
-    // عنوان العقد
-    firstPage.drawText('عقد إيجار عقاري', {
+    // عنوان العقد - using English for now to avoid encoding issues
+    firstPage.drawText('Rental Contract / Aqd Ijar', {
       x: width / 2 - 100,
       y: height - 100,
       size: 20,
@@ -187,8 +196,9 @@ serve(async (req) => {
     });
 
     // معلومات المالك
-    const ownerName = contractData.owner_name_ar || contractData.owner_name_en || '';
-    firstPage.drawText(`اسم المالك/المؤجر: ${ownerName}`, {
+    const ownerName = contractData.owner_name_en || 
+                     (contractData.owner_name_ar ? `Owner: ${contractData.owner_name_ar}` : '');
+    firstPage.drawText(`Owner/Landlord: ${ownerName}`, {
       x: positions.owner_name.x,
       y: positions.owner_name.y,
       size: fontSize,
@@ -198,8 +208,9 @@ serve(async (req) => {
 
     // الوكيل (إذا وجد)
     if (contractData.proxy_ar || contractData.proxy_en) {
-      const proxyName = contractData.proxy_ar || contractData.proxy_en;
-      firstPage.drawText(`الوكيل: ${proxyName}`, {
+      const proxyName = contractData.proxy_en || 
+                       (contractData.proxy_ar ? `Proxy: ${contractData.proxy_ar}` : '');
+      firstPage.drawText(`Agent: ${proxyName}`, {
         x: positions.owner_name.x,
         y: positions.owner_name.y - 25,
         size: fontSize,
@@ -208,9 +219,10 @@ serve(async (req) => {
       });
     }
 
-    // معلومات المستأجر
-    const tenantName = contractData.tenant_name_ar || contractData.tenant_name_en || '';
-    firstPage.drawText(`اسم المستأجر: ${tenantName}`, {
+    // معلومات المستأجر  
+    const tenantName = contractData.tenant_name_en || 
+                      (contractData.tenant_name_ar ? `Tenant: ${contractData.tenant_name_ar}` : '');
+    firstPage.drawText(`Tenant: ${tenantName}`, {
       x: positions.tenant_name.x,
       y: positions.tenant_name.y,
       size: fontSize,
@@ -218,9 +230,9 @@ serve(async (req) => {
       color: textColor,
     });
 
-    // معلومات العقار
-    const area = contractData.area_ar || contractData.area_en || '';
-    firstPage.drawText(`المنطقة: ${area}`, {
+    // معلومات العقار - Use English labels to avoid encoding issues
+    const area = contractData.area_en || contractData.area_ar || '';
+    firstPage.drawText(`Area: ${area}`, {
       x: positions.area.x,
       y: positions.area.y,
       size: fontSize,
@@ -228,7 +240,7 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`رقم القطعة: ${contractData.plot_number}`, {
+    firstPage.drawText(`Plot Number: ${contractData.plot_number}`, {
       x: positions.plot_number.x,
       y: positions.plot_number.y,
       size: fontSize,
@@ -236,10 +248,10 @@ serve(async (req) => {
       color: textColor,
     });
 
-    // اسم المبنى (إذا وجد)
+    // Building name
     if (contractData.building_name_ar || contractData.building_name_en) {
-      const buildingName = contractData.building_name_ar || contractData.building_name_en;
-      firstPage.drawText(`اسم المبنى: ${buildingName}`, {
+      const buildingName = contractData.building_name_en || contractData.building_name_ar;
+      firstPage.drawText(`Building: ${buildingName}`, {
         x: positions.area.x,
         y: positions.area.y - 25,
         size: fontSize,
@@ -248,8 +260,8 @@ serve(async (req) => {
       });
     }
 
-    const purposeOfUse = contractData.purpose_of_use_ar || contractData.purpose_of_use_en || '';
-    firstPage.drawText(`أغراض الاستعمال: ${purposeOfUse}`, {
+    const purposeOfUse = contractData.purpose_of_use_en || contractData.purpose_of_use_ar || '';
+    firstPage.drawText(`Purpose: ${purposeOfUse}`, {
       x: positions.purpose_of_use.x,
       y: positions.purpose_of_use.y,
       size: fontSize,
@@ -257,7 +269,7 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`رقم الوحدة: ${contractData.unit_number}`, {
+    firstPage.drawText(`Unit Number: ${contractData.unit_number}`, {
       x: positions.unit_number.x,
       y: positions.unit_number.y,
       size: fontSize,
@@ -265,8 +277,8 @@ serve(async (req) => {
       color: textColor,
     });
 
-    const unitType = contractData.unit_type_ar || contractData.unit_type_en || '';
-    firstPage.drawText(`نوع الوحدة: ${unitType}`, {
+    const unitType = contractData.unit_type_en || contractData.unit_type_ar || '';
+    firstPage.drawText(`Unit Type: ${unitType}`, {
       x: positions.unit_type.x,
       y: positions.unit_type.y,
       size: fontSize,
@@ -274,8 +286,8 @@ serve(async (req) => {
       color: textColor,
     });
 
-    // المعلومات المالية
-    firstPage.drawText(`قيمة الإيجار: ${contractData.total_rental_value.toLocaleString('ar-AE')} د.إ`, {
+    // Financial information
+    firstPage.drawText(`Rental Value: ${contractData.total_rental_value.toLocaleString()} AED`, {
       x: positions.total_rental_value.x,
       y: positions.total_rental_value.y,
       size: largeFontSize,
@@ -284,7 +296,7 @@ serve(async (req) => {
     });
 
     if (contractData.security_deposit > 0) {
-      firstPage.drawText(`مبلغ التأمين: ${contractData.security_deposit.toLocaleString('ar-AE')} د.إ`, {
+      firstPage.drawText(`Security Deposit: ${contractData.security_deposit.toLocaleString()} AED`, {
         x: positions.total_rental_value.x,
         y: positions.total_rental_value.y - 25,
         size: fontSize,
@@ -293,8 +305,8 @@ serve(async (req) => {
       });
     }
 
-    // تواريخ العقد
-    firstPage.drawText(`تاريخ البداية: ${contractData.start_date}`, {
+    // Contract dates
+    firstPage.drawText(`Start Date: ${contractData.start_date}`, {
       x: positions.start_date.x,
       y: positions.start_date.y,
       size: fontSize,
@@ -302,7 +314,7 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`تاريخ النهاية: ${contractData.end_date}`, {
+    firstPage.drawText(`End Date: ${contractData.end_date}`, {
       x: positions.end_date.x,
       y: positions.end_date.y,
       size: fontSize,
@@ -310,9 +322,9 @@ serve(async (req) => {
       color: textColor,
     });
 
-    // معلومات السداد
-    const paymentMethod = contractData.payment_method_ar || contractData.payment_method_en || '';
-    firstPage.drawText(`طريقة السداد: ${paymentMethod}`, {
+    // Payment information
+    const paymentMethod = contractData.payment_method_en || contractData.payment_method_ar || '';
+    firstPage.drawText(`Payment Method: ${paymentMethod}`, {
       x: positions.payment_method.x,
       y: positions.payment_method.y,
       size: fontSize,
@@ -320,7 +332,7 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`عدد الدفعات: ${contractData.installments_count}`, {
+    firstPage.drawText(`Installments: ${contractData.installments_count}`, {
       x: positions.installments_count.x,
       y: positions.installments_count.y,
       size: fontSize,
@@ -328,9 +340,9 @@ serve(async (req) => {
       color: textColor,
     });
 
-    // نوع العقد
-    const contractType = contractData.contract_type_ar || contractData.contract_type_en || '';
-    firstPage.drawText(`نوع العقد: ${contractType}`, {
+    // Contract type
+    const contractType = contractData.contract_type_en || contractData.contract_type_ar || '';
+    firstPage.drawText(`Contract Type: ${contractType}`, {
       x: positions.payment_method.x,
       y: positions.payment_method.y - 25,
       size: fontSize,
