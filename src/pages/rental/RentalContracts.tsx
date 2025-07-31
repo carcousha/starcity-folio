@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import ContractTemplateUpload from "@/components/rental/ContractTemplateUpload";
+import AdvancedContractGenerator from "@/components/rental/AdvancedContractGenerator";
+import GeneratedContractsList from "@/components/rental/GeneratedContractsList";
 import { ContractTemplate } from "@/components/rental/ContractTemplate";
 
 interface ContractFormData {
@@ -677,11 +679,19 @@ export default function RentalContracts() {
         </div>
       </div>
 
-      <Tabs defaultValue="create-contract" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="advanced-generator" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="advanced-generator" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            مولد العقود المتقدم
+          </TabsTrigger>
+          <TabsTrigger value="generated-contracts" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            العقود المولدة
+          </TabsTrigger>
           <TabsTrigger value="create-contract" className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            إنشاء عقد جديد
+            إنشاء عقد تقليدي
           </TabsTrigger>
           <TabsTrigger value="contracts-list" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -691,11 +701,15 @@ export default function RentalContracts() {
             <Upload className="h-4 w-4" />
             قوالب Word
           </TabsTrigger>
-          <TabsTrigger value="pdf-templates" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            قوالب PDF
-          </TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="advanced-generator">
+          <AdvancedContractGenerator />
+        </TabsContent>
+
+        <TabsContent value="generated-contracts">
+          <GeneratedContractsList />
+        </TabsContent>
         
         <TabsContent value="create-contract">
           <CreateContractForm />
@@ -707,21 +721,6 @@ export default function RentalContracts() {
         
         <TabsContent value="upload-templates">
           <ContractTemplateUpload />
-        </TabsContent>
-        
-        <TabsContent value="pdf-templates">
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-medium text-blue-900 mb-2">رفع قوالب PDF</h3>
-            <p className="text-blue-700 text-sm">
-              لرفع قوالب PDF، يرجى الذهاب إلى{" "}
-              <a 
-                href="/rental/contracts-new" 
-                className="underline font-medium hover:text-blue-900"
-              >
-                صفحة إدارة عقود PDF
-              </a>
-            </p>
-          </div>
         </TabsContent>
       </Tabs>
     </div>

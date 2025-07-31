@@ -1516,6 +1516,7 @@ export type Database = {
       }
       rental_contracts: {
         Row: {
+          area: string | null
           auto_renewal: boolean | null
           commission_amount: number | null
           contract_duration_months: number
@@ -1529,10 +1530,13 @@ export type Database = {
           id: string
           installment_frequency: string
           installments_count: number
+          owner_name: string | null
           payment_method: string | null
           pdf_template_id: string | null
+          plot_number: string | null
           property_id: string | null
           property_title: string | null
+          purpose_of_use: string | null
           renewal_notice_days: number | null
           rent_amount: number
           security_deposit: number | null
@@ -1541,9 +1545,12 @@ export type Database = {
           template_used_id: string | null
           tenant_id: string | null
           tenant_name: string | null
+          unit_number: string | null
+          unit_type: string | null
           updated_at: string
         }
         Insert: {
+          area?: string | null
           auto_renewal?: boolean | null
           commission_amount?: number | null
           contract_duration_months: number
@@ -1557,10 +1564,13 @@ export type Database = {
           id?: string
           installment_frequency?: string
           installments_count?: number
+          owner_name?: string | null
           payment_method?: string | null
           pdf_template_id?: string | null
+          plot_number?: string | null
           property_id?: string | null
           property_title?: string | null
+          purpose_of_use?: string | null
           renewal_notice_days?: number | null
           rent_amount: number
           security_deposit?: number | null
@@ -1569,9 +1579,12 @@ export type Database = {
           template_used_id?: string | null
           tenant_id?: string | null
           tenant_name?: string | null
+          unit_number?: string | null
+          unit_type?: string | null
           updated_at?: string
         }
         Update: {
+          area?: string | null
           auto_renewal?: boolean | null
           commission_amount?: number | null
           contract_duration_months?: number
@@ -1585,10 +1598,13 @@ export type Database = {
           id?: string
           installment_frequency?: string
           installments_count?: number
+          owner_name?: string | null
           payment_method?: string | null
           pdf_template_id?: string | null
+          plot_number?: string | null
           property_id?: string | null
           property_title?: string | null
+          purpose_of_use?: string | null
           renewal_notice_days?: number | null
           rent_amount?: number
           security_deposit?: number | null
@@ -1597,6 +1613,8 @@ export type Database = {
           template_used_id?: string | null
           tenant_id?: string | null
           tenant_name?: string | null
+          unit_number?: string | null
+          unit_type?: string | null
           updated_at?: string
         }
         Relationships: [
