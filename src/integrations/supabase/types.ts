@@ -395,6 +395,56 @@ export type Database = {
           },
         ]
       }
+      contract_documents: {
+        Row: {
+          contract_id: string
+          document_name: string
+          document_type: string
+          expiry_date: string | null
+          file_size: number | null
+          file_url: string
+          id: string
+          is_signed: boolean | null
+          notes: string | null
+          upload_date: string
+          uploaded_by: string
+        }
+        Insert: {
+          contract_id: string
+          document_name: string
+          document_type: string
+          expiry_date?: string | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_signed?: boolean | null
+          notes?: string | null
+          upload_date?: string
+          uploaded_by: string
+        }
+        Update: {
+          contract_id?: string
+          document_name?: string
+          document_type?: string
+          expiry_date?: string | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_signed?: boolean | null
+          notes?: string | null
+          upload_date?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_documents_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           amount: number
@@ -820,6 +870,68 @@ export type Database = {
         }
         Relationships: []
       }
+      government_services: {
+        Row: {
+          actual_completion_date: string | null
+          application_date: string | null
+          contract_id: string
+          cost: number | null
+          created_at: string
+          documents_url: string[] | null
+          expected_completion_date: string | null
+          handled_by: string
+          id: string
+          notes: string | null
+          reference_number: string | null
+          service_name: string
+          service_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actual_completion_date?: string | null
+          application_date?: string | null
+          contract_id: string
+          cost?: number | null
+          created_at?: string
+          documents_url?: string[] | null
+          expected_completion_date?: string | null
+          handled_by: string
+          id?: string
+          notes?: string | null
+          reference_number?: string | null
+          service_name: string
+          service_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_completion_date?: string | null
+          application_date?: string | null
+          contract_id?: string
+          cost?: number | null
+          created_at?: string
+          documents_url?: string[] | null
+          expected_completion_date?: string | null
+          handled_by?: string
+          id?: string
+          notes?: string | null
+          reference_number?: string | null
+          service_name?: string
+          service_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "government_services_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incentive_rules: {
         Row: {
           achievement_percentage: number
@@ -1231,6 +1343,403 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rental_contracts: {
+        Row: {
+          auto_renewal: boolean | null
+          commission_amount: number | null
+          contract_duration_months: number
+          contract_number: string
+          contract_status: string
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          installment_frequency: string
+          installments_count: number
+          payment_method: string | null
+          property_id: string
+          renewal_notice_days: number | null
+          rent_amount: number
+          security_deposit: number | null
+          special_terms: string | null
+          start_date: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_renewal?: boolean | null
+          commission_amount?: number | null
+          contract_duration_months: number
+          contract_number: string
+          contract_status?: string
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          installment_frequency?: string
+          installments_count?: number
+          payment_method?: string | null
+          property_id: string
+          renewal_notice_days?: number | null
+          rent_amount: number
+          security_deposit?: number | null
+          special_terms?: string | null
+          start_date: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_renewal?: boolean | null
+          commission_amount?: number | null
+          contract_duration_months?: number
+          contract_number?: string
+          contract_status?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          installment_frequency?: string
+          installments_count?: number
+          payment_method?: string | null
+          property_id?: string
+          renewal_notice_days?: number | null
+          rent_amount?: number
+          security_deposit?: number | null
+          special_terms?: string | null
+          start_date?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_contracts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "rental_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "rental_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_installments: {
+        Row: {
+          amount: number
+          bank_name: string | null
+          cheque_number: string | null
+          contract_id: string
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          notes: string | null
+          paid_amount: number | null
+          payment_date: string | null
+          payment_method: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bank_name?: string | null
+          cheque_number?: string | null
+          contract_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          notes?: string | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank_name?: string | null
+          cheque_number?: string | null
+          contract_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          notes?: string | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_installments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_notifications: {
+        Row: {
+          channel: string
+          contract_id: string | null
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          notification_type: string
+          recipient_id: string | null
+          recipient_type: string
+          scheduled_date: string
+          sent_date: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          channel?: string
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          notification_type: string
+          recipient_id?: string | null
+          recipient_type: string
+          scheduled_date: string
+          sent_date?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          channel?: string
+          contract_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          notification_type?: string
+          recipient_id?: string | null
+          recipient_type?: string
+          scheduled_date?: string
+          sent_date?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_notifications_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_properties: {
+        Row: {
+          agreed_rent_amount: number
+          area: number | null
+          bathrooms: number | null
+          bedrooms: number | null
+          commission_percentage: number | null
+          created_at: string
+          created_by: string
+          features: string[] | null
+          id: string
+          images: string[] | null
+          notes: string | null
+          owner_email: string | null
+          owner_name: string
+          owner_phone: string
+          property_address: string
+          property_title: string
+          property_type: string
+          status: string
+          unit_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          agreed_rent_amount: number
+          area?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          commission_percentage?: number | null
+          created_at?: string
+          created_by: string
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          notes?: string | null
+          owner_email?: string | null
+          owner_name: string
+          owner_phone: string
+          property_address: string
+          property_title: string
+          property_type?: string
+          status?: string
+          unit_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agreed_rent_amount?: number
+          area?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          commission_percentage?: number | null
+          created_at?: string
+          created_by?: string
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          notes?: string | null
+          owner_email?: string | null
+          owner_name?: string
+          owner_phone?: string
+          property_address?: string
+          property_title?: string
+          property_type?: string
+          status?: string
+          unit_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rental_renewals: {
+        Row: {
+          created_at: string
+          id: string
+          new_contract_id: string | null
+          new_duration_months: number | null
+          new_rent_amount: number | null
+          original_contract_id: string
+          processed_by: string
+          renewal_date: string
+          renewal_status: string
+          renewal_terms: string | null
+          rent_increase_percentage: number | null
+          tenant_response: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_contract_id?: string | null
+          new_duration_months?: number | null
+          new_rent_amount?: number | null
+          original_contract_id: string
+          processed_by: string
+          renewal_date: string
+          renewal_status?: string
+          renewal_terms?: string | null
+          rent_increase_percentage?: number | null
+          tenant_response?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_contract_id?: string | null
+          new_duration_months?: number | null
+          new_rent_amount?: number | null
+          original_contract_id?: string
+          processed_by?: string
+          renewal_date?: string
+          renewal_status?: string
+          renewal_terms?: string | null
+          rent_increase_percentage?: number | null
+          tenant_response?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_renewals_new_contract_id_fkey"
+            columns: ["new_contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_renewals_original_contract_id_fkey"
+            columns: ["original_contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_tenants: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          current_address: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emirates_id: string | null
+          full_name: string
+          id: string
+          lead_source: string | null
+          nationality: string | null
+          notes: string | null
+          passport_number: string | null
+          phone: string
+          preferred_language: string | null
+          status: string
+          updated_at: string
+          visa_status: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          current_address?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emirates_id?: string | null
+          full_name: string
+          id?: string
+          lead_source?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone: string
+          preferred_language?: string | null
+          status?: string
+          updated_at?: string
+          visa_status?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          current_address?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emirates_id?: string | null
+          full_name?: string
+          id?: string
+          lead_source?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone?: string
+          preferred_language?: string | null
+          status?: string
+          updated_at?: string
+          visa_status?: string | null
         }
         Relationships: []
       }
@@ -1664,6 +2173,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_rental_installments: {
+        Args: {
+          p_contract_id: string
+          p_start_date: string
+          p_installments_count: number
+          p_frequency: string
+          p_amount_per_installment: number
+        }
+        Returns: undefined
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1728,7 +2247,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_rental_payment: {
+        Args: {
+          p_installment_id: string
+          p_payment_amount: number
+          p_payment_method?: string
+          p_cheque_number?: string
+          p_bank_name?: string
+          p_notes?: string
+        }
+        Returns: boolean
+      }
       schedule_debt_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      schedule_renewal_notifications: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
