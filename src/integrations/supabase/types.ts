@@ -521,13 +521,6 @@ export type Database = {
             foreignKeyName: "deal_commissions_handled_by_fkey"
             columns: ["handled_by"]
             isOneToOne: false
-            referencedRelation: "employee_commission_statement"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "deal_commissions_handled_by_fkey"
-            columns: ["handled_by"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -1110,13 +1103,6 @@ export type Database = {
             foreignKeyName: "lead_activities_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "employee_commission_statement"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "lead_activities_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -1255,22 +1241,8 @@ export type Database = {
             foreignKeyName: "leads_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
-            referencedRelation: "employee_commission_statement"
-            referencedColumns: ["employee_id"]
-          },
-          {
-            foreignKeyName: "leads_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "leads_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "employee_commission_statement"
-            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "leads_created_by_fkey"
@@ -2246,22 +2218,7 @@ export type Database = {
       }
     }
     Views: {
-      employee_commission_statement: {
-        Row: {
-          current_total_debts: number | null
-          employee_email: string | null
-          employee_id: string | null
-          employee_name: string | null
-          total_calculated_commissions: number | null
-          total_commissions_count: number | null
-          total_deducted_debts: number | null
-          total_incentives: number | null
-          total_net_commissions: number | null
-          total_paid_commissions: number | null
-          total_pending_commissions: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       approve_commission: {
@@ -2326,6 +2283,22 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_employee_commission_statement: {
+        Args: { employee_id_param?: string }
+        Returns: {
+          employee_id: string
+          employee_name: string
+          employee_email: string
+          total_commissions_count: number
+          total_calculated_commissions: number
+          total_deducted_debts: number
+          total_net_commissions: number
+          total_paid_commissions: number
+          total_pending_commissions: number
+          total_incentives: number
+          current_total_debts: number
+        }[]
       }
       get_employee_financial_summary: {
         Args: { employee_user_id: string }
