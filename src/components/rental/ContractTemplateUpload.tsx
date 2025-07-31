@@ -54,15 +54,18 @@ const ContractTemplateUpload = () => {
 
   const uploadTemplateMutation = useMutation({
     mutationFn: async (data: { formData: TemplateFormData; file: File }) => {
-      // إنشاء اسم ملف آمن بدون أحرف خاصة أو مسافات
-      const fileExtension = data.file.name.split('.').pop() || 'docx';
-      const safeFileName = `template-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
+      // إنشاء اسم ملف آمن جداً
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 8);
+      const safeFileName = `contract_template_${timestamp}_${randomString}.docx`;
+      
+      console.log('Uploading file with name:', safeFileName);
       
       // رفع الملف إلى Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('contract-templates')
         .upload(safeFileName, data.file, {
-          contentType: data.file.type,
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           upsert: false
         });
 
