@@ -81,8 +81,9 @@ serve(async (req: Request) => {
       // قراءة محتوى الملف
       const fileBuffer = await fileData.arrayBuffer();
       
-      // معالجة ملف Word (مبسطة للآن)
+      // معالجة ملف Word - استبدال النصوص
       const processedContent = await processWordDocument(fileBuffer, contractData);
+      
       
       processedDocument = new Uint8Array(processedContent);
       fileName = `contract-${Date.now()}.docx`;
@@ -258,18 +259,43 @@ function extractUserIdFromToken(authHeader: string | null): string | null {
   }
 }
 
-// معالجة ملف Word (مبسطة - في الواقع نحتاج مكتبة متخصصة)
+// معالجة ملف Word - استبدال المتغيرات داخل الملف
 async function processWordDocument(fileBuffer: ArrayBuffer, contractData: ContractData): Promise<ArrayBuffer> {
-  // هذه دالة مبسطة - في الواقع نحتاج مكتبة مثل docxtemplater
-  // أو استخدام API خارجي لمعالجة ملفات Word
+  console.log('معالجة ملف Word - استبدال المتغيرات');
   
-  console.log('معالجة ملف Word - سيتم التحسين لاحقاً');
-  console.log('بيانات العقد:', contractData);
+  // تحويل ArrayBuffer إلى Uint8Array للمعالجة
+  const uint8Array = new Uint8Array(fileBuffer);
   
-  // للتبسيط، سنعيد نفس الملف
-  // في التطبيق الحقيقي، نحتاج مكتبة متخصصة لاستبدال المتغيرات
+  // تحويل البيانات إلى نص للبحث والاستبدال
+  let content = new TextDecoder('utf-8', { ignoreBOM: true }).decode(uint8Array);
   
-  return fileBuffer;
+  // استبدال المتغيرات في النص
+  const replacements = {
+    '{{property_title}}': contractData.property_title || '',
+    '{{location}}': contractData.location || '',
+    '{{tenant_name}}': contractData.tenant_name || '',
+    '{{rent_amount}}': contractData.rent_amount?.toLocaleString('ar-SA') || '0',
+    '{{contract_start_date}}': new Date(contractData.contract_start_date).toLocaleDateString('ar-SA') || '',
+    '{{contract_end_date}}': new Date(contractData.contract_end_date).toLocaleDateString('ar-SA') || '',
+    '{{payment_method}}': contractData.payment_method || '',
+    '{{security_deposit}}': contractData.security_deposit?.toLocaleString('ar-SA') || '0',
+    '{{installments_count}}': contractData.installments_count?.toString() || '1',
+    '{{installment_frequency}}': contractData.installment_frequency || '',
+    '{{current_date}}': new Date().toLocaleDateString('ar-SA'),
+    '{{contract_number}}': `CNT-${Date.now()}`
+  };
+  
+  // تطبيق الاستبدالات
+  for (const [placeholder, value] of Object.entries(replacements)) {
+    content = content.replace(new RegExp(placeholder, 'g'), value);
+  }
+  
+  console.log('تم استبدال المتغيرات في ملف Word');
+  
+  // تحويل النص المُحدث إلى ArrayBuffer
+  const updatedBuffer = new TextEncoder().encode(content);
+  
+  return updatedBuffer.buffer;
 }
 
 // إنشاء قالب افتراضي بصيغة HTML
