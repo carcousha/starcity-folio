@@ -445,12 +445,101 @@ export type Database = {
           },
         ]
       }
+      deal_commissions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          client_name: string | null
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          created_by: string
+          deal_amount: number
+          deal_id: string
+          employee_share: number
+          handled_by: string
+          id: string
+          notes: string | null
+          office_share: number
+          paid_at: string | null
+          property_title: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_name?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          created_by?: string
+          deal_amount?: number
+          deal_id: string
+          employee_share?: number
+          handled_by: string
+          id?: string
+          notes?: string | null
+          office_share?: number
+          paid_at?: string | null
+          property_title?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          client_name?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          created_by?: string
+          deal_amount?: number
+          deal_id?: string
+          employee_share?: number
+          handled_by?: string
+          id?: string
+          notes?: string | null
+          office_share?: number
+          paid_at?: string | null
+          property_title?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_commissions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_commissions_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "employee_commission_statement"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "deal_commissions_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           amount: number
           client_id: string
           closed_at: string | null
           commission_amount: number | null
+          commission_calculated: boolean | null
           commission_rate: number
           created_at: string
           deal_type: string
@@ -466,6 +555,7 @@ export type Database = {
           client_id: string
           closed_at?: string | null
           commission_amount?: number | null
+          commission_calculated?: boolean | null
           commission_rate?: number
           created_at?: string
           deal_type: string
@@ -481,6 +571,7 @@ export type Database = {
           client_id?: string
           closed_at?: string | null
           commission_amount?: number | null
+          commission_calculated?: boolean | null
           commission_rate?: number
           created_at?: string
           deal_type?: string
@@ -2173,8 +2264,16 @@ export type Database = {
       }
     }
     Functions: {
+      approve_commission: {
+        Args: { commission_id_param: string }
+        Returns: boolean
+      }
       calculate_and_apply_incentives: {
         Args: { target_id_param: string }
+        Returns: Json
+      }
+      calculate_deal_commission: {
+        Args: { deal_id_param: string }
         Returns: Json
       }
       calculate_lead_score: {
