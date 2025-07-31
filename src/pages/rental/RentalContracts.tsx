@@ -23,6 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import ContractTemplateUpload from "@/components/rental/ContractTemplateUpload";
 
 interface ContractFormData {
   property_title: string;
@@ -612,6 +613,10 @@ export default function RentalContracts() {
         
         <TabsContent value="contracts-list">
           <ContractsList />
+        </TabsContent>
+        
+        <TabsContent value="upload-templates">
+          <ContractTemplateUpload />
         </TabsContent>
       </Tabs>
     </div>
