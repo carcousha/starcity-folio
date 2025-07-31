@@ -54,12 +54,14 @@ const ContractTemplateUpload = () => {
 
   const uploadTemplateMutation = useMutation({
     mutationFn: async (data: { formData: TemplateFormData; file: File }) => {
-      const fileName = `template-${Date.now()}-${data.file.name}`;
+      // إنشاء اسم ملف آمن بدون أحرف خاصة أو مسافات
+      const fileExtension = data.file.name.split('.').pop() || 'docx';
+      const safeFileName = `template-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
       
       // رفع الملف إلى Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('contract-templates')
-        .upload(fileName, data.file, {
+        .upload(safeFileName, data.file, {
           contentType: data.file.type,
           upsert: false
         });
