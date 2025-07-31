@@ -1019,6 +1019,13 @@ export type Database = {
             foreignKeyName: "lead_activities_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "employee_commission_statement"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "lead_activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -1157,8 +1164,22 @@ export type Database = {
             foreignKeyName: "leads_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "employee_commission_statement"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "leads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_commission_statement"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "leads_created_by_fkey"
@@ -2160,6 +2181,14 @@ export type Database = {
         Args: { lead_record: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: number
       }
+      check_rate_limit: {
+        Args: {
+          identifier: string
+          max_attempts?: number
+          window_minutes?: number
+        }
+        Returns: boolean
+      }
       convert_lead_to_client: {
         Args: { lead_id_param: string }
         Returns: string
@@ -2224,6 +2253,16 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      log_auth_attempt: {
+        Args: {
+          attempt_type: string
+          user_identifier: string
+          success: boolean
+          error_message?: string
+          metadata?: Json
+        }
+        Returns: string
+      }
       log_financial_activity: {
         Args: {
           p_operation_type: string
@@ -2284,6 +2323,10 @@ export type Database = {
       update_employee_targets_progress: {
         Args: { employee_id_param: string }
         Returns: undefined
+      }
+      validate_role_access: {
+        Args: { required_role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
       }
     }
     Enums: {

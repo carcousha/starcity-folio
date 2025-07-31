@@ -21,11 +21,25 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [lastAttempt, setLastAttempt] = useState<Date | null>(null);
   const { toast } = useToast();
   
-  // Security: Rate limiting check
-  const isRateLimited = () => {
-    if (!lastAttempt || attempts < 3) return false;
-    const timeSinceLastAttempt = Date.now() - lastAttempt.getTime();
-    return timeSinceLastAttempt < 300000; // 5 minutes
+  // Security: Server-side rate limiting check
+  const checkRateLimit = async (email: string) => {
+    try {
+      const { data, error } = await supabase.rpc('check_rate_limit', {
+        identifier: email,
+        max_attempts: 5,
+        window_minutes: 15
+      });
+      
+      if (error) {
+        console.error('Rate limit check failed:', error);
+        return true; // Allow on error (fail open)
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Rate limit check error:', error);
+      return true; // Allow on error (fail open)
+    }
   };
   
   // Security: Password strength validation
@@ -63,9 +77,12 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Security: Check rate limiting
-    if (isRateLimited()) {
-      setError("تم تجاوز عدد المحاولات المسموح. يرجى المحاولة مرة أخرى بعد 5 دقائق.");
+    const email = signInForm.email.trim().toLowerCase();
+    
+    // Security: Check server-side rate limiting
+    const canAttempt = await checkRateLimit(email);
+    if (!canAttempt) {
+      setError("تم تجاوز عدد المحاولات المسموح. يرجى المحاولة مرة أخرى لاحقاً.");
       return;
     }
     
@@ -74,34 +91,30 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: signInForm.email.trim().toLowerCase(),
+        email,
         password: signInForm.password,
       });
 
       if (error) {
-        // Track failed attempts
-        setAttempts(prev => prev + 1);
-        setLastAttempt(new Date());
-        
-        if (error.message.includes("Invalid login credentials")) {
-          setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
-        } else {
-          setError(error.message);
-        }
-        
-        // Log security event
-        console.warn('Failed login attempt:', {
-          email: signInForm.email.trim().toLowerCase(),
-          timestamp: new Date().toISOString(),
-          attempt: attempts + 1
+        // Log failed attempt server-side
+        await supabase.rpc('log_auth_attempt', {
+          attempt_type: 'sign_in',
+          user_identifier: email,
+          success: false,
+          error_message: error.message
         });
         
+        // Generic error message for security
+        setError("فشل في تسجيل الدخول. يرجى التحقق من البيانات والمحاولة مرة أخرى.");
         return;
       }
 
-      // Reset attempts on successful login
-      setAttempts(0);
-      setLastAttempt(null);
+      // Log successful attempt server-side
+      await supabase.rpc('log_auth_attempt', {
+        attempt_type: 'sign_in',
+        user_identifier: email,
+        success: true
+      });
       
       toast({
         title: "تم تسجيل الدخول بنجاح",
@@ -151,13 +164,25 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
       });
 
       if (error) {
-        if (error.message.includes("User already registered")) {
-          setError("هذا البريد الإلكتروني مسجل مسبقاً");
-        } else {
-          setError(error.message);
-        }
+        // Log failed attempt server-side
+        await supabase.rpc('log_auth_attempt', {
+          attempt_type: 'sign_up',
+          user_identifier: signUpForm.email.trim().toLowerCase(),
+          success: false,
+          error_message: error.message
+        });
+        
+        // Generic error message for security
+        setError("فشل في إنشاء الحساب. يرجى المحاولة مرة أخرى.");
         return;
       }
+
+      // Log successful attempt server-side
+      await supabase.rpc('log_auth_attempt', {
+        attempt_type: 'sign_up',
+        user_identifier: signUpForm.email.trim().toLowerCase(),
+        success: true
+      });
 
       toast({
         title: "تم إنشاء الحساب بنجاح",

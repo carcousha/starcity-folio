@@ -1,6 +1,7 @@
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export type UserRole = 'admin' | 'accountant' | 'employee';
 
@@ -133,7 +134,7 @@ export const useRoleAccess = () => {
     return permissions[permission];
   };
 
-  const requirePermission = (permission: keyof RolePermissions, redirectPath = '/') => {
+  const requirePermission = async (permission: keyof RolePermissions, redirectPath = '/') => {
     if (!profile) {
       toast({
         title: "غير مصرح",
@@ -144,15 +145,35 @@ export const useRoleAccess = () => {
       return false;
     }
 
-    if (!checkPermission(permission)) {
-      toast({
-        title: "غير مصرح",
-        description: "لا تملك الصلاحية للوصول لهذه الصفحة",
-        variant: "destructive",
+    // Server-side permission validation
+    try {
+      const { data: hasPermission, error } = await supabase.rpc('validate_role_access', {
+        required_role: userRole
       });
-      navigate(redirectPath);
-      return false;
+
+      if (error || !hasPermission) {
+        toast({
+          title: "غير مصرح",
+          description: "لا تملك الصلاحية للوصول لهذه الصفحة",
+          variant: "destructive",
+        });
+        navigate(redirectPath);
+        return false;
+      }
+    } catch (error) {
+      console.error('Permission validation error:', error);
+      // Fall back to client-side check
+      if (!checkPermission(permission)) {
+        toast({
+          title: "غير مصرح",
+          description: "لا تملك الصلاحية للوصول لهذه الصفحة",
+          variant: "destructive",
+        });
+        navigate(redirectPath);
+        return false;
+      }
     }
+    
     return true;
   };
 
