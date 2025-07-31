@@ -133,23 +133,51 @@ export const PDFTemplateUpload: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.type !== 'application/pdf') {
+      console.log('Selected file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        sizeInMB: (file.size / (1024 * 1024)).toFixed(2)
+      });
+      
+      // Validate file type - accept multiple PDF MIME types
+      const validPdfTypes = [
+        'application/pdf',
+        'application/x-pdf',
+        'application/acrobat',
+        'applications/vnd.pdf',
+        'text/pdf',
+        'text/x-pdf'
+      ];
+      
+      const isPdf = validPdfTypes.includes(file.type) || file.name.toLowerCase().endsWith('.pdf');
+      
+      if (!isPdf) {
         toast({
           title: "نوع ملف غير مدعوم",
-          description: "يجب أن يكون الملف من نوع PDF",
+          description: `الملف المحدد: ${file.type}. يجب أن يكون الملف من نوع PDF`,
           variant: "destructive"
         });
         return;
       }
-      if (file.size > 10 * 1024 * 1024) { // 10MB
+      
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
         toast({
           title: "حجم الملف كبير",
-          description: "يجب أن يكون حجم الملف أقل من 10 ميجابايت",
+          description: `حجم الملف (${fileSizeMB} ميجابايت) يجب أن يكون أقل من 10 ميجابايت`,
           variant: "destructive"
         });
         return;
       }
+      
       setSelectedFile(file);
+      toast({
+        title: "تم اختيار الملف",
+        description: `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} ميجابايت)`
+      });
     }
   };
 
