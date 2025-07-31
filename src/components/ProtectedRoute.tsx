@@ -25,7 +25,10 @@ export const ProtectedRoute = ({
     }
     
     if (user) {
-      requirePermission(requiredPermission);
+      // Use server-side validation for critical security check
+      requirePermission(requiredPermission).catch(() => {
+        // Error handling is done inside requirePermission
+      });
     }
   }, [user, loading, requiredPermission, requirePermission, navigate]);
 

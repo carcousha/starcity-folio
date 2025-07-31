@@ -145,9 +145,9 @@ export const useRoleAccess = () => {
       return false;
     }
 
-    // Server-side permission validation - CRITICAL: No client-side fallback
+    // Server-side permission validation - Enhanced security
     try {
-      const { data: hasValidRole, error } = await supabase.rpc('validate_user_role', {
+      const { data: hasValidRole, error } = await supabase.rpc('validate_role_access', {
         required_role: userRole
       });
 
@@ -172,11 +172,11 @@ export const useRoleAccess = () => {
         return false;
       }
 
-      // Additional permission check based on role
+      // Additional client-side permission check (redundant security layer)
       if (!checkPermission(permission)) {
         toast({
           title: "غير مصرح",
-          description: "لا تملك الصلاحية للوصول لهذه الصفحة",
+          description: "لا تملك الصلاحية المطلوبة لهذا الإجراء",
           variant: "destructive",
         });
         navigate(redirectPath);
