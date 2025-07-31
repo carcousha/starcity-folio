@@ -135,14 +135,38 @@ const AdvancedContractGenerator = () => {
   // متحول لتوليد العقد
   const generateContractMutation = useMutation({
     mutationFn: async (data: AdvancedContractData) => {
+      console.log('🔍 Sending contract data to edge function:', JSON.stringify(data, null, 2));
+      
+      // التحقق من وجود البيانات الأساسية
+      if (!data.template_id) {
+        throw new Error('معرف القالب مطلوب');
+      }
+      
+      console.log('📡 Invoking edge function...');
       const { data: result, error } = await supabase.functions.invoke('generate-advanced-contract', {
         body: data
       });
       
-      if (error) throw error;
+      console.log('📨 Edge function response:', { result, error });
+      
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw new Error(`خطأ في المعالجة: ${error.message || error.details || JSON.stringify(error)}`);
+      }
+      
+      if (!result) {
+        throw new Error('لم يتم إرجاع نتيجة من المعالج');
+      }
+      
+      if (!result.success) {
+        throw new Error(result.error || 'فشل في إنشاء العقد');
+      }
+      
+      console.log('✅ Contract generated successfully:', result);
       return result;
     },
     onSuccess: (result) => {
+      console.log('🎉 Success callback:', result);
       toast({
         title: "تم إنشاء العقد بنجاح!",
         description: `رقم العقد: ${result.contract_number}`,
@@ -156,6 +180,14 @@ const AdvancedContractGenerator = () => {
       }
     },
     onError: (error: any) => {
+      console.error('💥 Error callback:', error);
+      console.error('💥 Error details:', {
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack,
+        details: error.details
+      });
+      
       toast({
         title: "خطأ في إنشاء العقد",
         description: error.message || "حدث خطأ غير متوقع",
@@ -200,7 +232,10 @@ const AdvancedContractGenerator = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🚀 Form submitted with data:', JSON.stringify(contractData, null, 2));
+    
     if (!contractData.template_id) {
+      console.warn('❌ Validation failed: No template_id');
       toast({
         title: "خطأ في البيانات",
         description: "يرجى اختيار قالب PDF",
@@ -210,6 +245,7 @@ const AdvancedContractGenerator = () => {
     }
 
     if (!contractData.tenant_name_ar && !contractData.tenant_name_en) {
+      console.warn('❌ Validation failed: No tenant name');
       toast({
         title: "خطأ في البيانات", 
         description: "يرجى إدخال اسم المستأجر (عربي أو إنجليزي)",
@@ -219,6 +255,7 @@ const AdvancedContractGenerator = () => {
     }
 
     if (!contractData.owner_name_ar && !contractData.owner_name_en) {
+      console.warn('❌ Validation failed: No owner name');
       toast({
         title: "خطأ في البيانات", 
         description: "يرجى إدخال اسم المالك (عربي أو إنجليزي)",
@@ -227,6 +264,7 @@ const AdvancedContractGenerator = () => {
       return;
     }
 
+    console.log('✅ Validation passed, submitting to mutation...');
     generateContractMutation.mutate(contractData);
   };
 
