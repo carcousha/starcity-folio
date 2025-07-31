@@ -30,7 +30,14 @@ import MyEvaluation from "./pages/employee/MyEvaluation";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
