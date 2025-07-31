@@ -445,6 +445,45 @@ export type Database = {
           },
         ]
       }
+      contract_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          template_file_url: string
+          template_name: string
+          template_type: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          template_file_url: string
+          template_name: string
+          template_type: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          template_file_url?: string
+          template_name?: string
+          template_type?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       deal_commissions: {
         Row: {
           approved_at: string | null
