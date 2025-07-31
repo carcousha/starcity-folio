@@ -294,10 +294,13 @@ const AdvancedContractGenerator = () => {
                       <SelectValue placeholder="اختر نوع العقد" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="عقد إيجار سكني">عقد إيجار سكني</SelectItem>
-                      <SelectItem value="عقد إيجار تجاري">عقد إيجار تجاري</SelectItem>
-                      <SelectItem value="عقد إيجار مكتبي">عقد إيجار مكتبي</SelectItem>
-                      <SelectItem value="عقد إيجار مختلط">عقد إيجار مختلط</SelectItem>
+                      <SelectItem value="سكني">سكني</SelectItem>
+                      <SelectItem value="تجاري">تجاري</SelectItem>
+                      <SelectItem value="استثماري">استثماري</SelectItem>
+                      <SelectItem value="سكن عمال">سكن عمال</SelectItem>
+                      <SelectItem value="عقد موظفين">عقد موظفين</SelectItem>
+                      <SelectItem value="مستودع">مستودع</SelectItem>
+                      <SelectItem value="حكومي">حكومي</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -309,10 +312,13 @@ const AdvancedContractGenerator = () => {
                       <SelectValue placeholder="Select Contract Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Residential Lease">Residential Lease</SelectItem>
-                      <SelectItem value="Commercial Lease">Commercial Lease</SelectItem>
-                      <SelectItem value="Office Lease">Office Lease</SelectItem>
-                      <SelectItem value="Mixed Use Lease">Mixed Use Lease</SelectItem>
+                      <SelectItem value="Residential">Residential</SelectItem>
+                      <SelectItem value="Commercial">Commercial</SelectItem>
+                      <SelectItem value="Investment">Investment</SelectItem>
+                      <SelectItem value="Labour Camp">Labour Camp</SelectItem>
+                      <SelectItem value="Staff">Staff</SelectItem>
+                      <SelectItem value="Store">Store</SelectItem>
+                      <SelectItem value="Government">Government</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -441,30 +447,176 @@ const AdvancedContractGenerator = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="area_ar">المنطقة (عربي)</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="area_ar"
-                      value={contractData.area_ar}
-                      onChange={(e) => handleInputChange('area_ar', e.target.value)}
-                      placeholder="مثال: عجمان - النعيمية"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Select value={contractData.area_ar} onValueChange={(value) => handleInputChange('area_ar', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المنطقة" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <SelectItem value="الزوراء">الزوراء</SelectItem>
+                      <SelectItem value="الراشدية 1">الراشدية 1</SelectItem>
+                      <SelectItem value="الراشدية 2">الراشدية 2</SelectItem>
+                      <SelectItem value="الراشدية 3">الراشدية 3</SelectItem>
+                      <SelectItem value="الرميلة 1">الرميلة 1</SelectItem>
+                      <SelectItem value="الرميلة 2">الرميلة 2</SelectItem>
+                      <SelectItem value="الرميلة 3">الرميلة 3</SelectItem>
+                      <SelectItem value="الصافية">الصافية</SelectItem>
+                      <SelectItem value="النخيل 1">النخيل 1</SelectItem>
+                      <SelectItem value="النخيل 2">النخيل 2</SelectItem>
+                      <SelectItem value="النعيمية 1">النعيمية 1</SelectItem>
+                      <SelectItem value="النعيمية 2">النعيمية 2</SelectItem>
+                      <SelectItem value="النعيمية 3">النعيمية 3</SelectItem>
+                      <SelectItem value="الليوارة 1">الليوارة 1</SelectItem>
+                      <SelectItem value="الليوارة 2">الليوارة 2</SelectItem>
+                      <SelectItem value="مشيرف">مشيرف</SelectItem>
+                      <SelectItem value="الباهية">الباهية</SelectItem>
+                      <SelectItem value="الجرف الصناعية 1">الجرف الصناعية 1</SelectItem>
+                      <SelectItem value="الجرف الصناعية 2">الجرف الصناعية 2</SelectItem>
+                      <SelectItem value="الجرف الصناعية 3">الجرف الصناعية 3</SelectItem>
+                      <SelectItem value="الجرف 1">الجرف 1</SelectItem>
+                      <SelectItem value="الجرف 2">الجرف 2</SelectItem>
+                      <SelectItem value="الحميدية 1">الحميدية 1</SelectItem>
+                      <SelectItem value="الحميدية 2">الحميدية 2</SelectItem>
+                      <SelectItem value="الرقايب 1">الرقايب 1</SelectItem>
+                      <SelectItem value="الرقايب 2">الرقايب 2</SelectItem>
+                      <SelectItem value="العالية">العالية</SelectItem>
+                      <SelectItem value="التلة 1">التلة 1</SelectItem>
+                      <SelectItem value="التلة 2">التلة 2</SelectItem>
+                      <SelectItem value="الروضة 1">الروضة 1</SelectItem>
+                      <SelectItem value="الروضة 2">الروضة 2</SelectItem>
+                      <SelectItem value="الروضة 3">الروضة 3</SelectItem>
+                      <SelectItem value="محمد بن زايد 1">محمد بن زايد 1</SelectItem>
+                      <SelectItem value="محمد بن زايد 2">محمد بن زايد 2</SelectItem>
+                      <SelectItem value="المويهات 1">المويهات 1</SelectItem>
+                      <SelectItem value="المويهات 2">المويهات 2</SelectItem>
+                      <SelectItem value="المويهات 3">المويهات 3</SelectItem>
+                      <SelectItem value="عجمان الصناعية 1">عجمان الصناعية 1</SelectItem>
+                      <SelectItem value="عجمان الصناعية 2">عجمان الصناعية 2</SelectItem>
+                      <SelectItem value="الحليو 1">الحليو 1</SelectItem>
+                      <SelectItem value="الحليو 2">الحليو 2</SelectItem>
+                      <SelectItem value="الزاهية">الزاهية</SelectItem>
+                      <SelectItem value="العامرة">العامرة</SelectItem>
+                      <SelectItem value="الياسمين">الياسمين</SelectItem>
+                      <SelectItem value="المنامة 1">المنامة 1</SelectItem>
+                      <SelectItem value="المنامة 2">المنامة 2</SelectItem>
+                      <SelectItem value="المنامة 3">المنامة 3</SelectItem>
+                      <SelectItem value="المنامة 4">المنامة 4</SelectItem>
+                      <SelectItem value="المنامة 5">المنامة 5</SelectItem>
+                      <SelectItem value="المنامة 6">المنامة 6</SelectItem>
+                      <SelectItem value="المنامة 7">المنامة 7</SelectItem>
+                      <SelectItem value="المنامة 8">المنامة 8</SelectItem>
+                      <SelectItem value="المنامة 9">المنامة 9</SelectItem>
+                      <SelectItem value="المنامة 10">المنامة 10</SelectItem>
+                      <SelectItem value="المنامة 11">المنامة 11</SelectItem>
+                      <SelectItem value="المنامة 12">المنامة 12</SelectItem>
+                      <SelectItem value="المنامة 13">المنامة 13</SelectItem>
+                      <SelectItem value="المنامة 14">المنامة 14</SelectItem>
+                      <SelectItem value="المنامة 15">المنامة 15</SelectItem>
+                      <SelectItem value="المنامة 16">المنامة 16</SelectItem>
+                      <SelectItem value="المنامة 17">المنامة 17</SelectItem>
+                      <SelectItem value="مصفوت 1">مصفوت 1</SelectItem>
+                      <SelectItem value="مصفوت 2">مصفوت 2</SelectItem>
+                      <SelectItem value="مصفوت 3">مصفوت 3</SelectItem>
+                      <SelectItem value="مصفوت 4">مصفوت 4</SelectItem>
+                      <SelectItem value="مصفوت 5">مصفوت 5</SelectItem>
+                      <SelectItem value="مصفوت 6">مصفوت 6</SelectItem>
+                      <SelectItem value="مصفوت 7">مصفوت 7</SelectItem>
+                      <SelectItem value="مصفوت 8">مصفوت 8</SelectItem>
+                      <SelectItem value="مصفوت 9">مصفوت 9</SelectItem>
+                      <SelectItem value="مصفوت 10">مصفوت 10</SelectItem>
+                      <SelectItem value="مصفوت 11">مصفوت 11</SelectItem>
+                      <SelectItem value="مصفوت 12">مصفوت 12</SelectItem>
+                      <SelectItem value="مصفوت 13">مصفوت 13</SelectItem>
+                      <SelectItem value="مصفوت 14">مصفوت 14</SelectItem>
+                      <SelectItem value="مصفوت 15">مصفوت 15</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="area_en">Area (English)</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="area_en"
-                      value={contractData.area_en}
-                      onChange={(e) => handleInputChange('area_en', e.target.value)}
-                      placeholder="Example: Ajman - Al Nuaimiya"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Select value={contractData.area_en} onValueChange={(value) => handleInputChange('area_en', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Area" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                      <SelectItem value="Zorah">Zorah</SelectItem>
+                      <SelectItem value="Rashidiya 1">Rashidiya 1</SelectItem>
+                      <SelectItem value="Rashidiya 2">Rashidiya 2</SelectItem>
+                      <SelectItem value="Rashidiya 3">Rashidiya 3</SelectItem>
+                      <SelectItem value="Rumaila 1">Rumaila 1</SelectItem>
+                      <SelectItem value="Rumaila 2">Rumaila 2</SelectItem>
+                      <SelectItem value="Rumaila 3">Rumaila 3</SelectItem>
+                      <SelectItem value="Safia">Safia</SelectItem>
+                      <SelectItem value="Nakheel 1">Nakheel 1</SelectItem>
+                      <SelectItem value="Nakheel 2">Nakheel 2</SelectItem>
+                      <SelectItem value="Nuaimeya 1">Nuaimeya 1</SelectItem>
+                      <SelectItem value="Nuaimeya 2">Nuaimeya 2</SelectItem>
+                      <SelectItem value="Nuaimeya 3">Nuaimeya 3</SelectItem>
+                      <SelectItem value="Liwara 1">Liwara 1</SelectItem>
+                      <SelectItem value="Liwara 2">Liwara 2</SelectItem>
+                      <SelectItem value="Mushairif">Mushairif</SelectItem>
+                      <SelectItem value="Bahya">Bahya</SelectItem>
+                      <SelectItem value="Jurf Industrial 1">Jurf Industrial 1</SelectItem>
+                      <SelectItem value="Jurf Industrial 2">Jurf Industrial 2</SelectItem>
+                      <SelectItem value="Jurf Industrial 3">Jurf Industrial 3</SelectItem>
+                      <SelectItem value="Jurf 1">Jurf 1</SelectItem>
+                      <SelectItem value="Jurf 2">Jurf 2</SelectItem>
+                      <SelectItem value="Humaideya 1">Humaideya 1</SelectItem>
+                      <SelectItem value="Humaideya 2">Humaideya 2</SelectItem>
+                      <SelectItem value="Ragayeb 1">Ragayeb 1</SelectItem>
+                      <SelectItem value="Ragayeb 2">Ragayeb 2</SelectItem>
+                      <SelectItem value="Aalia">Aalia</SelectItem>
+                      <SelectItem value="Tallahi 1">Tallahi 1</SelectItem>
+                      <SelectItem value="Tallahi 2">Tallahi 2</SelectItem>
+                      <SelectItem value="Rawdha 1">Rawdha 1</SelectItem>
+                      <SelectItem value="Rawdha 2">Rawdha 2</SelectItem>
+                      <SelectItem value="Rawdha 3">Rawdha 3</SelectItem>
+                      <SelectItem value="Mohammed Bin Zayed 1">Mohammed Bin Zayed 1</SelectItem>
+                      <SelectItem value="Mohammed Bin Zayed 2">Mohammed Bin Zayed 2</SelectItem>
+                      <SelectItem value="Mowaihat 1">Mowaihat 1</SelectItem>
+                      <SelectItem value="Mowaihat 2">Mowaihat 2</SelectItem>
+                      <SelectItem value="Mowaihat 3">Mowaihat 3</SelectItem>
+                      <SelectItem value="Ajman Industrial 1">Ajman Industrial 1</SelectItem>
+                      <SelectItem value="Ajman Industrial 2">Ajman Industrial 2</SelectItem>
+                      <SelectItem value="Helio 1">Helio 1</SelectItem>
+                      <SelectItem value="Helio 2">Helio 2</SelectItem>
+                      <SelectItem value="Zahya">Zahya</SelectItem>
+                      <SelectItem value="Aamra">Aamra</SelectItem>
+                      <SelectItem value="Yasmeen">Yasmeen</SelectItem>
+                      <SelectItem value="Manama 1">Manama 1</SelectItem>
+                      <SelectItem value="Manama 2">Manama 2</SelectItem>
+                      <SelectItem value="Manama 3">Manama 3</SelectItem>
+                      <SelectItem value="Manama 4">Manama 4</SelectItem>
+                      <SelectItem value="Manama 5">Manama 5</SelectItem>
+                      <SelectItem value="Manama 6">Manama 6</SelectItem>
+                      <SelectItem value="Manama 7">Manama 7</SelectItem>
+                      <SelectItem value="Manama 8">Manama 8</SelectItem>
+                      <SelectItem value="Manama 9">Manama 9</SelectItem>
+                      <SelectItem value="Manama 10">Manama 10</SelectItem>
+                      <SelectItem value="Manama 11">Manama 11</SelectItem>
+                      <SelectItem value="Manama 12">Manama 12</SelectItem>
+                      <SelectItem value="Manama 13">Manama 13</SelectItem>
+                      <SelectItem value="Manama 14">Manama 14</SelectItem>
+                      <SelectItem value="Manama 15">Manama 15</SelectItem>
+                      <SelectItem value="Manama 16">Manama 16</SelectItem>
+                      <SelectItem value="Manama 17">Manama 17</SelectItem>
+                      <SelectItem value="Masfout 1">Masfout 1</SelectItem>
+                      <SelectItem value="Masfout 2">Masfout 2</SelectItem>
+                      <SelectItem value="Masfout 3">Masfout 3</SelectItem>
+                      <SelectItem value="Masfout 4">Masfout 4</SelectItem>
+                      <SelectItem value="Masfout 5">Masfout 5</SelectItem>
+                      <SelectItem value="Masfout 6">Masfout 6</SelectItem>
+                      <SelectItem value="Masfout 7">Masfout 7</SelectItem>
+                      <SelectItem value="Masfout 8">Masfout 8</SelectItem>
+                      <SelectItem value="Masfout 9">Masfout 9</SelectItem>
+                      <SelectItem value="Masfout 10">Masfout 10</SelectItem>
+                      <SelectItem value="Masfout 11">Masfout 11</SelectItem>
+                      <SelectItem value="Masfout 12">Masfout 12</SelectItem>
+                      <SelectItem value="Masfout 13">Masfout 13</SelectItem>
+                      <SelectItem value="Masfout 14">Masfout 14</SelectItem>
+                      <SelectItem value="Masfout 15">Masfout 15</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -525,9 +677,11 @@ const AdvancedContractGenerator = () => {
                     <SelectContent>
                       <SelectItem value="سكني">سكني</SelectItem>
                       <SelectItem value="تجاري">تجاري</SelectItem>
-                      <SelectItem value="مكتبي">مكتبي</SelectItem>
-                      <SelectItem value="صناعي">صناعي</SelectItem>
-                      <SelectItem value="مختلط">مختلط (سكني وتجاري)</SelectItem>
+                      <SelectItem value="استثماري">استثماري</SelectItem>
+                      <SelectItem value="سكن عمال">سكن عمال</SelectItem>
+                      <SelectItem value="عقد موظفين">عقد موظفين</SelectItem>
+                      <SelectItem value="مستودع">مستودع</SelectItem>
+                      <SelectItem value="حكومي">حكومي</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -541,9 +695,11 @@ const AdvancedContractGenerator = () => {
                     <SelectContent>
                       <SelectItem value="Residential">Residential</SelectItem>
                       <SelectItem value="Commercial">Commercial</SelectItem>
-                      <SelectItem value="Office">Office</SelectItem>
-                      <SelectItem value="Industrial">Industrial</SelectItem>
-                      <SelectItem value="Mixed Use">Mixed Use</SelectItem>
+                      <SelectItem value="Investment">Investment</SelectItem>
+                      <SelectItem value="Labour Camp">Labour Camp</SelectItem>
+                      <SelectItem value="Staff">Staff</SelectItem>
+                      <SelectItem value="Store">Store</SelectItem>
+                      <SelectItem value="Government">Government</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -573,13 +729,25 @@ const AdvancedContractGenerator = () => {
                       <SelectValue placeholder="اختر نوع الوحدة" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="متجر">متجر</SelectItem>
+                      <SelectItem value="معرض">معرض</SelectItem>
                       <SelectItem value="شقة">شقة</SelectItem>
-                      <SelectItem value="فيلا">فيلا</SelectItem>
+                      <SelectItem value="استوديو">استوديو</SelectItem>
                       <SelectItem value="مكتب">مكتب</SelectItem>
-                      <SelectItem value="محل تجاري">محل تجاري</SelectItem>
-                      <SelectItem value="مستودع">مستودع</SelectItem>
+                      <SelectItem value="طابق سطح">طابق سطح</SelectItem>
+                      <SelectItem value="بنت هاوس">بنت هاوس</SelectItem>
+                      <SelectItem value="كشك">كشك</SelectItem>
+                      <SelectItem value="مساحة إعلانات">مساحة إعلانات</SelectItem>
+                      <SelectItem value="برج إرسال">برج إرسال</SelectItem>
+                      <SelectItem value="مصنع">مصنع</SelectItem>
+                      <SelectItem value="شبرة">شبرة</SelectItem>
                       <SelectItem value="أرض">أرض</SelectItem>
-                      <SelectItem value="مبنى كامل">مبنى كامل</SelectItem>
+                      <SelectItem value="فيلا">فيلا</SelectItem>
+                      <SelectItem value="سكن عمال">سكن عمال</SelectItem>
+                      <SelectItem value="مجمع تجاري">مجمع تجاري</SelectItem>
+                      <SelectItem value="مجمع سكن عمال">مجمع سكن عمال</SelectItem>
+                      <SelectItem value="مبنى">مبنى</SelectItem>
+                      <SelectItem value="شاحنة طعام">شاحنة طعام</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -591,13 +759,25 @@ const AdvancedContractGenerator = () => {
                       <SelectValue placeholder="Select unit type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Apartment">Apartment</SelectItem>
-                      <SelectItem value="Villa">Villa</SelectItem>
-                      <SelectItem value="Office">Office</SelectItem>
-                      <SelectItem value="Shop">Shop</SelectItem>
-                      <SelectItem value="Warehouse">Warehouse</SelectItem>
-                      <SelectItem value="Land">Land</SelectItem>
-                      <SelectItem value="Full Building">Full Building</SelectItem>
+                      <SelectItem value="SHOP">SHOP</SelectItem>
+                      <SelectItem value="SHOW ROOM">SHOW ROOM</SelectItem>
+                      <SelectItem value="FLAT">FLAT</SelectItem>
+                      <SelectItem value="STUDIO">STUDIO</SelectItem>
+                      <SelectItem value="OFFICE">OFFICE</SelectItem>
+                      <SelectItem value="ROOF">ROOF</SelectItem>
+                      <SelectItem value="PENT HOUSE">PENT HOUSE</SelectItem>
+                      <SelectItem value="BOOTH">BOOTH</SelectItem>
+                      <SelectItem value="ADVERTISING">ADVERTISING</SelectItem>
+                      <SelectItem value="ANTENNA TOWWER">ANTENNA TOWWER</SelectItem>
+                      <SelectItem value="FACTORY">FACTORY</SelectItem>
+                      <SelectItem value="Shed">Shed</SelectItem>
+                      <SelectItem value="LAND">LAND</SelectItem>
+                      <SelectItem value="VILLA">VILLA</SelectItem>
+                      <SelectItem value="labour camp">labour camp</SelectItem>
+                      <SelectItem value="MALL">MALL</SelectItem>
+                      <SelectItem value="LabourCamp">LabourCamp</SelectItem>
+                      <SelectItem value="Building">Building</SelectItem>
+                      <SelectItem value="Food Truck">Food Truck</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
