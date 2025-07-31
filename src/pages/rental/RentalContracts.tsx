@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import ContractTemplateUpload from "@/components/rental/ContractTemplateUpload";
+import { ContractTemplate } from "@/components/rental/ContractTemplate";
 
 interface ContractFormData {
   property_title: string;
@@ -53,6 +54,8 @@ const CreateContractForm = () => {
     installments_count: 1,
     installment_frequency: 'سنوي'
   });
+  
+  const [showPreview, setShowPreview] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -153,19 +156,17 @@ const CreateContractForm = () => {
       return;
     }
 
-    if (templates.length === 0) {
+    if (!formData.contract_start_date || !formData.contract_end_date || !formData.payment_method) {
       toast({
-        title: "لا توجد قوالب متاحة",
-        description: "يرجى إضافة قالب عقد أولاً",
+        title: "بيانات ناقصة",
+        description: "يرجى ملء جميع الحقول المطلوبة",
         variant: "destructive"
       });
       return;
     }
 
-    generateContractMutation.mutate({
-      contractData: formData,
-      templateId: templates[0].id // استخدام أول قالب متاح
-    });
+    // معاينة العقد
+    setShowPreview(true);
   };
 
   const handlePropertySelect = (propertyId: string) => {
@@ -440,14 +441,54 @@ const CreateContractForm = () => {
             </ul>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={generateContractMutation.isPending}
-          >
-            {generateContractMutation.isPending ? "جارٍ إنشاء العقد..." : "إنشاء العقد"}
-          </Button>
+          <div className="flex gap-4">
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={generateContractMutation.isPending}
+            >
+              {generateContractMutation.isPending ? "جارٍ إنشاء العقد..." : "معاينة العقد"}
+            </Button>
+            
+            {showPreview && (
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setShowPreview(false)}
+                className="flex-1"
+              >
+                تعديل البيانات
+              </Button>
+            )}
+          </div>
         </form>
+        
+        {/* معاينة العقد */}
+        {showPreview && (
+          <div className="mt-8">
+            <ContractTemplate 
+              contractData={{
+                contract_number: `CNT-${Date.now()}`,
+                property_title: formData.property_title,
+                location: formData.location,
+                tenant_name: formData.tenant_name,
+                rent_amount: formData.rent_amount,
+                contract_start_date: new Date(formData.contract_start_date).toLocaleDateString('ar-SA'),
+                contract_end_date: new Date(formData.contract_end_date).toLocaleDateString('ar-SA'),
+                payment_method: formData.payment_method,
+                security_deposit: formData.security_deposit,
+                installments_count: formData.installments_count,
+                installment_frequency: formData.installment_frequency,
+              }}
+              onExportPDF={() => {
+                toast({
+                  title: "تم تصدير العقد بنجاح",
+                  description: "تم حفظ العقد كملف PDF"
+                });
+              }}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
