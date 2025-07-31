@@ -27,10 +27,13 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface AdvancedContractData {
   template_id: string;
+  contract_type: string;
   owner_name: string;
+  proxy: string;
   tenant_name: string;
   area: string;
   plot_number: string;
+  building_name: string;
   purpose_of_use: string;
   unit_number: string;
   unit_type: string;
@@ -39,6 +42,7 @@ interface AdvancedContractData {
   end_date: string;
   payment_method: string;
   installments_count: number;
+  security_deposit: number;
   tenant_id?: string;
   property_id?: string;
 }
@@ -49,10 +53,13 @@ const AdvancedContractGenerator = () => {
   
   const [contractData, setContractData] = useState<AdvancedContractData>({
     template_id: '',
+    contract_type: '',
     owner_name: '',
+    proxy: '',
     tenant_name: '',
     area: '',
     plot_number: '',
+    building_name: '',
     purpose_of_use: '',
     unit_number: '',
     unit_type: '',
@@ -60,7 +67,8 @@ const AdvancedContractGenerator = () => {
     start_date: '',
     end_date: '',
     payment_method: '',
-    installments_count: 1
+    installments_count: 1,
+    security_deposit: 0
   });
 
   // جلب قوالب PDF المتاحة
@@ -241,6 +249,22 @@ const AdvancedContractGenerator = () => {
               </Select>
             </div>
 
+            {/* نوع العقد */}
+            <div className="space-y-2">
+              <Label htmlFor="contract_type">نوع العقد / Contract Type</Label>
+              <Select value={contractData.contract_type} onValueChange={(value) => handleInputChange('contract_type', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع العقد / Select Contract Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="عقد إيجار سكني">عقد إيجار سكني / Residential Lease</SelectItem>
+                  <SelectItem value="عقد إيجار تجاري">عقد إيجار تجاري / Commercial Lease</SelectItem>
+                  <SelectItem value="عقد إيجار مكتبي">عقد إيجار مكتبي / Office Lease</SelectItem>
+                  <SelectItem value="عقد إيجار مختلط">عقد إيجار مختلط / Mixed Use Lease</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* بيانات الأطراف */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -250,13 +274,23 @@ const AdvancedContractGenerator = () => {
                 </h3>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="owner_name">اسم المالك *</Label>
+                  <Label htmlFor="owner_name">اسم المالك/المؤجر / Owner/Lessor Name *</Label>
                   <Input
                     id="owner_name"
                     value={contractData.owner_name}
                     onChange={(e) => handleInputChange('owner_name', e.target.value)}
-                    placeholder="أدخل اسم مالك العقار"
+                    placeholder="أدخل اسم مالك العقار / Enter owner name"
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="proxy">الوكيل / Proxy</Label>
+                  <Input
+                    id="proxy"
+                    value={contractData.proxy}
+                    onChange={(e) => handleInputChange('proxy', e.target.value)}
+                    placeholder="أدخل اسم الوكيل (اختياري) / Enter proxy name (optional)"
                   />
                 </div>
 
@@ -277,12 +311,12 @@ const AdvancedContractGenerator = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tenant_name">اسم المستأجر *</Label>
+                  <Label htmlFor="tenant_name">اسم المستأجر / Tenant Name *</Label>
                   <Input
                     id="tenant_name"
                     value={contractData.tenant_name}
                     onChange={(e) => handleInputChange('tenant_name', e.target.value)}
-                    placeholder="أدخل اسم المستأجر"
+                    placeholder="أدخل اسم المستأجر / Enter tenant name"
                     required
                   />
                 </div>
@@ -313,82 +347,93 @@ const AdvancedContractGenerator = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="area">المنطقة *</Label>
+                    <Label htmlFor="area">المنطقة / Area</Label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="area"
                         value={contractData.area}
                         onChange={(e) => handleInputChange('area', e.target.value)}
-                        placeholder="مثال: عجمان - النعيمية"
+                        placeholder="مثال: عجمان - النعيمية / Example: Ajman - Al Nuaimiya"
                         className="pl-10"
-                        required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="plot_number">رقم القطعة *</Label>
+                    <Label htmlFor="plot_number">رقم القطعة / Plot of Land No</Label>
                     <div className="relative">
                       <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="plot_number"
                         value={contractData.plot_number}
                         onChange={(e) => handleInputChange('plot_number', e.target.value)}
-                        placeholder="رقم القطعة"
+                        placeholder="رقم القطعة / Plot number"
                         className="pl-10"
-                        required
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="purpose_of_use">أغراض الاستعمال *</Label>
+                  <Label htmlFor="building_name">اسم المبنى / Building Name</Label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="building_name"
+                      value={contractData.building_name}
+                      onChange={(e) => handleInputChange('building_name', e.target.value)}
+                      placeholder="أدخل اسم المبنى (اختياري) / Enter building name (optional)"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="purpose_of_use">أغراض الاستعمال / Purposes of use</Label>
                   <Select value={contractData.purpose_of_use} onValueChange={(value) => handleInputChange('purpose_of_use', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="اختر الغرض من الاستعمال" />
+                      <SelectValue placeholder="اختر الغرض من الاستعمال / Select purpose of use" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="سكني">سكني</SelectItem>
-                      <SelectItem value="تجاري">تجاري</SelectItem>
-                      <SelectItem value="مكتبي">مكتبي</SelectItem>
-                      <SelectItem value="صناعي">صناعي</SelectItem>
-                      <SelectItem value="مختلط">مختلط (سكني وتجاري)</SelectItem>
+                      <SelectItem value="سكني">سكني / Residential</SelectItem>
+                      <SelectItem value="تجاري">تجاري / Commercial</SelectItem>
+                      <SelectItem value="مكتبي">مكتبي / Office</SelectItem>
+                      <SelectItem value="صناعي">صناعي / Industrial</SelectItem>
+                      <SelectItem value="مختلط">مختلط (سكني وتجاري) / Mixed Use</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="unit_number">رقم الوحدة *</Label>
+                    <Label htmlFor="unit_number">رقم الوحدة العقارية / Unit No</Label>
                     <div className="relative">
                       <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="unit_number"
                         value={contractData.unit_number}
                         onChange={(e) => handleInputChange('unit_number', e.target.value)}
-                        placeholder="رقم الوحدة"
+                        placeholder="رقم الوحدة / Unit number"
                         className="pl-10"
-                        required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="unit_type">نوع الوحدة *</Label>
+                    <Label htmlFor="unit_type">نوع الوحدة / Unit Type</Label>
                     <Select value={contractData.unit_type} onValueChange={(value) => handleInputChange('unit_type', value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع الوحدة" />
+                        <SelectValue placeholder="اختر نوع الوحدة / Select unit type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="شقة">شقة</SelectItem>
-                        <SelectItem value="فيلا">فيلا</SelectItem>
-                        <SelectItem value="مكتب">مكتب</SelectItem>
-                        <SelectItem value="محل تجاري">محل تجاري</SelectItem>
-                        <SelectItem value="مستودع">مستودع</SelectItem>
-                        <SelectItem value="أرض">أرض</SelectItem>
-                        <SelectItem value="مبنى كامل">مبنى كامل</SelectItem>
+                        <SelectItem value="شقة">شقة / Apartment</SelectItem>
+                        <SelectItem value="فيلا">فيلا / Villa</SelectItem>
+                        <SelectItem value="مكتب">مكتب / Office</SelectItem>
+                        <SelectItem value="محل تجاري">محل تجاري / Shop</SelectItem>
+                        <SelectItem value="مستودع">مستودع / Warehouse</SelectItem>
+                        <SelectItem value="أرض">أرض / Land</SelectItem>
+                        <SelectItem value="مبنى كامل">مبنى كامل / Full Building</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -405,7 +450,7 @@ const AdvancedContractGenerator = () => {
                 </h3>
 
                 <div className="space-y-2">
-                  <Label htmlFor="total_rental_value">قيمة الإيجار الإجمالية (د.إ) *</Label>
+                  <Label htmlFor="total_rental_value">قيمة الإيجار الكلية / Total rental value (د.إ) *</Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -421,23 +466,38 @@ const AdvancedContractGenerator = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="payment_method">طريقة السداد *</Label>
+                  <Label htmlFor="security_deposit">مبلغ التأمين / Security Deposit (د.إ)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="security_deposit"
+                      type="number"
+                      value={contractData.security_deposit || ''}
+                      onChange={(e) => handleInputChange('security_deposit', Number(e.target.value))}
+                      placeholder="0"
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment_method">طريقة السداد / Payment Method *</Label>
                   <Select value={contractData.payment_method} onValueChange={(value) => handleInputChange('payment_method', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="اختر طريقة السداد" />
+                      <SelectValue placeholder="اختر طريقة السداد / Select payment method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="شيكات">شيكات مؤجلة</SelectItem>
-                      <SelectItem value="نقداً">نقداً</SelectItem>
-                      <SelectItem value="تحويل بنكي">تحويل بنكي</SelectItem>
-                      <SelectItem value="شيكات ونقداً">شيكات ونقداً</SelectItem>
-                      <SelectItem value="أقساط شهرية">أقساط شهرية</SelectItem>
+                      <SelectItem value="شيكات">شيكات مؤجلة / Post-dated Cheques</SelectItem>
+                      <SelectItem value="نقداً">نقداً / Cash</SelectItem>
+                      <SelectItem value="تحويل بنكي">تحويل بنكي / Bank Transfer</SelectItem>
+                      <SelectItem value="شيكات ونقداً">شيكات ونقداً / Cheques & Cash</SelectItem>
+                      <SelectItem value="أقساط شهرية">أقساط شهرية / Monthly Installments</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="installments_count">عدد الدفعات *</Label>
+                  <Label htmlFor="installments_count">عدد الدفعات / Number of Installments *</Label>
                   <div className="relative">
                     <Calculator className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -461,7 +521,7 @@ const AdvancedContractGenerator = () => {
                 </h3>
 
                 <div className="space-y-2">
-                  <Label htmlFor="start_date">تاريخ بداية العقد *</Label>
+                  <Label htmlFor="start_date">تاريخ بداية العقد / Contract start date *</Label>
                   <Input
                     id="start_date"
                     type="date"
@@ -472,7 +532,7 @@ const AdvancedContractGenerator = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="end_date">تاريخ نهاية العقد *</Label>
+                  <Label htmlFor="end_date">تاريخ نهاية العقد / Contract end date *</Label>
                   <Input
                     id="end_date"
                     type="date"
