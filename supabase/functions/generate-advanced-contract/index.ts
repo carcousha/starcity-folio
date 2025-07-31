@@ -51,22 +51,57 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
+    console.log('Supabase client created');
 
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    console.log('Auth header exists:', !!authHeader);
+    
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
+    }
+    
     const token = authHeader.replace('Bearer ', '');
-    supabaseClient.auth.setSession({ access_token: token, refresh_token: '' });
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      throw new Error('Authentication failed');
+    }
+    
+    console.log('User authenticated:', user.id);
 
     const contractData: ContractData = await req.json();
-    console.log('Contract data received:', contractData);
+    console.log('Contract data received:', JSON.stringify(contractData, null, 2));
+
+    // التحقق من صحة البيانات المطلوبة
+    if (!contractData.template_id) {
+      throw new Error('معرف القالب مطلوب');
+    }
+    
+    if (!contractData.tenant_name_ar && !contractData.tenant_name_en) {
+      throw new Error('اسم المستأجر مطلوب (عربي أو إنجليزي)');
+    }
+    
+    if (!contractData.owner_name_ar && !contractData.owner_name_en) {
+      throw new Error('اسم المالك مطلوب (عربي أو إنجليزي)');
+    }
+    
+    console.log('Data validation passed');
 
     // جلب قالب PDF من قاعدة البيانات
+    console.log('Fetching template with ID:', contractData.template_id);
     const { data: template, error: templateError } = await supabaseClient
       .from('pdf_templates')
       .select('*')
       .eq('id', contractData.template_id)
       .single();
 
-    if (templateError || !template) {
+    if (templateError) {
+      console.error('Template fetch error:', templateError);
+      throw new Error(`خطأ في جلب القالب: ${templateError.message}`);
+    }
+    
+    if (!template) {
       throw new Error('قالب PDF غير موجود');
     }
 
@@ -104,12 +139,14 @@ serve(async (req) => {
 
     console.log('PDF template ready, size:', pdfBuffer.size);
 
-    console.log('PDF template downloaded, size:', pdfBuffer.size);
-
     // قراءة وتعديل PDF
+    console.log('Loading PDF document...');
     const pdfDoc = await PDFDocument.load(await pdfBuffer.arrayBuffer());
+    console.log('PDF document loaded successfully');
+    
     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    console.log('Fonts embedded successfully');
 
     // الحصول على الصفحة الأولى
     const pages = pdfDoc.getPages();
@@ -302,15 +339,18 @@ serve(async (req) => {
     });
 
     // إنشاء PDF جديد
+    console.log('Saving PDF...');
     const pdfBytes = await pdfDoc.save();
-    console.log('PDF generated, size:', pdfBytes.length);
+    console.log('PDF generated successfully, size:', pdfBytes.length);
 
     // إنشاء اسم ملف فريد
     const timestamp = Date.now();
     const tenantDisplayName = contractData.tenant_name_ar || contractData.tenant_name_en || 'مستأجر';
     const contractFileName = `contract_${tenantDisplayName.replace(/\s+/g, '_')}_${timestamp}.pdf`;
+    console.log('Contract filename:', contractFileName);
 
     // حفظ سجل العقد في قاعدة البيانات
+    console.log('Saving contract record...');
     const propertyTitle = `${contractData.area_ar || contractData.area_en || ''} - وحدة ${contractData.unit_number}`;
     const { data: contractRecord, error: recordError } = await supabaseClient
       .from('rental_contracts')
@@ -328,17 +368,20 @@ serve(async (req) => {
         contract_status: 'generated',
         generated_pdf_path: contractFileName,
         pdf_template_id: contractData.template_id,
-        created_by: (await supabaseClient.auth.getUser()).data.user?.id
+        created_by: user.id
       })
       .select()
       .single();
 
     if (recordError) {
       console.error('Record error:', recordError);
-      throw new Error('فشل في حفظ سجل العقد');
+      throw new Error(`فشل في حفظ سجل العقد: ${recordError.message}`);
     }
 
+    console.log('Contract record saved:', contractRecord.id);
+
     // رفع العقد المولد إلى التخزين بعد حفظ السجل
+    console.log('Uploading PDF to storage...');
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
       .from('generated-contracts')
       .upload(contractFileName, pdfBytes, {
@@ -348,17 +391,23 @@ serve(async (req) => {
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
-      throw new Error('فشل في حفظ العقد المولد');
+      throw new Error(`فشل في حفظ العقد المولد: ${uploadError.message}`);
     }
 
-    console.log('Contract uploaded:', uploadData.path);
-
-    console.log('Contract record saved:', contractRecord.id);
+    console.log('Contract uploaded successfully:', uploadData.path);
 
     // إنشاء رابط تحميل
-    const { data: signedUrl } = await supabaseClient.storage
+    console.log('Creating signed URL...');
+    const { data: signedUrl, error: urlError } = await supabaseClient.storage
       .from('generated-contracts')
       .createSignedUrl(uploadData.path, 3600); // صالح لساعة واحدة
+
+    if (urlError) {
+      console.error('Signed URL error:', urlError);
+      // Continue without signed URL if there's an error
+    }
+
+    console.log('Contract generation completed successfully');
 
     return new Response(JSON.stringify({
       success: true,
@@ -376,10 +425,14 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error generating contract:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
-      details: error.toString()
+      error: error.message || 'خطأ غير متوقع',
+      details: error.toString(),
+      timestamp: new Date().toISOString()
     }), {
       status: 500,
       headers: {
