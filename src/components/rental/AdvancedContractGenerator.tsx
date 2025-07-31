@@ -444,180 +444,95 @@ const AdvancedContractGenerator = () => {
               </div>
 
               {/* المنطقة */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="area_ar">المنطقة (عربي)</Label>
-                  <Select value={contractData.area_ar} onValueChange={(value) => handleInputChange('area_ar', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المنطقة" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px] overflow-y-auto">
-                      <SelectItem value="الزوراء">الزوراء</SelectItem>
-                      <SelectItem value="الراشدية 1">الراشدية 1</SelectItem>
-                      <SelectItem value="الراشدية 2">الراشدية 2</SelectItem>
-                      <SelectItem value="الراشدية 3">الراشدية 3</SelectItem>
-                      <SelectItem value="الرميلة 1">الرميلة 1</SelectItem>
-                      <SelectItem value="الرميلة 2">الرميلة 2</SelectItem>
-                      <SelectItem value="الرميلة 3">الرميلة 3</SelectItem>
-                      <SelectItem value="الصافية">الصافية</SelectItem>
-                      <SelectItem value="النخيل 1">النخيل 1</SelectItem>
-                      <SelectItem value="النخيل 2">النخيل 2</SelectItem>
-                      <SelectItem value="النعيمية 1">النعيمية 1</SelectItem>
-                      <SelectItem value="النعيمية 2">النعيمية 2</SelectItem>
-                      <SelectItem value="النعيمية 3">النعيمية 3</SelectItem>
-                      <SelectItem value="الليوارة 1">الليوارة 1</SelectItem>
-                      <SelectItem value="الليوارة 2">الليوارة 2</SelectItem>
-                      <SelectItem value="مشيرف">مشيرف</SelectItem>
-                      <SelectItem value="الباهية">الباهية</SelectItem>
-                      <SelectItem value="الجرف الصناعية 1">الجرف الصناعية 1</SelectItem>
-                      <SelectItem value="الجرف الصناعية 2">الجرف الصناعية 2</SelectItem>
-                      <SelectItem value="الجرف الصناعية 3">الجرف الصناعية 3</SelectItem>
-                      <SelectItem value="الجرف 1">الجرف 1</SelectItem>
-                      <SelectItem value="الجرف 2">الجرف 2</SelectItem>
-                      <SelectItem value="الحميدية 1">الحميدية 1</SelectItem>
-                      <SelectItem value="الحميدية 2">الحميدية 2</SelectItem>
-                      <SelectItem value="الرقايب 1">الرقايب 1</SelectItem>
-                      <SelectItem value="الرقايب 2">الرقايب 2</SelectItem>
-                      <SelectItem value="العالية">العالية</SelectItem>
-                      <SelectItem value="التلة 1">التلة 1</SelectItem>
-                      <SelectItem value="التلة 2">التلة 2</SelectItem>
-                      <SelectItem value="الروضة 1">الروضة 1</SelectItem>
-                      <SelectItem value="الروضة 2">الروضة 2</SelectItem>
-                      <SelectItem value="الروضة 3">الروضة 3</SelectItem>
-                      <SelectItem value="محمد بن زايد 1">محمد بن زايد 1</SelectItem>
-                      <SelectItem value="محمد بن زايد 2">محمد بن زايد 2</SelectItem>
-                      <SelectItem value="المويهات 1">المويهات 1</SelectItem>
-                      <SelectItem value="المويهات 2">المويهات 2</SelectItem>
-                      <SelectItem value="المويهات 3">المويهات 3</SelectItem>
-                      <SelectItem value="عجمان الصناعية 1">عجمان الصناعية 1</SelectItem>
-                      <SelectItem value="عجمان الصناعية 2">عجمان الصناعية 2</SelectItem>
-                      <SelectItem value="الحليو 1">الحليو 1</SelectItem>
-                      <SelectItem value="الحليو 2">الحليو 2</SelectItem>
-                      <SelectItem value="الزاهية">الزاهية</SelectItem>
-                      <SelectItem value="العامرة">العامرة</SelectItem>
-                      <SelectItem value="الياسمين">الياسمين</SelectItem>
-                      <SelectItem value="المنامة 1">المنامة 1</SelectItem>
-                      <SelectItem value="المنامة 2">المنامة 2</SelectItem>
-                      <SelectItem value="المنامة 3">المنامة 3</SelectItem>
-                      <SelectItem value="المنامة 4">المنامة 4</SelectItem>
-                      <SelectItem value="المنامة 5">المنامة 5</SelectItem>
-                      <SelectItem value="المنامة 6">المنامة 6</SelectItem>
-                      <SelectItem value="المنامة 7">المنامة 7</SelectItem>
-                      <SelectItem value="المنامة 8">المنامة 8</SelectItem>
-                      <SelectItem value="المنامة 9">المنامة 9</SelectItem>
-                      <SelectItem value="المنامة 10">المنامة 10</SelectItem>
-                      <SelectItem value="المنامة 11">المنامة 11</SelectItem>
-                      <SelectItem value="المنامة 12">المنامة 12</SelectItem>
-                      <SelectItem value="المنامة 13">المنامة 13</SelectItem>
-                      <SelectItem value="المنامة 14">المنامة 14</SelectItem>
-                      <SelectItem value="المنامة 15">المنامة 15</SelectItem>
-                      <SelectItem value="المنامة 16">المنامة 16</SelectItem>
-                      <SelectItem value="المنامة 17">المنامة 17</SelectItem>
-                      <SelectItem value="مصفوت 1">مصفوت 1</SelectItem>
-                      <SelectItem value="مصفوت 2">مصفوت 2</SelectItem>
-                      <SelectItem value="مصفوت 3">مصفوت 3</SelectItem>
-                      <SelectItem value="مصفوت 4">مصفوت 4</SelectItem>
-                      <SelectItem value="مصفوت 5">مصفوت 5</SelectItem>
-                      <SelectItem value="مصفوت 6">مصفوت 6</SelectItem>
-                      <SelectItem value="مصفوت 7">مصفوت 7</SelectItem>
-                      <SelectItem value="مصفوت 8">مصفوت 8</SelectItem>
-                      <SelectItem value="مصفوت 9">مصفوت 9</SelectItem>
-                      <SelectItem value="مصفوت 10">مصفوت 10</SelectItem>
-                      <SelectItem value="مصفوت 11">مصفوت 11</SelectItem>
-                      <SelectItem value="مصفوت 12">مصفوت 12</SelectItem>
-                      <SelectItem value="مصفوت 13">مصفوت 13</SelectItem>
-                      <SelectItem value="مصفوت 14">مصفوت 14</SelectItem>
-                      <SelectItem value="مصفوت 15">مصفوت 15</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="area_en">Area (English)</Label>
-                  <Select value={contractData.area_en} onValueChange={(value) => handleInputChange('area_en', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Area" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px] overflow-y-auto">
-                      <SelectItem value="Zorah">Zorah</SelectItem>
-                      <SelectItem value="Rashidiya 1">Rashidiya 1</SelectItem>
-                      <SelectItem value="Rashidiya 2">Rashidiya 2</SelectItem>
-                      <SelectItem value="Rashidiya 3">Rashidiya 3</SelectItem>
-                      <SelectItem value="Rumaila 1">Rumaila 1</SelectItem>
-                      <SelectItem value="Rumaila 2">Rumaila 2</SelectItem>
-                      <SelectItem value="Rumaila 3">Rumaila 3</SelectItem>
-                      <SelectItem value="Safia">Safia</SelectItem>
-                      <SelectItem value="Nakheel 1">Nakheel 1</SelectItem>
-                      <SelectItem value="Nakheel 2">Nakheel 2</SelectItem>
-                      <SelectItem value="Nuaimeya 1">Nuaimeya 1</SelectItem>
-                      <SelectItem value="Nuaimeya 2">Nuaimeya 2</SelectItem>
-                      <SelectItem value="Nuaimeya 3">Nuaimeya 3</SelectItem>
-                      <SelectItem value="Liwara 1">Liwara 1</SelectItem>
-                      <SelectItem value="Liwara 2">Liwara 2</SelectItem>
-                      <SelectItem value="Mushairif">Mushairif</SelectItem>
-                      <SelectItem value="Bahya">Bahya</SelectItem>
-                      <SelectItem value="Jurf Industrial 1">Jurf Industrial 1</SelectItem>
-                      <SelectItem value="Jurf Industrial 2">Jurf Industrial 2</SelectItem>
-                      <SelectItem value="Jurf Industrial 3">Jurf Industrial 3</SelectItem>
-                      <SelectItem value="Jurf 1">Jurf 1</SelectItem>
-                      <SelectItem value="Jurf 2">Jurf 2</SelectItem>
-                      <SelectItem value="Humaideya 1">Humaideya 1</SelectItem>
-                      <SelectItem value="Humaideya 2">Humaideya 2</SelectItem>
-                      <SelectItem value="Ragayeb 1">Ragayeb 1</SelectItem>
-                      <SelectItem value="Ragayeb 2">Ragayeb 2</SelectItem>
-                      <SelectItem value="Aalia">Aalia</SelectItem>
-                      <SelectItem value="Tallahi 1">Tallahi 1</SelectItem>
-                      <SelectItem value="Tallahi 2">Tallahi 2</SelectItem>
-                      <SelectItem value="Rawdha 1">Rawdha 1</SelectItem>
-                      <SelectItem value="Rawdha 2">Rawdha 2</SelectItem>
-                      <SelectItem value="Rawdha 3">Rawdha 3</SelectItem>
-                      <SelectItem value="Mohammed Bin Zayed 1">Mohammed Bin Zayed 1</SelectItem>
-                      <SelectItem value="Mohammed Bin Zayed 2">Mohammed Bin Zayed 2</SelectItem>
-                      <SelectItem value="Mowaihat 1">Mowaihat 1</SelectItem>
-                      <SelectItem value="Mowaihat 2">Mowaihat 2</SelectItem>
-                      <SelectItem value="Mowaihat 3">Mowaihat 3</SelectItem>
-                      <SelectItem value="Ajman Industrial 1">Ajman Industrial 1</SelectItem>
-                      <SelectItem value="Ajman Industrial 2">Ajman Industrial 2</SelectItem>
-                      <SelectItem value="Helio 1">Helio 1</SelectItem>
-                      <SelectItem value="Helio 2">Helio 2</SelectItem>
-                      <SelectItem value="Zahya">Zahya</SelectItem>
-                      <SelectItem value="Aamra">Aamra</SelectItem>
-                      <SelectItem value="Yasmeen">Yasmeen</SelectItem>
-                      <SelectItem value="Manama 1">Manama 1</SelectItem>
-                      <SelectItem value="Manama 2">Manama 2</SelectItem>
-                      <SelectItem value="Manama 3">Manama 3</SelectItem>
-                      <SelectItem value="Manama 4">Manama 4</SelectItem>
-                      <SelectItem value="Manama 5">Manama 5</SelectItem>
-                      <SelectItem value="Manama 6">Manama 6</SelectItem>
-                      <SelectItem value="Manama 7">Manama 7</SelectItem>
-                      <SelectItem value="Manama 8">Manama 8</SelectItem>
-                      <SelectItem value="Manama 9">Manama 9</SelectItem>
-                      <SelectItem value="Manama 10">Manama 10</SelectItem>
-                      <SelectItem value="Manama 11">Manama 11</SelectItem>
-                      <SelectItem value="Manama 12">Manama 12</SelectItem>
-                      <SelectItem value="Manama 13">Manama 13</SelectItem>
-                      <SelectItem value="Manama 14">Manama 14</SelectItem>
-                      <SelectItem value="Manama 15">Manama 15</SelectItem>
-                      <SelectItem value="Manama 16">Manama 16</SelectItem>
-                      <SelectItem value="Manama 17">Manama 17</SelectItem>
-                      <SelectItem value="Masfout 1">Masfout 1</SelectItem>
-                      <SelectItem value="Masfout 2">Masfout 2</SelectItem>
-                      <SelectItem value="Masfout 3">Masfout 3</SelectItem>
-                      <SelectItem value="Masfout 4">Masfout 4</SelectItem>
-                      <SelectItem value="Masfout 5">Masfout 5</SelectItem>
-                      <SelectItem value="Masfout 6">Masfout 6</SelectItem>
-                      <SelectItem value="Masfout 7">Masfout 7</SelectItem>
-                      <SelectItem value="Masfout 8">Masfout 8</SelectItem>
-                      <SelectItem value="Masfout 9">Masfout 9</SelectItem>
-                      <SelectItem value="Masfout 10">Masfout 10</SelectItem>
-                      <SelectItem value="Masfout 11">Masfout 11</SelectItem>
-                      <SelectItem value="Masfout 12">Masfout 12</SelectItem>
-                      <SelectItem value="Masfout 13">Masfout 13</SelectItem>
-                      <SelectItem value="Masfout 14">Masfout 14</SelectItem>
-                      <SelectItem value="Masfout 15">Masfout 15</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="area">المنطقة / Area</Label>
+                <Select value={contractData.area_ar} onValueChange={(value) => {
+                  const [english, arabic] = value.split(' // ');
+                  handleInputChange('area_ar', arabic);
+                  handleInputChange('area_en', english);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر المنطقة / Select Area" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto">
+                    <SelectItem value="Zorah // الزوراء">Zorah // الزوراء</SelectItem>
+                    <SelectItem value="Rashidiya 1 // الراشدية 1">Rashidiya 1 // الراشدية 1</SelectItem>
+                    <SelectItem value="Rashidiya 2 // الراشدية 2">Rashidiya 2 // الراشدية 2</SelectItem>
+                    <SelectItem value="Rashidiya 3 // الراشدية 3">Rashidiya 3 // الراشدية 3</SelectItem>
+                    <SelectItem value="Rumaila 1 // الرميلة 1">Rumaila 1 // الرميلة 1</SelectItem>
+                    <SelectItem value="Rumaila 2 // الرميلة 2">Rumaila 2 // الرميلة 2</SelectItem>
+                    <SelectItem value="Rumaila 3 // الرميلة 3">Rumaila 3 // الرميلة 3</SelectItem>
+                    <SelectItem value="Safia // الصافية">Safia // الصافية</SelectItem>
+                    <SelectItem value="Nakheel 1 // النخيل 1">Nakheel 1 // النخيل 1</SelectItem>
+                    <SelectItem value="Nakheel 2 // النخيل 2">Nakheel 2 // النخيل 2</SelectItem>
+                    <SelectItem value="Nuaimeya 1 // النعيمية 1">Nuaimeya 1 // النعيمية 1</SelectItem>
+                    <SelectItem value="Nuaimeya 2 // النعيمية 2">Nuaimeya 2 // النعيمية 2</SelectItem>
+                    <SelectItem value="Nuaimeya 3 // النعيمية 3">Nuaimeya 3 // النعيمية 3</SelectItem>
+                    <SelectItem value="Liwara 1 // الليوارة 1">Liwara 1 // الليوارة 1</SelectItem>
+                    <SelectItem value="Liwara 2 // الليوارة 2">Liwara 2 // الليوارة 2</SelectItem>
+                    <SelectItem value="Mushairif // مشيرف">Mushairif // مشيرف</SelectItem>
+                    <SelectItem value="Bahya // الباهية">Bahya // الباهية</SelectItem>
+                    <SelectItem value="Jurf Industrial 1 // الجرف الصناعية 1">Jurf Industrial 1 // الجرف الصناعية 1</SelectItem>
+                    <SelectItem value="Jurf Industrial 2 // الجرف الصناعية 2">Jurf Industrial 2 // الجرف الصناعية 2</SelectItem>
+                    <SelectItem value="Jurf Industrial 3 // الجرف الصناعية 3">Jurf Industrial 3 // الجرف الصناعية 3</SelectItem>
+                    <SelectItem value="Jurf 1 // الجرف 1">Jurf 1 // الجرف 1</SelectItem>
+                    <SelectItem value="Jurf 2 // الجرف 2">Jurf 2 // الجرف 2</SelectItem>
+                    <SelectItem value="Humaideya 1 // الحميدية 1">Humaideya 1 // الحميدية 1</SelectItem>
+                    <SelectItem value="Humaideya 2 // الحميدية 2">Humaideya 2 // الحميدية 2</SelectItem>
+                    <SelectItem value="Ragayeb 1 // الرقايب 1">Ragayeb 1 // الرقايب 1</SelectItem>
+                    <SelectItem value="Ragayeb 2 // الرقايب 2">Ragayeb 2 // الرقايب 2</SelectItem>
+                    <SelectItem value="Aalia // العالية">Aalia // العالية</SelectItem>
+                    <SelectItem value="Tallahi 1 // التلة 1">Tallahi 1 // التلة 1</SelectItem>
+                    <SelectItem value="Tallahi 2 // التلة 2">Tallahi 2 // التلة 2</SelectItem>
+                    <SelectItem value="Rawdha 1 // الروضة 1">Rawdha 1 // الروضة 1</SelectItem>
+                    <SelectItem value="Rawdha 2 // الروضة 2">Rawdha 2 // الروضة 2</SelectItem>
+                    <SelectItem value="Rawdha 3 // الروضة 3">Rawdha 3 // الروضة 3</SelectItem>
+                    <SelectItem value="Mohammed Bin Zayed 1 // محمد بن زايد 1">Mohammed Bin Zayed 1 // محمد بن زايد 1</SelectItem>
+                    <SelectItem value="Mohammed Bin Zayed 2 // محمد بن زايد 2">Mohammed Bin Zayed 2 // محمد بن زايد 2</SelectItem>
+                    <SelectItem value="Mowaihat 1 // المويهات 1">Mowaihat 1 // المويهات 1</SelectItem>
+                    <SelectItem value="Mowaihat 2 // المويهات 2">Mowaihat 2 // المويهات 2</SelectItem>
+                    <SelectItem value="Mowaihat 3 // المويهات 3">Mowaihat 3 // المويهات 3</SelectItem>
+                    <SelectItem value="Ajman Industrial 1 // عجمان الصناعية 1">Ajman Industrial 1 // عجمان الصناعية 1</SelectItem>
+                    <SelectItem value="Ajman Industrial 2 // عجمان الصناعية 2">Ajman Industrial 2 // عجمان الصناعية 2</SelectItem>
+                    <SelectItem value="Helio 1 // الحليو 1">Helio 1 // الحليو 1</SelectItem>
+                    <SelectItem value="Helio 2 // الحليو 2">Helio 2 // الحليو 2</SelectItem>
+                    <SelectItem value="Zahya // الزاهية">Zahya // الزاهية</SelectItem>
+                    <SelectItem value="Aamra // العامرة">Aamra // العامرة</SelectItem>
+                    <SelectItem value="Yasmeen // الياسمين">Yasmeen // الياسمين</SelectItem>
+                    <SelectItem value="Manama 1 // المنامة 1">Manama 1 // المنامة 1</SelectItem>
+                    <SelectItem value="Manama 2 // المنامة 2">Manama 2 // المنامة 2</SelectItem>
+                    <SelectItem value="Manama 3 // المنامة 3">Manama 3 // المنامة 3</SelectItem>
+                    <SelectItem value="Manama 4 // المنامة 4">Manama 4 // المنامة 4</SelectItem>
+                    <SelectItem value="Manama 5 // المنامة 5">Manama 5 // المنامة 5</SelectItem>
+                    <SelectItem value="Manama 6 // المنامة 6">Manama 6 // المنامة 6</SelectItem>
+                    <SelectItem value="Manama 7 // المنامة 7">Manama 7 // المنامة 7</SelectItem>
+                    <SelectItem value="Manama 8 // المنامة 8">Manama 8 // المنامة 8</SelectItem>
+                    <SelectItem value="Manama 9 // المنامة 9">Manama 9 // المنامة 9</SelectItem>
+                    <SelectItem value="Manama 10 // المنامة 10">Manama 10 // المنامة 10</SelectItem>
+                    <SelectItem value="Manama 11 // المنامة 11">Manama 11 // المنامة 11</SelectItem>
+                    <SelectItem value="Manama 12 // المنامة 12">Manama 12 // المنامة 12</SelectItem>
+                    <SelectItem value="Manama 13 // المنامة 13">Manama 13 // المنامة 13</SelectItem>
+                    <SelectItem value="Manama 14 // المنامة 14">Manama 14 // المنامة 14</SelectItem>
+                    <SelectItem value="Manama 15 // المنامة 15">Manama 15 // المنامة 15</SelectItem>
+                    <SelectItem value="Manama 16 // المنامة 16">Manama 16 // المنامة 16</SelectItem>
+                    <SelectItem value="Manama 17 // المنامة 17">Manama 17 // المنامة 17</SelectItem>
+                    <SelectItem value="Masfout 1 // مصفوت 1">Masfout 1 // مصفوت 1</SelectItem>
+                    <SelectItem value="Masfout 2 // مصفوت 2">Masfout 2 // مصفوت 2</SelectItem>
+                    <SelectItem value="Masfout 3 // مصفوت 3">Masfout 3 // مصفوت 3</SelectItem>
+                    <SelectItem value="Masfout 4 // مصفوت 4">Masfout 4 // مصفوت 4</SelectItem>
+                    <SelectItem value="Masfout 5 // مصفوت 5">Masfout 5 // مصفوت 5</SelectItem>
+                    <SelectItem value="Masfout 6 // مصفوت 6">Masfout 6 // مصفوت 6</SelectItem>
+                    <SelectItem value="Masfout 7 // مصفوت 7">Masfout 7 // مصفوت 7</SelectItem>
+                    <SelectItem value="Masfout 8 // مصفوت 8">Masfout 8 // مصفوت 8</SelectItem>
+                    <SelectItem value="Masfout 9 // مصفوت 9">Masfout 9 // مصفوت 9</SelectItem>
+                    <SelectItem value="Masfout 10 // مصفوت 10">Masfout 10 // مصفوت 10</SelectItem>
+                    <SelectItem value="Masfout 11 // مصفوت 11">Masfout 11 // مصفوت 11</SelectItem>
+                    <SelectItem value="Masfout 12 // مصفوت 12">Masfout 12 // مصفوت 12</SelectItem>
+                    <SelectItem value="Masfout 13 // مصفوت 13">Masfout 13 // مصفوت 13</SelectItem>
+                    <SelectItem value="Masfout 14 // مصفوت 14">Masfout 14 // مصفوت 14</SelectItem>
+                    <SelectItem value="Masfout 15 // مصفوت 15">Masfout 15 // مصفوت 15</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* رقم القطعة */}
