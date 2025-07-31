@@ -63,7 +63,7 @@ const AddTenantForm = () => {
       const { data: tenant, error } = await supabase
         .from('rental_tenants')
         .insert({
-          tenant_name: data.tenant_name,
+          full_name: data.tenant_name,
           nationality: data.nationality,
           emirates_id: data.emirates_id,
           passport_number: data.passport_number,

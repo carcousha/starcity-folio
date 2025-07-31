@@ -64,19 +64,21 @@ const AddPropertyForm = () => {
       const { data: property, error } = await supabase
         .from('rental_properties')
         .insert({
-          title: data.title,
-          location: data.location,
+          property_title: data.title,
+          property_address: data.location,
+          unit_number: "1", // Default unit number
           property_type: data.property_type,
-          price: data.price,
           area: data.area,
           bedrooms: data.bedrooms,
           bathrooms: data.bathrooms,
           features: data.features,
-          description: data.description,
+          owner_name: "مالك العقار", // Default owner name
+          owner_phone: "000000000", // Default owner phone
+          notes: data.description,
           status: data.status,
           agreed_rent_amount: data.agreed_rent_amount,
           commission_percentage: data.commission_percentage,
-          listed_by: user.id
+          created_by: user.id
         })
         .select()
         .single();

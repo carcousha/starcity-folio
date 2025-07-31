@@ -62,7 +62,7 @@ const CreateContractForm = () => {
         .from('rental_properties')
         .select('*')
         .eq('status', 'متاح')
-        .order('title');
+        .order('property_title');
       
       if (error) throw error;
       return data || [];
@@ -76,8 +76,8 @@ const CreateContractForm = () => {
       const { data, error } = await supabase
         .from('rental_tenants')
         .select('*')
-        .eq('is_active', true)
-        .order('tenant_name');
+        .eq('status', 'active')
+        .order('full_name');
       
       if (error) throw error;
       return data || [];
@@ -172,8 +172,8 @@ const CreateContractForm = () => {
       setFormData(prev => ({
         ...prev,
         property_id: propertyId,
-        property_title: property.title,
-        location: property.location
+        property_title: property.property_title,
+        location: property.property_address
       }));
     }
   };
@@ -184,7 +184,7 @@ const CreateContractForm = () => {
       setFormData(prev => ({
         ...prev,
         tenant_id: tenantId,
-        tenant_name: tenant.tenant_name
+        tenant_name: tenant.full_name
       }));
     }
   };
@@ -213,7 +213,7 @@ const CreateContractForm = () => {
                 <SelectContent>
                   {properties.map((property) => (
                     <SelectItem key={property.id} value={property.id}>
-                      {property.title} - {property.location}
+                      {property.property_title} - {property.property_address}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -229,7 +229,7 @@ const CreateContractForm = () => {
                 <SelectContent>
                   {tenants.map((tenant) => (
                     <SelectItem key={tenant.id} value={tenant.id}>
-                      {tenant.tenant_name} - {tenant.phone}
+                      {tenant.full_name} - {tenant.phone}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -459,8 +459,8 @@ const ContractsList = () => {
         .from('rental_contracts')
         .select(`
           *,
-          rental_properties (title, location),
-          rental_tenants (tenant_name, phone)
+          rental_properties (property_title, property_address),
+          rental_tenants (full_name, phone)
         `)
         .order('created_at', { ascending: false });
 
@@ -515,10 +515,10 @@ const ContractsList = () => {
                   <div>
                     <h3 className="font-medium text-lg">عقد رقم: {contract.contract_number}</h3>
                     <p className="text-sm text-muted-foreground">
-                      العقار: {contract.rental_properties?.title} - {contract.rental_properties?.location}
+                      العقار: {contract.rental_properties?.property_title} - {contract.rental_properties?.property_address}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      المستأجر: {contract.rental_tenants?.tenant_name}
+                      المستأجر: {contract.rental_tenants?.full_name}
                     </p>
                   </div>
                   {getStatusBadge(contract.contract_status)}
