@@ -21,12 +21,11 @@ import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface TenantFormData {
-  full_name: string;
+  tenant_name: string;
   nationality: string;
   emirates_id: string;
   passport_number: string;
-  phone_primary: string;
-  phone_secondary: string;
+  phone: string;
   email: string;
   emergency_contact_name: string;
   emergency_contact_phone: string;
@@ -34,23 +33,24 @@ interface TenantFormData {
   monthly_salary: number;
   job_title: string;
   current_address: string;
+  visa_status: string;
 }
 
 const AddTenantForm = () => {
   const [formData, setFormData] = useState<TenantFormData>({
-    full_name: '',
+    tenant_name: '',
     nationality: '',
     emirates_id: '',
     passport_number: '',
-    phone_primary: '',
-    phone_secondary: '',
+    phone: '',
     email: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
     employer_name: '',
     monthly_salary: 0,
     job_title: '',
-    current_address: ''
+    current_address: '',
+    visa_status: ''
   });
 
   const queryClient = useQueryClient();
@@ -63,12 +63,11 @@ const AddTenantForm = () => {
       const { data: tenant, error } = await supabase
         .from('rental_tenants')
         .insert({
-          full_name: data.full_name,
+          tenant_name: data.tenant_name,
           nationality: data.nationality,
           emirates_id: data.emirates_id,
           passport_number: data.passport_number,
-          phone_primary: data.phone_primary,
-          phone_secondary: data.phone_secondary,
+          phone: data.phone,
           email: data.email,
           emergency_contact_name: data.emergency_contact_name,
           emergency_contact_phone: data.emergency_contact_phone,
@@ -76,6 +75,7 @@ const AddTenantForm = () => {
           monthly_salary: data.monthly_salary,
           job_title: data.job_title,
           current_address: data.current_address,
+          visa_status: data.visa_status,
           created_by: user.id
         })
         .select()
@@ -92,19 +92,19 @@ const AddTenantForm = () => {
       
       // إعادة تعيين النموذج
       setFormData({
-        full_name: '',
+        tenant_name: '',
         nationality: '',
         emirates_id: '',
         passport_number: '',
-        phone_primary: '',
-        phone_secondary: '',
+        phone: '',
         email: '',
         emergency_contact_name: '',
         emergency_contact_phone: '',
         employer_name: '',
         monthly_salary: 0,
         job_title: '',
-        current_address: ''
+        current_address: '',
+        visa_status: ''
       });
       
       queryClient.invalidateQueries({ queryKey: ['rental-tenants'] });
@@ -121,7 +121,7 @@ const AddTenantForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.full_name || !formData.phone_primary) {
+    if (!formData.tenant_name || !formData.phone) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء الحقول المطلوبة على الأقل",
@@ -152,12 +152,12 @@ const AddTenantForm = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="full_name">الاسم الكامل*</Label>
+                <Label htmlFor="tenant_name">اسم المستأجر*</Label>
                 <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                  placeholder="أدخل الاسم الكامل"
+                  id="tenant_name"
+                  value={formData.tenant_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tenant_name: e.target.value }))}
+                  placeholder="أدخل اسم المستأجر"
                   required
                 />
               </div>
@@ -191,6 +191,16 @@ const AddTenantForm = () => {
                   placeholder="رقم جواز السفر"
                 />
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="visa_status">حالة الإقامة</Label>
+                <Input
+                  id="visa_status"
+                  value={formData.visa_status}
+                  onChange={(e) => setFormData(prev => ({ ...prev, visa_status: e.target.value }))}
+                  placeholder="حالة الإقامة/الفيزا"
+                />
+              </div>
             </div>
           </div>
 
@@ -203,23 +213,13 @@ const AddTenantForm = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="phone_primary">رقم الهاتف الأساسي*</Label>
+                <Label htmlFor="phone">رقم الهاتف*</Label>
                 <Input
-                  id="phone_primary"
-                  value={formData.phone_primary}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone_primary: e.target.value }))}
-                  placeholder="رقم الهاتف الأساسي"
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="رقم الهاتف"
                   required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone_secondary">رقم الهاتف الثانوي</Label>
-                <Input
-                  id="phone_secondary"
-                  value={formData.phone_secondary}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone_secondary: e.target.value }))}
-                  placeholder="رقم الهاتف الثانوي"
                 />
               </div>
               
@@ -382,14 +382,14 @@ const TenantsList = () => {
               <div key={tenant.id} className="border rounded-lg p-4 bg-card">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-lg">{tenant.full_name}</h3>
+                    <h3 className="font-medium text-lg">{tenant.tenant_name}</h3>
                     <p className="text-sm text-muted-foreground">
                       {tenant.nationality && `الجنسية: ${tenant.nationality}`}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                       <span className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        {tenant.phone_primary}
+                        {tenant.phone}
                       </span>
                       {tenant.email && (
                         <span className="flex items-center gap-1">

@@ -23,34 +23,34 @@ import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface PropertyFormData {
-  property_title: string;
-  owner_name: string;
-  area: string;
-  plot_number: string;
-  building_name: string;
-  unit_number: string;
-  unit_type: string;
-  purpose_of_use: string;
-  total_area: number;
+  title: string;
+  location: string;
+  property_type: string;
+  price: number;
+  area: number;
+  bedrooms: number;
+  bathrooms: number;
+  features: string[];
+  description: string;
+  status: string;
+  agreed_rent_amount: number;
   commission_percentage: number;
-  special_features: string[];
-  notes: string;
 }
 
 const AddPropertyForm = () => {
   const [formData, setFormData] = useState<PropertyFormData>({
-    property_title: '',
-    owner_name: '',
-    area: '',
-    plot_number: '',
-    building_name: '',
-    unit_number: '',
-    unit_type: '',
-    purpose_of_use: '',
-    total_area: 0,
-    commission_percentage: 2.5,
-    special_features: [],
-    notes: ''
+    title: '',
+    location: '',
+    property_type: '',
+    price: 0,
+    area: 0,
+    bedrooms: 0,
+    bathrooms: 0,
+    features: [],
+    description: '',
+    status: 'متاح',
+    agreed_rent_amount: 0,
+    commission_percentage: 2.5
   });
 
   const [newFeature, setNewFeature] = useState('');
@@ -64,19 +64,19 @@ const AddPropertyForm = () => {
       const { data: property, error } = await supabase
         .from('rental_properties')
         .insert({
-          property_title: data.property_title,
-          owner_name: data.owner_name,
+          title: data.title,
+          location: data.location,
+          property_type: data.property_type,
+          price: data.price,
           area: data.area,
-          plot_number: data.plot_number,
-          building_name: data.building_name,
-          unit_number: data.unit_number,
-          unit_type: data.unit_type,
-          purpose_of_use: data.purpose_of_use,
-          total_area: data.total_area,
+          bedrooms: data.bedrooms,
+          bathrooms: data.bathrooms,
+          features: data.features,
+          description: data.description,
+          status: data.status,
+          agreed_rent_amount: data.agreed_rent_amount,
           commission_percentage: data.commission_percentage,
-          special_features: data.special_features,
-          notes: data.notes,
-          created_by: user.id
+          listed_by: user.id
         })
         .select()
         .single();
@@ -92,18 +92,18 @@ const AddPropertyForm = () => {
       
       // إعادة تعيين النموذج
       setFormData({
-        property_title: '',
-        owner_name: '',
-        area: '',
-        plot_number: '',
-        building_name: '',
-        unit_number: '',
-        unit_type: '',
-        purpose_of_use: '',
-        total_area: 0,
-        commission_percentage: 2.5,
-        special_features: [],
-        notes: ''
+        title: '',
+        location: '',
+        property_type: '',
+        price: 0,
+        area: 0,
+        bedrooms: 0,
+        bathrooms: 0,
+        features: [],
+        description: '',
+        status: 'متاح',
+        agreed_rent_amount: 0,
+        commission_percentage: 2.5
       });
       
       queryClient.invalidateQueries({ queryKey: ['rental-properties'] });
@@ -120,7 +120,7 @@ const AddPropertyForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.property_title || !formData.owner_name || !formData.area) {
+    if (!formData.title || !formData.location || !formData.property_type) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -133,10 +133,10 @@ const AddPropertyForm = () => {
   };
 
   const addFeature = () => {
-    if (newFeature.trim() && !formData.special_features.includes(newFeature.trim())) {
+    if (newFeature.trim() && !formData.features.includes(newFeature.trim())) {
       setFormData(prev => ({
         ...prev,
-        special_features: [...prev.special_features, newFeature.trim()]
+        features: [...prev.features, newFeature.trim()]
       }));
       setNewFeature('');
     }
@@ -145,7 +145,7 @@ const AddPropertyForm = () => {
   const removeFeature = (feature: string) => {
     setFormData(prev => ({
       ...prev,
-      special_features: prev.special_features.filter(f => f !== feature)
+      features: prev.features.filter(f => f !== feature)
     }));
   };
 
@@ -168,75 +168,24 @@ const AddPropertyForm = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="property_title">عنوان العقار*</Label>
+                <Label htmlFor="title">عنوان العقار*</Label>
                 <Input
-                  id="property_title"
-                  value={formData.property_title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, property_title: e.target.value }))}
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="مثال: فيلا في الراشدية"
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="owner_name">اسم المالك*</Label>
+                <Label htmlFor="location">الموقع*</Label>
                 <Input
-                  id="owner_name"
-                  value={formData.owner_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, owner_name: e.target.value }))}
-                  placeholder="أدخل اسم المالك"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* الموقع */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              الموقع
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="area">المنطقة*</Label>
-                <Input
-                  id="area"
-                  value={formData.area}
-                  onChange={(e) => setFormData(prev => ({ ...prev, area: e.target.value }))}
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   placeholder="مثال: عجمان، الراشدية"
                   required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="plot_number">رقم القطعة</Label>
-                <Input
-                  id="plot_number"
-                  value={formData.plot_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, plot_number: e.target.value }))}
-                  placeholder="رقم القطعة"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="building_name">اسم المبنى</Label>
-                <Input
-                  id="building_name"
-                  value={formData.building_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, building_name: e.target.value }))}
-                  placeholder="اسم المبنى أو المجمع"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="unit_number">رقم الوحدة</Label>
-                <Input
-                  id="unit_number"
-                  value={formData.unit_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, unit_number: e.target.value }))}
-                  placeholder="رقم الشقة أو الوحدة"
                 />
               </div>
             </div>
@@ -251,10 +200,10 @@ const AddPropertyForm = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="unit_type">نوع الوحدة*</Label>
-                <Select value={formData.unit_type} onValueChange={(value) => setFormData(prev => ({ ...prev, unit_type: value }))}>
+                <Label htmlFor="property_type">نوع العقار*</Label>
+                <Select value={formData.property_type} onValueChange={(value) => setFormData(prev => ({ ...prev, property_type: value }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="اختر نوع الوحدة" />
+                    <SelectValue placeholder="اختر نوع العقار" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="فيلا">فيلا</SelectItem>
@@ -268,29 +217,63 @@ const AddPropertyForm = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="purpose_of_use">أغراض الاستعمال*</Label>
-                <Select value={formData.purpose_of_use} onValueChange={(value) => setFormData(prev => ({ ...prev, purpose_of_use: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر غرض الاستعمال" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="سكني">سكني</SelectItem>
-                    <SelectItem value="تجاري">تجاري</SelectItem>
-                    <SelectItem value="صناعي">صناعي</SelectItem>
-                    <SelectItem value="مكتبي">مكتبي</SelectItem>
-                    <SelectItem value="مختلط">مختلط</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="area">المساحة (متر مربع)</Label>
+                <Input
+                  id="area"
+                  type="number"
+                  value={formData.area}
+                  onChange={(e) => setFormData(prev => ({ ...prev, area: parseFloat(e.target.value) || 0 }))}
+                  placeholder="المساحة بالمتر المربع"
+                  min="0"
+                  step="0.01"
+                />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="total_area">المساحة الإجمالية (متر مربع)</Label>
+                <Label htmlFor="bedrooms">عدد غرف النوم</Label>
                 <Input
-                  id="total_area"
+                  id="bedrooms"
                   type="number"
-                  value={formData.total_area}
-                  onChange={(e) => setFormData(prev => ({ ...prev, total_area: parseFloat(e.target.value) || 0 }))}
-                  placeholder="المساحة بالمتر المربع"
+                  value={formData.bedrooms}
+                  onChange={(e) => setFormData(prev => ({ ...prev, bedrooms: parseInt(e.target.value) || 0 }))}
+                  placeholder="عدد غرف النوم"
+                  min="0"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="bathrooms">عدد دورات المياه</Label>
+                <Input
+                  id="bathrooms"
+                  type="number"
+                  value={formData.bathrooms}
+                  onChange={(e) => setFormData(prev => ({ ...prev, bathrooms: parseInt(e.target.value) || 0 }))}
+                  placeholder="عدد دورات المياه"
+                  min="0"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="price">السعر المطلوب (د.إ)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                  placeholder="السعر المطلوب"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="agreed_rent_amount">قيمة الإيجار المتفق عليها (د.إ)</Label>
+                <Input
+                  id="agreed_rent_amount"
+                  type="number"
+                  value={formData.agreed_rent_amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agreed_rent_amount: parseFloat(e.target.value) || 0 }))}
+                  placeholder="قيمة الإيجار المتفق عليها"
                   min="0"
                   step="0.01"
                 />
@@ -328,9 +311,9 @@ const AddPropertyForm = () => {
               </Button>
             </div>
             
-            {formData.special_features.length > 0 && (
+            {formData.features.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {formData.special_features.map((feature, index) => (
+                {formData.features.map((feature, index) => (
                   <Badge key={index} variant="secondary" className="flex items-center gap-2">
                     {feature}
                     <button
@@ -351,12 +334,12 @@ const AddPropertyForm = () => {
             <h3 className="text-lg font-semibold">ملاحظات إضافية</h3>
             
             <div className="space-y-2">
-              <Label htmlFor="notes">ملاحظات</Label>
+              <Label htmlFor="description">الوصف</Label>
               <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="أضف أي ملاحظات إضافية حول العقار..."
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="أضف وصف تفصيلي للعقار..."
                 rows={3}
               />
             </div>
@@ -432,45 +415,50 @@ const PropertiesList = () => {
               <div key={property.id} className="border rounded-lg p-4 bg-card">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-lg">{property.property_title}</h3>
+                    <h3 className="font-medium text-lg">{property.title}</h3>
                     <p className="text-sm text-muted-foreground">
-                      المالك: {property.owner_name}
+                      الموقع: {property.location}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      الموقع: {property.area}
-                      {property.building_name && ` - ${property.building_name}`}
-                      {property.unit_number && ` - وحدة ${property.unit_number}`}
+                      النوع: {property.property_type}
                     </p>
                   </div>
-                  {getStatusBadge(property.property_status)}
+                  {getStatusBadge(property.status)}
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
                   <div className="text-sm">
-                    <span className="font-medium">نوع الوحدة:</span>
-                    <span className="ml-2">{property.unit_type}</span>
+                    <span className="font-medium">المساحة:</span>
+                    <span className="ml-2">{property.area} م²</span>
                   </div>
                   <div className="text-sm">
-                    <span className="font-medium">غرض الاستعمال:</span>
-                    <span className="ml-2">{property.purpose_of_use}</span>
+                    <span className="font-medium">غرف النوم:</span>
+                    <span className="ml-2">{property.bedrooms}</span>
                   </div>
-                  {property.total_area && (
-                    <div className="text-sm">
-                      <span className="font-medium">المساحة:</span>
-                      <span className="ml-2">{property.total_area} م²</span>
-                    </div>
-                  )}
+                  <div className="text-sm">
+                    <span className="font-medium">دورات المياه:</span>
+                    <span className="ml-2">{property.bathrooms}</span>
+                  </div>
                   <div className="text-sm">
                     <span className="font-medium">نسبة العمولة:</span>
                     <span className="ml-2">{property.commission_percentage}%</span>
                   </div>
                 </div>
 
-                {property.special_features && property.special_features.length > 0 && (
+                {property.agreed_rent_amount > 0 && (
+                  <div className="text-sm mb-3">
+                    <span className="font-medium">قيمة الإيجار المتفق عليها:</span>
+                    <span className="ml-2 text-green-600 font-bold">
+                      {property.agreed_rent_amount.toLocaleString()} د.إ
+                    </span>
+                  </div>
+                )}
+
+                {property.features && property.features.length > 0 && (
                   <div className="mb-3">
                     <p className="text-sm font-medium mb-1">المميزات:</p>
                     <div className="flex flex-wrap gap-1">
-                      {property.special_features.map((feature: string, index: number) => (
+                      {property.features.map((feature: string, index: number) => (
                         <Badge key={index} variant="outline" className="text-xs">
                           {feature}
                         </Badge>
@@ -479,9 +467,9 @@ const PropertiesList = () => {
                   </div>
                 )}
 
-                {property.notes && (
+                {property.description && (
                   <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                    <strong>ملاحظات:</strong> {property.notes}
+                    <strong>الوصف:</strong> {property.description}
                   </div>
                 )}
               </div>

@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   FileText, 
@@ -16,7 +15,6 @@ import {
   Users, 
   DollarSign, 
   Download,
-  Upload,
   AlertTriangle,
   CheckCircle,
   Clock
@@ -26,15 +24,10 @@ import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface ContractFormData {
-  owner_name: string;
-  area: string;
-  plot_number: string;
-  building_name: string;
-  purpose_of_use: string;
+  property_title: string;
+  location: string;
   tenant_name: string;
-  unit_number: string;
-  unit_type: string;
-  total_rental_value: number;
+  rent_amount: number;
   contract_start_date: string;
   contract_end_date: string;
   payment_method: string;
@@ -47,15 +40,10 @@ interface ContractFormData {
 
 const CreateContractForm = () => {
   const [formData, setFormData] = useState<ContractFormData>({
-    owner_name: '',
-    area: '',
-    plot_number: '',
-    building_name: '',
-    purpose_of_use: '',
+    property_title: '',
+    location: '',
     tenant_name: '',
-    unit_number: '',
-    unit_type: '',
-    total_rental_value: 0,
+    rent_amount: 0,
     contract_start_date: '',
     contract_end_date: '',
     payment_method: '',
@@ -73,8 +61,8 @@ const CreateContractForm = () => {
       const { data, error } = await supabase
         .from('rental_properties')
         .select('*')
-        .eq('property_status', 'متاح')
-        .order('property_title');
+        .eq('status', 'متاح')
+        .order('title');
       
       if (error) throw error;
       return data || [];
@@ -89,7 +77,7 @@ const CreateContractForm = () => {
         .from('rental_tenants')
         .select('*')
         .eq('is_active', true)
-        .order('full_name');
+        .order('tenant_name');
       
       if (error) throw error;
       return data || [];
@@ -128,15 +116,10 @@ const CreateContractForm = () => {
       
       // إعادة تعيين النموذج
       setFormData({
-        owner_name: '',
-        area: '',
-        plot_number: '',
-        building_name: '',
-        purpose_of_use: '',
+        property_title: '',
+        location: '',
         tenant_name: '',
-        unit_number: '',
-        unit_type: '',
-        total_rental_value: 0,
+        rent_amount: 0,
         contract_start_date: '',
         contract_end_date: '',
         payment_method: '',
@@ -159,7 +142,7 @@ const CreateContractForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.owner_name || !formData.tenant_name || !formData.total_rental_value) {
+    if (!formData.property_title || !formData.tenant_name || !formData.rent_amount) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -189,13 +172,8 @@ const CreateContractForm = () => {
       setFormData(prev => ({
         ...prev,
         property_id: propertyId,
-        owner_name: property.owner_name,
-        area: property.area,
-        plot_number: property.plot_number || '',
-        building_name: property.building_name || '',
-        unit_number: property.unit_number || '',
-        unit_type: property.unit_type,
-        purpose_of_use: property.purpose_of_use
+        property_title: property.title,
+        location: property.location
       }));
     }
   };
@@ -206,7 +184,7 @@ const CreateContractForm = () => {
       setFormData(prev => ({
         ...prev,
         tenant_id: tenantId,
-        tenant_name: tenant.full_name
+        tenant_name: tenant.tenant_name
       }));
     }
   };
@@ -224,7 +202,7 @@ const CreateContractForm = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* اختيار العقار */}
+          {/* اختيار العقار والمستأجر */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>اختيار العقار (اختياري)</Label>
@@ -235,7 +213,7 @@ const CreateContractForm = () => {
                 <SelectContent>
                   {properties.map((property) => (
                     <SelectItem key={property.id} value={property.id}>
-                      {property.property_title} - {property.area}
+                      {property.title} - {property.location}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -251,7 +229,7 @@ const CreateContractForm = () => {
                 <SelectContent>
                   {tenants.map((tenant) => (
                     <SelectItem key={tenant.id} value={tenant.id}>
-                      {tenant.full_name} - {tenant.phone_primary}
+                      {tenant.tenant_name} - {tenant.phone}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -259,97 +237,34 @@ const CreateContractForm = () => {
             </div>
           </div>
 
-          {/* بيانات المالك والعقار */}
+          {/* بيانات العقار */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Building className="h-5 w-5" />
-              بيانات المالك والعقار
+              بيانات العقار
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="owner_name">اسم المالك*</Label>
+                <Label htmlFor="property_title">عنوان العقار*</Label>
                 <Input
-                  id="owner_name"
-                  value={formData.owner_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, owner_name: e.target.value }))}
-                  placeholder="أدخل اسم المالك"
+                  id="property_title"
+                  value={formData.property_title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, property_title: e.target.value }))}
+                  placeholder="أدخل عنوان العقار"
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="area">المنطقة*</Label>
+                <Label htmlFor="location">الموقع*</Label>
                 <Input
-                  id="area"
-                  value={formData.area}
-                  onChange={(e) => setFormData(prev => ({ ...prev, area: e.target.value }))}
-                  placeholder="أدخل المنطقة"
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="أدخل الموقع"
                   required
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="plot_number">رقم القطعة</Label>
-                <Input
-                  id="plot_number"
-                  value={formData.plot_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, plot_number: e.target.value }))}
-                  placeholder="رقم القطعة"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="building_name">اسم المبنى</Label>
-                <Input
-                  id="building_name"
-                  value={formData.building_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, building_name: e.target.value }))}
-                  placeholder="اسم المبنى"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="unit_number">رقم الوحدة</Label>
-                <Input
-                  id="unit_number"
-                  value={formData.unit_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, unit_number: e.target.value }))}
-                  placeholder="رقم الوحدة"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="unit_type">نوع الوحدة*</Label>
-                <Select value={formData.unit_type} onValueChange={(value) => setFormData(prev => ({ ...prev, unit_type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر نوع الوحدة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="فيلا">فيلا</SelectItem>
-                    <SelectItem value="شقة">شقة</SelectItem>
-                    <SelectItem value="محل تجاري">محل تجاري</SelectItem>
-                    <SelectItem value="مكتب">مكتب</SelectItem>
-                    <SelectItem value="مستودع">مستودع</SelectItem>
-                    <SelectItem value="أرض">أرض</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2 md:col-span-3">
-                <Label htmlFor="purpose_of_use">أغراض الاستعمال*</Label>
-                <Select value={formData.purpose_of_use} onValueChange={(value) => setFormData(prev => ({ ...prev, purpose_of_use: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر غرض الاستعمال" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="سكني">سكني</SelectItem>
-                    <SelectItem value="تجاري">تجاري</SelectItem>
-                    <SelectItem value="صناعي">صناعي</SelectItem>
-                    <SelectItem value="مكتبي">مكتبي</SelectItem>
-                    <SelectItem value="مختلط">مختلط</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
@@ -384,12 +299,12 @@ const CreateContractForm = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="total_rental_value">قيمة الإيجار الكلية (د.إ)*</Label>
+                <Label htmlFor="rent_amount">قيمة الإيجار (د.إ)*</Label>
                 <Input
-                  id="total_rental_value"
+                  id="rent_amount"
                   type="number"
-                  value={formData.total_rental_value}
-                  onChange={(e) => setFormData(prev => ({ ...prev, total_rental_value: parseFloat(e.target.value) || 0 }))}
+                  value={formData.rent_amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, rent_amount: parseFloat(e.target.value) || 0 }))}
                   placeholder="0"
                   min="0"
                   step="0.01"
@@ -489,17 +404,17 @@ const CreateContractForm = () => {
           </div>
 
           {/* معاينة التكلفة */}
-          {formData.total_rental_value > 0 && formData.installments_count > 0 && (
+          {formData.rent_amount > 0 && formData.installments_count > 0 && (
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h4 className="font-medium text-blue-800 mb-2">تفاصيل الدفع:</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
                   <p className="text-blue-600">إجمالي الإيجار:</p>
-                  <p className="font-bold">{formData.total_rental_value.toLocaleString()} د.إ</p>
+                  <p className="font-bold">{formData.rent_amount.toLocaleString()} د.إ</p>
                 </div>
                 <div>
                   <p className="text-blue-600">قيمة كل قسط:</p>
-                  <p className="font-bold">{(formData.total_rental_value / formData.installments_count).toLocaleString()} د.إ</p>
+                  <p className="font-bold">{(formData.rent_amount / formData.installments_count).toLocaleString()} د.إ</p>
                 </div>
                 <div>
                   <p className="text-blue-600">عدد الأقساط:</p>
@@ -544,8 +459,8 @@ const ContractsList = () => {
         .from('rental_contracts')
         .select(`
           *,
-          rental_properties (property_title, area),
-          rental_tenants (full_name, phone_primary)
+          rental_properties (title, location),
+          rental_tenants (tenant_name, phone)
         `)
         .order('created_at', { ascending: false });
 
@@ -600,10 +515,10 @@ const ContractsList = () => {
                   <div>
                     <h3 className="font-medium text-lg">عقد رقم: {contract.contract_number}</h3>
                     <p className="text-sm text-muted-foreground">
-                      العقار: {contract.rental_properties?.property_title} - {contract.rental_properties?.area}
+                      العقار: {contract.rental_properties?.title} - {contract.rental_properties?.location}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      المستأجر: {contract.rental_tenants?.full_name}
+                      المستأجر: {contract.rental_tenants?.tenant_name}
                     </p>
                   </div>
                   {getStatusBadge(contract.contract_status)}
