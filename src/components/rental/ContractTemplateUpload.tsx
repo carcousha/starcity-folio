@@ -32,7 +32,7 @@ const ContractTemplateUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState<TemplateFormData>({
     template_name: '',
-    template_type: 'إيجار عقاري',
+    template_type: 'سكني',
     description: ''
   });
 
@@ -101,7 +101,7 @@ const ContractTemplateUpload = () => {
       // إعادة تعيين النموذج
       setFormData({
         template_name: '',
-        template_type: 'إيجار عقاري',
+        template_type: 'سكني',
         description: ''
       });
       setFile(null);
@@ -271,9 +271,9 @@ const ContractTemplateUpload = () => {
                     <SelectValue placeholder="اختر نوع القالب" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="إيجار عقاري">إيجار عقاري</SelectItem>
-                    <SelectItem value="إيجار تجاري">إيجار تجاري</SelectItem>
-                    <SelectItem value="إيجار سكني">إيجار سكني</SelectItem>
+                    <SelectItem value="سكني">سكني</SelectItem>
+                    <SelectItem value="تجاري">تجاري</SelectItem>
+                    <SelectItem value="مكتبي">مكتبي</SelectItem>
                     <SelectItem value="عام">عام</SelectItem>
                   </SelectContent>
                 </Select>
