@@ -265,7 +265,7 @@ export const PDFTemplateUpload: React.FC = () => {
               <Input
                 id="pdf_file"
                 type="file"
-                accept=".pdf"
+                accept=".pdf,application/pdf,application/x-pdf"
                 onChange={handleFileChange}
                 required
               />
