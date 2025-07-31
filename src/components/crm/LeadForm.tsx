@@ -80,7 +80,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
       budget_max: lead.budget_max || '',
       preferred_location: lead.preferred_location || '',
       purchase_purpose: lead.purchase_purpose,
-      assigned_to: lead.assigned_to || '',
+      assigned_to: lead.assigned_to || 'unassigned',
       notes: lead.notes || '',
       next_follow_up: lead.next_follow_up ? lead.next_follow_up.split('T')[0] : '',
     } : {
@@ -112,6 +112,8 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
         ...data,
         budget_min: data.budget_min ? Number(data.budget_min) : null,
         budget_max: data.budget_max ? Number(data.budget_max) : null,
+        assigned_to: data.assigned_to === "unassigned" ? null : data.assigned_to,
+        next_follow_up: data.next_follow_up || null,
         created_by: user?.id,
         ...(lead ? {} : { stage: 'new' })
       };
@@ -346,7 +348,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
                   <SelectValue placeholder="اختر الموظف المسؤول" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">غير مُعيّن</SelectItem>
+                  <SelectItem value="unassigned">غير مُعيّن</SelectItem>
                   {employees.map((employee) => (
                     <SelectItem key={employee.user_id} value={employee.user_id}>
                       {employee.first_name} {employee.last_name}
