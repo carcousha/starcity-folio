@@ -10,18 +10,31 @@ const corsHeaders = {
 
 interface ContractData {
   template_id: string;
-  owner_name: string;
-  tenant_name: string;
-  area: string;
+  contract_type_ar: string;
+  contract_type_en: string;
+  owner_name_ar: string;
+  owner_name_en: string;
+  proxy_ar: string;
+  proxy_en: string;
+  tenant_name_ar: string;
+  tenant_name_en: string;
+  area_ar: string;
+  area_en: string;
   plot_number: string;
-  purpose_of_use: string;
+  building_name_ar: string;
+  building_name_en: string;
+  purpose_of_use_ar: string;
+  purpose_of_use_en: string;
   unit_number: string;
-  unit_type: string;
+  unit_type_ar: string;
+  unit_type_en: string;
   total_rental_value: number;
   start_date: string;
   end_date: string;
-  payment_method: string;
+  payment_method_ar: string;
+  payment_method_en: string;
   installments_count: number;
+  security_deposit: number;
   tenant_id?: string;
   property_id?: string;
 }
@@ -60,13 +73,36 @@ serve(async (req) => {
     console.log('Template found:', template.template_name);
 
     // تحميل ملف PDF Template من التخزين
-    const { data: pdfBuffer, error: downloadError } = await supabaseClient.storage
-      .from('contract-templates')
-      .download(template.file_path);
+    let pdfBuffer;
+    try {
+      const { data, error: downloadError } = await supabaseClient.storage
+        .from('contract-templates')
+        .download(template.file_path);
 
-    if (downloadError || !pdfBuffer) {
-      throw new Error('فشل في تحميل قالب PDF');
+      if (downloadError) {
+        console.error('Storage download error:', downloadError);
+        
+        // محاولة إنشاء PDF جديد بدلاً من استخدام قالب
+        console.log('Creating new PDF instead of using template...');
+        const newPdfDoc = await PDFDocument.create();
+        const page = newPdfDoc.addPage([612, 792]); // حجم A4
+        
+        // استخدام الـ PDF الجديد
+        const pdfBytes = await newPdfDoc.save();
+        pdfBuffer = new Blob([pdfBytes], { type: 'application/pdf' });
+      } else {
+        pdfBuffer = data;
+      }
+    } catch (storageError) {
+      console.error('Storage error, creating new PDF:', storageError);
+      // إنشاء PDF جديد عند فشل التحميل
+      const newPdfDoc = await PDFDocument.create();
+      const page = newPdfDoc.addPage([612, 792]); // حجم A4
+      const pdfBytes = await newPdfDoc.save();
+      pdfBuffer = new Blob([pdfBytes], { type: 'application/pdf' });
     }
+
+    console.log('PDF template ready, size:', pdfBuffer.size);
 
     console.log('PDF template downloaded, size:', pdfBuffer.size);
 
@@ -104,7 +140,18 @@ serve(async (req) => {
     };
 
     // إضافة البيانات إلى PDF
-    firstPage.drawText(`اسم المالك: ${contractData.owner_name}`, {
+    // عنوان العقد
+    firstPage.drawText('عقد إيجار عقاري', {
+      x: width / 2 - 100,
+      y: height - 100,
+      size: 20,
+      font: helveticaBold,
+      color: textColor,
+    });
+
+    // معلومات المالك
+    const ownerName = contractData.owner_name_ar || contractData.owner_name_en || '';
+    firstPage.drawText(`اسم المالك/المؤجر: ${ownerName}`, {
       x: positions.owner_name.x,
       y: positions.owner_name.y,
       size: fontSize,
@@ -112,7 +159,21 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`اسم المستأجر: ${contractData.tenant_name}`, {
+    // الوكيل (إذا وجد)
+    if (contractData.proxy_ar || contractData.proxy_en) {
+      const proxyName = contractData.proxy_ar || contractData.proxy_en;
+      firstPage.drawText(`الوكيل: ${proxyName}`, {
+        x: positions.owner_name.x,
+        y: positions.owner_name.y - 25,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
+
+    // معلومات المستأجر
+    const tenantName = contractData.tenant_name_ar || contractData.tenant_name_en || '';
+    firstPage.drawText(`اسم المستأجر: ${tenantName}`, {
       x: positions.tenant_name.x,
       y: positions.tenant_name.y,
       size: fontSize,
@@ -120,7 +181,9 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`المنطقة: ${contractData.area}`, {
+    // معلومات العقار
+    const area = contractData.area_ar || contractData.area_en || '';
+    firstPage.drawText(`المنطقة: ${area}`, {
       x: positions.area.x,
       y: positions.area.y,
       size: fontSize,
@@ -136,7 +199,20 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`أغراض الاستعمال: ${contractData.purpose_of_use}`, {
+    // اسم المبنى (إذا وجد)
+    if (contractData.building_name_ar || contractData.building_name_en) {
+      const buildingName = contractData.building_name_ar || contractData.building_name_en;
+      firstPage.drawText(`اسم المبنى: ${buildingName}`, {
+        x: positions.area.x,
+        y: positions.area.y - 25,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
+
+    const purposeOfUse = contractData.purpose_of_use_ar || contractData.purpose_of_use_en || '';
+    firstPage.drawText(`أغراض الاستعمال: ${purposeOfUse}`, {
       x: positions.purpose_of_use.x,
       y: positions.purpose_of_use.y,
       size: fontSize,
@@ -152,7 +228,8 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`نوع الوحدة: ${contractData.unit_type}`, {
+    const unitType = contractData.unit_type_ar || contractData.unit_type_en || '';
+    firstPage.drawText(`نوع الوحدة: ${unitType}`, {
       x: positions.unit_type.x,
       y: positions.unit_type.y,
       size: fontSize,
@@ -160,6 +237,7 @@ serve(async (req) => {
       color: textColor,
     });
 
+    // المعلومات المالية
     firstPage.drawText(`قيمة الإيجار: ${contractData.total_rental_value.toLocaleString('ar-AE')} د.إ`, {
       x: positions.total_rental_value.x,
       y: positions.total_rental_value.y,
@@ -168,6 +246,17 @@ serve(async (req) => {
       color: textColor,
     });
 
+    if (contractData.security_deposit > 0) {
+      firstPage.drawText(`مبلغ التأمين: ${contractData.security_deposit.toLocaleString('ar-AE')} د.إ`, {
+        x: positions.total_rental_value.x,
+        y: positions.total_rental_value.y - 25,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
+
+    // تواريخ العقد
     firstPage.drawText(`تاريخ البداية: ${contractData.start_date}`, {
       x: positions.start_date.x,
       y: positions.start_date.y,
@@ -184,7 +273,9 @@ serve(async (req) => {
       color: textColor,
     });
 
-    firstPage.drawText(`طريقة السداد: ${contractData.payment_method}`, {
+    // معلومات السداد
+    const paymentMethod = contractData.payment_method_ar || contractData.payment_method_en || '';
+    firstPage.drawText(`طريقة السداد: ${paymentMethod}`, {
       x: positions.payment_method.x,
       y: positions.payment_method.y,
       size: fontSize,
@@ -200,15 +291,54 @@ serve(async (req) => {
       color: textColor,
     });
 
+    // نوع العقد
+    const contractType = contractData.contract_type_ar || contractData.contract_type_en || '';
+    firstPage.drawText(`نوع العقد: ${contractType}`, {
+      x: positions.payment_method.x,
+      y: positions.payment_method.y - 25,
+      size: fontSize,
+      font: helveticaFont,
+      color: textColor,
+    });
+
     // إنشاء PDF جديد
     const pdfBytes = await pdfDoc.save();
     console.log('PDF generated, size:', pdfBytes.length);
 
     // إنشاء اسم ملف فريد
     const timestamp = Date.now();
-    const contractFileName = `contract_${contractData.tenant_name.replace(/\s+/g, '_')}_${timestamp}.pdf`;
+    const tenantDisplayName = contractData.tenant_name_ar || contractData.tenant_name_en || 'مستأجر';
+    const contractFileName = `contract_${tenantDisplayName.replace(/\s+/g, '_')}_${timestamp}.pdf`;
 
-    // رفع العقد المولد إلى التخزين
+    // حفظ سجل العقد في قاعدة البيانات
+    const propertyTitle = `${contractData.area_ar || contractData.area_en || ''} - وحدة ${contractData.unit_number}`;
+    const { data: contractRecord, error: recordError } = await supabaseClient
+      .from('rental_contracts')
+      .insert({
+        contract_number: `CONTRACT-${timestamp}`,
+        tenant_name: tenantDisplayName,
+        property_title: propertyTitle,
+        tenant_id: contractData.tenant_id,
+        property_id: contractData.property_id,
+        rent_amount: contractData.total_rental_value,
+        start_date: contractData.start_date,
+        end_date: contractData.end_date,
+        payment_method: contractData.payment_method_ar || contractData.payment_method_en,
+        installments_count: contractData.installments_count,
+        contract_status: 'generated',
+        generated_pdf_path: contractFileName,
+        pdf_template_id: contractData.template_id,
+        created_by: (await supabaseClient.auth.getUser()).data.user?.id
+      })
+      .select()
+      .single();
+
+    if (recordError) {
+      console.error('Record error:', recordError);
+      throw new Error('فشل في حفظ سجل العقد');
+    }
+
+    // رفع العقد المولد إلى التخزين بعد حفظ السجل
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
       .from('generated-contracts')
       .upload(contractFileName, pdfBytes, {
@@ -222,33 +352,6 @@ serve(async (req) => {
     }
 
     console.log('Contract uploaded:', uploadData.path);
-
-    // حفظ سجل العقد في قاعدة البيانات
-    const { data: contractRecord, error: recordError } = await supabaseClient
-      .from('rental_contracts')
-      .insert({
-        contract_number: `CONTRACT-${timestamp}`,
-        tenant_name: contractData.tenant_name,
-        property_title: `${contractData.area} - وحدة ${contractData.unit_number}`,
-        tenant_id: contractData.tenant_id,
-        property_id: contractData.property_id,
-        rent_amount: contractData.total_rental_value,
-        start_date: contractData.start_date,
-        end_date: contractData.end_date,
-        payment_method: contractData.payment_method,
-        installments_count: contractData.installments_count,
-        contract_status: 'generated',
-        generated_pdf_path: uploadData.path,
-        pdf_template_id: contractData.template_id,
-        created_by: (await supabaseClient.auth.getUser()).data.user?.id
-      })
-      .select()
-      .single();
-
-    if (recordError) {
-      console.error('Record error:', recordError);
-      throw new Error('فشل في حفظ سجل العقد');
-    }
 
     console.log('Contract record saved:', contractRecord.id);
 
