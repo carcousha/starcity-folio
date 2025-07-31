@@ -454,6 +454,47 @@ const CreateContractForm = () => {
 };
 
 const ContractsList = () => {
+  const handleDownloadContract = async (filePath: string, contractNumber: string) => {
+    if (!filePath) {
+      toast({
+        title: "خطأ في التحميل",
+        description: "مسار الملف غير متوفر",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('generated-contracts')
+        .download(filePath);
+
+      if (error) throw error;
+
+      // إنشاء رابط التحميل
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `عقد-${contractNumber}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "تم التحميل بنجاح",
+        description: "تم تحميل العقد بنجاح"
+      });
+    } catch (error) {
+      console.error('Error downloading contract:', error);
+      toast({
+        title: "خطأ في التحميل",
+        description: "حدث خطأ أثناء تحميل العقد",
+        variant: "destructive"
+      });
+    }
+  };
+
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ['rental-contracts'],
     queryFn: async () => {
@@ -550,7 +591,11 @@ const ContractsList = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDownloadContract(contract.generated_contract_path, contract.contract_number)}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     تحميل العقد
                   </Button>
