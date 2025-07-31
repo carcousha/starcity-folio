@@ -237,6 +237,51 @@ export default function Debts() {
     }
   };
 
+  const markAsPartiallyPaid = async (debtId: string, paidAmount: number) => {
+    try {
+      // الحصول على المديونية الحالية
+      const { data: currentDebt, error: fetchError } = await supabase
+        .from('debts')
+        .select('amount')
+        .eq('id', debtId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const remainingAmount = currentDebt.amount - paidAmount;
+
+      if (remainingAmount <= 0) {
+        // إذا كان المبلغ المدفوع يغطي كامل المديونية
+        await markAsPaid(debtId);
+        return;
+      }
+
+      // تحديث المبلغ المتبقي
+      const { error } = await supabase
+        .from('debts')
+        .update({ 
+          amount: remainingAmount,
+          description: `تم سداد ${paidAmount} درهم جزئياً في ${new Date().toLocaleDateString('ar-AE')}`
+        })
+        .eq('id', debtId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم السداد الجزئي",
+        description: `تم سداد ${paidAmount} درهم، المتبقي: ${remainingAmount} درهم`,
+      });
+
+      fetchDebts();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في تسجيل السداد الجزئي",
+        variant: "destructive",
+      });
+    }
+  };
+
   const totalPendingDebt = filteredDebts
     .filter(debt => debt.status === 'pending')
     .reduce((sum, debt) => sum + debt.amount, 0);
@@ -636,12 +681,26 @@ export default function Debts() {
                     </TableCell>
                     <TableCell>
                       {debt.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          onClick={() => markAsPaid(debt.id)}
-                        >
-                          تأكيد السداد
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => markAsPaid(debt.id)}
+                          >
+                            تأكيد السداد
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const partialAmount = prompt('أدخل المبلغ المراد سداده:', debt.amount.toString());
+                              if (partialAmount && parseFloat(partialAmount) > 0 && parseFloat(partialAmount) <= debt.amount) {
+                                markAsPartiallyPaid(debt.id, parseFloat(partialAmount));
+                              }
+                            }}
+                          >
+                            سداد جزئي
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
