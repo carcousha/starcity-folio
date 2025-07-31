@@ -23,7 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { PDFTemplateUpload } from "@/components/rental/PDFTemplateUpload";
+import PDFTemplateUpload from "@/components/rental/PDFTemplateUpload";
 
 interface ContractFormData {
   property_id: string;

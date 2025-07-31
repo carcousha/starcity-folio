@@ -56,10 +56,7 @@ const GeneratedContractsList = () => {
     queryFn: async () => {
       let query = supabase
         .from('rental_contracts')
-        .select(`
-          *,
-          profiles!rental_contracts_created_by_fkey(first_name, last_name)
-        `)
+        .select('*')
         .not('generated_pdf_path', 'is', null);
 
       // تطبيق فلاتر البحث

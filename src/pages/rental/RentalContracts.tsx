@@ -26,6 +26,7 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import ContractTemplateUpload from "@/components/rental/ContractTemplateUpload";
 import AdvancedContractGenerator from "@/components/rental/AdvancedContractGenerator";
 import GeneratedContractsList from "@/components/rental/GeneratedContractsList";
+import PDFTemplateUpload from "@/components/rental/PDFTemplateUpload";
 import { ContractTemplate } from "@/components/rental/ContractTemplate";
 
 interface ContractFormData {
@@ -680,7 +681,7 @@ export default function RentalContracts() {
       </div>
 
       <Tabs defaultValue="advanced-generator" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="advanced-generator" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             مولد العقود المتقدم
@@ -693,13 +694,9 @@ export default function RentalContracts() {
             <Plus className="h-4 w-4" />
             إنشاء عقد تقليدي
           </TabsTrigger>
-          <TabsTrigger value="contracts-list" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            العقود المُنشأة
-          </TabsTrigger>
-          <TabsTrigger value="upload-templates" className="flex items-center gap-2">
+          <TabsTrigger value="pdf-templates" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
-            قوالب Word
+            قوالب PDF
           </TabsTrigger>
         </TabsList>
         
@@ -715,12 +712,8 @@ export default function RentalContracts() {
           <CreateContractForm />
         </TabsContent>
         
-        <TabsContent value="contracts-list">
-          <ContractsList />
-        </TabsContent>
-        
-        <TabsContent value="upload-templates">
-          <ContractTemplateUpload />
+        <TabsContent value="pdf-templates">
+          <PDFTemplateUpload />
         </TabsContent>
       </Tabs>
     </div>
