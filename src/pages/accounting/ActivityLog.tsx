@@ -59,18 +59,14 @@ export default function ActivityLogPage() {
 
   const fetchActivities = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: activitiesData, error } = await supabase
         .from('activity_logs')
-        .select(`
-          *,
-          user:profiles!activity_logs_user_id_fkey(first_name, last_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(200);
 
       if (error) {
         console.error('Error fetching activities:', error);
-        // إظهار رسالة خطأ أكثر تفصيلاً
         toast({
           title: "تحذير",
           description: `لم يتم العثور على أي نشاطات مسجلة. ${error.message}`,
@@ -79,8 +75,29 @@ export default function ActivityLogPage() {
         setActivities([]);
         return;
       }
+
+      // جلب بيانات المستخدمين بشكل منفصل
+      const userIds = [...new Set(activitiesData?.map(activity => activity.user_id).filter(Boolean))];
+      let usersData: any[] = [];
+
+      if (userIds.length > 0) {
+        const { data: users, error: usersError } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        if (!usersError && users) {
+          usersData = users;
+        }
+      }
+
+      // دمج البيانات
+      const activitiesWithUsers = activitiesData?.map(activity => ({
+        ...activity,
+        user: usersData.find(user => user.user_id === activity.user_id)
+      })) || [];
       
-      setActivities(data as any || []);
+      setActivities(activitiesWithUsers);
     } catch (error) {
       console.error('Error fetching activities:', error);
       setActivities([]);
