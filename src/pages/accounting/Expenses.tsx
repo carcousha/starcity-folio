@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Plus, 
   Search, 
@@ -27,7 +28,10 @@ import {
   Eye,
   Trash2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Edit,
+  Save,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,12 +91,15 @@ export default function Expenses() {
   const [budgetReport, setBudgetReport] = useState<BudgetReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const { user, profile } = useAuth();
@@ -394,6 +401,125 @@ export default function Expenses() {
       toast({
         title: "خطأ",
         description: "فشل في إضافة حد الميزانية",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setFormData({
+      title: expense.title,
+      description: expense.description || "",
+      amount: expense.amount.toString(),
+      category: expense.category,
+      budget_category: expense.budget_category || expense.category,
+      expense_date: expense.expense_date,
+      receipt_reference: expense.receipt_reference || ""
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateExpense = async () => {
+    try {
+      if (!editingExpense || !formData.title || !formData.amount || !formData.category) {
+        toast({
+          title: "خطأ",
+          description: "يرجى ملء جميع الحقول المطلوبة",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          title: formData.title,
+          description: formData.description,
+          amount: parseFloat(formData.amount),
+          category: formData.category,
+          budget_category: formData.budget_category || formData.category,
+          expense_date: formData.expense_date,
+          receipt_reference: formData.receipt_reference
+        })
+        .eq('id', editingExpense.id);
+
+      if (error) throw error;
+
+      // رفع الملفات الجديدة إذا تم اختيارها
+      if (selectedFiles && selectedFiles.length > 0) {
+        await uploadFiles(editingExpense.id);
+      }
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث المصروف بنجاح",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingExpense(null);
+      setFormData({
+        title: "",
+        description: "",
+        amount: "",
+        category: "",
+        budget_category: "",
+        expense_date: new Date().toISOString().split('T')[0],
+        receipt_reference: ""
+      });
+      setSelectedFiles(null);
+      fetchData();
+    } catch (error) {
+      console.error('خطأ في تحديث المصروف:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في تحديث المصروف",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      // حذف المرفقات من التخزين
+      const { data: attachments } = await supabase
+        .from('expense_attachments')
+        .select('file_path')
+        .eq('expense_id', expenseId);
+
+      if (attachments && attachments.length > 0) {
+        for (const attachment of attachments) {
+          await supabase.storage
+            .from('expense-receipts')
+            .remove([attachment.file_path]);
+        }
+
+        // حذف سجلات المرفقات
+        await supabase
+          .from('expense_attachments')
+          .delete()
+          .eq('expense_id', expenseId);
+      }
+
+      // حذف المصروف
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم حذف المصروف بنجاح",
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('خطأ في حذف المصروف:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف المصروف",
         variant: "destructive",
       });
     }
@@ -833,6 +959,7 @@ export default function Expenses() {
                 <TableHead>المرفقات</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead>الميزانية</TableHead>
+                {profile?.role === 'admin' && <TableHead>الإجراءات</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -898,6 +1025,43 @@ export default function Expenses() {
                         </div>
                       )}
                     </TableCell>
+                    {profile?.role === 'admin' && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditExpense(expense)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  هل أنت متأكد من حذف هذا المصروف؟ لا يمكن التراجع عن هذا الإجراء.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  حذف
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
@@ -905,6 +1069,116 @@ export default function Expenses() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog التعديل */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تعديل المصروف</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit_title">العنوان *</Label>
+              <Input
+                id="edit_title"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                placeholder="عنوان المصروف"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit_description">الوصف</Label>
+              <Textarea
+                id="edit_description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="وصف تفصيلي للمصروف"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit_amount">المبلغ (د.إ) *</Label>
+                <Input
+                  id="edit_amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  placeholder="0.00"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_expense_date">التاريخ *</Label>
+                <Input
+                  id="edit_expense_date"
+                  type="date"
+                  value={formData.expense_date}
+                  onChange={(e) => setFormData({...formData, expense_date: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit_category">الفئة *</Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value, budget_category: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الفئة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="edit_receipt_reference">رقم الفاتورة</Label>
+              <Input
+                id="edit_receipt_reference"
+                value={formData.receipt_reference}
+                onChange={(e) => setFormData({...formData, receipt_reference: e.target.value})}
+                placeholder="رقم الفاتورة أو المرجع"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit_files">رفع فواتير إضافية (PDF، صور)</Label>
+              <Input
+                id="edit_files"
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleFileSelect}
+              />
+              {selectedFiles && (
+                <p className="text-sm text-gray-600 mt-1">
+                  تم اختيار {selectedFiles.length} ملف إضافي
+                </p>
+              )}
+            </div>
+            
+            <div className="flex gap-3">
+              <Button onClick={handleUpdateExpense} className="flex-1" disabled={uploading}>
+                {uploading ? "جاري الحفظ..." : "حفظ التغييرات"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setEditingExpense(null);
+                  setSelectedFiles(null);
+                }}
+              >
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
