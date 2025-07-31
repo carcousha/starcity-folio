@@ -89,6 +89,42 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_limits: {
+        Row: {
+          alert_threshold: number | null
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          monthly_limit: number | null
+          updated_at: string
+          yearly_limit: number | null
+        }
+        Insert: {
+          alert_threshold?: number | null
+          category: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          monthly_limit?: number | null
+          updated_at?: string
+          yearly_limit?: number | null
+        }
+        Update: {
+          alert_threshold?: number | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          monthly_limit?: number | null
+          updated_at?: string
+          yearly_limit?: number | null
+        }
+        Relationships: []
+      }
       client_documents: {
         Row: {
           client_id: string
@@ -431,14 +467,52 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_attachments: {
+        Row: {
+          expense_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          expense_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          expense_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
+          approved_at: string | null
+          approved_by: string | null
+          budget_category: string | null
           category: string
           created_at: string
           description: string | null
           expense_date: string
           id: string
+          is_approved: boolean | null
+          receipt_reference: string | null
           receipt_url: string | null
           recorded_by: string
           title: string
@@ -446,11 +520,16 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_category?: string | null
           category: string
           created_at?: string
           description?: string | null
           expense_date?: string
           id?: string
+          is_approved?: boolean | null
+          receipt_reference?: string | null
           receipt_url?: string | null
           recorded_by: string
           title: string
@@ -458,11 +537,16 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          budget_category?: string | null
           category?: string
           created_at?: string
           description?: string | null
           expense_date?: string
           id?: string
+          is_approved?: boolean | null
+          receipt_reference?: string | null
           receipt_url?: string | null
           recorded_by?: string
           title?: string
@@ -1208,6 +1292,18 @@ export type Database = {
           net_commissions: number
           total_deals: number
           recent_activities: Json
+        }[]
+      }
+      get_monthly_budget_report: {
+        Args: { target_month?: string }
+        Returns: {
+          category: string
+          monthly_limit: number
+          actual_spent: number
+          remaining_budget: number
+          percentage_used: number
+          status: string
+          transaction_count: number
         }[]
       }
       get_user_role: {
