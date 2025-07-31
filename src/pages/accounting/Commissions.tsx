@@ -7,11 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, CheckCircle, DollarSign, TrendingUp, Users, Wrench, AlertTriangle, Plus } from "lucide-react";
+import { Calculator, CheckCircle, DollarSign, TrendingUp, Users, Wrench, AlertTriangle, Plus, X, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { CommissionsFixed } from "./CommissionsFixed";
 
 // مكون إضافة عمولة جديدة
 const AddCommissionForm = () => {
@@ -19,7 +18,7 @@ const AddCommissionForm = () => {
   const [transactionType, setTransactionType] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedEmployees, setSelectedEmployees] = useState<Array<{id: string, percentage: number}>>([]);
   const queryClient = useQueryClient();
 
   // جلب قائمة الموظفين
@@ -110,7 +109,7 @@ const AddCommissionForm = () => {
           amount: commissionAmount,
           deal_type: transactionType,
           status: 'closed',
-          handled_by: selectedEmployee || user.id,
+          handled_by: selectedEmployees.length > 0 ? selectedEmployees[0].id : user.id,
           commission_rate: 2.5,
           commission_amount: calculatedCommission,
           commission_calculated: true,
@@ -133,7 +132,7 @@ const AddCommissionForm = () => {
           office_share: officeShare,
           remaining_for_employees: employeeShare,
           client_name: clientName,
-          employee_id: selectedEmployee || user.id,
+          employee_id: selectedEmployees.length > 0 ? selectedEmployees[0].id : user.id,
           status: 'pending'
         })
         .select()
@@ -141,17 +140,26 @@ const AddCommissionForm = () => {
 
       if (error) throw error;
 
-      // إضافة تفاصيل العمولة للموظف إذا تم اختياره
-      if (selectedEmployee && data) {
-        await supabase
-          .from('commission_employees')
-          .insert({
-            commission_id: data.id,
-            employee_id: selectedEmployee,
-            percentage: 100,
-            calculated_share: employeeShare,
-            net_share: employeeShare
-          });
+      // إضافة تفاصيل العمولة للموظفين المختارين
+      if (selectedEmployees.length > 0 && data) {
+        // التحقق من صحة النسب
+        const totalPercentage = selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0);
+        if (Math.abs(totalPercentage - 100) > 0.01) {
+          throw new Error('مجموع النسب يجب أن يساوي 100%');
+        }
+
+        // إضافة موظف لكل نسبة
+        for (const employee of selectedEmployees) {
+          await supabase
+            .from('commission_employees')
+            .insert({
+              commission_id: data.id,
+              employee_id: employee.id,
+              percentage: employee.percentage,
+              calculated_share: (employeeShare * employee.percentage) / 100,
+              net_share: (employeeShare * employee.percentage) / 100
+            });
+        }
       }
 
       // إضافة إيراد للمكتب
@@ -179,7 +187,7 @@ const AddCommissionForm = () => {
       setTransactionType("");
       setPropertyType("");
       setAmount("");
-      setSelectedEmployee("");
+      setSelectedEmployees([]);
       
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
       queryClient.invalidateQueries({ queryKey: ['commission-history'] });
@@ -193,6 +201,20 @@ const AddCommissionForm = () => {
     }
   });
 
+  const addEmployee = () => {
+    setSelectedEmployees([...selectedEmployees, { id: '', percentage: 0 }]);
+  };
+
+  const removeEmployee = (index: number) => {
+    setSelectedEmployees(selectedEmployees.filter((_, i) => i !== index));
+  };
+
+  const updateEmployee = (index: number, field: 'id' | 'percentage', value: string | number) => {
+    const updated = [...selectedEmployees];
+    updated[index] = { ...updated[index], [field]: value };
+    setSelectedEmployees(updated);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -203,6 +225,29 @@ const AddCommissionForm = () => {
         variant: "destructive"
       });
       return;
+    }
+
+    // التحقق من صحة النسب للموظفين
+    if (selectedEmployees.length > 0) {
+      const totalPercentage = selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0);
+      if (Math.abs(totalPercentage - 100) > 0.01) {
+        toast({
+          title: "خطأ في النسب",
+          description: "مجموع نسب الموظفين يجب أن يساوي 100%",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const hasEmptyEmployee = selectedEmployees.some(emp => !emp.id || emp.percentage <= 0);
+      if (hasEmptyEmployee) {
+        toast({
+          title: "بيانات ناقصة",
+          description: "يرجى اختيار جميع الموظفين وتحديد نسب صحيحة",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     addCommissionMutation.mutate({});
@@ -216,7 +261,7 @@ const AddCommissionForm = () => {
           إضافة عمولة جديدة
         </CardTitle>
         <CardDescription>
-          أضف عمولة جديدة وسيتم تقسيمها تلقائياً (50% للمكتب - 50% للموظف)
+          أضف عمولة جديدة وسيتم تقسيمها تلقائياً (50% للمكتب - 50% للموظفين)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -278,20 +323,82 @@ const AddCommissionForm = () => {
             </div>
             
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="employee">الموظف (اختياري)</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الموظف المسؤول عن العمولة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">بدون موظف محدد</SelectItem>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.user_id} value={employee.user_id}>
-                      {employee.first_name} {employee.last_name}
-                    </SelectItem>
+              <div className="flex items-center justify-between">
+                <Label>الموظفين المشاركين (اختياري)</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addEmployee}
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  إضافة موظف
+                </Button>
+              </div>
+              
+              {selectedEmployees.length > 0 && (
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+                  {selectedEmployees.map((employee, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <Select 
+                          value={employee.id} 
+                          onValueChange={(value) => updateEmployee(index, 'id', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر الموظف" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {employees.map((emp) => (
+                              <SelectItem key={emp.user_id} value={emp.user_id}>
+                                {emp.first_name} {emp.last_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="w-24">
+                        <Input
+                          type="number"
+                          placeholder="النسبة %"
+                          value={employee.percentage || ''}
+                          onChange={(e) => updateEmployee(index, 'percentage', parseFloat(e.target.value) || 0)}
+                          min="0"
+                          max="100"
+                          step="0.1"
+                        />
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeEmployee(index)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
+                  
+                  <div className="text-sm text-muted-foreground pt-2 border-t">
+                    المجموع: {selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0).toFixed(1)}%
+                    {Math.abs(selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0) - 100) > 0.01 && (
+                      <span className="text-red-600 ml-2">
+                        (يجب أن يساوي 100%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {selectedEmployees.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  لم يتم اختيار موظفين - ستكون العمولة للمكتب فقط
+                </p>
+              )}
             </div>
           </div>
           
@@ -308,11 +415,22 @@ const AddCommissionForm = () => {
                   <p className="font-bold">{(parseFloat(amount || "0") * 0.025).toFixed(2)} د.إ</p>
                 </div>
                 <div>
-                  <p className="text-blue-600">نصيب كل طرف:</p>
-                  <p className="font-bold">
-                    المكتب: {(parseFloat(amount || "0") * 0.025 * 0.5).toFixed(2)} د.إ<br/>
-                    الموظف: {(parseFloat(amount || "0") * 0.025 * 0.5).toFixed(2)} د.إ
-                  </p>
+                  <p className="text-blue-600">نصيب الموظفين:</p>
+                  {selectedEmployees.length > 0 ? (
+                    <div className="space-y-1">
+                      {selectedEmployees.map((emp, idx) => {
+                        const employeeName = employees.find(e => e.user_id === emp.id);
+                        const empShare = (parseFloat(amount || "0") * 0.025 * 0.5 * emp.percentage) / 100;
+                        return (
+                          <p key={idx} className="text-xs">
+                            {employeeName ? `${employeeName.first_name} ${employeeName.last_name}` : 'غير محدد'}: {empShare.toFixed(2)} د.إ ({emp.percentage}%)
+                          </p>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="font-bold">للمكتب: {(parseFloat(amount || "0") * 0.025 * 0.5).toFixed(2)} د.إ</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -542,7 +660,7 @@ export default function Commissions() {
       </Card>
 
       <Tabs defaultValue="add-commission" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="add-commission" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
             إضافة عمولة
@@ -550,14 +668,6 @@ export default function Commissions() {
           <TabsTrigger value="commission-history" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             العمولات السابقة
-          </TabsTrigger>
-          <TabsTrigger value="new-system" className="flex items-center gap-2">
-            <Wrench className="h-4 w-4" />
-            النظام المحدث
-          </TabsTrigger>
-          <TabsTrigger value="legacy" className="flex items-center gap-2">
-            <Calculator className="h-4 w-4" />
-            النظام القديم
           </TabsTrigger>
         </TabsList>
         
@@ -568,151 +678,9 @@ export default function Commissions() {
         <TabsContent value="commission-history">
           <CommissionHistory />
         </TabsContent>
-        
-        <TabsContent value="new-system">
-          <div className="space-y-4">
-            <Card className="border-green-200 bg-green-50">
-              <CardHeader>
-                <CardTitle className="text-green-800 flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5" />
-                  النظام المحدث والمحكم
-                </CardTitle>
-                <CardDescription className="text-green-700">
-                  ✅ حساب تلقائي للعمولات عند إغلاق الصفقات<br/>
-                  ✅ حماية من الأخطاء والمشاكل<br/>
-                  ✅ تسجيل آمن للبيانات<br/>
-                  ✅ واجهة سهلة الاستخدام<br/>
-                  ✅ إمكانية إضافة عمولات يدوياً للصفقات المكتملة
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            
-            <CommissionsFixed />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="legacy">
-          <LegacyCommissions />
-        </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-// النظام القديم للمراجعة فقط
-const LegacyCommissions = () => {
-  const { checkPermission } = useRoleAccess();
-  const queryClient = useQueryClient();
-
-  // جلب البيانات القديمة للمراجعة
-  const { data: legacyCommissions = [], isLoading } = useQuery({
-    queryKey: ['legacy-commissions'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('commissions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: checkPermission('canManageCommissions')
-  });
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-amber-800 flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          النظام القديم (للمراجعة فقط)
-        </CardTitle>
-        <CardDescription className="text-amber-700">
-          هذا النظام القديم محفوظ للمراجعة فقط. يرجى استخدام النظام المحدث أعلاه لإضافة عمولات جديدة.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="text-center py-8">جارٍ التحميل...</div>
-        ) : legacyCommissions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            لا توجد عمولات في النظام القديم
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-sm text-amber-600 mb-4 p-3 bg-amber-100 rounded-lg">
-              📊 عدد العمولات في النظام القديم: {legacyCommissions.length}<br/>
-              💡 هذه البيانات محفوظة للمراجعة والتحليل فقط
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card className="border-amber-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">إجمالي العمولات القديمة</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-amber-700">
-                    {legacyCommissions.reduce((sum: number, c: any) => sum + (c.total_commission || 0), 0).toFixed(2)} د.إ
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-amber-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">العمولات المعلقة</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-amber-700">
-                    {legacyCommissions.filter((c: any) => c.status === 'pending').length}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-amber-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">العمولات المدفوعة</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-amber-700">
-                    {legacyCommissions.filter((c: any) => c.status === 'paid').length}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {legacyCommissions.slice(0, 5).map((commission: any) => (
-              <div key={commission.id} className="border rounded-lg p-4 bg-amber-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">{commission.client_name || 'عميل غير محدد'}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      المبلغ: {commission.amount || 0} د.إ
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      العمولة الإجمالية: {commission.total_commission || 0} د.إ
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      تاريخ الإنشاء: {new Date(commission.created_at).toLocaleDateString('ar-SA')}
-                    </p>
-                  </div>
-                  <Badge variant="outline">{commission.status || 'غير محدد'}</Badge>
-                </div>
-                {commission.notes && (
-                  <div className="mt-2 text-sm text-amber-700 bg-amber-100 p-2 rounded">
-                    ملاحظات: {commission.notes}
-                  </div>
-                )}
-              </div>
-            ))}
-            {legacyCommissions.length > 5 && (
-              <div className="text-sm text-amber-600 text-center p-3 bg-amber-100 rounded-lg">
-                ... و {legacyCommissions.length - 5} عمولة أخرى في النظام القديم
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
 
 export { Commissions };
