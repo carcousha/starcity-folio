@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import PizZip from "https://esm.sh/pizzip@3.1.6";
+import Docxtemplater from "https://esm.sh/docxtemplater@3.44.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -261,7 +263,71 @@ function extractUserIdFromToken(authHeader: string | null): string | null {
 
 // معالجة ملف Word - استبدال المتغيرات داخل الملف
 async function processWordDocument(fileBuffer: ArrayBuffer, contractData: ContractData): Promise<ArrayBuffer> {
-  console.log('معالجة ملف Word - استبدال المتغيرات');
+  console.log('معالجة ملف Word باستخدام Docxtemplater');
+  
+  try {
+    // تحميل الملف في PizZip
+    const zip = new PizZip(fileBuffer);
+    
+    // إنشاء Docxtemplater instance
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
+
+    // البيانات التي سيتم استبدالها في القالب
+    const templateData = {
+      property_title: contractData.property_title || '',
+      location: contractData.location || '',
+      tenant_name: contractData.tenant_name || '',
+      rent_amount: contractData.rent_amount?.toLocaleString('ar-SA') || '0',
+      contract_start_date: new Date(contractData.contract_start_date).toLocaleDateString('ar-SA') || '',
+      contract_end_date: new Date(contractData.contract_end_date).toLocaleDateString('ar-SA') || '',
+      payment_method: contractData.payment_method || '',
+      security_deposit: contractData.security_deposit?.toLocaleString('ar-SA') || '0',
+      installments_count: contractData.installments_count?.toString() || '1',
+      installment_frequency: contractData.installment_frequency || '',
+      current_date: new Date().toLocaleDateString('ar-SA'),
+      contract_number: `CNT-${Date.now()}`
+    };
+
+    console.log('البيانات المستخدمة في القالب:', templateData);
+
+    // تعيين البيانات للقالب
+    doc.setData(templateData);
+
+    try {
+      // تطبيق البيانات على القالب
+      doc.render();
+    } catch (error: any) {
+      console.error('خطأ في تطبيق البيانات على القالب:', error);
+      
+      // إذا فشل معالجة الملف بـ docxtemplater، نجرب الطريقة النصية البسيطة
+      console.log('التحويل إلى الطريقة النصية البسيطة');
+      return processWordDocumentAsText(fileBuffer, contractData);
+    }
+
+    // الحصول على الملف المُعدل
+    const buf = doc.getZip().generate({
+      type: "arraybuffer",
+      compression: "DEFLATE",
+    });
+
+    console.log('تم إنشاء ملف Word المُعدل بنجاح');
+    return buf;
+    
+  } catch (error: any) {
+    console.error('خطأ في معالجة ملف Word:', error);
+    
+    // إذا فشل معالجة الملف، نجرب الطريقة النصية البسيطة
+    console.log('التحويل إلى الطريقة النصية البسيطة');
+    return processWordDocumentAsText(fileBuffer, contractData);
+  }
+}
+
+// طريقة بديلة لمعالجة ملف Word كنص
+async function processWordDocumentAsText(fileBuffer: ArrayBuffer, contractData: ContractData): Promise<ArrayBuffer> {
+  console.log('معالجة ملف Word كنص بسيط');
   
   // تحويل ArrayBuffer إلى Uint8Array للمعالجة
   const uint8Array = new Uint8Array(fileBuffer);
@@ -290,7 +356,7 @@ async function processWordDocument(fileBuffer: ArrayBuffer, contractData: Contra
     content = content.replace(new RegExp(placeholder, 'g'), value);
   }
   
-  console.log('تم استبدال المتغيرات في ملف Word');
+  console.log('تم استبدال المتغيرات في النص');
   
   // تحويل النص المُحدث إلى ArrayBuffer
   const updatedBuffer = new TextEncoder().encode(content);
