@@ -26,6 +26,7 @@ import ReportsIndex from "./pages/reports/index";
 import RentalManagement from "./pages/rental/index";
 import RentalProperties from "./pages/rental/Properties";
 import RentalTenants from "./pages/rental/Tenants";
+import RentalContracts from "./pages/rental/RentalContracts";
 import EmployeeReports from "./pages/reports/EmployeeReports";
 import VehicleReports from "./pages/reports/VehicleReports";
 import MyCommissions from "./pages/employee/MyCommissions";
@@ -143,6 +144,11 @@ const App = () => (
               <Route path="/rental/tenants" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
                   <RentalTenants />
+                </ProtectedRoute>
+              } />
+              <Route path="/rental/contracts" element={
+                <ProtectedRoute requiredPermission="canManageCommissions">
+                  <RentalContracts />
                 </ProtectedRoute>
               } />
               
