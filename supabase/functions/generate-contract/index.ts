@@ -7,21 +7,23 @@ const corsHeaders = {
 };
 
 interface ContractData {
-  owner_name: string;
-  area: string;
-  plot_number?: string;
-  building_name?: string;
-  purpose_of_use: string;
+  property_title: string;
+  location: string;
   tenant_name: string;
-  unit_number?: string;
-  unit_type: string;
-  total_rental_value: number;
+  rent_amount: number;
   contract_start_date: string;
   contract_end_date: string;
   payment_method: string;
-  security_deposit?: number;
+  security_deposit: number;
   installments_count: number;
   installment_frequency: string;
+  property_id?: string;
+  tenant_id?: string;
+}
+
+interface RequestBody {
+  contractData: ContractData;
+  templateId: string;
 }
 
 serve(async (req: Request) => {
@@ -31,17 +33,22 @@ serve(async (req: Request) => {
   }
 
   try {
-    const supabase = createClient(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
     );
 
-    const { contractData, templateId }: { contractData: ContractData; templateId: string } = await req.json();
+    const { contractData, templateId } = await req.json() as RequestBody;
 
-    console.log('Generating contract with data:', contractData);
+    console.log('إنشاء عقد بالبيانات:', contractData);
 
-    // Get the template from database
-    const { data: template, error: templateError } = await supabase
+    // جلب قالب العقد
+    const { data: template, error: templateError } = await supabaseClient
       .from('contract_templates')
       .select('*')
       .eq('id', templateId)
@@ -49,130 +56,315 @@ serve(async (req: Request) => {
       .single();
 
     if (templateError || !template) {
-      console.error('Template not found:', templateError);
-      return new Response(
-        JSON.stringify({ error: 'Template not found' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      console.error('قالب العقد غير موجود:', templateError);
+      throw new Error('قالب العقد غير موجود');
     }
 
-    // For now, we'll create a simple contract document
-    // In production, you would use a library like docxtemplater to replace placeholders in Word documents
-    const contractContent = generateContractContent(contractData);
+    let processedDocument: Uint8Array;
+    let fileName: string;
+    let mimeType: string;
 
-    // Generate contract number
-    const { data: contractNumber } = await supabase.rpc('generate_contract_number');
+    if (template.uploaded_file_path) {
+      // معالجة ملف Word مرفوع
+      console.log('معالجة ملف Word:', template.uploaded_file_path);
+      
+      // تحميل الملف من Storage
+      const { data: fileData, error: downloadError } = await supabaseClient.storage
+        .from('contract-templates')
+        .download(template.uploaded_file_path);
 
-    // Create the contract record in database
-    const { data: contract, error: contractError } = await supabase
+      if (downloadError || !fileData) {
+        console.error('فشل في تحميل قالب العقد:', downloadError);
+        throw new Error('فشل في تحميل قالب العقد');
+      }
+
+      // قراءة محتوى الملف
+      const fileBuffer = await fileData.arrayBuffer();
+      
+      // معالجة ملف Word (مبسطة للآن)
+      const processedContent = await processWordDocument(fileBuffer, contractData);
+      
+      processedDocument = new Uint8Array(processedContent);
+      fileName = `contract-${Date.now()}.docx`;
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    } else {
+      // استخدام قالب HTML افتراضي
+      const htmlContent = generateDefaultContract(contractData);
+      processedDocument = new TextEncoder().encode(htmlContent);
+      fileName = `contract-${Date.now()}.html`;
+      mimeType = 'text/html';
+    }
+
+    // رفع العقد المُنشأ إلى Storage
+    const { data: uploadData, error: uploadError } = await supabaseClient.storage
+      .from('generated-contracts')
+      .upload(fileName, processedDocument, {
+        contentType: mimeType,
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('فشل في حفظ العقد المُنشأ:', uploadError);
+      throw new Error('فشل في حفظ العقد المُنشأ');
+    }
+
+    // إنشاء رقم العقد
+    const contractNumber = `CNT-${Date.now()}`;
+
+    // حفظ بيانات العقد في قاعدة البيانات
+    const { data: contract, error: contractError } = await supabaseClient
       .from('rental_contracts')
       .insert({
         contract_number: contractNumber,
         property_id: contractData.property_id,
         tenant_id: contractData.tenant_id,
-        rent_amount: contractData.total_rental_value,
-        security_deposit: contractData.security_deposit || 0,
-        contract_duration_months: 12, // Default, should be calculated
+        rent_amount: contractData.rent_amount,
         start_date: contractData.contract_start_date,
         end_date: contractData.contract_end_date,
         payment_method: contractData.payment_method,
-        installment_frequency: contractData.installment_frequency,
+        security_deposit: contractData.security_deposit,
         installments_count: contractData.installments_count,
-        contract_status: 'مسودة'
+        installment_frequency: contractData.installment_frequency,
+        contract_duration_months: calculateMonthsBetweenDates(
+          contractData.contract_start_date,
+          contractData.contract_end_date
+        ),
+        generated_contract_path: uploadData.path,
+        template_used_id: templateId,
+        contract_status: 'draft',
+        created_by: extractUserIdFromToken(req.headers.get('Authorization'))
       })
       .select()
       .single();
 
     if (contractError) {
-      console.error('Error creating contract:', contractError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create contract' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      console.error('خطأ في حفظ العقد:', contractError);
+      throw new Error('فشل في حفظ بيانات العقد');
     }
 
-    // Generate installments
-    if (contract && contractData.installments_count > 0) {
-      const installmentAmount = contractData.total_rental_value / contractData.installments_count;
-      
-      await supabase.rpc('generate_rental_installments', {
-        p_contract_id: contract.id,
-        p_start_date: contractData.contract_start_date,
-        p_installments_count: contractData.installments_count,
-        p_frequency: contractData.installment_frequency,
-        p_amount_per_installment: installmentAmount
-      });
-    }
+    // إنشاء جدولة الأقساط
+    await createInstallmentSchedule(supabaseClient, contract.id, contractData);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        contract: contract,
-        contractContent: contractContent,
-        message: 'Contract generated successfully'
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    // إنشاء رابط التحميل
+    const { data: downloadData } = await supabaseClient.storage
+      .from('generated-contracts')
+      .createSignedUrl(uploadData.path, 3600); // صالح لساعة واحدة
+
+    return new Response(JSON.stringify({
+      success: true,
+      contract_id: contract.id,
+      contract_number: contractNumber,
+      download_url: downloadData?.signedUrl,
+      file_path: uploadData.path,
+      message: 'تم إنشاء العقد بنجاح'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error: any) {
-    console.error('Error in generate-contract function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Internal server error',
-        details: error.stack 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error('خطأ في إنشاء العقد:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message || 'خطأ داخلي في الخادم'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
 
-function generateContractContent(data: ContractData): string {
+// استخراج معرف المستخدم من token
+function extractUserIdFromToken(authHeader: string | null): string | null {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  
+  try {
+    const token = authHeader.split(' ')[1];
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
+// معالجة ملف Word (مبسطة - في الواقع نحتاج مكتبة متخصصة)
+async function processWordDocument(fileBuffer: ArrayBuffer, contractData: ContractData): Promise<ArrayBuffer> {
+  // هذه دالة مبسطة - في الواقع نحتاج مكتبة مثل docxtemplater
+  // أو استخدام API خارجي لمعالجة ملفات Word
+  
+  console.log('معالجة ملف Word - سيتم التحسين لاحقاً');
+  console.log('بيانات العقد:', contractData);
+  
+  // للتبسيط، سنعيد نفس الملف
+  // في التطبيق الحقيقي، نحتاج مكتبة متخصصة لاستبدال المتغيرات
+  
+  return fileBuffer;
+}
+
+// إنشاء قالب افتراضي بصيغة HTML
+function generateDefaultContract(contractData: ContractData): string {
+  const currentDate = new Date().toLocaleDateString('ar-SA');
+  
   return `
-عقد إيجار
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عقد إيجار</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            direction: rtl;
+            text-align: right;
+            line-height: 1.8;
+            margin: 40px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .signature-section {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            width: 200px;
+            border-bottom: 1px solid #333;
+            text-align: center;
+            padding-top: 60px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #333;
+            padding: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>عقد إيجار عقاري</h1>
+        <h2>شركة ستار سيتي العقارية - عجمان، دولة الإمارات العربية المتحدة</h2>
+        <p>رقم العقد: CNT-${Date.now()}</p>
+        <p>تاريخ الإنشاء: ${currentDate}</p>
+    </div>
 
-بين الأطراف التالية:
+    <div class="content">
+        <h3>بيانات العقار:</h3>
+        <p><strong>عنوان العقار:</strong> ${contractData.property_title}</p>
+        <p><strong>الموقع:</strong> ${contractData.location}</p>
+        
+        <h3>بيانات المستأجر:</h3>
+        <p><strong>اسم المستأجر:</strong> ${contractData.tenant_name}</p>
+        
+        <h3>تفاصيل الإيجار:</h3>
+        <p><strong>قيمة الإيجار السنوي:</strong> ${contractData.rent_amount.toLocaleString()} درهم إماراتي</p>
+        <p><strong>مبلغ التأمين:</strong> ${contractData.security_deposit.toLocaleString()} درهم إماراتي</p>
+        <p><strong>طريقة السداد:</strong> ${contractData.payment_method}</p>
+        <p><strong>عدد الدفعات:</strong> ${contractData.installments_count} دفعة ${contractData.installment_frequency}</p>
+        
+        <h3>مدة العقد:</h3>
+        <p><strong>تاريخ بداية العقد:</strong> ${new Date(contractData.contract_start_date).toLocaleDateString('ar-SA')}</p>
+        <p><strong>تاريخ نهاية العقد:</strong> ${new Date(contractData.contract_end_date).toLocaleDateString('ar-SA')}</p>
+        
+        <h3>الشروط والأحكام:</h3>
+        <ul>
+            <li>يجب على المستأجر دفع الإيجار في المواعيد المحددة</li>
+            <li>يُمنع التأجير من الباطن دون موافقة خطية من المالك</li>
+            <li>المستأجر مسؤول عن صيانة العقار والمحافظة عليه</li>
+            <li>أي تعديلات على العقد تحتاج لموافقة الطرفين</li>
+        </ul>
+        
+        <h3>متطلبات مهمة:</h3>
+        <ul>
+            <li>شهادة عدم الممانعة من شركة عجمان للصرف الصحي</li>
+            <li>جميع البيانات مطبوعة وليست مكتوبة بخط اليد</li>
+            <li>أي تعديلات يدوية (حذف، كشط أو تعديل) غير مقبولة</li>
+            <li>التأكد من صحة جميع البيانات قبل التوقيع</li>
+        </ul>
+    </div>
 
-المؤجر: ${data.owner_name}
-المستأجر: ${data.tenant_name}
+    <div class="signature-section">
+        <div class="signature-box">
+            <div>توقيع المؤجر</div>
+        </div>
+        <div class="signature-box">
+            <div>توقيع المستأجر</div>
+        </div>
+    </div>
+</body>
+</html>`;
+}
 
-تفاصيل العقار:
-المنطقة: ${data.area}
-${data.plot_number ? `رقم القطعة: ${data.plot_number}` : ''}
-${data.building_name ? `اسم المبنى: ${data.building_name}` : ''}
-${data.unit_number ? `رقم الوحدة: ${data.unit_number}` : ''}
-نوع الوحدة: ${data.unit_type}
-أغراض الاستعمال: ${data.purpose_of_use}
+// حساب عدد الشهور بين تاريخين
+function calculateMonthsBetweenDates(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  const yearDiff = end.getFullYear() - start.getFullYear();
+  const monthDiff = end.getMonth() - start.getMonth();
+  
+  return yearDiff * 12 + monthDiff;
+}
 
-التفاصيل المالية:
-قيمة الإيجار الكلية: ${data.total_rental_value.toLocaleString()} درهم إماراتي
-${data.security_deposit ? `مبلغ التأمين: ${data.security_deposit.toLocaleString()} درهم إماراتي` : ''}
-طريقة السداد: ${data.payment_method}
-عدد الدفعات: ${data.installments_count}
-تردد الدفع: ${data.installment_frequency}
-
-مدة العقد:
-تاريخ البداية: ${data.contract_start_date}
-تاريخ النهاية: ${data.contract_end_date}
-
-ملاحظات مهمة:
-- يجب إحضار شهادة عدم الممانعة من شركة عجمان للصرف الصحي
-- جميع البيانات يجب أن تكون مطبوعة وليس مكتوبة بخط اليد
-- أي تعديلات يدوية (حذف، كشط أو تعديل) غير مقبولة
-
-توقيع المؤجر: ________________    التاريخ: ________________
-
-توقيع المستأجر: ________________    التاريخ: ________________
-  `.trim();
+// إنشاء جدولة الأقساط
+async function createInstallmentSchedule(supabaseClient: any, contractId: string, contractData: ContractData) {
+  const installmentAmount = contractData.rent_amount / contractData.installments_count;
+  const startDate = new Date(contractData.contract_start_date);
+  
+  // تحديد الفترة بين الأقساط
+  let monthsInterval = 12; // سنوي افتراضي
+  
+  switch (contractData.installment_frequency) {
+    case 'شهري':
+      monthsInterval = 1;
+      break;
+    case 'ربع سنوي':
+      monthsInterval = 3;
+      break;
+    case 'نصف سنوي':
+      monthsInterval = 6;
+      break;
+    case 'سنوي':
+      monthsInterval = 12;
+      break;
+  }
+  
+  const installments = [];
+  
+  for (let i = 0; i < contractData.installments_count; i++) {
+    const dueDate = new Date(startDate);
+    dueDate.setMonth(dueDate.getMonth() + (i * monthsInterval));
+    
+    installments.push({
+      contract_id: contractId,
+      installment_number: i + 1,
+      amount: i === contractData.installments_count - 1 
+        ? contractData.rent_amount - (installmentAmount * (contractData.installments_count - 1)) // آخر قسط يأخذ المتبقي
+        : installmentAmount,
+      due_date: dueDate.toISOString().split('T')[0],
+      status: 'pending'
+    });
+  }
+  
+  const { error } = await supabaseClient
+    .from('rental_installments')
+    .insert(installments);
+    
+  if (error) {
+    console.error('خطأ في إنشاء جدولة الأقساط:', error);
+  }
 }

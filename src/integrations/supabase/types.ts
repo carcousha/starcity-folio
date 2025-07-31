@@ -450,36 +450,45 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          file_size: number | null
           id: string
           is_active: boolean
+          mime_type: string | null
           template_file_url: string
           template_name: string
           template_type: string
           updated_at: string
+          uploaded_file_path: string | null
           version: string
         }
         Insert: {
           created_at?: string
           created_by: string
           description?: string | null
+          file_size?: number | null
           id?: string
           is_active?: boolean
+          mime_type?: string | null
           template_file_url: string
           template_name: string
           template_type: string
           updated_at?: string
+          uploaded_file_path?: string | null
           version?: string
         }
         Update: {
           created_at?: string
           created_by?: string
           description?: string | null
+          file_size?: number | null
           id?: string
           is_active?: boolean
+          mime_type?: string | null
           template_file_url?: string
           template_name?: string
           template_type?: string
           updated_at?: string
+          uploaded_file_path?: string | null
           version?: string
         }
         Relationships: []
@@ -1479,6 +1488,7 @@ export type Database = {
           created_at: string
           created_by: string
           end_date: string
+          generated_contract_path: string | null
           id: string
           installment_frequency: string
           installments_count: number
@@ -1489,6 +1499,7 @@ export type Database = {
           security_deposit: number | null
           special_terms: string | null
           start_date: string
+          template_used_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -1501,6 +1512,7 @@ export type Database = {
           created_at?: string
           created_by: string
           end_date: string
+          generated_contract_path?: string | null
           id?: string
           installment_frequency?: string
           installments_count?: number
@@ -1511,6 +1523,7 @@ export type Database = {
           security_deposit?: number | null
           special_terms?: string | null
           start_date: string
+          template_used_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -1523,6 +1536,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           end_date?: string
+          generated_contract_path?: string | null
           id?: string
           installment_frequency?: string
           installments_count?: number
@@ -1533,6 +1547,7 @@ export type Database = {
           security_deposit?: number | null
           special_terms?: string | null
           start_date?: string
+          template_used_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -1542,6 +1557,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "rental_properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_contracts_template_used_id_fkey"
+            columns: ["template_used_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
             referencedColumns: ["id"]
           },
           {

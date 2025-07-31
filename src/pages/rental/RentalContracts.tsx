@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   FileText, 
   Plus, 
+  Upload,
   Calendar, 
   Building, 
   Users, 
@@ -590,7 +591,7 @@ export default function RentalContracts() {
       </div>
 
       <Tabs defaultValue="create-contract" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="create-contract" className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             إنشاء عقد جديد
@@ -598,6 +599,10 @@ export default function RentalContracts() {
           <TabsTrigger value="contracts-list" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             العقود المُنشأة
+          </TabsTrigger>
+          <TabsTrigger value="upload-templates" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            قوالب Word
           </TabsTrigger>
         </TabsList>
         
