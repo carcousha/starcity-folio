@@ -115,50 +115,78 @@ serve(async (req: Request) => {
     let propertyId = contractData.property_id;
     let tenantId = contractData.tenant_id;
     
-    // إنشاء العقار إذا لم يكن موجود
+    // إنشاء العقار إذا لم يكن موجود ولكن تم توفير عنوان العقار
     if (!propertyId && contractData.property_title) {
-      const { data: property, error: propertyError } = await supabaseClient
+      // البحث عن عقار موجود بنفس العنوان والموقع أولاً
+      const { data: existingProperty } = await supabaseClient
         .from('rental_properties')
-        .insert({
-          property_title: contractData.property_title,
-          location: contractData.location,
-          property_type: 'شقة',
-          status: 'مؤجر',
-          created_by: extractUserIdFromToken(req.headers.get('Authorization'))
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('property_title', contractData.property_title)
+        .eq('property_address', contractData.location)
+        .maybeSingle();
         
-      if (!propertyError && property) {
-        propertyId = property.id;
+      if (existingProperty) {
+        propertyId = existingProperty.id;
+      } else {
+        // إنشاء عقار جديد
+        const { data: property, error: propertyError } = await supabaseClient
+          .from('rental_properties')
+          .insert({
+            property_title: contractData.property_title,
+            property_address: contractData.location,
+            property_type: 'شقة',
+            status: 'مؤجر',
+            created_by: extractUserIdFromToken(req.headers.get('Authorization'))
+          })
+          .select()
+          .single();
+          
+        if (!propertyError && property) {
+          propertyId = property.id;
+        }
       }
     }
     
-    // إنشاء المستأجر إذا لم يكن موجود
+    // إنشاء المستأجر إذا لم يكن موجود ولكن تم توفير اسم المستأجر
     if (!tenantId && contractData.tenant_name) {
-      const { data: tenant, error: tenantError } = await supabaseClient
+      // البحث عن مستأجر موجود بنفس الاسم أولاً
+      const { data: existingTenant } = await supabaseClient
         .from('rental_tenants')
-        .insert({
-          full_name: contractData.tenant_name,
-          status: 'active',
-          created_by: extractUserIdFromToken(req.headers.get('Authorization'))
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('full_name', contractData.tenant_name)
+        .maybeSingle();
         
-      if (!tenantError && tenant) {
-        tenantId = tenant.id;
+      if (existingTenant) {
+        tenantId = existingTenant.id;
+      } else {
+        // إنشاء مستأجر جديد
+        const { data: tenant, error: tenantError } = await supabaseClient
+          .from('rental_tenants')
+          .insert({
+            full_name: contractData.tenant_name,
+            status: 'active',
+            created_by: extractUserIdFromToken(req.headers.get('Authorization'))
+          })
+          .select()
+          .single();
+          
+        if (!tenantError && tenant) {
+          tenantId = tenant.id;
+        }
       }
     }
+
+    console.log('معرف العقار النهائي:', propertyId);
+    console.log('معرف المستأجر النهائي:', tenantId);
 
     // حفظ بيانات العقد في قاعدة البيانات
     const { data: contract, error: contractError } = await supabaseClient
       .from('rental_contracts')
       .insert({
         contract_number: contractNumber,
-        property_id: propertyId,
-        tenant_id: tenantId,
-        property_title: contractData.property_title,
+        property_id: propertyId, // قد يكون null إذا لم يتم إنشاء العقار
+        tenant_id: tenantId, // قد يكون null إذا لم يتم إنشاء المستأجر
+        property_title: contractData.property_title, // حفظ البيانات النصية دائماً
         tenant_name: contractData.tenant_name,
         rent_amount: contractData.rent_amount,
         start_date: contractData.contract_start_date,
