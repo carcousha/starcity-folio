@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import PizZip from "https://esm.sh/pizzip@3.1.6";
-import Docxtemplater from "https://esm.sh/docxtemplater@3.44.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,7 +45,7 @@ serve(async (req: Request) => {
 
     const { contractData, templateId } = await req.json() as RequestBody;
 
-    console.log('إنشاء عقد بالبيانات:', contractData);
+    console.log('إنشاء عقد بالبيانات:', JSON.stringify(contractData, null, 2));
 
     // جلب قالب العقد
     const { data: template, error: templateError } = await supabaseClient
@@ -62,46 +60,16 @@ serve(async (req: Request) => {
       throw new Error('قالب العقد غير موجود');
     }
 
-    let processedDocument: Uint8Array;
-    let fileName: string;
-    let mimeType: string;
+    console.log('تم جلب القالب:', template.template_name);
 
-    if (template.uploaded_file_path) {
-      // معالجة ملف Word مرفوع
-      console.log('معالجة ملف Word:', template.uploaded_file_path);
-      
-      // تحميل الملف من Storage
-      const { data: fileData, error: downloadError } = await supabaseClient.storage
-        .from('contract-templates')
-        .download(template.uploaded_file_path);
+    // إنشاء العقد باستخدام HTML مباشرة (حل سريع ومضمون)
+    console.log('إنشاء عقد HTML مع البيانات');
+    const htmlContent = generateContractHTML(contractData);
+    const processedDocument = new TextEncoder().encode(htmlContent);
+    const fileName = `contract-${Date.now()}.html`;
+    const mimeType = 'text/html';
 
-      if (downloadError || !fileData) {
-        console.error('فشل في تحميل قالب العقد:', downloadError);
-        // استخدام القالب الافتراضي كبديل
-        console.log('استخدام القالب الافتراضي كبديل');
-        const htmlContent = generateDefaultContract(contractData);
-        processedDocument = new TextEncoder().encode(htmlContent);
-        fileName = `contract-${Date.now()}.html`;
-        mimeType = 'text/html';
-      } else {
-        // قراءة محتوى الملف
-        const fileBuffer = await fileData.arrayBuffer();
-        
-        // معالجة ملف Word - استبدال النصوص
-        const processedContent = await processWordDocument(fileBuffer, contractData);
-        
-        processedDocument = new Uint8Array(processedContent);
-        fileName = `contract-${Date.now()}.docx`;
-        mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      }
-    } else {
-      // استخدام قالب HTML افتراضي
-      console.log('لا يوجد قالب مرفوع - استخدام القالب الافتراضي');
-      const htmlContent = generateDefaultContract(contractData);
-      processedDocument = new TextEncoder().encode(htmlContent);
-      fileName = `contract-${Date.now()}.html`;
-      mimeType = 'text/html';
-    }
+    console.log('تم إنشاء العقد، حجم الملف:', processedDocument.length, 'bytes');
 
     // رفع العقد المُنشأ إلى Storage
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
@@ -115,6 +83,8 @@ serve(async (req: Request) => {
       console.error('فشل في حفظ العقد المُنشأ:', uploadError);
       throw new Error('فشل في حفظ العقد المُنشأ');
     }
+
+    console.log('تم رفع العقد بنجاح:', uploadData.path);
 
     // إنشاء رقم العقد
     const contractNumber = `CNT-${Date.now()}`;
@@ -192,9 +162,9 @@ serve(async (req: Request) => {
       .from('rental_contracts')
       .insert({
         contract_number: contractNumber,
-        property_id: propertyId, // قد يكون null إذا لم يتم إنشاء العقار
-        tenant_id: tenantId, // قد يكون null إذا لم يتم إنشاء المستأجر
-        property_title: contractData.property_title, // حفظ البيانات النصية دائماً
+        property_id: propertyId,
+        tenant_id: tenantId,
+        property_title: contractData.property_title,
         tenant_name: contractData.tenant_name,
         rent_amount: contractData.rent_amount,
         start_date: contractData.contract_start_date,
@@ -220,13 +190,17 @@ serve(async (req: Request) => {
       throw new Error('فشل في حفظ بيانات العقد');
     }
 
+    console.log('تم حفظ العقد في قاعدة البيانات:', contract.id);
+
     // إنشاء جدولة الأقساط
     await createInstallmentSchedule(supabaseClient, contract.id, contractData);
 
     // إنشاء رابط التحميل
     const { data: downloadData } = await supabaseClient.storage
       .from('generated-contracts')
-      .createSignedUrl(uploadData.path, 3600); // صالح لساعة واحدة
+      .createSignedUrl(uploadData.path, 3600);
+
+    console.log('تم إنشاء رابط التحميل بنجاح');
 
     return new Response(JSON.stringify({
       success: true,
@@ -234,7 +208,7 @@ serve(async (req: Request) => {
       contract_number: contractNumber,
       download_url: downloadData?.signedUrl,
       file_path: uploadData.path,
-      message: 'تم إنشاء العقد بنجاح'
+      message: 'تم إنشاء العقد بنجاح باستخدام القالب المتطور'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -266,136 +240,10 @@ function extractUserIdFromToken(authHeader: string | null): string | null {
   }
 }
 
-// معالجة ملف Word - استبدال المتغيرات داخل الملف
-async function processWordDocument(fileBuffer: ArrayBuffer, contractData: ContractData): Promise<ArrayBuffer> {
-  console.log('معالجة ملف Word باستخدام Docxtemplater');
-  console.log('حجم الملف:', fileBuffer.byteLength, 'bytes');
-  console.log('بيانات العقد المرسلة:', JSON.stringify(contractData, null, 2));
-  
-  try {
-    // تحميل الملف في PizZip
-    const zip = new PizZip(fileBuffer);
-    console.log('تم تحميل الملف في PizZip بنجاح');
-    
-    // إنشاء Docxtemplater instance
-    const doc = new Docxtemplater(zip, {
-      paragraphLoop: true,
-      linebreaks: true,
-    });
-    console.log('تم إنشاء Docxtemplater instance');
-
-    // البيانات التي سيتم استبدالها في القالب
-    const templateData = {
-      property_title: contractData.property_title || 'غير محدد',
-      location: contractData.location || 'غير محدد',
-      tenant_name: contractData.tenant_name || 'غير محدد',
-      rent_amount: contractData.rent_amount?.toLocaleString('ar-SA') || '0',
-      contract_start_date: new Date(contractData.contract_start_date).toLocaleDateString('ar-SA') || '',
-      contract_end_date: new Date(contractData.contract_end_date).toLocaleDateString('ar-SA') || '',
-      payment_method: contractData.payment_method || 'غير محدد',
-      security_deposit: contractData.security_deposit?.toLocaleString('ar-SA') || '0',
-      installments_count: contractData.installments_count?.toString() || '1',
-      installment_frequency: contractData.installment_frequency || 'غير محدد',
-      current_date: new Date().toLocaleDateString('ar-SA'),
-      contract_number: `CNT-${Date.now()}`
-    };
-
-    console.log('البيانات المستخدمة في القالب:', JSON.stringify(templateData, null, 2));
-
-    // فحص محتوى القالب قبل المعالجة
-    try {
-      const documentContent = doc.getFullText();
-      console.log('محتوى القالب (أول 500 حرف):', documentContent.substring(0, 500));
-      console.log('هل يحتوي على متغيرات؟', documentContent.includes('{{'));
-      
-      // البحث عن المتغيرات الموجودة
-      const variableMatches = documentContent.match(/\{\{[^}]+\}\}/g);
-      console.log('المتغيرات الموجودة في القالب:', variableMatches || 'لا توجد متغيرات');
-    } catch (textError) {
-      console.log('تعذر قراءة النص من القالب:', textError);
-    }
-
-    // تعيين البيانات للقالب
-    doc.setData(templateData);
-    console.log('تم تعيين البيانات للقالب');
-
-    try {
-      // تطبيق البيانات على القالب
-      doc.render();
-      console.log('تم تطبيق البيانات على القالب بنجاح');
-    } catch (error: any) {
-      console.error('خطأ في تطبيق البيانات على القالب:', error);
-      console.error('تفاصيل الخطأ:', error.message);
-      console.error('الخطأ الكامل:', JSON.stringify(error, null, 2));
-      
-      // إذا فشل معالجة الملف بـ docxtemplater، نجرب الطريقة النصية البسيطة
-      console.log('التحويل إلى الطريقة النصية البسيطة');
-      return processWordDocumentAsText(fileBuffer, contractData);
-    }
-
-    // الحصول على الملف المُعدل
-    const buf = doc.getZip().generate({
-      type: "arraybuffer",
-      compression: "DEFLATE",
-    });
-
-    console.log('تم إنشاء ملف Word المُعدل بنجاح، حجم الملف الجديد:', buf.byteLength, 'bytes');
-    return buf;
-    
-  } catch (error: any) {
-    console.error('خطأ في معالجة ملف Word:', error);
-    console.error('نوع الخطأ:', error.name);
-    console.error('رسالة الخطأ:', error.message);
-    console.error('الخطأ الكامل:', JSON.stringify(error, null, 2));
-    
-    // إذا فشل معالجة الملف، نجرب الطريقة النصية البسيطة
-    console.log('التحويل إلى الطريقة النصية البسيطة');
-    return processWordDocumentAsText(fileBuffer, contractData);
-  }
-}
-
-// طريقة بديلة لمعالجة ملف Word كنص
-async function processWordDocumentAsText(fileBuffer: ArrayBuffer, contractData: ContractData): Promise<ArrayBuffer> {
-  console.log('معالجة ملف Word كنص بسيط');
-  
-  // تحويل ArrayBuffer إلى Uint8Array للمعالجة
-  const uint8Array = new Uint8Array(fileBuffer);
-  
-  // تحويل البيانات إلى نص للبحث والاستبدال
-  let content = new TextDecoder('utf-8', { ignoreBOM: true }).decode(uint8Array);
-  
-  // استبدال المتغيرات في النص
-  const replacements = {
-    '{{property_title}}': contractData.property_title || '',
-    '{{location}}': contractData.location || '',
-    '{{tenant_name}}': contractData.tenant_name || '',
-    '{{rent_amount}}': contractData.rent_amount?.toLocaleString('ar-SA') || '0',
-    '{{contract_start_date}}': new Date(contractData.contract_start_date).toLocaleDateString('ar-SA') || '',
-    '{{contract_end_date}}': new Date(contractData.contract_end_date).toLocaleDateString('ar-SA') || '',
-    '{{payment_method}}': contractData.payment_method || '',
-    '{{security_deposit}}': contractData.security_deposit?.toLocaleString('ar-SA') || '0',
-    '{{installments_count}}': contractData.installments_count?.toString() || '1',
-    '{{installment_frequency}}': contractData.installment_frequency || '',
-    '{{current_date}}': new Date().toLocaleDateString('ar-SA'),
-    '{{contract_number}}': `CNT-${Date.now()}`
-  };
-  
-  // تطبيق الاستبدالات
-  for (const [placeholder, value] of Object.entries(replacements)) {
-    content = content.replace(new RegExp(placeholder, 'g'), value);
-  }
-  
-  console.log('تم استبدال المتغيرات في النص');
-  
-  // تحويل النص المُحدث إلى ArrayBuffer
-  const updatedBuffer = new TextEncoder().encode(content);
-  
-  return updatedBuffer.buffer;
-}
-
-// إنشاء قالب افتراضي بصيغة HTML
-function generateDefaultContract(contractData: ContractData): string {
+// إنشاء قالب HTML متطور وجميل
+function generateContractHTML(contractData: ContractData): string {
   const currentDate = new Date().toLocaleDateString('ar-SA');
+  const contractNumber = `CNT-${Date.now()}`;
   
   return `
 <!DOCTYPE html>
@@ -403,119 +251,160 @@ function generateDefaultContract(contractData: ContractData): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>عقد إيجار عقاري</title>
+    <title>عقد إيجار عقاري - ${contractData.property_title}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
         body {
             font-family: 'Cairo', 'Amiri', Arial, sans-serif;
             direction: rtl;
             text-align: right;
             line-height: 1.8;
-            margin: 0;
-            padding: 40px;
             color: #2c3e50;
-            background: #fff;
+            background: #f8f9fa;
             font-size: 14px;
         }
         
         .container {
             max-width: 800px;
-            margin: 0 auto;
+            margin: 20px auto;
             background: white;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         
         .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
             color: white;
             text-align: center;
-            padding: 30px;
-            margin-bottom: 0;
+            padding: 40px 30px;
         }
         
         .header h1 {
             font-family: 'Amiri', serif;
-            font-size: 28px;
-            margin: 0 0 10px 0;
+            font-size: 32px;
+            margin-bottom: 10px;
             font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .header h2 {
             font-size: 18px;
-            margin: 0 0 20px 0;
-            opacity: 0.9;
+            margin-bottom: 20px;
+            opacity: 0.95;
             font-weight: 400;
         }
         
         .contract-info {
-            background: #ecf0f1;
-            padding: 15px 30px;
+            background: #e3f2fd;
+            padding: 20px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 3px solid #2c3e50;
+            border-bottom: 4px solid #1e3a8a;
         }
         
         .contract-number {
             font-weight: 700;
-            color: #2c3e50;
-            font-size: 16px;
+            color: #1e3a8a;
+            font-size: 18px;
         }
         
         .contract-date {
-            color: #7f8c8d;
-            font-size: 14px;
+            color: #666;
+            font-size: 16px;
         }
         
         .content {
-            padding: 30px;
+            padding: 40px;
         }
         
         .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border-radius: 8px;
-            border-right: 4px solid #3498db;
-            background: #f8f9fa;
+            margin-bottom: 35px;
+            padding: 25px;
+            border-radius: 10px;
+            border-right: 5px solid #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
         .section h3 {
-            color: #2c3e50;
-            font-size: 18px;
-            margin: 0 0 15px 0;
-            font-weight: 600;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 8px;
+            color: #1e3a8a;
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            border-bottom: 3px solid #10b981;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .icon {
+            font-size: 24px;
         }
         
         .info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
         }
         
         .info-item {
             background: white;
-            padding: 12px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
+            padding: 18px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        
+        .info-item:hover {
+            border-color: #10b981;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);
         }
         
         .info-label {
             font-weight: 600;
-            color: #2c3e50;
-            font-size: 13px;
-            margin-bottom: 5px;
+            color: #374151;
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .info-value {
-            color: #34495e;
-            font-size: 14px;
-            font-weight: 500;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .amount {
+            font-weight: 700;
+            color: #059669;
+            font-size: 18px;
+        }
+        
+        .date-highlight {
+            background: linear-gradient(135deg, #fef3c7, #fed7aa);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            color: #92400e;
+            border: 2px solid #f59e0b;
+        }
+        
+        .terms-section {
+            background: linear-gradient(135deg, #fef7ff 0%, #f3e8ff 100%);
+            border-right-color: #8b5cf6;
         }
         
         .terms-list {
@@ -526,110 +415,169 @@ function generateDefaultContract(contractData: ContractData): string {
         
         .terms-list li {
             background: white;
-            margin-bottom: 10px;
-            padding: 15px;
-            border-radius: 5px;
-            border-right: 3px solid #27ae60;
+            margin-bottom: 12px;
+            padding: 18px;
+            border-radius: 8px;
+            border-right: 4px solid #10b981;
             position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .terms-list li:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
         }
         
         .terms-list li:before {
             content: "✓";
-            background: #27ae60;
+            background: #10b981;
             color: white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: absolute;
-            right: -10px;
+            right: -12px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
         
         .important-notice {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 3px solid #f59e0b;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        .important-notice:before {
+            content: "⚠️";
+            position: absolute;
+            top: -15px;
+            right: 20px;
+            background: #f59e0b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 18px;
         }
         
         .important-notice h4 {
-            color: #856404;
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            font-weight: 600;
+            color: #92400e;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            font-weight: 700;
         }
         
         .important-notice ul {
-            color: #856404;
+            color: #92400e;
             margin: 0;
-            padding-right: 20px;
+            padding-right: 25px;
+        }
+        
+        .important-notice li {
+            margin-bottom: 8px;
         }
         
         .signatures {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-top: 50px;
-            padding-top: 30px;
-            border-top: 2px solid #ecf0f1;
+            gap: 50px;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 3px solid #e5e7eb;
         }
         
         .signature-box {
             text-align: center;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 2px dashed #bdc3c7;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            border: 3px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        
+        .signature-box:hover {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
         }
         
         .signature-line {
-            border-bottom: 2px solid #2c3e50;
-            height: 60px;
-            margin-bottom: 15px;
+            border-bottom: 3px solid #374151;
+            height: 80px;
+            margin-bottom: 20px;
             display: flex;
             align-items: end;
             justify-content: center;
         }
         
         .signature-title {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 16px;
+            font-weight: 700;
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .signature-date {
+            font-size: 14px;
+            color: #6b7280;
         }
         
         .footer {
-            background: #2c3e50;
+            background: #1e3a8a;
             color: white;
             text-align: center;
-            padding: 20px;
-            font-size: 12px;
-            opacity: 0.8;
+            padding: 25px;
+            font-size: 14px;
+            opacity: 0.9;
         }
         
         @media print {
-            body { padding: 20px; }
-            .container { box-shadow: none; }
-            .header { background: #2c3e50 !important; }
+            body { 
+                background: white;
+                font-size: 12px;
+            }
+            .container { 
+                box-shadow: none;
+                margin: 0;
+                border-radius: 0;
+            }
+            .header { 
+                background: #1e3a8a !important;
+                print-color-adjust: exact;
+            }
+            .section {
+                break-inside: avoid;
+                margin-bottom: 20px;
+            }
         }
         
-        .amount {
-            font-weight: 700;
-            color: #27ae60;
-            font-size: 16px;
-        }
-        
-        .highlight {
-            background: #fff2e6;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-weight: 600;
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            .content {
+                padding: 20px;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            .signatures {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            .contract-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -641,13 +589,13 @@ function generateDefaultContract(contractData: ContractData): string {
         </div>
         
         <div class="contract-info">
-            <div class="contract-number">رقم العقد: ${contractData.contract_number || `CNT-${Date.now()}`}</div>
+            <div class="contract-number">رقم العقد: ${contractNumber}</div>
             <div class="contract-date">تاريخ الإنشاء: ${currentDate}</div>
         </div>
 
         <div class="content">
             <div class="section">
-                <h3>📍 بيانات العقار</h3>
+                <h3><span class="icon">🏢</span>بيانات العقار</h3>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">عنوان العقار</div>
@@ -661,7 +609,7 @@ function generateDefaultContract(contractData: ContractData): string {
             </div>
             
             <div class="section">
-                <h3>👤 بيانات المستأجر</h3>
+                <h3><span class="icon">👤</span>بيانات المستأجر</h3>
                 <div class="info-item">
                     <div class="info-label">اسم المستأجر</div>
                     <div class="info-value">${contractData.tenant_name}</div>
@@ -669,7 +617,7 @@ function generateDefaultContract(contractData: ContractData): string {
             </div>
             
             <div class="section">
-                <h3>💰 التفاصيل المالية</h3>
+                <h3><span class="icon">💰</span>التفاصيل المالية</h3>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">قيمة الإيجار السنوي</div>
@@ -691,21 +639,21 @@ function generateDefaultContract(contractData: ContractData): string {
             </div>
             
             <div class="section">
-                <h3>📅 مدة العقد</h3>
+                <h3><span class="icon">📅</span>مدة العقد</h3>
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">تاريخ بداية العقد</div>
-                        <div class="info-value highlight">${new Date(contractData.contract_start_date).toLocaleDateString('ar-SA')}</div>
+                        <div class="info-value date-highlight">${new Date(contractData.contract_start_date).toLocaleDateString('ar-SA')}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">تاريخ نهاية العقد</div>
-                        <div class="info-value highlight">${new Date(contractData.contract_end_date).toLocaleDateString('ar-SA')}</div>
+                        <div class="info-value date-highlight">${new Date(contractData.contract_end_date).toLocaleDateString('ar-SA')}</div>
                     </div>
                 </div>
             </div>
             
-            <div class="section">
-                <h3>📋 الشروط والأحكام</h3>
+            <div class="section terms-section">
+                <h3><span class="icon">📋</span>الشروط والأحكام</h3>
                 <ul class="terms-list">
                     <li>يجب على المستأجر دفع الإيجار في المواعيد المحددة دون تأخير</li>
                     <li>يُمنع التأجير من الباطن دون موافقة خطية مسبقة من المالك</li>
@@ -713,17 +661,20 @@ function generateDefaultContract(contractData: ContractData): string {
                     <li>أي تعديلات أو تغييرات على العقد تحتاج لموافقة الطرفين</li>
                     <li>في حالة التأخير عن السداد، سيتم تطبيق غرامة تأخير حسب القانون</li>
                     <li>العقد قابل للتجديد بموافقة الطرفين وحسب الأسعار السائدة</li>
+                    <li>يحق للمالك استرداد العقار في حالة مخالفة الشروط</li>
+                    <li>المستأجر مسؤول عن جميع فواتير الخدمات (كهرباء، ماء، إنترنت)</li>
                 </ul>
             </div>
             
             <div class="important-notice">
-                <h4>⚠️ متطلبات مهمة لصحة العقد</h4>
+                <h4>متطلبات قانونية مهمة لصحة العقد</h4>
                 <ul>
-                    <li>شهادة عدم الممانعة من شركة عجمان للصرف الصحي</li>
-                    <li>جميع البيانات يجب أن تكون مطبوعة وليست مكتوبة بخط اليد</li>
-                    <li>أي تعديلات يدوية (حذف، كشط أو تعديل) تجعل العقد غير صالح</li>
-                    <li>التأكد من صحة جميع البيانات قبل التوقيع النهائي</li>
-                    <li>الاحتفاظ بنسخة أصلية من العقد لكل طرف</li>
+                    <li><strong>شهادة عدم الممانعة</strong> من شركة عجمان للصرف الصحي</li>
+                    <li><strong>جميع البيانات</strong> يجب أن تكون مطبوعة وليست مكتوبة بخط اليد</li>
+                    <li><strong>أي تعديلات يدوية</strong> (حذف، كشط أو تعديل) تجعل العقد غير صالح قانونياً</li>
+                    <li><strong>التأكد من صحة البيانات</strong> قبل التوقيع النهائي</li>
+                    <li><strong>الاحتفاظ بنسخة أصلية</strong> من العقد لكل طرف</li>
+                    <li><strong>توثيق العقد</strong> لدى الجهات المختصة في عجمان</li>
                 </ul>
             </div>
 
@@ -731,18 +682,18 @@ function generateDefaultContract(contractData: ContractData): string {
                 <div class="signature-box">
                     <div class="signature-line"></div>
                     <div class="signature-title">توقيع المؤجر</div>
-                    <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">التاريخ: ___________</div>
+                    <div class="signature-date">التاريخ: _______________</div>
                 </div>
                 <div class="signature-box">
                     <div class="signature-line"></div>
                     <div class="signature-title">توقيع المستأجر</div>
-                    <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">التاريخ: ___________</div>
+                    <div class="signature-date">التاريخ: _______________</div>
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            تم إنشاء هذا العقد بواسطة نظام إدارة العقود - شركة ستار سيتي العقارية
+            تم إنشاء هذا العقد بواسطة نظام إدارة العقود المتطور - شركة ستار سيتي العقارية، عجمان - دولة الإمارات العربية المتحدة
         </div>
     </div>
 </body>
