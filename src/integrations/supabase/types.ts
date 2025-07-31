@@ -2268,12 +2268,24 @@ export type Database = {
         Args: { commission_id_param: string }
         Returns: boolean
       }
+      approve_commission_multi: {
+        Args: { commission_id_param: string }
+        Returns: boolean
+      }
       calculate_and_apply_incentives: {
         Args: { target_id_param: string }
         Returns: Json
       }
       calculate_deal_commission: {
         Args: { deal_id_param: string }
+        Returns: Json
+      }
+      calculate_deal_commission_multi: {
+        Args: {
+          deal_id_param: string
+          employee_ids?: string[]
+          employee_percentages?: number[]
+        }
         Returns: Json
       }
       calculate_lead_score: {
