@@ -94,7 +94,7 @@ export default function Commissions() {
         supabase
           .from('profiles')
           .select('id, first_name, last_name, email')
-          .eq('role', 'employee')
+          .eq('is_active', true)
       ]);
 
       if (commissionsResult.error) throw commissionsResult.error;

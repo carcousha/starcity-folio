@@ -101,7 +101,7 @@ export default function Vehicles() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, user_id')
-        .not('user_id', 'is', null); // Only get profiles with user_id
+        .eq('is_active', true); // Get all active profiles
 
       if (error) throw error;
       setProfiles(data || []);

@@ -30,7 +30,8 @@ import {
   User,
   BarChart3,
   Shield,
-  Calculator
+  Calculator,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -687,9 +688,18 @@ export default function Staff() {
                         <Eye className="h-4 w-4" />
                       </Button>
                       {canManageStaff && (
-                        <Button size="sm" variant="outline">
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button size="sm" variant="outline">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setConfirmDelete({ open: true, employee })}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </TableCell>
@@ -726,13 +736,27 @@ export default function Staff() {
         variant="destructive"
         onConfirm={async () => {
           if (confirmDelete.employee) {
-            // Add delete logic here
-            toast({
-              title: "تم الحذف",
-              description: "تم حذف الموظف بنجاح",
-            });
-            setConfirmDelete({ open: false, employee: null });
-            await fetchStaff();
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .delete()
+                .eq('id', confirmDelete.employee.id);
+
+              if (error) throw error;
+
+              toast({
+                title: "تم الحذف",
+                description: "تم حذف الموظف بنجاح",
+              });
+              setConfirmDelete({ open: false, employee: null });
+              await fetchStaff();
+            } catch (error) {
+              toast({
+                title: "خطأ",
+                description: "فشل في حذف الموظف",
+                variant: "destructive",
+              });
+            }
           }
         }}
       />
