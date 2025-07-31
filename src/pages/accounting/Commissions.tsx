@@ -229,7 +229,6 @@ const AddCommissionForm = () => {
                   <SelectValue placeholder="اختر الموظف المسؤول عن العمولة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">بدون موظف محدد</SelectItem>
                   {employees.map((employee) => (
                     <SelectItem key={employee.user_id} value={employee.user_id}>
                       {employee.first_name} {employee.last_name}
