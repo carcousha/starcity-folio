@@ -264,43 +264,64 @@ function extractUserIdFromToken(authHeader: string | null): string | null {
 // معالجة ملف Word - استبدال المتغيرات داخل الملف
 async function processWordDocument(fileBuffer: ArrayBuffer, contractData: ContractData): Promise<ArrayBuffer> {
   console.log('معالجة ملف Word باستخدام Docxtemplater');
+  console.log('حجم الملف:', fileBuffer.byteLength, 'bytes');
+  console.log('بيانات العقد المرسلة:', JSON.stringify(contractData, null, 2));
   
   try {
     // تحميل الملف في PizZip
     const zip = new PizZip(fileBuffer);
+    console.log('تم تحميل الملف في PizZip بنجاح');
     
     // إنشاء Docxtemplater instance
     const doc = new Docxtemplater(zip, {
       paragraphLoop: true,
       linebreaks: true,
     });
+    console.log('تم إنشاء Docxtemplater instance');
 
     // البيانات التي سيتم استبدالها في القالب
     const templateData = {
-      property_title: contractData.property_title || '',
-      location: contractData.location || '',
-      tenant_name: contractData.tenant_name || '',
+      property_title: contractData.property_title || 'غير محدد',
+      location: contractData.location || 'غير محدد',
+      tenant_name: contractData.tenant_name || 'غير محدد',
       rent_amount: contractData.rent_amount?.toLocaleString('ar-SA') || '0',
       contract_start_date: new Date(contractData.contract_start_date).toLocaleDateString('ar-SA') || '',
       contract_end_date: new Date(contractData.contract_end_date).toLocaleDateString('ar-SA') || '',
-      payment_method: contractData.payment_method || '',
+      payment_method: contractData.payment_method || 'غير محدد',
       security_deposit: contractData.security_deposit?.toLocaleString('ar-SA') || '0',
       installments_count: contractData.installments_count?.toString() || '1',
-      installment_frequency: contractData.installment_frequency || '',
+      installment_frequency: contractData.installment_frequency || 'غير محدد',
       current_date: new Date().toLocaleDateString('ar-SA'),
       contract_number: `CNT-${Date.now()}`
     };
 
-    console.log('البيانات المستخدمة في القالب:', templateData);
+    console.log('البيانات المستخدمة في القالب:', JSON.stringify(templateData, null, 2));
+
+    // فحص محتوى القالب قبل المعالجة
+    try {
+      const documentContent = doc.getFullText();
+      console.log('محتوى القالب (أول 500 حرف):', documentContent.substring(0, 500));
+      console.log('هل يحتوي على متغيرات؟', documentContent.includes('{{'));
+      
+      // البحث عن المتغيرات الموجودة
+      const variableMatches = documentContent.match(/\{\{[^}]+\}\}/g);
+      console.log('المتغيرات الموجودة في القالب:', variableMatches || 'لا توجد متغيرات');
+    } catch (textError) {
+      console.log('تعذر قراءة النص من القالب:', textError);
+    }
 
     // تعيين البيانات للقالب
     doc.setData(templateData);
+    console.log('تم تعيين البيانات للقالب');
 
     try {
       // تطبيق البيانات على القالب
       doc.render();
+      console.log('تم تطبيق البيانات على القالب بنجاح');
     } catch (error: any) {
       console.error('خطأ في تطبيق البيانات على القالب:', error);
+      console.error('تفاصيل الخطأ:', error.message);
+      console.error('الخطأ الكامل:', JSON.stringify(error, null, 2));
       
       // إذا فشل معالجة الملف بـ docxtemplater، نجرب الطريقة النصية البسيطة
       console.log('التحويل إلى الطريقة النصية البسيطة');
@@ -313,16 +334,20 @@ async function processWordDocument(fileBuffer: ArrayBuffer, contractData: Contra
       compression: "DEFLATE",
     });
 
-    console.log('تم إنشاء ملف Word المُعدل بنجاح');
+    console.log('تم إنشاء ملف Word المُعدل بنجاح، حجم الملف الجديد:', buf.byteLength, 'bytes');
     return buf;
     
   } catch (error: any) {
     console.error('خطأ في معالجة ملف Word:', error);
+    console.error('نوع الخطأ:', error.name);
+    console.error('رسالة الخطأ:', error.message);
+    console.error('الخطأ الكامل:', JSON.stringify(error, null, 2));
     
     // إذا فشل معالجة الملف، نجرب الطريقة النصية البسيطة
     console.log('التحويل إلى الطريقة النصية البسيطة');
     return processWordDocumentAsText(fileBuffer, contractData);
   }
+}
 }
 
 // طريقة بديلة لمعالجة ملف Word كنص
