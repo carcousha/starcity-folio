@@ -1493,14 +1493,16 @@ export type Database = {
           installment_frequency: string
           installments_count: number
           payment_method: string | null
-          property_id: string
+          property_id: string | null
+          property_title: string | null
           renewal_notice_days: number | null
           rent_amount: number
           security_deposit: number | null
           special_terms: string | null
           start_date: string
           template_used_id: string | null
-          tenant_id: string
+          tenant_id: string | null
+          tenant_name: string | null
           updated_at: string
         }
         Insert: {
@@ -1517,14 +1519,16 @@ export type Database = {
           installment_frequency?: string
           installments_count?: number
           payment_method?: string | null
-          property_id: string
+          property_id?: string | null
+          property_title?: string | null
           renewal_notice_days?: number | null
           rent_amount: number
           security_deposit?: number | null
           special_terms?: string | null
           start_date: string
           template_used_id?: string | null
-          tenant_id: string
+          tenant_id?: string | null
+          tenant_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -1541,14 +1545,16 @@ export type Database = {
           installment_frequency?: string
           installments_count?: number
           payment_method?: string | null
-          property_id?: string
+          property_id?: string | null
+          property_title?: string | null
           renewal_notice_days?: number | null
           rent_amount?: number
           security_deposit?: number | null
           special_terms?: string | null
           start_date?: string
           template_used_id?: string | null
-          tenant_id?: string
+          tenant_id?: string | null
+          tenant_name?: string | null
           updated_at?: string
         }
         Relationships: [
