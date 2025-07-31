@@ -414,9 +414,31 @@ export default function Vehicles() {
             <Download className="h-4 w-4 ml-2" />
             تصدير
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            if (open && !isEditMode) {
+              // فتح حوار الإضافة
+              setIsEditMode(false);
+              setSelectedVehicle(null);
+              setFormData({
+                make: "",
+                model: "",
+                year: "",
+                license_plate: "",
+                color: "",
+                assigned_to: "",
+                purchase_price: "",
+                purchase_date: "",
+                license_expiry: "",
+                insurance_expiry: "",
+                next_maintenance: "",
+                odometer_reading: "",
+                notes: ""
+              });
+            }
+            setIsDialogOpen(open);
+          }}>
             <DialogTrigger asChild>
-              <Button onClick={openAddDialog}>
+              <Button>
                 <Plus className="h-4 w-4 ml-2" />
                 إضافة سيارة
               </Button>
