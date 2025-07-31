@@ -20,7 +20,11 @@ import {
   CheckSquare,
   Megaphone,
   PieChart,
-  Wallet
+  Wallet,
+  Building2,
+  Calendar,
+  CheckCircle,
+  CreditCard
 } from "lucide-react";
 
 import {
@@ -92,6 +96,21 @@ export function AppSidebar() {
         { title: "سجل النشاطات", url: "/accounting/activity-log", icon: BarChart3 },
         { title: "التقارير المالية", url: "/reports", icon: BarChart3 },
       ]
+    },
+    { 
+      title: "وحدة الإيجارات", 
+      url: "/rental", 
+      icon: Building2,
+      hasSubmenu: true,
+      submenu: [
+        { title: "لوحة التحكم", url: "/rental", icon: Home },
+        { title: "إدارة العقارات", url: "/rental/properties", icon: Building2 },
+        { title: "إدارة المستأجرين", url: "/rental/tenants", icon: Users },
+        { title: "عقود الإيجار", url: "/rental/contracts", icon: FileText },
+        { title: "جدول الأقساط", url: "/rental/installments", icon: CreditCard },
+        { title: "الخدمات الحكومية", url: "/rental/government-services", icon: CheckCircle },
+        { title: "التجديدات", url: "/rental/renewals", icon: Calendar },
+      ]
     }
   ];
 
@@ -160,7 +179,12 @@ export function AppSidebar() {
                           }
                           ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
                         `}
-                        onClick={item.hasSubmenu ? () => toggleSection(item.title === 'إدارة العلاقات العامة' ? 'crm' : 'accounting') : undefined}
+                        onClick={item.hasSubmenu ? () => toggleSection(
+                          item.title === 'إدارة العلاقات العامة' ? 'crm' : 
+                          item.title === 'إدارة الحسابات' ? 'accounting' : 
+                          item.title === 'وحدة الإيجارات' ? 'rental' : 
+                          'other'
+                        ) : undefined}
                       >
                         {item.hasSubmenu ? (
                           <div className="flex items-center justify-between w-full">
@@ -169,7 +193,12 @@ export function AppSidebar() {
                               {!collapsed && <span className="font-medium">{item.title}</span>}
                             </div>
                             {!collapsed && (
-                              expandedSections.includes(item.title === 'إدارة العلاقات العامة' ? 'crm' : 'accounting') 
+                              expandedSections.includes(
+                                item.title === 'إدارة العلاقات العامة' ? 'crm' : 
+                                item.title === 'إدارة الحسابات' ? 'accounting' : 
+                                item.title === 'وحدة الإيجارات' ? 'rental' : 
+                                'other'
+                              ) 
                                 ? <ChevronDown className="h-4 w-4" />
                                 : <ChevronRight className="h-4 w-4" />
                             )}
@@ -184,7 +213,12 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     
                     {/* Submenu */}
-                    {item.hasSubmenu && expandedSections.includes(item.title === 'إدارة العلاقات العامة' ? 'crm' : 'accounting') && !collapsed && (
+                    {item.hasSubmenu && expandedSections.includes(
+                      item.title === 'إدارة العلاقات العامة' ? 'crm' : 
+                      item.title === 'إدارة الحسابات' ? 'accounting' : 
+                      item.title === 'وحدة الإيجارات' ? 'rental' : 
+                      'other'
+                    ) && !collapsed && (
                       <div className="mr-4 space-y-1">
                          {item.submenu?.filter(subItem => {
                            // Check permissions for each submenu item
@@ -220,6 +254,9 @@ export function AppSidebar() {
                             }
                             if (subItem.url.includes('/accounting/activity-log')) {
                               return checkPermission('canViewActivityLogs');
+                            }
+                            if (subItem.url.includes('/rental/')) {
+                              return checkPermission('canViewFinancials');
                             }
                             return true; // Default allow
                          }).map((subItem) => (

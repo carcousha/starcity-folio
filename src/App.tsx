@@ -23,6 +23,9 @@ import Treasury from "./pages/accounting/Treasury";
 import ActivityLogPage from "./pages/accounting/ActivityLog";
 import AdvancedDebts from "./pages/accounting/AdvancedDebts";
 import ReportsIndex from "./pages/reports/index";
+import RentalManagement from "./pages/rental/index";
+import RentalProperties from "./pages/rental/Properties";
+import RentalTenants from "./pages/rental/Tenants";
 import EmployeeReports from "./pages/reports/EmployeeReports";
 import VehicleReports from "./pages/reports/VehicleReports";
 import MyCommissions from "./pages/employee/MyCommissions";
@@ -123,6 +126,23 @@ const App = () => (
               <Route path="/accounting/activity-log" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <ActivityLogPage />
+                </ProtectedRoute>
+              } />
+              
+              {/* Rental Routes - Admin and Accountant */}
+              <Route path="/rental" element={
+                <ProtectedRoute requiredPermission="canViewFinancials">
+                  <RentalManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/rental/properties" element={
+                <ProtectedRoute requiredPermission="canViewFinancials">
+                  <RentalProperties />
+                </ProtectedRoute>
+              } />
+              <Route path="/rental/tenants" element={
+                <ProtectedRoute requiredPermission="canViewFinancials">
+                  <RentalTenants />
                 </ProtectedRoute>
               } />
               
