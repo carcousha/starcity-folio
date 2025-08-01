@@ -18,7 +18,7 @@ const AddCommissionForm = () => {
   const [transactionType, setTransactionType] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedEmployees, setSelectedEmployees] = useState<Array<{id: string, percentage: number}>>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
   // جلب قائمة الموظفين
@@ -109,7 +109,7 @@ const AddCommissionForm = () => {
           amount: commissionAmount,
           deal_type: transactionType,
           status: 'closed',
-          handled_by: selectedEmployees.length > 0 ? selectedEmployees[0].id : user.id,
+          handled_by: selectedEmployees.length > 0 ? selectedEmployees[0] : user.id,
           commission_rate: 2.5,
           commission_amount: calculatedCommission,
           commission_calculated: true,
@@ -132,7 +132,7 @@ const AddCommissionForm = () => {
           office_share: officeShare,
           remaining_for_employees: employeeShare,
           client_name: clientName,
-          employee_id: selectedEmployees.length > 0 ? selectedEmployees[0].id : user.id,
+          employee_id: selectedEmployees.length > 0 ? selectedEmployees[0] : user.id,
           status: 'pending'
         })
         .select()
@@ -142,22 +142,20 @@ const AddCommissionForm = () => {
 
       // إضافة تفاصيل العمولة للموظفين المختارين
       if (selectedEmployees.length > 0 && data) {
-        // التحقق من صحة النسب
-        const totalPercentage = selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0);
-        if (Math.abs(totalPercentage - 100) > 0.01) {
-          throw new Error('مجموع النسب يجب أن يساوي 100%');
-        }
+        // حساب النسبة التلقائية: 50% للموظفين يقسم بالتساوي
+        const employeePercentage = 100 / selectedEmployees.length; // النسبة لكل موظف من الـ 50%
+        const sharePerEmployee = employeeShare / selectedEmployees.length; // المبلغ لكل موظف
 
         // إضافة موظف لكل نسبة
-        for (const employee of selectedEmployees) {
+        for (const employeeId of selectedEmployees) {
           await supabase
             .from('commission_employees')
             .insert({
               commission_id: data.id,
-              employee_id: employee.id,
-              percentage: employee.percentage,
-              calculated_share: (employeeShare * employee.percentage) / 100,
-              net_share: (employeeShare * employee.percentage) / 100
+              employee_id: employeeId,
+              percentage: employeePercentage,
+              calculated_share: sharePerEmployee,
+              net_share: sharePerEmployee
             });
         }
       }
@@ -201,18 +199,12 @@ const AddCommissionForm = () => {
     }
   });
 
-  const addEmployee = () => {
-    setSelectedEmployees([...selectedEmployees, { id: '', percentage: 0 }]);
-  };
-
-  const removeEmployee = (index: number) => {
-    setSelectedEmployees(selectedEmployees.filter((_, i) => i !== index));
-  };
-
-  const updateEmployee = (index: number, field: 'id' | 'percentage', value: string | number) => {
-    const updated = [...selectedEmployees];
-    updated[index] = { ...updated[index], [field]: value };
-    setSelectedEmployees(updated);
+  const toggleEmployeeSelection = (employeeId: string) => {
+    setSelectedEmployees(prev => 
+      prev.includes(employeeId) 
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -225,29 +217,6 @@ const AddCommissionForm = () => {
         variant: "destructive"
       });
       return;
-    }
-
-    // التحقق من صحة النسب للموظفين
-    if (selectedEmployees.length > 0) {
-      const totalPercentage = selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0);
-      if (Math.abs(totalPercentage - 100) > 0.01) {
-        toast({
-          title: "خطأ في النسب",
-          description: "مجموع نسب الموظفين يجب أن يساوي 100%",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const hasEmptyEmployee = selectedEmployees.some(emp => !emp.id || emp.percentage <= 0);
-      if (hasEmptyEmployee) {
-        toast({
-          title: "بيانات ناقصة",
-          description: "يرجى اختيار جميع الموظفين وتحديد نسب صحيحة",
-          variant: "destructive"
-        });
-        return;
-      }
     }
 
     addCommissionMutation.mutate({});
@@ -323,80 +292,34 @@ const AddCommissionForm = () => {
             </div>
             
             <div className="space-y-2 md:col-span-2">
-              <div className="flex items-center justify-between">
-                <Label>الموظفين المشاركين (اختياري)</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addEmployee}
-                  className="flex items-center gap-2"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  إضافة موظف
-                </Button>
-              </div>
+              <Label>الموظفين المشاركين (اختياري)</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                اختر الموظفين المشاركين - سيتم تقسيم 50% من العمولة بينهم بالتساوي
+              </p>
               
-              {selectedEmployees.length > 0 && (
-                <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
-                  {selectedEmployees.map((employee, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <Select 
-                          value={employee.id} 
-                          onValueChange={(value) => updateEmployee(index, 'id', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الموظف" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {employees.map((emp) => (
-                              <SelectItem key={emp.user_id} value={emp.user_id}>
-                                {emp.first_name} {emp.last_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="w-24">
-                        <Input
-                          type="number"
-                          placeholder="النسبة %"
-                          value={employee.percentage || ''}
-                          onChange={(e) => updateEmployee(index, 'percentage', parseFloat(e.target.value) || 0)}
-                          min="0"
-                          max="100"
-                          step="0.1"
-                        />
-                      </div>
-                      
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeEmployee(index)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  
-                  <div className="text-sm text-muted-foreground pt-2 border-t">
-                    المجموع: {selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0).toFixed(1)}%
-                    {Math.abs(selectedEmployees.reduce((sum, emp) => sum + emp.percentage, 0) - 100) > 0.01 && (
-                      <span className="text-red-600 ml-2">
-                        (يجب أن يساوي 100%)
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-32 overflow-y-auto border rounded p-3">
+                {employees.map((employee) => (
+                  <label key={employee.user_id} className="flex items-center space-x-2 space-x-reverse cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmployees.includes(employee.user_id)}
+                      onChange={() => toggleEmployeeSelection(employee.user_id)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm">{employee.first_name} {employee.last_name}</span>
+                  </label>
+                ))}
+              </div>
               
               {selectedEmployees.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  لم يتم اختيار موظفين - ستكون العمولة للمكتب فقط
+                  لم يتم اختيار موظفين - ستكون العمولة الكاملة للمكتب
+                </p>
+              )}
+              
+              {selectedEmployees.length > 0 && (
+                <p className="text-sm text-green-600">
+                  تم اختيار {selectedEmployees.length} موظف - سيحصل كل موظف على {(50 / selectedEmployees.length).toFixed(1)}% من إجمالي العمولة
                 </p>
               )}
             </div>
@@ -415,24 +338,35 @@ const AddCommissionForm = () => {
                   <p className="font-bold">{(parseFloat(amount || "0") * 0.025).toFixed(2)} د.إ</p>
                 </div>
                 <div>
-                  <p className="text-blue-600">نصيب الموظفين:</p>
-                  {selectedEmployees.length > 0 ? (
-                    <div className="space-y-1">
-                      {selectedEmployees.map((emp, idx) => {
-                        const employeeName = employees.find(e => e.user_id === emp.id);
-                        const empShare = (parseFloat(amount || "0") * 0.025 * 0.5 * emp.percentage) / 100;
-                        return (
-                          <p key={idx} className="text-xs">
-                            {employeeName ? `${employeeName.first_name} ${employeeName.last_name}` : 'غير محدد'}: {empShare.toFixed(2)} د.إ ({emp.percentage}%)
-                          </p>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="font-bold">للمكتب: {(parseFloat(amount || "0") * 0.025 * 0.5).toFixed(2)} د.إ</p>
-                  )}
+                  <p className="text-blue-600">نصيب المكتب (50%):</p>
+                  <p className="font-bold text-blue-600">{(parseFloat(amount || "0") * 0.025 * 0.5).toFixed(2)} د.إ</p>
                 </div>
               </div>
+              
+              {selectedEmployees.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-blue-600 font-medium mb-2">توزيع نصيب الموظفين (50%):</p>
+                  <div className="space-y-1">
+                    {selectedEmployees.map((empId) => {
+                      const employee = employees.find(e => e.user_id === empId);
+                      const empShare = (parseFloat(amount || "0") * 0.025 * 0.5) / selectedEmployees.length;
+                      const empPercentage = (50 / selectedEmployees.length).toFixed(1);
+                      return (
+                        <p key={empId} className="text-xs">
+                          {employee ? `${employee.first_name} ${employee.last_name}` : 'غير محدد'}: {empShare.toFixed(2)} د.إ ({empPercentage}%)
+                        </p>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {selectedEmployees.length === 0 && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <p className="text-blue-600">نصيب الموظفين: لا يوجد - يذهب للمكتب</p>
+                  <p className="font-bold text-blue-600">إجمالي نصيب المكتب: {(parseFloat(amount || "0") * 0.025).toFixed(2)} د.إ</p>
+                </div>
+              )}
             </div>
           )}
           
