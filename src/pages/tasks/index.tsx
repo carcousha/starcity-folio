@@ -1,7 +1,7 @@
 import TasksDashboard from '@/components/tasks/TasksDashboard';
 
-const TasksPage = () => {
+const TasksIndex = () => {
   return <TasksDashboard />;
 };
 
-export default TasksPage;
+export default TasksIndex;

@@ -11,7 +11,7 @@ import Auth from "./pages/Auth";
 import CRMIndex from "./pages/crm/index";
 import Clients from "./pages/crm/Clients";
 import Leads from "./pages/crm/Leads";
-import TasksPage from "./pages/tasks";
+import TasksIndex from "./pages/tasks/index";
 import AccountingIndex from "./pages/accounting/index";
 import Expenses from "./pages/accounting/Expenses";
 import Revenues from "./pages/accounting/Revenues";
@@ -24,12 +24,17 @@ import Treasury from "./pages/accounting/Treasury";
 import ActivityLogPage from "./pages/accounting/ActivityLog";
 import AdvancedDebts from "./pages/accounting/AdvancedDebts";
 import ReportsIndex from "./pages/reports/index";
-import RentalManagement from "./pages/rental/index";
-import RentalProperties from "./pages/rental/Properties";
-import RentalTenants from "./pages/rental/Tenants";
+import RentalIndex from "./pages/rental/index";
+import Properties from "./pages/rental/Properties";
+import Tenants from "./pages/rental/Tenants";
 import RentalContracts from "./pages/rental/RentalContracts";
 import EmployeeReports from "./pages/reports/EmployeeReports";
 import VehicleReports from "./pages/reports/VehicleReports";
+import CommissionsReports from "./pages/reports/CommissionsReports";
+import DebtsReports from "./pages/reports/DebtsReports";
+import ExpensesReports from "./pages/reports/ExpensesReports";
+import RevenuesReports from "./pages/reports/RevenuesReports";
+import TreasuryReports from "./pages/reports/TreasuryReports";
 import MyCommissions from "./pages/employee/MyCommissions";
 import MyGoals from "./pages/employee/MyGoals";
 import MyEvaluation from "./pages/employee/MyEvaluation";
@@ -73,9 +78,9 @@ const App = () => (
                   <Leads />
                 </ProtectedRoute>
               } />
-              <Route path="/crm/tasks" element={
-                <ProtectedRoute requiredPermission="crmAccess">
-                  <TasksPage />
+              <Route path="/tasks" element={
+                <ProtectedRoute requiredPermission="canViewActivityLogs">
+                  <TasksIndex />
                 </ProtectedRoute>
               } />
               
@@ -139,17 +144,17 @@ const App = () => (
               {/* Rental Routes - Admin and Accountant */}
               <Route path="/rental" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <RentalManagement />
+                  <RentalIndex />
                 </ProtectedRoute>
               } />
               <Route path="/rental/properties" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <RentalProperties />
+                  <Properties />
                 </ProtectedRoute>
               } />
               <Route path="/rental/tenants" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <RentalTenants />
+                  <Tenants />
                 </ProtectedRoute>
               } />
               <Route path="/rental/contracts" element={
@@ -172,6 +177,31 @@ const App = () => (
               <Route path="/reports/vehicles" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
                   <VehicleReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/commissions" element={
+                <ProtectedRoute requiredPermission="canViewAllReports">
+                  <CommissionsReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/debts" element={
+                <ProtectedRoute requiredPermission="canViewAllReports">
+                  <DebtsReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/expenses" element={
+                <ProtectedRoute requiredPermission="canViewAllReports">
+                  <ExpensesReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/revenues" element={
+                <ProtectedRoute requiredPermission="canViewAllReports">
+                  <RevenuesReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/treasury" element={
+                <ProtectedRoute requiredPermission="canViewAllReports">
+                  <TreasuryReports />
                 </ProtectedRoute>
               } />
               
