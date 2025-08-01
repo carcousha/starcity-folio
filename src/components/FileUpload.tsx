@@ -6,6 +6,40 @@ import { Upload, X, File, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// وظيفة ضغط الصورة
+const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 800): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = document.createElement('img');
+
+    img.onload = () => {
+      // حساب الأبعاد الجديدة مع الحفاظ على النسبة
+      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+
+      // رسم الصورة المضغوطة
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // تحويل إلى blob ثم file
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new globalThis.File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        } else {
+          resolve(file); // في حالة فشل الضغط، إرجاع الملف الأصلي
+        }
+      }, file.type, quality);
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 interface FileUploadProps {
   category: string;
   accept?: string;
@@ -28,7 +62,7 @@ export default function FileUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (!file) return;
 
     // Validate file size
@@ -41,7 +75,22 @@ export default function FileUpload({
       return;
     }
 
-    uploadFile(file);
+    let fileToUpload = file;
+
+    // ضغط الصورة إذا كانت من نوع صورة
+    if (file.type.startsWith('image/')) {
+      console.log('🔍 FileUpload - Original file size:', file.size, 'bytes');
+      try {
+        fileToUpload = await compressImage(file);
+        console.log('🔍 FileUpload - Compressed file size:', fileToUpload.size, 'bytes');
+        console.log('🔍 FileUpload - Compression ratio:', ((file.size - fileToUpload.size) / file.size * 100).toFixed(1) + '%');
+      } catch (error) {
+        console.warn('⚠️ FileUpload - Image compression failed, using original file:', error);
+        fileToUpload = file;
+      }
+    }
+
+    uploadFile(fileToUpload);
   };
 
   const uploadFile = async (file: File) => {
@@ -107,13 +156,13 @@ export default function FileUpload({
     setDragOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      handleFileSelect(files[0]);
+      await handleFileSelect(files[0]);
     }
   };
 
@@ -158,9 +207,9 @@ export default function FileUpload({
         ref={fileInputRef}
         type="file"
         accept={accept}
-        onChange={(e) => {
+        onChange={async (e) => {
           const file = e.target.files?.[0];
-          if (file) handleFileSelect(file);
+          if (file) await handleFileSelect(file);
         }}
         className="hidden"
       />
