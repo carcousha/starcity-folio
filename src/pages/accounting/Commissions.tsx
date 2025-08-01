@@ -18,7 +18,6 @@ const AddCommissionForm = () => {
   const [transactionType, setTransactionType] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [amount, setAmount] = useState("");
-  const [commissionRate, setCommissionRate] = useState<number>(2.5);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
@@ -38,10 +37,9 @@ const AddCommissionForm = () => {
 
   const addCommissionMutation = useMutation({
     mutationFn: async (commissionData: any) => {
-      const commissionAmount = parseFloat(amount);
-      const calculatedCommission = commissionAmount * (commissionRate / 100); // استخدام النسبة المحددة
-      const officeShare = calculatedCommission * 0.5;
-      const employeeShare = calculatedCommission * 0.5;
+      const totalCommission = parseFloat(amount); // المبلغ المدخل هو إجمالي العمولة
+      const officeShare = totalCommission * 0.5; // 50% للمكتب
+      const employeeShare = totalCommission * 0.5; // 50% للموظفين
       
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
@@ -107,12 +105,12 @@ const AddCommissionForm = () => {
         .insert({
           client_id: clientId,
           property_id: propertyId,
-          amount: commissionAmount,
+          amount: totalCommission, // نستخدم مبلغ العمولة كمبلغ الصفقة
           deal_type: transactionType,
           status: 'closed',
           handled_by: selectedEmployees.length > 0 ? selectedEmployees[0] : user.id,
-          commission_rate: commissionRate,
-          commission_amount: calculatedCommission,
+          commission_rate: 0, // لا نحتاج نسبة لأن المبلغ هو العمولة نفسها
+          commission_amount: totalCommission,
           commission_calculated: true,
           notes: `عمولة يدوية - ${transactionType} - ${propertyType} - ${clientName}`,
           closed_at: new Date().toISOString()
@@ -127,9 +125,9 @@ const AddCommissionForm = () => {
         .from('commissions')
         .insert({
           deal_id: dealData.id,
-          amount: commissionAmount,
-          percentage: commissionRate,
-          total_commission: calculatedCommission,
+          amount: totalCommission,
+          percentage: 0, // لا نحتاج نسبة
+          total_commission: totalCommission,
           office_share: officeShare,
           remaining_for_employees: employeeShare,
           client_name: clientName,
@@ -186,7 +184,6 @@ const AddCommissionForm = () => {
       setTransactionType("");
       setPropertyType("");
       setAmount("");
-      setCommissionRate(2.5);
       setSelectedEmployees([]);
       
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
@@ -280,33 +277,19 @@ const AddCommissionForm = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="amount">المبلغ (د.إ)</Label>
+              <Label htmlFor="amount">مبلغ العمولة (د.إ)</Label>
               <Input
                 id="amount"
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="أدخل المبلغ"
+                placeholder="أدخل مبلغ العمولة"
                 min="0"
                 step="0.01"
                 required
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="commissionRate">نسبة العمولة (%)</Label>
-              <Input
-                id="commissionRate"
-                type="number"
-                value={commissionRate}
-                onChange={(e) => setCommissionRate(Number(e.target.value) || 2.5)}
-                placeholder="2.5"
-                min="0"
-                max="100"
-                step="0.1"
-              />
               <p className="text-xs text-muted-foreground">
-                النسبة الافتراضية هي 2.5% - يمكنك تعديلها حسب نوع المعاملة
+                أدخل مبلغ العمولة الصافي مباشرة
               </p>
             </div>
             
@@ -349,16 +332,16 @@ const AddCommissionForm = () => {
               <h4 className="font-medium text-blue-800 mb-2">تفاصيل العمولة:</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-blue-600">المبلغ الأساسي:</p>
+                  <p className="text-blue-600">إجمالي العمولة:</p>
                   <p className="font-bold">{parseFloat(amount || "0").toFixed(2)} د.إ</p>
                 </div>
                 <div>
-                  <p className="text-blue-600">إجمالي العمولة ({commissionRate}%):</p>
-                  <p className="font-bold">{(parseFloat(amount || "0") * (commissionRate / 100)).toFixed(2)} د.إ</p>
+                  <p className="text-blue-600">نصيب المكتب (50%):</p>
+                  <p className="font-bold text-blue-600">{(parseFloat(amount || "0") * 0.5).toFixed(2)} د.إ</p>
                 </div>
                 <div>
-                  <p className="text-blue-600">نصيب المكتب (50%):</p>
-                  <p className="font-bold text-blue-600">{(parseFloat(amount || "0") * (commissionRate / 100) * 0.5).toFixed(2)} د.إ</p>
+                  <p className="text-blue-600">نصيب الموظفين (50%):</p>
+                  <p className="font-bold text-green-600">{(parseFloat(amount || "0") * 0.5).toFixed(2)} د.إ</p>
                 </div>
               </div>
               
@@ -368,7 +351,7 @@ const AddCommissionForm = () => {
                   <div className="space-y-1">
                     {selectedEmployees.map((empId) => {
                       const employee = employees.find(e => e.user_id === empId);
-                      const empShare = (parseFloat(amount || "0") * (commissionRate / 100) * 0.5) / selectedEmployees.length;
+                      const empShare = (parseFloat(amount || "0") * 0.5) / selectedEmployees.length;
                       const empPercentage = (50 / selectedEmployees.length).toFixed(1);
                       return (
                         <p key={empId} className="text-xs">
@@ -383,7 +366,7 @@ const AddCommissionForm = () => {
               {selectedEmployees.length === 0 && (
                 <div className="mt-3 pt-3 border-t border-blue-200">
                   <p className="text-blue-600">نصيب الموظفين: لا يوجد - يذهب للمكتب</p>
-                  <p className="font-bold text-blue-600">إجمالي نصيب المكتب: {(parseFloat(amount || "0") * (commissionRate / 100)).toFixed(2)} د.إ</p>
+                  <p className="font-bold text-blue-600">إجمالي نصيب المكتب: {parseFloat(amount || "0").toFixed(2)} د.إ</p>
                 </div>
               )}
             </div>
@@ -600,14 +583,14 @@ export default function Commissions() {
       </div>
 
       {/* رسالة تنبيه */}
-      <Card className="border-amber-200 bg-amber-50">
+      <Card className="border-green-200 bg-green-50">
         <CardHeader>
-          <CardTitle className="text-amber-800 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            تم إصلاح نظام العمولات
+          <CardTitle className="text-green-800 flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            نظام العمولات محدث
           </CardTitle>
-          <CardDescription className="text-amber-700">
-            تم حل جميع المشاكل في نظام العمولات وإنشاء نظام محدث وآمن. جميع العمولات ستُحسب تلقائياً عند إغلاق الصفقات.
+          <CardDescription className="text-green-700">
+            الآن يمكنك إدخال مبلغ العمولة مباشرة بدلاً من حساب النسبة. سيتم تقسيم العمولة تلقائياً: 50% للمكتب و50% للموظفين.
           </CardDescription>
         </CardHeader>
       </Card>
