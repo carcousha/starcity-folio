@@ -28,6 +28,7 @@ import RentalIndex from "./pages/rental/index";
 import Properties from "./pages/rental/Properties";
 import Tenants from "./pages/rental/Tenants";
 import RentalContracts from "./pages/rental/RentalContracts";
+import Installments from "./pages/rental/Installments";
 import EmployeeReports from "./pages/reports/EmployeeReports";
 import VehicleReports from "./pages/reports/VehicleReports";
 import CommissionsReports from "./pages/reports/CommissionsReports";
@@ -161,7 +162,12 @@ const App = () => (
                 <ProtectedRoute requiredPermission="canManageCommissions">
                   <RentalContracts />
                 </ProtectedRoute>
-              } />
+               } />
+               <Route path="/rental/installments" element={
+                 <ProtectedRoute requiredPermission="canViewFinancials">
+                   <Installments />
+                 </ProtectedRoute>
+               } />
               
               {/* Reports Routes - Admin and Accountant */}
               <Route path="/reports" element={

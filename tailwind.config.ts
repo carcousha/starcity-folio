@@ -21,6 +21,7 @@ export default {
 			fontFamily: {
 				sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
 				arabic: ["Tajawal", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+				tajawal: ["Tajawal", "ui-sans-serif", "system-ui", "sans-serif"],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
