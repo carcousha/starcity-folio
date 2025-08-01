@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -70,15 +71,23 @@ export function AppLayout({ children }: AppLayoutProps) {
               <SidebarTrigger className="hover:bg-accent hover:text-accent-foreground" />
               
               {profile && (
-                <div className="hidden md:block">
-                  <h1 className="text-xl font-bold text-foreground">
-                    مرحباً، {profile.first_name} {profile.last_name}!
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {profile.role === 'admin' ? 'لوحة تحكم المدير' : 
-                     profile.role === 'accountant' ? 'لوحة تحكم المحاسب' : 
-                     'لوحة تحكم الموظف'}
-                  </p>
+                <div className="hidden md:flex items-center space-x-3 space-x-reverse">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={profile.avatar_url} alt={`${profile.first_name} ${profile.last_name}`} />
+                    <AvatarFallback className="text-sm font-medium bg-primary/10 text-primary">
+                      {profile.first_name?.[0]}{profile.last_name?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h1 className="text-xl font-bold text-foreground">
+                      مرحباً، {profile.first_name} {profile.last_name}!
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                      {profile.role === 'admin' ? 'لوحة تحكم المدير' : 
+                       profile.role === 'accountant' ? 'لوحة تحكم المحاسب' : 
+                       'لوحة تحكم الموظف'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

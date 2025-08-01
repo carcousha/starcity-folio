@@ -92,6 +92,15 @@ interface NewEmployeeForm {
   role: 'admin' | 'accountant' | 'employee';
 }
 
+interface EditEmployeeForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: 'admin' | 'accountant' | 'employee';
+  isActive: boolean;
+}
+
 export default function Staff() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -110,6 +119,15 @@ export default function Staff() {
     email: '',
     phone: '',
     role: 'employee'
+  });
+  
+  const [editEmployee, setEditEmployee] = useState<EditEmployeeForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: 'employee',
+    isActive: true
   });
 
   const canManageStaff = checkPermission('canManageStaff');
@@ -205,6 +223,40 @@ export default function Staff() {
     }
   });
 
+  const editEmployeeMutation = useMutation({
+    mutationFn: async (employee: EditEmployeeForm & { id: string; user_id: string }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: employee.firstName,
+          last_name: employee.lastName,
+          email: employee.email,
+          phone: employee.phone,
+          role: employee.role,
+          is_active: employee.isActive
+        })
+        .eq('id', employee.id);
+
+      if (error) throw error;
+      return employee;
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث بيانات الموظف بنجاح",
+      });
+      setEditDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: "فشل في تحديث بيانات الموظف",
+        variant: "destructive",
+      });
+    }
+  });
+
   const openEmployeeProfile = (employee: Staff) => {
     setSelectedEmployee(employee);
     setProfileDialogOpen(true);
@@ -240,11 +292,13 @@ export default function Staff() {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">إدارة الموظفين</h1>
-          <p className="text-muted-foreground">
-            إدارة الموظفين وتتبع أداءهم المالي
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">إدارة الموظفين</h1>
+            <p className="text-muted-foreground">
+              إدارة الموظفين وتتبع أداءهم المالي
+            </p>
+          </div>
         </div>
         {canManageStaff && (
           <Button onClick={() => setAddDialogOpen(true)}>
@@ -372,13 +426,21 @@ export default function Staff() {
                       </Button>
                       {canManageStaff && (
                         <>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedEmployee(employee);
-                              setEditDialogOpen(true);
-                            }}
+                           <Button 
+                             size="sm" 
+                             variant="outline"
+                             onClick={() => {
+                               setSelectedEmployee(employee);
+                               setEditEmployee({
+                                 firstName: employee.first_name,
+                                 lastName: employee.last_name,
+                                 email: employee.email,
+                                 phone: employee.phone || '',
+                                 role: employee.role,
+                                 isActive: employee.is_active
+                               });
+                               setEditDialogOpen(true);
+                             }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -612,14 +674,95 @@ export default function Staff() {
               تعديل معلومات {selectedEmployee?.first_name} {selectedEmployee?.last_name}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground">
-              سيتم تطوير هذا القسم لتعديل بيانات الموظفين
-            </p>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="editFirstName">الاسم الأول</Label>
+                <Input
+                  id="editFirstName"
+                  value={editEmployee.firstName}
+                  onChange={(e) => setEditEmployee(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="الاسم الأول"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editLastName">الاسم الأخير</Label>
+                <Input
+                  id="editLastName"
+                  value={editEmployee.lastName}
+                  onChange={(e) => setEditEmployee(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="الاسم الأخير"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="editEmail">البريد الإلكتروني</Label>
+              <Input
+                id="editEmail"
+                type="email"
+                value={editEmployee.email}
+                onChange={(e) => setEditEmployee(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="example@company.com"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="editPhone">رقم الهاتف</Label>
+              <Input
+                id="editPhone"
+                value={editEmployee.phone}
+                onChange={(e) => setEditEmployee(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="+971 50 123 4567"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="editRole">المنصب</Label>
+              <Select value={editEmployee.role} onValueChange={(value: any) => setEditEmployee(prev => ({ ...prev, role: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر المنصب" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">موظف</SelectItem>
+                  <SelectItem value="accountant">محاسب</SelectItem>
+                  <SelectItem value="admin">مدير</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="editStatus">الحالة</Label>
+              <Select value={editEmployee.isActive ? 'active' : 'inactive'} onValueChange={(value) => setEditEmployee(prev => ({ ...prev, isActive: value === 'active' }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الحالة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">نشط</SelectItem>
+                  <SelectItem value="inactive">غير نشط</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              إغلاق
+              إلغاء
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedEmployee) {
+                  editEmployeeMutation.mutate({
+                    ...editEmployee,
+                    id: selectedEmployee.id,
+                    user_id: selectedEmployee.user_id
+                  });
+                }
+              }} 
+              disabled={editEmployeeMutation.isPending}
+            >
+              {editEmployeeMutation.isPending ? 'جاري التحديث...' : 'حفظ التعديلات'}
             </Button>
           </DialogFooter>
         </DialogContent>
