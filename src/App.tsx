@@ -144,7 +144,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
-              {/* Rental Routes - Admin and Accountant */}
+               {/* Rental Routes - Admin and Accountant */}
                <Route path="/rental" element={
                  <ProtectedRoute requiredPermission="canViewFinancials">
                    <RentalIndex />
