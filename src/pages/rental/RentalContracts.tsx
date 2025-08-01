@@ -3,33 +3,28 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   FileText, 
   Plus, 
-  Upload,
   Calendar, 
   Building, 
   Users, 
-  DollarSign, 
-  Download,
+  DollarSign,
   AlertTriangle,
   CheckCircle,
-  Clock
+  Clock,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import ContractTemplateUpload from "@/components/rental/ContractTemplateUpload";
-import AdvancedContractGenerator from "@/components/rental/AdvancedContractGenerator";
-import GeneratedContractsList from "@/components/rental/GeneratedContractsList";
-import PDFTemplateUpload from "@/components/rental/PDFTemplateUpload";
-import { ContractTemplate } from "@/components/rental/ContractTemplate";
 
 interface ContractFormData {
+  contract_number: string;
   property_title: string;
   location: string;
   tenant_name: string;
@@ -42,23 +37,28 @@ interface ContractFormData {
   installment_frequency: string;
   property_id?: string;
   tenant_id?: string;
+  unit_number: string;
+  unit_type: string;
 }
 
 const CreateContractForm = () => {
   const [formData, setFormData] = useState<ContractFormData>({
+    contract_number: '',
     property_title: '',
     location: '',
     tenant_name: '',
     rent_amount: 0,
     contract_start_date: '',
     contract_end_date: '',
-    payment_method: '',
+    payment_method: 'شيك',
     security_deposit: 0,
     installments_count: 1,
-    installment_frequency: 'سنوي'
+    installment_frequency: 'سنوي',
+    unit_number: '',
+    unit_type: 'سكني'
   });
   
-  const [showPreview, setShowPreview] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -92,56 +92,74 @@ const CreateContractForm = () => {
     }
   });
 
-  // جلب قوالب العقود
-  const { data: templates = [] } = useQuery({
-    queryKey: ['contract-templates'],
-    queryFn: async () => {
+  const createContractMutation = useMutation({
+    mutationFn: async (contractData: ContractFormData) => {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('المستخدم غير مسجل');
+
+      // حساب مدة العقد بالأشهر
+      const startDate = new Date(contractData.contract_start_date);
+      const endDate = new Date(contractData.contract_end_date);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
+
       const { data, error } = await supabase
-        .from('contract_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('template_name');
+        .from('rental_contracts')
+        .insert({
+          contract_number: contractData.contract_number,
+          property_id: contractData.property_id,
+          tenant_id: contractData.tenant_id,
+          property_title: contractData.property_title,
+          tenant_name: contractData.tenant_name,
+          unit_number: contractData.unit_number,
+          unit_type: contractData.unit_type,
+          area: contractData.location,
+          rent_amount: contractData.rent_amount,
+          security_deposit: contractData.security_deposit,
+          payment_method: contractData.payment_method,
+          installment_frequency: contractData.installment_frequency,
+          installments_count: contractData.installments_count,
+          start_date: contractData.contract_start_date,
+          end_date: contractData.contract_end_date,
+          contract_duration_months: diffMonths,
+          contract_status: 'active',
+          created_by: user.id
+        })
+        .select()
+        .single();
       
       if (error) throw error;
-      return data || [];
-    }
-  });
-
-  const generateContractMutation = useMutation({
-    mutationFn: async (data: { contractData: ContractFormData; templateId: string }) => {
-      const response = await supabase.functions.invoke('generate-contract', {
-        body: data
-      });
-      
-      if (response.error) throw response.error;
-      return response.data;
+      return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
-        title: "تم إنشاء العقد بنجاح",
-        description: "تم إنشاء العقد وجدولة الأقساط تلقائياً"
+        title: "تم حفظ العقد بنجاح",
+        description: "تم حفظ بيانات العقد في النظام"
       });
       
       // إعادة تعيين النموذج
       setFormData({
+        contract_number: '',
         property_title: '',
         location: '',
         tenant_name: '',
         rent_amount: 0,
         contract_start_date: '',
         contract_end_date: '',
-        payment_method: '',
+        payment_method: 'شيك',
         security_deposit: 0,
         installments_count: 1,
-        installment_frequency: 'سنوي'
+        installment_frequency: 'سنوي',
+        unit_number: '',
+        unit_type: 'سكني'
       });
       
       queryClient.invalidateQueries({ queryKey: ['rental-contracts'] });
     },
     onError: (error) => {
       toast({
-        title: "خطأ في إنشاء العقد",
-        description: "حدث خطأ أثناء إنشاء العقد. يرجى المحاولة مرة أخرى",
+        title: "خطأ في حفظ العقد",
+        description: error.message || "حدث خطأ أثناء حفظ العقد",
         variant: "destructive"
       });
     }
@@ -150,7 +168,7 @@ const CreateContractForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.property_title || !formData.tenant_name || !formData.rent_amount) {
+    if (!formData.contract_number || !formData.property_title || !formData.tenant_name || !formData.rent_amount) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -159,7 +177,7 @@ const CreateContractForm = () => {
       return;
     }
 
-    if (!formData.contract_start_date || !formData.contract_end_date || !formData.payment_method) {
+    if (!formData.contract_start_date || !formData.contract_end_date || !formData.unit_number) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -168,8 +186,9 @@ const CreateContractForm = () => {
       return;
     }
 
-    // معاينة العقد
-    setShowPreview(true);
+    setIsSubmitting(true);
+    createContractMutation.mutate(formData);
+    setIsSubmitting(false);
   };
 
   const handlePropertySelect = (propertyId: string) => {
@@ -200,14 +219,61 @@ const CreateContractForm = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Plus className="h-5 w-5" />
-          إنشاء عقد إيجار جديد
+          إضافة عقد إيجار جديد
         </CardTitle>
         <CardDescription>
-          أدخل بيانات العقد وسيتم توليد العقد تلقائياً من القالب المحدد
+          أدخل بيانات العقد وسيتم حفظها في النظام
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* معلومات العقد الأساسية */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              معلومات العقد الأساسية
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contract_number">رقم العقد*</Label>
+                <Input
+                  id="contract_number"
+                  value={formData.contract_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contract_number: e.target.value }))}
+                  placeholder="مثال: CON-2024-001"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="unit_number">رقم الوحدة*</Label>
+                <Input
+                  id="unit_number"
+                  value={formData.unit_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, unit_number: e.target.value }))}
+                  placeholder="مثال: شقة 101، فيلا A5"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="unit_type">نوع الوحدة*</Label>
+                <Select value={formData.unit_type} onValueChange={(value) => setFormData(prev => ({ ...prev, unit_type: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر نوع الوحدة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="سكني">سكني</SelectItem>
+                    <SelectItem value="تجاري">تجاري</SelectItem>
+                    <SelectItem value="فيلا">فيلا</SelectItem>
+                    <SelectItem value="مكتب">مكتب</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
           {/* اختيار العقار والمستأجر */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -430,114 +496,48 @@ const CreateContractForm = () => {
             </div>
           )}
 
-          {/* تحذيرات مهمة */}
-          <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-            <h4 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              متطلبات مهمة:
-            </h4>
-            <ul className="text-sm text-amber-700 space-y-1">
-              <li>• يجب إحضار شهادة عدم الممانعة من شركة عجمان للصرف الصحي</li>
-              <li>• جميع البيانات يجب أن تكون مطبوعة وليس مكتوبة بخط اليد</li>
-              <li>• أي تعديلات يدوية (حذف، كشط أو تعديل) غير مقبولة</li>
-              <li>• التأكد من صحة جميع البيانات قبل التوقيع</li>
-            </ul>
-          </div>
-
           <div className="flex gap-4">
             <Button 
               type="submit" 
               className="flex-1"
-              disabled={generateContractMutation.isPending}
+              disabled={isSubmitting}
             >
-              {generateContractMutation.isPending ? "جارٍ إنشاء العقد..." : "معاينة العقد"}
+              {isSubmitting ? "جارٍ حفظ العقد..." : "حفظ العقد"}
             </Button>
-            
-            {showPreview && (
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => setShowPreview(false)}
-                className="flex-1"
-              >
-                تعديل البيانات
-              </Button>
-            )}
           </div>
         </form>
-        
-        {/* معاينة العقد */}
-        {showPreview && (
-          <div className="mt-8">
-            <ContractTemplate 
-              contractData={{
-                contract_number: `CNT-${Date.now()}`,
-                property_title: formData.property_title,
-                location: formData.location,
-                tenant_name: formData.tenant_name,
-                rent_amount: formData.rent_amount,
-                contract_start_date: new Date(formData.contract_start_date).toLocaleDateString('ar-SA'),
-                contract_end_date: new Date(formData.contract_end_date).toLocaleDateString('ar-SA'),
-                payment_method: formData.payment_method,
-                security_deposit: formData.security_deposit,
-                installments_count: formData.installments_count,
-                installment_frequency: formData.installment_frequency,
-              }}
-              onExportPDF={() => {
-                toast({
-                  title: "تم تصدير العقد بنجاح",
-                  description: "تم حفظ العقد كملف PDF"
-                });
-              }}
-            />
-          </div>
-        )}
       </CardContent>
     </Card>
   );
 };
 
 const ContractsList = () => {
-  const handleDownloadContract = async (filePath: string, contractNumber: string) => {
-    if (!filePath) {
-      toast({
-        title: "خطأ في التحميل",
-        description: "مسار الملف غير متوفر",
-        variant: "destructive"
-      });
-      return;
-    }
+  const queryClient = useQueryClient();
 
-    try {
-      const { data, error } = await supabase.storage
-        .from('generated-contracts')
-        .download(filePath);
-
+  const deleteContractMutation = useMutation({
+    mutationFn: async (contractId: string) => {
+      const { error } = await supabase
+        .from('rental_contracts')
+        .delete()
+        .eq('id', contractId);
+      
       if (error) throw error;
-
-      // إنشاء رابط التحميل
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `عقد-${contractNumber}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+    },
+    onSuccess: () => {
       toast({
-        title: "تم التحميل بنجاح",
-        description: "تم تحميل العقد بنجاح"
+        title: "تم حذف العقد بنجاح",
+        description: "تم حذف العقد من النظام"
       });
-    } catch (error) {
-      console.error('Error downloading contract:', error);
+      queryClient.invalidateQueries({ queryKey: ['rental-contracts'] });
+    },
+    onError: (error) => {
       toast({
-        title: "خطأ في التحميل",
-        description: "حدث خطأ أثناء تحميل العقد",
+        title: "خطأ في حذف العقد",
+        description: error.message || "حدث خطأ أثناء حذف العقد",
         variant: "destructive"
       });
     }
-  };
+  });
 
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ['rental-contracts'],
@@ -635,17 +635,18 @@ const ContractsList = () => {
                 </div>
 
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Edit className="h-4 w-4 mr-2" />
+                    تعديل
+                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleDownloadContract(contract.generated_contract_path, contract.contract_number)}
+                    onClick={() => deleteContractMutation.mutate(contract.id)}
+                    disabled={deleteContractMutation.isPending}
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    تحميل العقد
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <FileText className="h-4 w-4 mr-2" />
-                    عرض الأقساط
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    حذف
                   </Button>
                 </div>
               </div>
@@ -675,47 +676,15 @@ export default function RentalContracts() {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">عقود الإيجار</h1>
-          <p className="text-muted-foreground">إدارة عقود الإيجار والأقساط بشكل متكامل</p>
+          <h1 className="text-3xl font-bold">إدارة عقود الإيجار</h1>
+          <p className="text-muted-foreground">إضافة وإدارة بيانات عقود الإيجار</p>
         </div>
       </div>
 
-      <Tabs defaultValue="advanced-generator" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="advanced-generator" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            مولد العقود المتقدم
-          </TabsTrigger>
-          <TabsTrigger value="generated-contracts" className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            العقود المولدة
-          </TabsTrigger>
-          <TabsTrigger value="create-contract" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            إنشاء عقد تقليدي
-          </TabsTrigger>
-          <TabsTrigger value="pdf-templates" className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            قوالب PDF
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="advanced-generator">
-          <AdvancedContractGenerator />
-        </TabsContent>
-
-        <TabsContent value="generated-contracts">
-          <GeneratedContractsList />
-        </TabsContent>
-        
-        <TabsContent value="create-contract">
-          <CreateContractForm />
-        </TabsContent>
-        
-        <TabsContent value="pdf-templates">
-          <PDFTemplateUpload />
-        </TabsContent>
-      </Tabs>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CreateContractForm />
+        <ContractsList />
+      </div>
     </div>
   );
 }
