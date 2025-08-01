@@ -132,9 +132,64 @@ const TaskListView = ({ filters }: TaskListViewProps) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          <Calendar className="h-12 w-12 mx-auto mb-4" />
-          <p>سيتم عرض المهام هنا بعد تحديث قاعدة البيانات</p>
+        <div className="space-y-3">
+          {tasks.map((task: any) => (
+            <Card key={task.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-medium mb-1">{task.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {task.description || 'لا يوجد وصف'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                      {getPriorityLabel(task.priority)}
+                    </Badge>
+                    <Badge variant="outline" className={getStatusColor(task.status)}>
+                      {getStatusLabel(task.status)}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4">
+                    {task.clients && (
+                      <div className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        <span>{task.clients.name}</span>
+                      </div>
+                    )}
+                    {task.due_date && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{format(new Date(task.due_date), 'dd MMM yyyy', { locale: ar })}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs">
+                      <Eye className="h-3 w-3 mr-1" />
+                      عرض
+                    </Button>
+                    {task.status === 'new' && (
+                      <Button size="sm" variant="outline" className="h-6 px-2 text-xs">
+                        بدء العمل
+                      </Button>
+                    )}
+                    {task.status === 'in_progress' && (
+                      <Button size="sm" variant="outline" className="h-6 px-2 text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        إكمال
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

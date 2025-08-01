@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import CRMIndex from "./pages/crm/index";
 import Clients from "./pages/crm/Clients";
 import Leads from "./pages/crm/Leads";
+import TasksPage from "./pages/tasks";
 import AccountingIndex from "./pages/accounting/index";
 import Expenses from "./pages/accounting/Expenses";
 import Revenues from "./pages/accounting/Revenues";
@@ -70,6 +71,11 @@ const App = () => (
               <Route path="/crm/leads" element={
                 <ProtectedRoute requiredPermission="crmAccess">
                   <Leads />
+                </ProtectedRoute>
+              } />
+              <Route path="/crm/tasks" element={
+                <ProtectedRoute requiredPermission="crmAccess">
+                  <TasksPage />
                 </ProtectedRoute>
               } />
               
