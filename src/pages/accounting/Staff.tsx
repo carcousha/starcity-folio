@@ -183,62 +183,106 @@ export default function Staff() {
         throw new Error('البريد الإلكتروني مطلوب');
       }
 
+      console.log('🔄 Starting employee creation process...');
+      
+      // Check if user already exists in profiles
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('user_id, email')
+        .eq('email', employee.email.trim())
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('❌ Error checking existing profile:', checkError);
+        throw new Error('فشل في التحقق من الموظف الموجود');
+      }
+
+      if (existingProfile) {
+        throw new Error('موظف بهذا البريد الإلكتروني موجود بالفعل');
+      }
+
       // Generate a strong random password
       const password = generateRandomPassword();
       
-      console.log('🔄 Creating employee via Edge Function:', employee.email);
+      console.log('🔄 Creating auth user for:', employee.email.trim());
       
-      // Call Edge Function to create user securely
-      const { data, error } = await supabase.functions.invoke('create-employee-user', {
-        body: {
-          email: employee.email.trim(),
-          password: password,
+      // Create auth user using admin API (with proper error handling)
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: employee.email.trim(),
+        password: password,
+        email_confirm: true, // Skip email confirmation
+        user_metadata: {
           first_name: employee.firstName.trim(),
-          last_name: employee.lastName.trim(),
-          role: employee.role,
-          phone: employee.phone?.trim() || null
+          last_name: employee.lastName.trim()
         }
       });
 
-      if (error) {
-        console.error('❌ Edge function error:', error);
-        throw new Error(error.message || 'فشل في إنشاء الموظف');
+      if (authError) {
+        console.error('❌ Auth user creation failed:', authError);
+        if (authError.message?.includes('already been registered')) {
+          throw new Error('هذا البريد الإلكتروني مسجل بالفعل');
+        }
+        throw new Error(`فشل في إنشاء حساب المستخدم: ${authError.message}`);
       }
 
-      if (!data?.success) {
-        console.error('❌ Edge function failed:', data?.error);
-        throw new Error(data?.error || 'فشل في إنشاء الموظف');
+      if (!authData?.user) {
+        throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
       }
 
-      console.log('✅ Employee created successfully:', data.user_id);
+      console.log('✅ Auth user created:', authData.user.id);
 
-      return { 
-        ...data.profile,
-        temporary_password: data.generated_password,
-        user_id: data.user_id 
+      // Create profile record
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: authData.user.id,
+          first_name: employee.firstName.trim(),
+          last_name: employee.lastName.trim(),
+          email: employee.email.trim(),
+          phone: employee.phone?.trim() || null,
+          role: employee.role,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('❌ Profile creation failed:', profileError);
+        // Clean up auth user if profile creation fails
+        try {
+          await supabase.auth.admin.deleteUser(authData.user.id);
+          console.log('🧹 Cleaned up auth user after profile creation failure');
+        } catch (deleteError) {
+          console.error('❌ Failed to cleanup auth user:', deleteError);
+        }
+        throw new Error(`فشل في إنشاء ملف الموظف: ${profileError.message}`);
+      }
+
+      console.log('✅ Profile created successfully:', profileData);
+
+      return {
+        ...profileData,
+        user_id: authData.user.id,
+        temporary_password: password
       };
     },
     onSuccess: (data) => {
       toast({
         title: "تم الإضافة بنجاح",
-        description: `تم إضافة الموظف ${data.first_name} ${data.last_name} بنجاح مع user_id: ${data.user_id}`,
+        description: `تم إضافة الموظف ${data.first_name} ${data.last_name} بنجاح`,
       });
       
-      // عرض كلمة المرور المؤقتة للمدير (إذا تم إنشاء كلمة مرور جديدة)
+      // عرض كلمة المرور المؤقتة للمدير
       if (data.temporary_password) {
         toast({
           title: "كلمة المرور المؤقتة",
           description: `كلمة المرور: ${data.temporary_password} - يرجى إعطاؤها للموظف`,
           duration: 10000, // عرض لـ 10 ثوان
         });
-      } else {
-        toast({
-          title: "ملاحظة",
-          description: "تم ربط الموظف بحساب موجود - لا حاجة لكلمة مرور جديدة",
-          duration: 5000,
-        });
       }
       
+      // تحديث البيانات وإغلاق النموذج
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
       setAddDialogOpen(false);
       setNewEmployee({
         firstName: '',
@@ -247,7 +291,6 @@ export default function Staff() {
         phone: '',
         role: 'employee'
       });
-      queryClient.invalidateQueries({ queryKey: ['staff'] });
     },
     onError: (error: any) => {
       console.error('❌ Employee addition failed:', error);
