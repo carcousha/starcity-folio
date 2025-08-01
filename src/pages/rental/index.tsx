@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Users, FileText, CheckCircle, AlertCircle, Calendar, CreditCard } from "lucide-react";
+import { Building2, Users, User, FileText, CheckCircle, AlertCircle, Calendar, CreditCard } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const RentalManagement = () => {
@@ -12,6 +12,14 @@ const RentalManagement = () => {
       icon: Building2,
       link: "/rental/properties",
       color: "bg-blue-500",
+      stats: { total: 0, active: 0 }
+    },
+    {
+      title: "الملاك",
+      description: "إدارة بيانات ملاك العقارات",
+      icon: User,
+      link: "/rental/property-owners",
+      color: "bg-purple-500",
       stats: { total: 0, active: 0 }
     },
     {
