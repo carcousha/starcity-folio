@@ -115,7 +115,7 @@ const AddCommissionForm = () => {
           title: 'نصيب المكتب من العمولة',
           description: `نصيب المكتب من عمولة ${transactionType} - ${propertyType} للعميل: ${clientName}`,
           amount: officeShare,
-          source: 'عمولة',
+          source: 'عمولات',
           revenue_date: new Date().toISOString().split('T')[0],
           recorded_by: user.id
         });
