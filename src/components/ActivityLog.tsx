@@ -106,11 +106,25 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
         return <TrendingDown className="h-4 w-4 text-red-600" />;
       case 'revenue_added':
       case 'commission_processed':
+      case 'commission_calculated':
+      case 'commission_calculated_fixed':
+      case 'commission_approved':
+      case 'auto_commission_calculated':
         return <TrendingUp className="h-4 w-4 text-green-600" />;
       case 'debt_payment':
+      case 'installment_payment':
+      case 'debt_deduction_from_commission':
         return <HandCoins className="h-4 w-4 text-blue-600" />;
       case 'treasury_transaction':
         return <ArrowUpDown className="h-4 w-4 text-purple-600" />;
+      case 'profile_updated':
+      case 'role_changed':
+        return <FileText className="h-4 w-4 text-blue-600" />;
+      case 'role_change_attempted':
+      case 'unauthorized_role_change_attempt':
+        return <TrendingDown className="h-4 w-4 text-red-600" />;
+      case 'budget_alert':
+        return <TrendingDown className="h-4 w-4 text-orange-600" />;
       default:
         return <Activity className="h-4 w-4 text-gray-600" />;
     }
@@ -121,9 +135,20 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
       'expense_added': 'مصروف جديد',
       'revenue_added': 'إيراد جديد',
       'commission_processed': 'معالجة عمولة',
+      'commission_calculated': 'حساب عمولة',
+      'commission_calculated_fixed': 'حساب عمولة (نظام جديد)',
+      'commission_approved': 'اعتماد عمولة',
+      'auto_commission_calculated': 'حساب عمولة تلقائي',
       'debt_payment': 'سداد دين',
       'vehicle_expense': 'مصروف سيارة',
-      'treasury_transaction': 'حركة خزينة'
+      'treasury_transaction': 'حركة خزينة',
+      'profile_updated': 'تحديث الملف الشخصي',
+      'role_changed': 'تغيير دور',
+      'role_change_attempted': 'محاولة تغيير دور',
+      'unauthorized_role_change_attempt': 'محاولة غير مصرحة لتغيير دور',
+      'budget_alert': 'تنبيه ميزانية',
+      'installment_payment': 'سداد قسط',
+      'debt_deduction_from_commission': 'خصم دين من عمولة'
     };
     return labels[type] || type;
   };
@@ -135,11 +160,25 @@ export default function ActivityLog({ limit = 10, userId, showHeader = true }: A
         return 'bg-red-100 text-red-800';
       case 'revenue_added':
       case 'commission_processed':
+      case 'commission_calculated':
+      case 'commission_calculated_fixed':
+      case 'commission_approved':
+      case 'auto_commission_calculated':
         return 'bg-green-100 text-green-800';
       case 'debt_payment':
+      case 'installment_payment':
+      case 'debt_deduction_from_commission':
         return 'bg-blue-100 text-blue-800';
       case 'treasury_transaction':
         return 'bg-purple-100 text-purple-800';
+      case 'profile_updated':
+      case 'role_changed':
+        return 'bg-blue-100 text-blue-800';
+      case 'role_change_attempted':
+      case 'unauthorized_role_change_attempt':
+        return 'bg-red-100 text-red-800';
+      case 'budget_alert':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
