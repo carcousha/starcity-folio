@@ -406,8 +406,8 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
           <div className="space-y-4">
             <h4 className="font-medium">تعيين المهمة للموظفين *</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-lg p-3">
-              {employees.map((employee) => (
-                <div key={employee.user_id} className="flex items-center space-x-2 space-x-reverse">
+              {employees.map((employee, index) => (
+                <div key={`employee-${employee.user_id}-${index}`} className="flex items-center space-x-2 space-x-reverse">
                   <Checkbox
                     id={employee.user_id}
                     checked={formData.assigned_to.includes(employee.user_id)}
