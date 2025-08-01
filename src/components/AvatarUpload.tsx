@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ interface AvatarUploadProps {
   size?: "sm" | "md" | "lg";
   canEdit?: boolean;
   onAvatarUpdate?: (newAvatarUrl: string | null) => void;
+  onOpenUploadDialog?: () => void; // إضافة هذا الخاصية
 }
 
 export default function AvatarUpload({
@@ -22,7 +23,8 @@ export default function AvatarUpload({
   employeeName,
   size = "md",
   canEdit = false,
-  onAvatarUpdate
+  onAvatarUpdate,
+  onOpenUploadDialog
 }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -173,57 +175,57 @@ export default function AvatarUpload({
         </AvatarFallback>
       </Avatar>
 
-      {canEdit && (
-        <div className="absolute -bottom-1 -right-1">
-          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-            <DialogTrigger asChild>
+      {/* Upload Dialog - separate from the visible avatar */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تحديث الصورة الشخصية</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={displayAvatarUrl} alt={employeeName} />
+                <AvatarFallback className="text-xl font-medium bg-primary/10 text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            <FileUpload
+              category="avatars"
+              accept="image/*"
+              maxSize={5}
+              onUploadSuccess={handleUploadSuccess}
+              placeholder="اختر صورة جديدة"
+            />
+
+            {displayAvatarUrl && (
               <Button
-                size="sm"
-                variant="secondary"
-                className="h-8 w-8 rounded-full shadow-md"
+                variant="destructive"
+                onClick={handleDeleteAvatar}
                 disabled={uploading}
+                className="w-full"
               >
-                <Camera className="h-3 w-3" />
+                <Trash2 className="h-4 w-4 ml-2" />
+                حذف الصورة الحالية
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md" dir="rtl">
-              <DialogHeader>
-                <DialogTitle>تحديث الصورة الشخصية</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex justify-center">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={displayAvatarUrl} alt={employeeName} />
-                    <AvatarFallback className="text-xl font-medium bg-primary/10 text-primary">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-
-                <FileUpload
-                  category="avatars"
-                  accept="image/*"
-                  maxSize={5}
-                  onUploadSuccess={handleUploadSuccess}
-                  placeholder="اختر صورة جديدة"
-                />
-
-                {displayAvatarUrl && (
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteAvatar}
-                    disabled={uploading}
-                    className="w-full"
-                  >
-                    <Trash2 className="h-4 w-4 ml-2" />
-                    حذف الصورة الحالية
-                  </Button>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      )}
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+// Export the upload trigger button as a separate component
+export const AvatarUploadTrigger = ({ onOpenDialog, disabled }: { onOpenDialog: () => void; disabled?: boolean }) => (
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={onOpenDialog}
+    disabled={disabled}
+    className="h-8 w-8"
+  >
+    <Camera className="h-3 w-3" />
+  </Button>
+);

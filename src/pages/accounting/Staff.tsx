@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -60,7 +60,8 @@ import {
   DollarSign, 
   TrendingUp, 
   FileText, 
-  Activity
+  Activity,
+  Camera
 } from 'lucide-react';
 
 interface Staff {
@@ -129,6 +130,8 @@ export default function Staff() {
     role: 'employee',
     isActive: true
   });
+  
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState<string | null>(null);
 
   const canManageStaff = checkPermission('canManageStaff');
 
@@ -386,7 +389,7 @@ export default function Staff() {
                         employeeId={employee.user_id}
                         employeeName={`${employee.first_name} ${employee.last_name}`}
                         size="sm"
-                        canEdit={canManageStaff}
+                        canEdit={false} // إزالة الزر من فوق الصورة
                         onAvatarUpdate={(newUrl) => {
                           queryClient.invalidateQueries({ queryKey: ['staff'] });
                         }}
@@ -430,17 +433,30 @@ export default function Staff() {
                              size="sm" 
                              variant="outline"
                              onClick={() => {
+                               // فتح dialog تعديل الصورة للموظف المحدد
                                setSelectedEmployee(employee);
-                               setEditEmployee({
-                                 firstName: employee.first_name,
-                                 lastName: employee.last_name,
-                                 email: employee.email,
-                                 phone: employee.phone || '',
-                                 role: employee.role,
-                                 isActive: employee.is_active
-                               });
-                               setEditDialogOpen(true);
+                               // استخدام state منفصل لـ avatar dialog
+                               setAvatarDialogOpen(employee.user_id);
                              }}
+                             title="تعديل الصورة الشخصية"
+                           >
+                             <Camera className="h-4 w-4" />
+                           </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedEmployee(employee);
+                              setEditEmployee({
+                                firstName: employee.first_name,
+                                lastName: employee.last_name,
+                                email: employee.email,
+                                phone: employee.phone || '',
+                                role: employee.role,
+                                isActive: employee.is_active
+                              });
+                              setEditDialogOpen(true);
+                            }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -802,6 +818,30 @@ export default function Staff() {
           }
         }}
       />
+
+      {/* Avatar Upload Dialog for table actions */}
+      {avatarDialogOpen && (
+        <Dialog open={!!avatarDialogOpen} onOpenChange={() => setAvatarDialogOpen(null)}>
+          <DialogContent className="sm:max-w-md" dir="rtl">
+            <DialogHeader>
+              <DialogTitle>تحديث الصورة الشخصية</DialogTitle>
+            </DialogHeader>
+            {selectedEmployee && (
+              <AvatarUpload
+                currentAvatarUrl={selectedEmployee.avatar_url}
+                employeeId={selectedEmployee.user_id}
+                employeeName={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
+                size="lg"
+                canEdit={true}
+                onAvatarUpdate={(newUrl) => {
+                  queryClient.invalidateQueries({ queryKey: ['staff'] });
+                  setAvatarDialogOpen(null);
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
