@@ -389,7 +389,7 @@ export default function Staff() {
                         employeeId={employee.user_id}
                         employeeName={`${employee.first_name} ${employee.last_name}`}
                         size="sm"
-                        canEdit={false} // إزالة الزر من فوق الصورة
+                        canEdit={false}
                         onAvatarUpdate={(newUrl) => {
                           queryClient.invalidateQueries({ queryKey: ['staff'] });
                         }}
