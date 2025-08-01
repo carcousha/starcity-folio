@@ -341,8 +341,8 @@ export type Database = {
           amount: number
           client_name: string | null
           created_at: string
-          deal_id: string
-          employee_id: string
+          deal_id: string | null
+          employee_id: string | null
           id: string
           notes: string | null
           office_share: number | null
@@ -357,8 +357,8 @@ export type Database = {
           amount: number
           client_name?: string | null
           created_at?: string
-          deal_id: string
-          employee_id: string
+          deal_id?: string | null
+          employee_id?: string | null
           id?: string
           notes?: string | null
           office_share?: number | null
@@ -373,8 +373,8 @@ export type Database = {
           amount?: number
           client_name?: string | null
           created_at?: string
-          deal_id?: string
-          employee_id?: string
+          deal_id?: string | null
+          employee_id?: string | null
           id?: string
           notes?: string | null
           office_share?: number | null
@@ -1430,7 +1430,7 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           avatar_url?: string | null
@@ -1443,7 +1443,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           avatar_url?: string | null
@@ -1456,7 +1456,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -2036,6 +2036,237 @@ export type Database = {
         }
         Relationships: []
       }
+      task_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          assigned_to: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          assigned_to: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          assigned_to?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_attachments: {
+        Row: {
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          task_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          task_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          task_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          comment_text: string
+          created_at: string
+          created_by: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string
+          created_by: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string
+          sent_via_email: boolean | null
+          sent_via_whatsapp: boolean | null
+          task_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type: string
+          sent_via_email?: boolean | null
+          sent_via_whatsapp?: boolean | null
+          task_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string
+          sent_via_email?: boolean | null
+          sent_via_whatsapp?: boolean | null
+          task_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          automation_trigger: string | null
+          client_id: string | null
+          completed_at: string | null
+          contract_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_automated: boolean | null
+          priority: string
+          property_id: string | null
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          automation_trigger?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_automated?: boolean | null
+          priority?: string
+          property_id?: string | null
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          automation_trigger?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_automated?: boolean | null
+          priority?: string
+          property_id?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       themes: {
         Row: {
           colors: Json | null
@@ -2379,6 +2610,10 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_deal_commission_multi_fixed: {
+        Args: { deal_id_param: string; employee_ids?: string[] }
+        Returns: Json
+      }
       calculate_lead_score: {
         Args: { lead_record: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: number
@@ -2403,6 +2638,16 @@ export type Database = {
           p_start_date: string
         }
         Returns: undefined
+      }
+      create_task_notification: {
+        Args: {
+          p_task_id: string
+          p_user_id: string
+          p_notification_type: string
+          p_title: string
+          p_message: string
+        }
+        Returns: string
       }
       generate_contract_number: {
         Args: Record<PropertyKey, never>
