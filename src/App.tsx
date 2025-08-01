@@ -78,7 +78,7 @@ const App = () => (
                   <Leads />
                 </ProtectedRoute>
               } />
-              <Route path="/tasks" element={
+              <Route path="/crm/tasks" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <TasksIndex />
                 </ProtectedRoute>
