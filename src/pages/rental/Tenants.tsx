@@ -8,10 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Edit, Phone, Mail, Globe } from 'lucide-react';
+import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface RentalTenant {
   id: string;
@@ -169,6 +172,82 @@ const RentalTenants = () => {
       notes: tenant.notes || ''
     });
     setIsDialogOpen(true);
+  };
+
+  const handleWhatsApp = (phone: string) => {
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    const whatsappUrl = `https://wa.me/${cleanPhone}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add Arabic font support
+    doc.setFont("helvetica");
+    doc.setFontSize(16);
+    doc.text('Tenants Report', 20, 20);
+    
+    const tableColumns = ['Name', 'Phone', 'Email', 'Nationality', 'Status'];
+    const tableRows = filteredTenants.map(tenant => [
+      tenant.full_name,
+      tenant.phone,
+      tenant.email || '',
+      tenant.nationality || '',
+      getStatusText(tenant.status)
+    ]);
+
+    (doc as any).autoTable({
+      head: [tableColumns],
+      body: tableRows,
+      startY: 30,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+
+    doc.save('tenants-report.pdf');
+    
+    toast({
+      title: "تم التصدير",
+      description: "تم تصدير التقرير بصيغة PDF بنجاح",
+    });
+  };
+
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredTenants.map(tenant => ({
+        'الاسم الكامل': tenant.full_name,
+        'رقم الهاتف': tenant.phone,
+        'البريد الإلكتروني': tenant.email || '',
+        'الجنسية': tenant.nationality || '',
+        'الهوية الإماراتية': tenant.emirates_id || '',
+        'رقم الجواز': tenant.passport_number || '',
+        'الحالة': getStatusText(tenant.status),
+        'المصدر': tenant.lead_source || '',
+        'تاريخ الإنشاء': new Date(tenant.created_at).toLocaleDateString('ar-AE')
+      }))
+    );
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'المستأجرين');
+    XLSX.writeFile(workbook, 'tenants-report.xlsx');
+    
+    toast({
+      title: "تم التصدير",
+      description: "تم تصدير التقرير بصيغة Excel بنجاح",
+    });
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap = {
+      'new': 'جديد',
+      'interested': 'مهتم',
+      'negotiating': 'جاري التفاوض',
+      'agreed': 'تم الاتفاق',
+      'contracted': 'متعاقد',
+      'not_interested': 'غير مهتم'
+    };
+    return statusMap[status as keyof typeof statusMap] || 'جديد';
   };
 
   const getStatusBadge = (status: string) => {
@@ -414,13 +493,23 @@ const RentalTenants = () => {
           <CardTitle>البحث والفلترة</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <div className="flex-1">
               <Input
                 placeholder="البحث في المستأجرين..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={exportToPDF} variant="outline" size="sm">
+                <FileDown className="h-4 w-4 ml-2" />
+                PDF
+              </Button>
+              <Button onClick={exportToExcel} variant="outline" size="sm">
+                <FileSpreadsheet className="h-4 w-4 ml-2" />
+                Excel
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -509,14 +598,23 @@ const RentalTenants = () => {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2 space-x-reverse">
+                   <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleWhatsApp(tenant.phone)}
+                        title="إرسال رسالة واتس آب"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleEdit(tenant)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-4 w-4 ml-2" />
+                        تعديل
                       </Button>
                     </div>
                   </TableCell>
