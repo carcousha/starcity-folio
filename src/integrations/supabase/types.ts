@@ -1002,59 +1002,190 @@ export type Database = {
         }
         Relationships: []
       }
+      government_service_fees: {
+        Row: {
+          amount: number
+          created_at: string | null
+          due_date: string | null
+          fee_type: string
+          id: string
+          paid_amount: number | null
+          paid_at: string | null
+          payment_reference: string | null
+          service_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string | null
+          fee_type: string
+          id?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          service_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string | null
+          fee_type?: string
+          id?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          service_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "government_service_fees_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "government_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      government_service_timeline: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          service_id: string
+          stage_name: string
+          stage_order: number | null
+          stage_status: string
+          started_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          service_id: string
+          stage_name: string
+          stage_order?: number | null
+          stage_status?: string
+          started_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          service_id?: string
+          stage_name?: string
+          stage_order?: number | null
+          stage_status?: string
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "government_service_timeline_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "government_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       government_services: {
         Row: {
           actual_completion_date: string | null
           application_date: string | null
+          category: string | null
+          client_id: string | null
+          completion_notes: string | null
           contract_id: string
           cost: number | null
           created_at: string
           documents_url: string[] | null
+          due_date: string | null
           expected_completion_date: string | null
+          government_entity: string | null
           handled_by: string
           id: string
           notes: string | null
+          official_fees: number | null
+          priority: string | null
           reference_number: string | null
+          rejection_reason: string | null
           service_name: string
           service_type: string
           status: string
+          timeline_stages: Json | null
           updated_at: string
         }
         Insert: {
           actual_completion_date?: string | null
           application_date?: string | null
+          category?: string | null
+          client_id?: string | null
+          completion_notes?: string | null
           contract_id: string
           cost?: number | null
           created_at?: string
           documents_url?: string[] | null
+          due_date?: string | null
           expected_completion_date?: string | null
+          government_entity?: string | null
           handled_by: string
           id?: string
           notes?: string | null
+          official_fees?: number | null
+          priority?: string | null
           reference_number?: string | null
+          rejection_reason?: string | null
           service_name: string
           service_type: string
           status?: string
+          timeline_stages?: Json | null
           updated_at?: string
         }
         Update: {
           actual_completion_date?: string | null
           application_date?: string | null
+          category?: string | null
+          client_id?: string | null
+          completion_notes?: string | null
           contract_id?: string
           cost?: number | null
           created_at?: string
           documents_url?: string[] | null
+          due_date?: string | null
           expected_completion_date?: string | null
+          government_entity?: string | null
           handled_by?: string
           id?: string
           notes?: string | null
+          official_fees?: number | null
+          priority?: string | null
           reference_number?: string | null
+          rejection_reason?: string | null
           service_name?: string
           service_type?: string
           status?: string
+          timeline_stages?: Json | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "government_services_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "government_services_contract_id_fkey"
             columns: ["contract_id"]
@@ -2654,6 +2785,10 @@ export type Database = {
         Args: { lead_record: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: number
       }
+      calculate_service_total_fees: {
+        Args: { service_id_param: string }
+        Returns: number
+      }
       check_module_permission: {
         Args: {
           module_name_param: string
@@ -2782,6 +2917,14 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      link_service_to_accounting: {
+        Args: {
+          service_id_param: string
+          expense_amount: number
+          expense_description?: string
+        }
+        Returns: string
+      }
       log_auth_attempt: {
         Args: {
           attempt_type: string
@@ -2852,6 +2995,15 @@ export type Database = {
       update_employee_targets_progress: {
         Args: { employee_id_param: string }
         Returns: undefined
+      }
+      update_service_stage: {
+        Args: {
+          service_id_param: string
+          stage_name_param: string
+          stage_status_param?: string
+          notes_param?: string
+        }
+        Returns: boolean
       }
       validate_role_access: {
         Args: { required_role: Database["public"]["Enums"]["app_role"] }
