@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, AlertTriangle, CheckCircle, Search, Filter, Download, Calendar, Users, Bell, BarChart3 } from "lucide-react";
+import { Plus, AlertTriangle, CheckCircle, Search, Filter, Download, Calendar, Users, Bell, BarChart3, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +40,8 @@ export default function Debts() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -282,6 +284,106 @@ export default function Debts() {
     }
   };
 
+  const handleEdit = (debt: Debt) => {
+    setSelectedDebt(debt);
+    setFormData({
+      debtor_name: debt.debtor_name,
+      debtor_type: debt.debtor_type,
+      debtor_id: debt.debtor_id || "",
+      amount: debt.amount.toString(),
+      description: debt.description,
+      due_date: debt.due_date || ""
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedDebt || !formData.debtor_name || !formData.debtor_type || !formData.amount || !formData.description) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const updateData: any = {
+        debtor_name: formData.debtor_name,
+        debtor_type: formData.debtor_type === "موظف" ? "employee" : formData.debtor_type.toLowerCase(),
+        amount: parseFloat(formData.amount),
+        description: formData.description,
+        due_date: formData.due_date || null,
+      };
+
+      if (formData.debtor_id && formData.debtor_id !== "unassigned") {
+        updateData.debtor_id = formData.debtor_id;
+      } else {
+        updateData.debtor_id = null;
+      }
+
+      const { error } = await supabase
+        .from('debts')
+        .update(updateData)
+        .eq('id', selectedDebt.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم التحديث",
+        description: "تم تعديل المديونية بنجاح",
+      });
+
+      setIsEditDialogOpen(false);
+      setSelectedDebt(null);
+      setFormData({
+        debtor_name: "",
+        debtor_type: "",
+        debtor_id: "",
+        amount: "",
+        description: "",
+        due_date: ""
+      });
+      fetchDebts();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في تعديل المديونية",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (debtId: string, debtorName: string) => {
+    const confirmed = window.confirm(`هل أنت متأكد من حذف مديونية "${debtorName}"؟`);
+    
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('debts')
+        .delete()
+        .eq('id', debtId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف المديونية بنجاح",
+      });
+
+      fetchDebts();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف المديونية",
+        variant: "destructive",
+      });
+    }
+  };
+
   const totalPendingDebt = filteredDebts
     .filter(debt => debt.status === 'pending')
     .reduce((sum, debt) => sum + debt.amount, 0);
@@ -445,6 +547,112 @@ export default function Debts() {
                 <Button type="submit" className="w-full">
                   حفظ المديونية
                 </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog for Edit */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-md" dir="rtl">
+              <DialogHeader>
+                <DialogTitle>تعديل المديونية</DialogTitle>
+                <DialogDescription>
+                  تعديل تفاصيل المديونية
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div>
+                  <Label htmlFor="edit_debtor_name">اسم المدين</Label>
+                  <Input
+                    id="edit_debtor_name"
+                    value={formData.debtor_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, debtor_name: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_debtor_type">نوع المدين</Label>
+                  <Select value={formData.debtor_type} onValueChange={(value) => setFormData(prev => ({ ...prev, debtor_type: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر نوع المدين" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {debtorTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.debtor_type === "موظف" && (
+                  <div>
+                    <Label htmlFor="edit_debtor_id">الموظف (اختياري)</Label>
+                    <Select value={formData.debtor_id} onValueChange={(value) => {
+                      const selectedProfile = profiles.find(p => p.user_id === value);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        debtor_id: value,
+                        debtor_name: selectedProfile ? `${selectedProfile.first_name} ${selectedProfile.last_name}` : prev.debtor_name
+                      }));
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الموظف" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">بدون ربط</SelectItem>
+                        {profiles.map((profile) => (
+                          <SelectItem key={profile.user_id} value={profile.user_id}>
+                            {profile.first_name} {profile.last_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="edit_amount">المبلغ</Label>
+                  <Input
+                    id="edit_amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_due_date">تاريخ الاستحقاق (اختياري)</Label>
+                  <Input
+                    id="edit_due_date"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_description">الوصف/السبب</Label>
+                  <Textarea
+                    id="edit_description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    حفظ التعديلات
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsEditDialogOpen(false)}
+                    className="flex-1"
+                  >
+                    إلغاء
+                  </Button>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
@@ -680,28 +888,47 @@ export default function Debts() {
                       {debt.description}
                     </TableCell>
                     <TableCell>
-                      {debt.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => markAsPaid(debt.id)}
-                          >
-                            تأكيد السداد
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              const partialAmount = prompt('أدخل المبلغ المراد سداده:', debt.amount.toString());
-                              if (partialAmount && parseFloat(partialAmount) > 0 && parseFloat(partialAmount) <= debt.amount) {
-                                markAsPartiallyPaid(debt.id, parseFloat(partialAmount));
-                              }
-                            }}
-                          >
-                            سداد جزئي
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        {/* Edit and Delete buttons for all debts */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(debt)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(debt.id, debt.debtor_name)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        
+                        {/* Payment buttons only for pending debts */}
+                        {debt.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => markAsPaid(debt.id)}
+                            >
+                              تأكيد السداد
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const partialAmount = prompt('أدخل المبلغ المراد سداده:', debt.amount.toString());
+                                if (partialAmount && parseFloat(partialAmount) > 0 && parseFloat(partialAmount) <= debt.amount) {
+                                  markAsPartiallyPaid(debt.id, parseFloat(partialAmount));
+                                }
+                              }}
+                            >
+                              سداد جزئي
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
