@@ -86,7 +86,7 @@ const AddCommissionForm = () => {
           .insert({
             title: 'عقار افتراضي - عمولات يدوية',
             description: 'عقار افتراضي للعمولات اليدوية والمعاملات الخارجية',
-            property_type: 'أخرى',
+            property_type: 'commercial',
             location: 'افتراضي',
             price: 0,
             status: 'unavailable',
