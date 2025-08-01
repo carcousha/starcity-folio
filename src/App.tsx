@@ -25,6 +25,7 @@ import ActivityLogPage from "./pages/accounting/ActivityLog";
 import AdvancedDebts from "./pages/accounting/AdvancedDebts";
 import ReportsIndex from "./pages/reports/index";
 import RentalIndex from "./pages/rental/index";
+import PropertyOwners from "./pages/rental/PropertyOwners";
 import Properties from "./pages/rental/Properties";
 import Tenants from "./pages/rental/Tenants";
 import RentalContracts from "./pages/rental/RentalContracts";
@@ -144,11 +145,16 @@ const App = () => (
               } />
               
               {/* Rental Routes - Admin and Accountant */}
-              <Route path="/rental" element={
-                <ProtectedRoute requiredPermission="canViewFinancials">
-                  <RentalIndex />
-                </ProtectedRoute>
-              } />
+               <Route path="/rental" element={
+                 <ProtectedRoute requiredPermission="canViewFinancials">
+                   <RentalIndex />
+                 </ProtectedRoute>
+               } />
+               <Route path="/rental/property-owners" element={
+                 <ProtectedRoute requiredPermission="canViewFinancials">
+                   <PropertyOwners />
+                 </ProtectedRoute>
+               } />
               <Route path="/rental/properties" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
                   <Properties />

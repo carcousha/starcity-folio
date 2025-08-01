@@ -17,7 +17,10 @@ export default {
 				'2xl': '1400px'
 			}
 		},
-		extend: {
+    extend: {
+      fontFamily: {
+        'tajawal': ['Tajawal', 'Arial', 'sans-serif'],
+      },
 			fontFamily: {
 				sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
 				arabic: ["Tajawal", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
