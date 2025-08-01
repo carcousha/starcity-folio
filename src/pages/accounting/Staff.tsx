@@ -1,590 +1,260 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LoadingButton } from "@/components/ui/loading-button";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { SkeletonTable, SkeletonCard } from "@/components/ui/loading-skeleton";
-import { EnhancedDropdown } from "@/components/ui/enhanced-dropdown";
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useFinancialIntegration, useEmployeeFinancialData } from '@/hooks/useFinancialIntegration';
 import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import AvatarUpload from '@/components/AvatarUpload';
+import { 
+  Plus, 
   Users, 
   UserCheck, 
-  Plus, 
-  Edit, 
+  User, 
+  BarChart3, 
   Eye, 
-  Download,
-  TrendingUp,
-  HandCoins,
-  FileText,
-  DollarSign,
-  Calendar,
-  Phone,
-  Mail,
-  User,
-  BarChart3,
-  Shield,
-  Calculator,
-  Trash2
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useEmployeeFinancialData } from "@/hooks/useFinancialIntegration";
-import ActivityLog from "@/components/ActivityLog";
-import AvatarUpload from "@/components/AvatarUpload";
+  Edit, 
+  Trash2, 
+  DollarSign, 
+  TrendingUp, 
+  FileText, 
+  Activity
+} from 'lucide-react';
 
 interface Staff {
   id: string;
-  user_id: string | null;
+  user_id: string;
   first_name: string;
   last_name: string;
   email: string;
   phone?: string;
   role: 'admin' | 'accountant' | 'employee';
   is_active: boolean;
-  avatar_url?: string;
   created_at: string;
+  avatar_url?: string;
 }
 
 interface EmployeeStats {
   totalCommissions: number;
-  totalDebts: number;
-  totalDeals: number;
-  avgCommissionRate: number;
-  netEarnings: number;
+  pendingDebts: number;
+  dealsClosed: number;
+  monthlyTarget: number;
+  targetAchievement: number;
 }
 
 interface NewEmployeeForm {
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   role: 'admin' | 'accountant' | 'employee';
-  commission_rate: number;
 }
 
 export default function Staff() {
-  const [staff, setStaff] = useState<Staff[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [addingEmployee, setAddingEmployee] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { checkPermission } = useRoleAccess();
   const [selectedEmployee, setSelectedEmployee] = useState<Staff | null>(null);
-  const [employeeStats, setEmployeeStats] = useState<EmployeeStats | null>(null);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; employee: Staff | null }>({
     open: false,
     employee: null
   });
   const [newEmployee, setNewEmployee] = useState<NewEmployeeForm>({
-    first_name: '',
-    last_name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
-    role: 'employee',
-    commission_rate: 2.5
+    role: 'employee'
   });
-  
-  const { toast } = useToast();
-  const { profile } = useAuth();
 
-  useEffect(() => {
-    fetchStaff();
-  }, []);
+  const canManageStaff = checkPermission('canManageStaff');
 
-  const fetchStaff = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+  const { data: staff = [], isLoading: staffLoading } = useQuery({
+    queryKey: ['staff'],
+    queryFn: fetchStaff
+  });
 
-      if (error) throw error;
-      setStaff(data || []);
-    } catch (error) {
+  async function fetchStaff(): Promise<Staff[]> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
       toast({
         title: "خطأ",
-        description: "فشل في تحميل البيانات",
+        description: "فشل في جلب بيانات الموظفين",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      throw error;
     }
-  };
 
-  const fetchEmployeeStats = async (employeeId: string) => {
-    try {
-      // Get commissions
-      const { data: commissions } = await supabase
-        .from('commission_employees')
-        .select('calculated_share, net_share')
-        .eq('employee_id', employeeId);
+    return data || [];
+  }
 
-      // Get debts
-      const { data: debts } = await supabase
-        .from('debts')
-        .select('amount')
-        .eq('debtor_id', employeeId)
-        .eq('status', 'pending');
+  async function fetchEmployeeStats(employeeId: string): Promise<EmployeeStats> {
+    // Placeholder implementation - replace with actual data fetching
+    return {
+      totalCommissions: 25000,
+      pendingDebts: 5000,
+      dealsClosed: 12,
+      monthlyTarget: 50000,
+      targetAchievement: 75
+    };
+  }
 
-      // Get deals count
-      const { data: deals } = await supabase
-        .from('deals')
-        .select('id, commission_rate')
-        .eq('handled_by', employeeId);
-
-      const totalCommissions = commissions?.reduce((sum, c) => sum + Number(c.calculated_share || 0), 0) || 0;
-      const totalDebts = debts?.reduce((sum, d) => sum + Number(d.amount || 0), 0) || 0;
-      const netEarnings = commissions?.reduce((sum, c) => sum + Number(c.net_share || 0), 0) || 0;
-      const avgCommissionRate = deals?.length ? 
-        deals.reduce((sum, d) => sum + Number(d.commission_rate || 0), 0) / deals.length : 0;
-
-      setEmployeeStats({
-        totalCommissions,
-        totalDebts,
-        totalDeals: deals?.length || 0,
-        avgCommissionRate,
-        netEarnings
+  const addEmployeeMutation = useMutation({
+    mutationFn: async (employee: NewEmployeeForm) => {
+      // Create auth user first
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: employee.email,
+        password: 'temp123456', // Temporary password
+        email_confirm: true,
+        user_metadata: {
+          first_name: employee.firstName,
+          last_name: employee.lastName
+        }
       });
-    } catch (error) {
-      console.error('Error fetching employee stats:', error);
-    }
-  };
 
-  const handleAddEmployee = async () => {
-    setAddingEmployee(true);
-    try {
-      // Validate required fields
-      if (!newEmployee.first_name.trim() || !newEmployee.last_name.trim() || !newEmployee.email.trim()) {
-        toast({
-          title: "خطأ",
-          description: "يرجى ملء جميع الحقول المطلوبة",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (authError) throw authError;
 
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(newEmployee.email.trim())) {
-        toast({
-          title: "خطأ",
-          description: "يرجى إدخال بريد إلكتروني صحيح",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Adding new employee:', newEmployee);
-
-      // Insert employee profile without user_id (staff member without auth account)
+      // Create profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
-          user_id: null, // No auth account initially
-          first_name: newEmployee.first_name.trim(),
-          last_name: newEmployee.last_name.trim(),
-          email: newEmployee.email.trim().toLowerCase(),
-          phone: newEmployee.phone.trim() || null,
-          role: newEmployee.role,
-          is_active: true
+          user_id: authData.user.id,
+          first_name: employee.firstName,
+          last_name: employee.lastName,
+          email: employee.email,
+          phone: employee.phone,
+          role: employee.role
         })
         .select()
         .single();
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        
-        // Handle specific errors
-        if (profileError.code === '23505') { // Unique constraint violation
-          toast({
-            title: "خطأ",
-            description: "هذا البريد الإلكتروني مستخدم مسبقاً",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        throw new Error('فشل في إنشاء الملف الشخصي: ' + profileError.message);
-      }
+      if (profileError) throw profileError;
 
+      return profileData;
+    },
+    onSuccess: () => {
       toast({
-        title: "تم بنجاح",
+        title: "تم الإضافة",
         description: "تم إضافة الموظف بنجاح",
       });
-
-      setShowAddDialog(false);
+      setAddDialogOpen(false);
       setNewEmployee({
-        first_name: '',
-        last_name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         phone: '',
-        role: 'employee',
-        commission_rate: 2.5
+        role: 'employee'
       });
-      
-      // Refresh the staff list immediately
-      await fetchStaff();
-      
-    } catch (error: any) {
-      console.error('Error adding employee:', error);
-      
-      // Handle specific error messages
-      let errorMessage = "فشل في إضافة الموظف";
-      if (error.message.includes('already registered')) {
-        errorMessage = "هذا البريد الإلكتروني مستخدم مسبقاً";
-      } else if (error.message.includes('Password')) {
-        errorMessage = "خطأ في كلمة المرور - يجب أن تكون 6 أحرف على الأقل";
-      } else if (error.message.includes('email')) {
-        errorMessage = "صيغة البريد الإلكتروني غير صحيحة";
-      }
-      
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+    },
+    onError: (error) => {
       toast({
         title: "خطأ",
-        description: errorMessage,
+        description: "فشل في إضافة الموظف",
         variant: "destructive",
       });
-    } finally {
-      setAddingEmployee(false);
     }
-  };
+  });
 
-  const openEmployeeProfile = async (employee: Staff) => {
+  const openEmployeeProfile = (employee: Staff) => {
     setSelectedEmployee(employee);
-    if (employee.user_id) {
-      await fetchEmployeeStats(employee.user_id);
+    setProfileDialogOpen(true);
+  };
+
+  const handleAddEmployee = () => {
+    if (!newEmployee.firstName || !newEmployee.lastName || !newEmployee.email) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
     }
-    setShowProfileDialog(true);
+
+    addEmployeeMutation.mutate(newEmployee);
   };
 
-  const EmployeeProfileContent = ({ employee }: { employee: Staff }) => {
-    const { data: financialData, loading: financialLoading } = useEmployeeFinancialData(employee.user_id || "");
-
+  if (staffLoading) {
     return (
-      <Tabs defaultValue="info" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="info">البيانات الشخصية</TabsTrigger>
-          <TabsTrigger value="financial">الملف المالي</TabsTrigger>
-          <TabsTrigger value="commissions">العمولات</TabsTrigger>
-          <TabsTrigger value="activities">النشاطات</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="info" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">المعلومات الأساسية</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <AvatarUpload
-                    currentAvatarUrl={employee.avatar_url}
-                    employeeId={employee.id}
-                    employeeName={`${employee.first_name} ${employee.last_name}`}
-                    size="lg"
-                    canEdit={canManageStaff || employee.user_id === profile?.user_id}
-                    onAvatarUpdate={(newUrl) => {
-                      setSelectedEmployee(prev => prev ? { ...prev, avatar_url: newUrl } : null);
-                      // Also update in the staff list
-                      setStaff(prev => prev.map(s => 
-                        s.id === employee.id ? { ...s, avatar_url: newUrl } : s
-                      ));
-                    }}
-                  />
-                  <div>
-                    <h3 className="text-xl font-bold">
-                      {employee.first_name} {employee.last_name}
-                    </h3>
-                    <Badge variant="outline">
-                      {employee.role === 'admin' ? 'مدير' : 
-                       employee.role === 'accountant' ? 'محاسب' : 'موظف'}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    <span>{employee.email}</span>
-                  </div>
-                  {employee.phone && (
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <Phone className="h-4 w-4 text-gray-500" />
-                      <span>{employee.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <span>انضم في {new Date(employee.created_at).toLocaleDateString('ar-EG')}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {financialData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">الملخص المالي</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {financialData.totalDeals}
-                      </div>
-                      <div className="text-sm text-gray-500">إجمالي الصفقات</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {financialData.totalCommissions.toFixed(2)} د.إ
-                      </div>
-                      <div className="text-sm text-gray-500">إجمالي العمولات</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">
-                        {financialData.totalDebts.toFixed(2)} د.إ
-                      </div>
-                      <div className="text-sm text-gray-500">المديونيات</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {financialData.netCommissions.toFixed(2)} د.إ
-                      </div>
-                      <div className="text-sm text-gray-500">صافي الأرباح</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="financial">
-          <Card>
-            <CardHeader>
-              <CardTitle>التفاصيل المالية</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {financialLoading ? (
-                <div className="text-center py-8">جاري تحميل البيانات المالية...</div>
-              ) : financialData ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-lg">العمولات والأرباح</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>إجمالي العمولات المحسوبة:</span>
-                        <span className="font-medium text-green-600">
-                          {financialData.totalCommissions.toFixed(2)} د.إ
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>المديونيات المخصومة:</span>
-                        <span className="font-medium text-red-600">
-                          {financialData.totalDebts.toFixed(2)} د.إ
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-bold border-t pt-2">
-                        <span>صافي الأرباح:</span>
-                        <span className="text-purple-600">
-                          {financialData.netCommissions.toFixed(2)} د.إ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-lg">إحصائيات الأداء</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>عدد الصفقات المنجزة:</span>
-                        <span className="font-medium">{financialData.totalDeals}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>متوسط العمولة لكل صفقة:</span>
-                        <span className="font-medium">
-                          {financialData.totalDeals > 0 
-                            ? (financialData.totalCommissions / financialData.totalDeals).toFixed(2)
-                            : '0.00'
-                          } د.إ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد بيانات مالية متاحة</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="commissions">
-          <Card>
-            <CardHeader>
-              <CardTitle>سجل العمولات</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <HandCoins className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>سيتم عرض تفاصيل العمولات هنا</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="activities">
-          <ActivityLog userId={employee.user_id || undefined} limit={20} showHeader={false} />
-        </TabsContent>
-      </Tabs>
-    );
-  };
-
-  const exportStaffReport = () => {
-    const csvContent = [
-      ['الاسم', 'البريد الإلكتروني', 'الهاتف', 'المنصب', 'الحالة', 'تاريخ الإنضمام'],
-      ...staff.map(emp => [
-        `${emp.first_name} ${emp.last_name}`,
-        emp.email,
-        emp.phone || '',
-        emp.role === 'admin' ? 'مدير' : emp.role === 'accountant' ? 'محاسب' : 'موظف',
-        emp.is_active ? 'نشط' : 'غير نشط',
-        new Date(emp.created_at).toLocaleDateString('ar-EG')
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `staff_report_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
-
-  const canManageStaff = profile?.role === 'admin' || profile?.role === 'accountant';
-
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6 space-y-6" dir="rtl">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">إدارة الموظفين</h1>
-            <p className="text-gray-600 mt-2">متابعة الموظفين وأدائهم المالي</p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-[200px]" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonCard key={i} />
+            <Skeleton key={i} className="h-[120px]" />
           ))}
         </div>
-        
-        <div className="bg-background rounded-lg border p-6">
-          <div className="mb-4">
-            <div className="h-6 w-32 bg-muted rounded animate-pulse"></div>
-          </div>
-          <SkeletonTable rows={6} />
-        </div>
+        <Skeleton className="h-[400px]" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6" dir="rtl">
+    <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">إدارة الموظفين</h1>
-          <p className="text-gray-600 mt-2">متابعة الموظفين وأدائهم المالي</p>
+          <h1 className="text-3xl font-bold tracking-tight">إدارة الموظفين</h1>
+          <p className="text-muted-foreground">
+            إدارة الموظفين وتتبع أداءهم المالي
+          </p>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={exportStaffReport} variant="outline">
-            <Download className="h-4 w-4 ml-2" />
-            تصدير التقرير
+        {canManageStaff && (
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            إضافة موظف
           </Button>
-          {canManageStaff && (
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 ml-2" />
-                  إضافة موظف
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>إضافة موظف جديد</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="first_name">الاسم الأول</Label>
-                      <Input
-                        id="first_name"
-                        value={newEmployee.first_name}
-                        onChange={(e) => setNewEmployee({...newEmployee, first_name: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="last_name">الاسم الأخير</Label>
-                      <Input
-                        id="last_name"
-                        value={newEmployee.last_name}
-                        onChange={(e) => setNewEmployee({...newEmployee, last_name: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newEmployee.email}
-                      onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">الهاتف</Label>
-                    <Input
-                      id="phone"
-                      value={newEmployee.phone}
-                      onChange={(e) => setNewEmployee({...newEmployee, phone: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <EnhancedDropdown
-                      label="المنصب"
-                      options={[
-                        { value: 'employee', label: 'موظف', icon: <User className="h-4 w-4" /> },
-                        { value: 'accountant', label: 'محاسب', icon: <Calculator className="h-4 w-4" /> },
-                        { value: 'admin', label: 'مدير', icon: <Shield className="h-4 w-4" /> }
-                      ]}
-                      value={newEmployee.role}
-                      onSelect={(value) => setNewEmployee({...newEmployee, role: value as 'admin' | 'accountant' | 'employee'})}
-                    />
-                  </div>
-                  <LoadingButton 
-                    onClick={handleAddEmployee} 
-                    className="w-full"
-                    loading={addingEmployee}
-                    loadingText="جارٍ إضافة الموظف..."
-                  >
-                    إضافة الموظف
-                  </LoadingButton>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">إجمالي الموظفين</CardTitle>
@@ -592,7 +262,7 @@ export default function Staff() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{staff.length}</div>
-            <p className="text-xs text-muted-foreground">موظف مسجل</p>
+            <p className="text-xs text-muted-foreground">موظف</p>
           </CardContent>
         </Card>
 
@@ -657,12 +327,16 @@ export default function Staff() {
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center space-x-3 space-x-reverse">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={employee.avatar_url} />
-                        <AvatarFallback>
-                          {employee.first_name[0]}{employee.last_name[0]}
-                        </AvatarFallback>
-                      </Avatar>
+                      <AvatarUpload
+                        currentAvatarUrl={employee.avatar_url}
+                        employeeId={employee.user_id}
+                        employeeName={`${employee.first_name} ${employee.last_name}`}
+                        size="sm"
+                        canEdit={canManageStaff}
+                        onAvatarUpdate={(newUrl) => {
+                          queryClient.invalidateQueries({ queryKey: ['staff'] });
+                        }}
+                      />
                       <div>
                         <div className="font-medium">{employee.first_name} {employee.last_name}</div>
                         <div className="text-sm text-gray-500">
@@ -698,7 +372,14 @@ export default function Staff() {
                       </Button>
                       {canManageStaff && (
                         <>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedEmployee(employee);
+                              setEditDialogOpen(true);
+                            }}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
@@ -720,29 +401,238 @@ export default function Staff() {
       </Card>
 
       {/* Employee Profile Dialog */}
-      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               ملف الموظف: {selectedEmployee?.first_name} {selectedEmployee?.last_name}
             </DialogTitle>
+            <DialogDescription>
+              عرض تفاصيل الموظف ومعلوماته المالية
+            </DialogDescription>
           </DialogHeader>
 
           {selectedEmployee && (
-            <EmployeeProfileContent employee={selectedEmployee} />
+            <Tabs defaultValue="personal" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="personal">المعلومات الشخصية</TabsTrigger>
+                <TabsTrigger value="financial">الملف المالي</TabsTrigger>
+                <TabsTrigger value="commissions">العمولات</TabsTrigger>
+                <TabsTrigger value="activities">النشاطات</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="personal" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>المعلومات الأساسية</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-4 space-x-reverse">
+                      <AvatarUpload
+                        currentAvatarUrl={selectedEmployee.avatar_url}
+                        employeeId={selectedEmployee.user_id}
+                        employeeName={`${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
+                        size="lg"
+                        canEdit={canManageStaff}
+                        onAvatarUpdate={(newUrl) => {
+                          queryClient.invalidateQueries({ queryKey: ['staff'] });
+                        }}
+                      />
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {selectedEmployee.first_name} {selectedEmployee.last_name}
+                        </h3>
+                        <p className="text-muted-foreground">{selectedEmployee.email}</p>
+                        <p className="text-muted-foreground">{selectedEmployee.phone}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>المنصب</Label>
+                        <Badge variant="outline" className="mt-1">
+                          {selectedEmployee.role === 'admin' ? 'مدير' : 
+                           selectedEmployee.role === 'accountant' ? 'محاسب' : 'موظف'}
+                        </Badge>
+                      </div>
+                      <div>
+                        <Label>الحالة</Label>
+                        <Badge 
+                          variant={selectedEmployee.is_active ? 'default' : 'secondary'}
+                          className="mt-1"
+                        >
+                          {selectedEmployee.is_active ? 'نشط' : 'غير نشط'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="financial">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>الملف المالي</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-medium">إجمالي العمولات</h4>
+                          <p className="text-2xl font-bold text-primary">--</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-medium">الديون المعلقة</h4>
+                          <p className="text-2xl font-bold text-destructive">--</p>
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        سيتم تطوير هذا القسم لعرض تفاصيل مالية شاملة
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="commissions">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>سجل العمولات</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      سيتم عرض عمولات الموظف هنا قريباً
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="activities">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>سجل النشاطات</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      سيتم عرض نشاطات الموظف هنا قريباً
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog for Delete */}
+      {/* Add Employee Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إضافة موظف جديد</DialogTitle>
+            <DialogDescription>
+              أدخل معلومات الموظف الجديد
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">الاسم الأول</Label>
+                <Input
+                  id="firstName"
+                  value={newEmployee.firstName}
+                  onChange={(e) => setNewEmployee(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="الاسم الأول"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">الاسم الأخير</Label>
+                <Input
+                  id="lastName"
+                  value={newEmployee.lastName}
+                  onChange={(e) => setNewEmployee(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="الاسم الأخير"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="email">البريد الإلكتروني</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newEmployee.email}
+                onChange={(e) => setNewEmployee(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="example@company.com"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="phone">رقم الهاتف</Label>
+              <Input
+                id="phone"
+                value={newEmployee.phone}
+                onChange={(e) => setNewEmployee(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="+971 50 123 4567"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="role">المنصب</Label>
+              <Select value={newEmployee.role} onValueChange={(value: any) => setNewEmployee(prev => ({ ...prev, role: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر المنصب" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">موظف</SelectItem>
+                  <SelectItem value="accountant">محاسب</SelectItem>
+                  <SelectItem value="admin">مدير</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleAddEmployee} disabled={addEmployeeMutation.isPending}>
+              {addEmployeeMutation.isPending ? 'جاري الإضافة...' : 'إضافة الموظف'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Employee Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تعديل بيانات الموظف</DialogTitle>
+            <DialogDescription>
+              تعديل معلومات {selectedEmployee?.first_name} {selectedEmployee?.last_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-muted-foreground">
+              سيتم تطوير هذا القسم لتعديل بيانات الموظفين
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         open={confirmDelete.open}
         onOpenChange={(open) => setConfirmDelete({ open, employee: null })}
-        title="حذف الموظف"
-        description={`هل أنت متأكد من حذف الموظف "${confirmDelete.employee?.first_name} ${confirmDelete.employee?.last_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+        title="تأكيد الحذف"
+        description={`هل أنت متأكد من حذف الموظف ${confirmDelete.employee?.first_name} ${confirmDelete.employee?.last_name}؟ هذا الإجراء لا يمكن التراجع عنه.`}
         confirmText="حذف"
         cancelText="إلغاء"
-        variant="destructive"
         onConfirm={async () => {
           if (confirmDelete.employee) {
             try {
@@ -758,7 +648,7 @@ export default function Staff() {
                 description: "تم حذف الموظف بنجاح",
               });
               setConfirmDelete({ open: false, employee: null });
-              await fetchStaff();
+              queryClient.invalidateQueries({ queryKey: ['staff'] });
             } catch (error) {
               toast({
                 title: "خطأ",
