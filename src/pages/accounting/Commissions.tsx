@@ -36,127 +36,51 @@ const AddCommissionForm = () => {
   });
 
   const addCommissionMutation = useMutation({
-    mutationFn: async (commissionData: any) => {
-      const totalCommission = parseFloat(amount); // المبلغ المدخل هو إجمالي العمولة
-      const officeShare = totalCommission * 0.5; // 50% للمكتب
-      const employeeShare = totalCommission * 0.5; // 50% للموظفين
+    mutationFn: async () => {
+      const totalCommission = parseFloat(amount);
+      const officeShare = totalCommission * 0.5;
+      const employeeShare = totalCommission * 0.5;
       
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
 
-      // الحصول على العميل والعقار الافتراضيين
-      const { data: defaultClient, error: clientError } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('name', 'عميل افتراضي - عمولات يدوية')
-        .maybeSingle();
+      // إنشاء معرف فريد للعمولة اليدوية
+      const manualCommissionId = crypto.randomUUID();
 
-      const { data: defaultProperty, error: propertyError } = await supabase
-        .from('properties')
-        .select('id')
-        .eq('title', 'عقار افتراضي - عمولات يدوية')
-        .maybeSingle();
-
-      // إنشاء العميل الافتراضي إذا لم يكن موجوداً
-      let clientId = defaultClient?.id;
-      if (!clientId) {
-        const { data: newClient, error: newClientError } = await supabase
-          .from('clients')
-          .insert({
-            name: 'عميل افتراضي - عمولات يدوية',
-            phone: '0000000000',
-            email: 'default@manual-commission.local',
-            notes: 'عميل افتراضي للعمولات اليدوية - لا يُستخدم في المراسلات',
-            client_status: 'inactive',
-            created_by: user.id,
-            assigned_to: user.id
-          })
-          .select('id')
-          .single();
-        
-        if (newClientError) throw newClientError;
-        clientId = newClient.id;
-      }
-
-      // إنشاء العقار الافتراضي إذا لم يكن موجوداً
-      let propertyId = defaultProperty?.id;
-      if (!propertyId) {
-        const { data: newProperty, error: newPropertyError } = await supabase
-          .from('properties')
-          .insert({
-            title: 'عقار افتراضي - عمولات يدوية',
-            description: 'عقار افتراضي للعمولات اليدوية والمعاملات الخارجية',
-            property_type: 'commercial',
-            location: 'افتراضي',
-            price: 0,
-            status: 'unavailable',
-            listed_by: user.id
-          })
-          .select('id')
-          .single();
-        
-        if (newPropertyError) throw newPropertyError;
-        propertyId = newProperty.id;
-      }
-
-      // إنشاء صفقة وهمية لهذه العمولة
-      const { data: dealData, error: dealError } = await supabase
-        .from('deals')
-        .insert({
-          client_id: clientId,
-          property_id: propertyId,
-          amount: totalCommission, // نستخدم مبلغ العمولة كمبلغ الصفقة
-          deal_type: transactionType,
-          status: 'closed',
-          handled_by: selectedEmployees.length > 0 ? selectedEmployees[0] : user.id,
-          commission_rate: 0, // لا نحتاج نسبة لأن المبلغ هو العمولة نفسها
-          commission_amount: totalCommission,
-          commission_calculated: true,
-          notes: `عمولة يدوية - ${transactionType} - ${propertyType} - ${clientName}`,
-          closed_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (dealError) throw dealError;
-
-      // إضافة العمولة الجديدة
-      const { data, error } = await supabase
+      // إضافة العمولة مباشرة
+      const { data: newCommission, error: commissionError } = await supabase
         .from('commissions')
         .insert({
-          deal_id: dealData.id,
+          deal_id: manualCommissionId, // استخدام معرف فريد كبديل
           amount: totalCommission,
-          percentage: 0, // لا نحتاج نسبة
+          percentage: 0,
           total_commission: totalCommission,
           office_share: officeShare,
           remaining_for_employees: employeeShare,
           client_name: clientName,
           employee_id: selectedEmployees.length > 0 ? selectedEmployees[0] : user.id,
-          status: 'pending'
+          status: 'pending',
+          notes: `عمولة يدوية - ${transactionType} - ${propertyType} - ${clientName}`
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (commissionError) throw commissionError;
 
-      // إضافة تفاصيل العمولة للموظفين المختارين
-      if (selectedEmployees.length > 0 && data) {
-        // حساب النسبة التلقائية: 50% للموظفين يقسم بالتساوي
-        const employeePercentage = 100 / selectedEmployees.length; // النسبة لكل موظف من الـ 50%
-        const sharePerEmployee = employeeShare / selectedEmployees.length; // المبلغ لكل موظف
+      // إضافة تفاصيل العمولة للموظفين
+      if (selectedEmployees.length > 0 && newCommission) {
+        const sharePerEmployee = employeeShare / selectedEmployees.length;
+        const employeePercentage = 100 / selectedEmployees.length;
 
-        // إضافة موظف لكل نسبة
-        for (const employeeId of selectedEmployees) {
-          await supabase
-            .from('commission_employees')
-            .insert({
-              commission_id: data.id,
-              employee_id: employeeId,
-              percentage: employeePercentage,
-              calculated_share: sharePerEmployee,
-              net_share: sharePerEmployee
-            });
-        }
+        const employeeInserts = selectedEmployees.map(employeeId => ({
+          commission_id: newCommission.id,
+          employee_id: employeeId,
+          percentage: employeePercentage,
+          calculated_share: sharePerEmployee,
+          net_share: sharePerEmployee
+        }));
+
+        await supabase.from('commission_employees').insert(employeeInserts);
       }
 
       // إضافة إيراد للمكتب
@@ -171,12 +95,12 @@ const AddCommissionForm = () => {
           recorded_by: user.id
         });
 
-      return data;
+      return newCommission;
     },
     onSuccess: () => {
       toast({
         title: "تم إضافة العمولة بنجاح",
-        description: "تم حفظ العمولة وربطها مع النظام المحاسبي"
+        description: "تم حفظ العمولة وتوزيعها على الموظفين والمكتب"
       });
       
       // إعادة تعيين النموذج
@@ -190,9 +114,10 @@ const AddCommissionForm = () => {
       queryClient.invalidateQueries({ queryKey: ['commission-history'] });
     },
     onError: (error) => {
+      console.error('Commission creation error:', error);
       toast({
         title: "خطأ في إضافة العمولة",
-        description: "حدث خطأ أثناء حفظ العمولة. يرجى المحاولة مرة أخرى",
+        description: error?.message || "حدث خطأ أثناء حفظ العمولة. يرجى المحاولة مرة أخرى",
         variant: "destructive"
       });
     }
@@ -218,7 +143,7 @@ const AddCommissionForm = () => {
       return;
     }
 
-    addCommissionMutation.mutate({});
+    addCommissionMutation.mutate();
   };
 
   return (
