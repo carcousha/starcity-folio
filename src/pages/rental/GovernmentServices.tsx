@@ -232,7 +232,7 @@ export default function GovernmentServices() {
         .from('government_services')
         .select(`
           *,
-          profiles!handled_by(first_name, last_name)
+          profiles!government_services_handled_by_fkey(first_name, last_name)
         `)
         .order('created_at', { ascending: false });
 

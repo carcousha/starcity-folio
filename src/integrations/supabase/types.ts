@@ -1232,6 +1232,13 @@ export type Database = {
             referencedRelation: "rental_contracts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "government_services_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       incentive_rules: {
