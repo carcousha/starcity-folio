@@ -1418,6 +1418,42 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_settings: {
+        Row: {
+          action_type: string
+          allowed_roles: string[]
+          allowed_users: string[] | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          module_name: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          allowed_roles?: string[]
+          allowed_users?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          module_name: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          allowed_roles?: string[]
+          allowed_users?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          module_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2617,6 +2653,14 @@ export type Database = {
       calculate_lead_score: {
         Args: { lead_record: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: number
+      }
+      check_module_permission: {
+        Args: {
+          module_name_param: string
+          action_type_param: string
+          user_id_param?: string
+        }
+        Returns: boolean
       }
       check_rate_limit: {
         Args: {

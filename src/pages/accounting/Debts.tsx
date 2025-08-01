@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useModulePermission } from "@/hooks/usePermissions";
 
 interface Debt {
   id: string;
@@ -50,6 +51,8 @@ export default function Debts() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const { checkPermission, isAdmin, isAccountant } = useRoleAccess();
+  const { hasPermission: canEdit } = useModulePermission('debts', 'edit');
+  const { hasPermission: canDelete } = useModulePermission('debts', 'delete');
 
   const [formData, setFormData] = useState({
     debtor_name: "",
@@ -891,25 +894,25 @@ export default function Debts() {
                     </TableCell>
                      <TableCell>
                        <div className="flex gap-2">
-                         {/* Edit and Delete buttons for admins and accountants only */}
-                         {(isAdmin || isAccountant) && (
-                           <>
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => handleEdit(debt)}
-                             >
-                               <Edit className="h-4 w-4" />
-                             </Button>
-                             <Button
-                               size="sm"
-                               variant="destructive"
-                               onClick={() => handleDelete(debt.id, debt.debtor_name)}
-                             >
-                               <Trash2 className="h-4 w-4" />
-                             </Button>
-                           </>
-                         )}
+                          {/* Edit and Delete buttons based on dynamic permissions */}
+                          {canEdit && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(debt)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(debt.id, debt.debtor_name)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         
                         {/* Payment buttons only for pending debts */}
                         {debt.status === 'pending' && (
