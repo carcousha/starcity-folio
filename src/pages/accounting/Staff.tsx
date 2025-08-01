@@ -172,67 +172,51 @@ export default function Staff() {
 
   const addEmployeeMutation = useMutation({
     mutationFn: async (employee: NewEmployeeForm) => {
-      try {
-        // إنشاء كلمة مرور عشوائية قوية
-        const randomPassword = generateRandomPassword();
-        
-        console.log('🔄 Creating auth user for:', employee.email);
-        
-        // إنشاء مستخدم Auth أولاً بدون تأكيد بريد إلكتروني
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: employee.email,
-          password: randomPassword,
-          email_confirm: true, // تأكيد تلقائي بدون إرسال بريد
-          user_metadata: {
-            first_name: employee.firstName,
-            last_name: employee.lastName
-          }
-        });
-
-        if (authError) {
-          console.error('❌ Auth user creation failed:', authError);
-          throw new Error(`فشل في إنشاء حساب المستخدم: ${authError.message}`);
-        }
-
-        if (!authData.user) {
-          throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
-        }
-
-        console.log('✅ Auth user created:', authData.user.id);
-
-        // إنشاء Profile مرتبط بـ user_id
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: authData.user.id,
-            first_name: employee.firstName,
-            last_name: employee.lastName,
-            email: employee.email,
-            phone: employee.phone,
-            role: employee.role,
-            is_active: true
-          })
-          .select()
-          .single();
-
-        if (profileError) {
-          console.error('❌ Profile creation failed:', profileError);
-          // حذف Auth user إذا فشل إنشاء Profile
-          await supabase.auth.admin.deleteUser(authData.user.id);
-          throw new Error(`فشل في إنشاء ملف الموظف: ${profileError.message}`);
-        }
-
-        console.log('✅ Profile created successfully:', profileData);
-
-        return {
-          ...profileData,
-          user_id: authData.user.id,
-          temporary_password: randomPassword // لعرضه للمستخدم
-        };
-      } catch (error) {
-        console.error('❌ Complete employee creation failed:', error);
-        throw error;
+      // Validate required fields
+      if (!employee.firstName?.trim()) {
+        throw new Error('الاسم الأول مطلوب');
       }
+      if (!employee.lastName?.trim()) {
+        throw new Error('الاسم الأخير مطلوب');
+      }
+      if (!employee.email?.trim()) {
+        throw new Error('البريد الإلكتروني مطلوب');
+      }
+
+      // Generate a strong random password
+      const password = generateRandomPassword();
+      
+      console.log('🔄 Creating employee via Edge Function:', employee.email);
+      
+      // Call Edge Function to create user securely
+      const { data, error } = await supabase.functions.invoke('create-employee-user', {
+        body: {
+          email: employee.email.trim(),
+          password: password,
+          first_name: employee.firstName.trim(),
+          last_name: employee.lastName.trim(),
+          role: employee.role,
+          phone: employee.phone?.trim() || null
+        }
+      });
+
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw new Error(error.message || 'فشل في إنشاء الموظف');
+      }
+
+      if (!data?.success) {
+        console.error('❌ Edge function failed:', data?.error);
+        throw new Error(data?.error || 'فشل في إنشاء الموظف');
+      }
+
+      console.log('✅ Employee created successfully:', data.user_id);
+
+      return { 
+        ...data.profile,
+        temporary_password: data.generated_password,
+        user_id: data.user_id 
+      };
     },
     onSuccess: (data) => {
       toast({
