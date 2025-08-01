@@ -44,12 +44,30 @@ const AddCommissionForm = () => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
 
+      // جلب معرف المستخدم الحالي من جدول profiles
+      const { data: currentUserProfile } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single();
+
+      // تحديد employee_id الصحيح
+      let primaryEmployeeId = null;
+      if (selectedEmployees.length > 0) {
+        primaryEmployeeId = selectedEmployees[0];
+      } else if (currentUserProfile) {
+        primaryEmployeeId = currentUserProfile.user_id;
+      } else {
+        throw new Error('لا يمكن تحديد الموظف المسؤول عن العمولة');
+      }
+
       console.log('Creating commission with data:', {
         amount: totalCommission,
         officeShare,
         employeeShare,
         clientName,
-        selectedEmployees
+        selectedEmployees,
+        primaryEmployeeId
       });
 
       // إضافة العمولة مباشرة بدون deal_id
@@ -63,7 +81,7 @@ const AddCommissionForm = () => {
           office_share: officeShare,
           remaining_for_employees: employeeShare,
           client_name: clientName,
-          employee_id: selectedEmployees.length > 0 ? selectedEmployees[0] : user.id,
+          employee_id: primaryEmployeeId,
           status: 'pending',
           notes: `عمولة يدوية - ${transactionType} - ${propertyType} - ${clientName}`
         })
