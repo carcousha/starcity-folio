@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmployeeFinancialData } from "@/hooks/useFinancialIntegration";
 import ActivityLog from "@/components/ActivityLog";
+import AvatarUpload from "@/components/AvatarUpload";
 
 interface Staff {
   id: string;
@@ -282,12 +283,20 @@ export default function Staff() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3 space-x-reverse">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={employee.avatar_url} />
-                    <AvatarFallback className="text-lg">
-                      {employee.first_name[0]}{employee.last_name[0]}
-                    </AvatarFallback>
-                  </Avatar>
+                  <AvatarUpload
+                    currentAvatarUrl={employee.avatar_url}
+                    employeeId={employee.id}
+                    employeeName={`${employee.first_name} ${employee.last_name}`}
+                    size="lg"
+                    canEdit={canManageStaff || employee.user_id === profile?.user_id}
+                    onAvatarUpdate={(newUrl) => {
+                      setSelectedEmployee(prev => prev ? { ...prev, avatar_url: newUrl } : null);
+                      // Also update in the staff list
+                      setStaff(prev => prev.map(s => 
+                        s.id === employee.id ? { ...s, avatar_url: newUrl } : s
+                      ));
+                    }}
+                  />
                   <div>
                     <h3 className="text-xl font-bold">
                       {employee.first_name} {employee.last_name}
