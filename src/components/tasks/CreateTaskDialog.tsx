@@ -47,9 +47,9 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
     priority: 'normal',
     start_date: null,
     due_date: null,
-    client_id: '',
-    property_id: '',
-    contract_id: '',
+    client_id: 'none',
+    property_id: 'none',
+    contract_id: 'none',
     assigned_to: [],
   });
 
@@ -127,9 +127,9 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
       };
 
       // إضافة الروابط الاختيارية
-      if (taskData.client_id) taskPayload.client_id = taskData.client_id;
-      if (taskData.property_id) taskPayload.property_id = taskData.property_id;
-      if (taskData.contract_id) taskPayload.contract_id = taskData.contract_id;
+      if (taskData.client_id && taskData.client_id !== 'none') taskPayload.client_id = taskData.client_id;
+      if (taskData.property_id && taskData.property_id !== 'none') taskPayload.property_id = taskData.property_id;
+      if (taskData.contract_id && taskData.contract_id !== 'none') taskPayload.contract_id = taskData.contract_id;
 
       const { data: task, error: taskError } = await (supabase as any)
         .from('tasks')
@@ -170,9 +170,9 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
         priority: 'normal',
         start_date: null,
         due_date: null,
-        client_id: '',
-        property_id: '',
-        contract_id: '',
+        client_id: 'none',
+        property_id: 'none',
+        contract_id: 'none',
         assigned_to: [],
       });
     },
@@ -350,7 +350,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
                     <SelectValue placeholder="اختر العميل" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون عميل</SelectItem>
+                    <SelectItem value="none">بدون عميل</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
@@ -370,7 +370,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
                     <SelectValue placeholder="اختر العقار" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون عقار</SelectItem>
+                    <SelectItem value="none">بدون عقار</SelectItem>
                     {properties.map((property) => (
                       <SelectItem key={property.id} value={property.id}>
                         {property.title}
@@ -390,7 +390,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
                     <SelectValue placeholder="اختر العقد" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون عقد</SelectItem>
+                    <SelectItem value="none">بدون عقد</SelectItem>
                     {contracts.map((contract) => (
                       <SelectItem key={contract.id} value={contract.id}>
                         {contract.contract_number} - {contract.tenant_name}
