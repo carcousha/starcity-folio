@@ -46,12 +46,18 @@ export default function AvatarUpload({
     try {
       setUploading(true);
       
+      console.log('🔍 Avatar upload - Received file data:', file);
+      
       // Use the URL directly from the uploaded file
       const avatarUrl = file.url || file.publicUrl;
+      
+      console.log('🔍 Avatar upload - Avatar URL:', avatarUrl);
       
       if (!avatarUrl) {
         throw new Error('لم يتم الحصول على رابط الصورة');
       }
+      
+      console.log('🔍 Avatar upload - Updating profile for employeeId:', employeeId);
       
       // Update the profile with new avatar URL
       const { error: updateError } = await supabase
@@ -59,7 +65,12 @@ export default function AvatarUpload({
         .update({ avatar_url: avatarUrl })
         .eq('user_id', employeeId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('🚨 Avatar upload - Database update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('✅ Avatar upload - Profile updated successfully');
 
       toast({
         title: "تم بنجاح",
@@ -89,23 +100,44 @@ export default function AvatarUpload({
     try {
       setUploading(true);
 
+      console.log('🔍 Avatar delete - Starting deletion for employeeId:', employeeId);
+
       // Update profile to remove avatar
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: null })
-        .eq('id', employeeId);
+        .eq('user_id', employeeId); // استخدام user_id بدلاً من id
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('🚨 Avatar delete - Database update error:', updateError);
+        throw updateError;
+      }
 
       // If there was an old avatar, try to delete it from storage
       if (currentAvatarUrl) {
-        const path = currentAvatarUrl.split('/').pop();
-        if (path) {
-          await supabase.storage
-            .from('avatars')
+        console.log('🔍 Avatar delete - Attempting to delete old avatar:', currentAvatarUrl);
+        
+        // Extract the path from the URL - it should be in the documents bucket
+        const urlParts = currentAvatarUrl.split('/');
+        const pathIndex = urlParts.findIndex(part => part === 'documents');
+        if (pathIndex !== -1 && pathIndex < urlParts.length - 1) {
+          const path = urlParts.slice(pathIndex + 1).join('/');
+          console.log('🔍 Avatar delete - Extracted path:', path);
+          
+          const { error: deleteError } = await supabase.storage
+            .from('documents')
             .remove([path]);
+            
+          if (deleteError) {
+            console.warn('⚠️ Avatar delete - Storage deletion failed:', deleteError);
+            // Don't throw error for storage deletion failure
+          } else {
+            console.log('✅ Avatar delete - Storage deletion successful');
+          }
         }
       }
+
+      console.log('✅ Avatar delete - Profile updated successfully');
 
       toast({
         title: "تم بنجاح",
@@ -119,10 +151,10 @@ export default function AvatarUpload({
       }
 
     } catch (error: any) {
-      console.error('Error deleting avatar:', error);
+      console.error('🚨 Avatar delete - Error:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حذف الصورة الشخصية",
+        description: error.message || "فشل في حذف الصورة الشخصية",
         variant: "destructive",
       });
     } finally {

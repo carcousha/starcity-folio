@@ -48,6 +48,11 @@ export default function FileUpload({
     setUploading(true);
     
     try {
+      console.log('🔍 FileUpload - Starting upload for file:', file.name);
+      console.log('🔍 FileUpload - File size:', file.size, 'bytes');
+      console.log('🔍 FileUpload - File type:', file.type);
+      console.log('🔍 FileUpload - Category:', category);
+      
       const formData = new FormData();
       formData.append('file', file);
       formData.append('category', category);
@@ -56,13 +61,19 @@ export default function FileUpload({
         body: formData,
       });
 
+      console.log('🔍 FileUpload - Edge function response:', { data, error });
+
       if (error) {
+        console.error('🚨 FileUpload - Edge function error:', error);
         throw error;
       }
 
       if (!data.success) {
+        console.error('🚨 FileUpload - Upload failed:', data.error);
         throw new Error(data.error || 'فشل في رفع الملف');
       }
+
+      console.log('✅ FileUpload - Upload successful:', data.file);
 
       toast({
         title: "تم بنجاح",
@@ -70,11 +81,12 @@ export default function FileUpload({
       });
 
       if (onUploadSuccess) {
+        console.log('🔍 FileUpload - Calling onUploadSuccess with:', data.file);
         onUploadSuccess(data.file);
       }
 
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('🚨 FileUpload - Upload error:', error);
       toast({
         title: "خطأ",
         description: error.message || "فشل في رفع الملف",
