@@ -44,71 +44,19 @@ const AddCommissionForm = () => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
 
-      // البحث عن صفقة افتراضية موجودة للعمولات اليدوية
-      let { data: existingDeal } = await supabase
-        .from('deals')
-        .select('id')
-        .eq('deal_type', 'عمولة يدوية')
-        .limit(1)
-        .maybeSingle();
+      console.log('Creating commission with data:', {
+        amount: totalCommission,
+        officeShare,
+        employeeShare,
+        clientName,
+        selectedEmployees
+      });
 
-      // إذا لم توجد صفقة افتراضية، أنشئها
-      if (!existingDeal) {
-        // إنشاء عميل افتراضي أولاً
-        const { data: defaultClient } = await supabase
-          .from('clients')
-          .insert({
-            name: 'عميل افتراضي - عمولات يدوية',
-            phone: '0000000000',
-            email: 'default@manual-commission.local',
-            notes: 'عميل افتراضي للعمولات اليدوية',
-            client_status: 'inactive',
-            created_by: user.id,
-            assigned_to: user.id
-          })
-          .select('id')
-          .single();
-
-        // إنشاء عقار افتراضي
-        const { data: defaultProperty } = await supabase
-          .from('properties')
-          .insert({
-            title: 'عقار افتراضي - عمولات يدوية',
-            description: 'عقار افتراضي للعمولات اليدوية',
-            property_type: 'commercial',
-            location: 'افتراضي',
-            price: 0,
-            status: 'unavailable',
-            listed_by: user.id
-          })
-          .select('id')
-          .single();
-
-        // إنشاء صفقة افتراضية
-        const { data: newDeal } = await supabase
-          .from('deals')
-          .insert({
-            client_id: defaultClient.id,
-            property_id: defaultProperty.id,
-            amount: 0,
-            deal_type: 'عمولة يدوية',
-            status: 'closed',
-            handled_by: user.id,
-            commission_rate: 0,
-            notes: 'صفقة افتراضية للعمولات اليدوية',
-            closed_at: new Date().toISOString()
-          })
-          .select('id')
-          .single();
-        
-        existingDeal = newDeal;
-      }
-
-      // إضافة العمولة مع deal_id صحيح
+      // إضافة العمولة مباشرة بدون deal_id
       const { data: newCommission, error: commissionError } = await supabase
         .from('commissions')
         .insert({
-          deal_id: existingDeal.id,
+          deal_id: null,
           amount: totalCommission,
           percentage: 0,
           total_commission: totalCommission,
@@ -122,12 +70,23 @@ const AddCommissionForm = () => {
         .select()
         .single();
 
-      if (commissionError) throw commissionError;
+      if (commissionError) {
+        console.error('Commission creation error:', commissionError);
+        throw commissionError;
+      }
+
+      console.log('Commission created successfully:', newCommission);
 
       // إضافة تفاصيل العمولة للموظفين
       if (selectedEmployees.length > 0 && newCommission) {
         const sharePerEmployee = employeeShare / selectedEmployees.length;
         const employeePercentage = 100 / selectedEmployees.length;
+
+        console.log('Adding employee commissions:', {
+          employeeCount: selectedEmployees.length,
+          sharePerEmployee,
+          employeePercentage
+        });
 
         const employeeInserts = selectedEmployees.map(employeeId => ({
           commission_id: newCommission.id,
@@ -137,11 +96,20 @@ const AddCommissionForm = () => {
           net_share: sharePerEmployee
         }));
 
-        await supabase.from('commission_employees').insert(employeeInserts);
+        const { error: empError } = await supabase
+          .from('commission_employees')
+          .insert(employeeInserts);
+
+        if (empError) {
+          console.error('Employee commission error:', empError);
+          throw empError;
+        }
       }
 
       // إضافة إيراد للمكتب
-      await supabase
+      console.log('Adding office revenue:', officeShare);
+      
+      const { error: revenueError } = await supabase
         .from('revenues')
         .insert({
           title: 'نصيب المكتب من العمولة',
@@ -152,6 +120,12 @@ const AddCommissionForm = () => {
           recorded_by: user.id
         });
 
+      if (revenueError) {
+        console.error('Revenue creation error:', revenueError);
+        throw revenueError;
+      }
+
+      console.log('Commission process completed successfully');
       return newCommission;
     },
     onSuccess: () => {
