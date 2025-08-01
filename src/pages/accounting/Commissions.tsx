@@ -45,20 +45,34 @@ const AddCommissionForm = () => {
       if (!user) throw new Error('User not authenticated');
 
       // جلب معرف المستخدم الحالي من جدول profiles
-      const { data: currentUserProfile } = await supabase
+      console.log('🔍 Current user ID:', user.id);
+      
+      const { data: currentUserProfile, error: profileError } = await supabase
         .from('profiles')
         .select('user_id')
         .eq('user_id', user.id)
         .single();
 
+      console.log('🔍 Current user profile:', currentUserProfile);
+      console.log('🔍 Profile error:', profileError);
+      console.log('🔍 Selected employees:', selectedEmployees);
+
       // تحديد employee_id الصحيح
       let primaryEmployeeId = null;
       if (selectedEmployees.length > 0) {
         primaryEmployeeId = selectedEmployees[0];
-      } else if (currentUserProfile) {
+        console.log('✅ Using first selected employee:', primaryEmployeeId);
+      } else if (currentUserProfile && currentUserProfile.user_id) {
         primaryEmployeeId = currentUserProfile.user_id;
+        console.log('✅ Using current user profile:', primaryEmployeeId);
       } else {
-        throw new Error('لا يمكن تحديد الموظف المسؤول عن العمولة');
+        console.error('❌ No employees selected and current user profile not found');
+        throw new Error('لا يمكن تحديد الموظف المسؤول عن العمولة - يرجى اختيار موظف من القائمة');
+      }
+
+      if (!primaryEmployeeId) {
+        console.error('❌ Primary employee ID is null');
+        throw new Error('معرف الموظف غير صحيح');
       }
 
       console.log('Creating commission with data:', {
@@ -187,6 +201,16 @@ const AddCommissionForm = () => {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // التأكد من أن هناك موظف متاح
+    if (selectedEmployees.length === 0 && employees.length === 0) {
+      toast({
+        title: "لا يوجد موظفين",
+        description: "يجب أن يكون هناك موظف واحد على الأقل في النظام لإضافة العمولة",
         variant: "destructive"
       });
       return;
