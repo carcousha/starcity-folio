@@ -46,18 +46,18 @@ export default function AvatarUpload({
     try {
       setUploading(true);
       
-      // Get the public URL for the uploaded file
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(file.path);
+      // Use the URL directly from the uploaded file
+      const avatarUrl = file.url || file.publicUrl;
       
-      const avatarUrl = urlData.publicUrl;
+      if (!avatarUrl) {
+        throw new Error('لم يتم الحصول على رابط الصورة');
+      }
       
       // Update the profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: avatarUrl })
-        .eq('id', employeeId);
+        .eq('user_id', employeeId);
 
       if (updateError) throw updateError;
 
@@ -77,7 +77,7 @@ export default function AvatarUpload({
       console.error('Error updating avatar:', error);
       toast({
         title: "خطأ",
-        description: "فشل في تحديث الصورة الشخصية",
+        description: error.message || "فشل في تحديث الصورة الشخصية",
         variant: "destructive",
       });
     } finally {
