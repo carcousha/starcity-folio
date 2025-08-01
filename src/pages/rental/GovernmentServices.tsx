@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { 
   Plus, 
   Filter, 
@@ -26,11 +28,15 @@ import {
   Eye,
   Edit,
   CreditCard,
-  BarChart3
+  BarChart3,
+  Play,
+  Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { GovernmentServiceForm } from "@/components/rental/GovernmentServiceForm";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface GovernmentService {
   id: string;
@@ -167,32 +173,76 @@ export default function GovernmentServices() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [entityFilter, setEntityFilter] = useState<string>("all");
-  const [selectedService, setSelectedService] = useState<GovernmentService | null>(null);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const [showNewServiceDialog, setShowNewServiceDialog] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  // جلب الخدمات الحكومية من قاعدة البيانات
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ['government-services'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('government_services')
+        .select(`
+          *,
+          profiles!government_services_handled_by_fkey(first_name, last_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Mutation لتحديث مرحلة المعاملة
+  const advanceStageMutation = useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { data, error } = await supabase.rpc('advance_workflow_stage', {
+        service_id_param: serviceId
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم تحديث المرحلة بنجاح",
+        description: "تم الانتقال للمرحلة التالية في سير العمل"
+      });
+      queryClient.invalidateQueries({ queryKey: ['government-services'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ في تحديث المرحلة",
+        description: error.message || "حدث خطأ أثناء تحديث المرحلة",
+        variant: "destructive"
+      });
+    }
+  });
 
   // تصفية الخدمات
   const filteredServices = useMemo(() => {
-    return mockServices.filter(service => {
-      const matchesSearch = service.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           service.reference_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           service.client_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    return services.filter(service => {
+      const matchesSearch = service.service_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           service.reference_number?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === "all" || service.status === statusFilter;
       const matchesEntity = entityFilter === "all" || service.government_entity === entityFilter;
       
       return matchesSearch && matchesStatus && matchesEntity;
     });
-  }, [searchTerm, statusFilter, entityFilter]);
+  }, [services, searchTerm, statusFilter, entityFilter]);
 
   // حساب الإحصائيات
   const statistics = useMemo(() => {
-    const total = mockServices.length;
-    const pending = mockServices.filter(s => s.status === 'pending').length;
-    const inProgress = mockServices.filter(s => s.status === 'in_progress').length;
-    const completed = mockServices.filter(s => s.status === 'completed').length;
-    const rejected = mockServices.filter(s => s.status === 'rejected').length;
-    const totalFees = mockServices.reduce((sum, s) => sum + s.official_fees, 0);
-    const totalCosts = mockServices.reduce((sum, s) => sum + s.cost, 0);
+    const total = services.length;
+    const pending = services.filter(s => s.status === 'pending').length;
+    const inProgress = services.filter(s => s.status === 'in_progress').length;
+    const completed = services.filter(s => s.status === 'completed').length;
+    const rejected = services.filter(s => s.status === 'rejected').length;
+    const totalFees = services.reduce((sum, s) => sum + (s.official_fees || 0), 0);
+    const totalCosts = services.reduce((sum, s) => sum + (s.cost || 0), 0);
 
     return {
       total,
@@ -203,7 +253,7 @@ export default function GovernmentServices() {
       totalFees,
       totalCosts
     };
-  }, []);
+  }, [services]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -460,11 +510,9 @@ export default function GovernmentServices() {
                   <TableHead className="text-right font-tajawal font-semibold">الجهة الحكومية</TableHead>
                   <TableHead className="text-right font-tajawal font-semibold">العميل</TableHead>
                   <TableHead className="text-right font-tajawal font-semibold">رقم المرجع</TableHead>
-                  <TableHead className="text-right font-tajawal font-semibold">الحالة</TableHead>
-                  <TableHead className="text-right font-tajawal font-semibold">الأولوية</TableHead>
-                  <TableHead className="text-right font-tajawal font-semibold">التقدم</TableHead>
-                  <TableHead className="text-right font-tajawal font-semibold">الرسوم</TableHead>
-                  <TableHead className="text-right font-tajawal font-semibold">التاريخ المتوقع</TableHead>
+                  <TableHead className="text-right font-tajawal font-semibold">المرحلة الحالية</TableHead>
+                  <TableHead className="text-right font-tajawal font-semibold">نسبة الإنجاز</TableHead>
+                  <TableHead className="text-right font-tajawal font-semibold">تاريخ بداية العقد</TableHead>
                   <TableHead className="text-right font-tajawal font-semibold">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -486,40 +534,28 @@ export default function GovernmentServices() {
                     <TableCell className="font-tajawal">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-gray-400" />
-                        {service.client_name || 'غير محدد'}
+                        {service.client_id || 'غير محدد'}
                       </div>
                     </TableCell>
                     <TableCell className="font-tajawal text-blue-600 font-medium">
                       {service.reference_number || '-'}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(service.status)}
-                    </TableCell>
-                    <TableCell>
-                      {getPriorityBadge(service.priority)}
+                      <Badge variant="outline" className="font-tajawal">
+                        {service.workflow_stage || 'صرف صحي'}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${getTimelineProgress(service.id)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium">{getTimelineProgress(service.id)}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-tajawal">
-                      <div>
-                        <p className="font-semibold">{formatCurrency(service.official_fees)}</p>
-                        <p className="text-sm text-gray-500">من أصل {formatCurrency(service.cost)}</p>
+                        <Progress value={service.progress_percentage || 33.33} className="w-16" />
+                        <span className="text-sm font-medium">{Math.round(service.progress_percentage || 33.33)}%</span>
                       </div>
                     </TableCell>
                     <TableCell className="font-tajawal">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
-                        {service.expected_completion_date ? 
-                          format(service.expected_completion_date, 'dd/MM/yyyy', { locale: ar }) : 
+                        {service.contract_start_date ? 
+                          format(new Date(service.contract_start_date), 'dd/MM/yyyy', { locale: ar }) : 
                           'غير محدد'
                         }
                       </div>
@@ -565,7 +601,7 @@ export default function GovernmentServices() {
                                     </div>
                                     <div>
                                       <label className="text-sm font-medium text-gray-600 font-tajawal">العميل</label>
-                                      <p className="font-tajawal">{service.client_name || 'غير محدد'}</p>
+                                      <p className="font-tajawal">{service.client_id || 'غير محدد'}</p>
                                     </div>
                                   </div>
                                   <div className="space-y-3">
@@ -645,9 +681,14 @@ export default function GovernmentServices() {
                         </Button>
                         
                         {service.status !== 'completed' && (
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                            <CreditCard className="w-3 h-3 ml-1" />
-                            دفع
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => advanceStageMutation.mutate(service.id)}
+                            disabled={advanceStageMutation.isPending}
+                          >
+                            <Play className="w-3 h-3 ml-1" />
+                            تم
                           </Button>
                         )}
                       </div>

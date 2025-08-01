@@ -1099,6 +1099,33 @@ export type Database = {
           },
         ]
       }
+      government_service_workflow: {
+        Row: {
+          created_at: string
+          id: string
+          is_final_stage: boolean | null
+          next_stage: string | null
+          stage_name: string
+          stage_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_final_stage?: boolean | null
+          next_stage?: string | null
+          stage_name: string
+          stage_order: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_final_stage?: boolean | null
+          next_stage?: string | null
+          stage_name?: string
+          stage_order?: number
+        }
+        Relationships: []
+      }
       government_services: {
         Row: {
           actual_completion_date: string | null
@@ -1107,6 +1134,7 @@ export type Database = {
           client_id: string | null
           completion_notes: string | null
           contract_id: string
+          contract_start_date: string | null
           cost: number | null
           created_at: string
           documents_url: string[] | null
@@ -1118,13 +1146,16 @@ export type Database = {
           notes: string | null
           official_fees: number | null
           priority: string | null
+          progress_percentage: number | null
           reference_number: string | null
           rejection_reason: string | null
           service_name: string
           service_type: string
+          stage_order: number | null
           status: string
           timeline_stages: Json | null
           updated_at: string
+          workflow_stage: string | null
         }
         Insert: {
           actual_completion_date?: string | null
@@ -1133,6 +1164,7 @@ export type Database = {
           client_id?: string | null
           completion_notes?: string | null
           contract_id: string
+          contract_start_date?: string | null
           cost?: number | null
           created_at?: string
           documents_url?: string[] | null
@@ -1144,13 +1176,16 @@ export type Database = {
           notes?: string | null
           official_fees?: number | null
           priority?: string | null
+          progress_percentage?: number | null
           reference_number?: string | null
           rejection_reason?: string | null
           service_name: string
           service_type: string
+          stage_order?: number | null
           status?: string
           timeline_stages?: Json | null
           updated_at?: string
+          workflow_stage?: string | null
         }
         Update: {
           actual_completion_date?: string | null
@@ -1159,6 +1194,7 @@ export type Database = {
           client_id?: string | null
           completion_notes?: string | null
           contract_id?: string
+          contract_start_date?: string | null
           cost?: number | null
           created_at?: string
           documents_url?: string[] | null
@@ -1170,13 +1206,16 @@ export type Database = {
           notes?: string | null
           official_fees?: number | null
           priority?: string | null
+          progress_percentage?: number | null
           reference_number?: string | null
           rejection_reason?: string | null
           service_name?: string
           service_type?: string
+          stage_order?: number | null
           status?: string
           timeline_stages?: Json | null
           updated_at?: string
+          workflow_stage?: string | null
         }
         Relationships: [
           {
@@ -2753,6 +2792,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_workflow_stage: {
+        Args: { service_id_param: string }
+        Returns: boolean
+      }
       approve_commission: {
         Args: { commission_id_param: string }
         Returns: boolean
@@ -2829,6 +2872,10 @@ export type Database = {
         Returns: string
       }
       generate_contract_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_reference_number: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

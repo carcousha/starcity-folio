@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { ContractStepDialog } from "@/components/rental/ContractStepDialog";
 
 interface TenantFormData {
   tenant_name: string;
@@ -53,6 +54,10 @@ const AddTenantForm = () => {
     visa_status: ''
   });
 
+  const [showContractDialog, setShowContractDialog] = useState(false);
+  const [newTenantId, setNewTenantId] = useState<string>('');
+  const [newTenantName, setNewTenantName] = useState<string>('');
+
   const queryClient = useQueryClient();
 
   const addTenantMutation = useMutation({
@@ -84,11 +89,15 @@ const AddTenantForm = () => {
       if (error) throw error;
       return tenant;
     },
-    onSuccess: () => {
+    onSuccess: (tenant) => {
       toast({
         title: "تم إضافة المستأجر بنجاح",
-        description: "تم حفظ بيانات المستأجر في النظام"
+        description: "هل تريد إنشاء عقد إيجار للمستأجر الآن؟"
       });
+      
+      // حفظ بيانات المستأجر الجديد
+      setNewTenantId(tenant.id);
+      setNewTenantName(tenant.full_name);
       
       // إعادة تعيين النموذج
       setFormData({
@@ -108,6 +117,9 @@ const AddTenantForm = () => {
       });
       
       queryClient.invalidateQueries({ queryKey: ['rental-tenants'] });
+      
+      // إظهار dialog العقد
+      setShowContractDialog(true);
     },
     onError: (error) => {
       toast({
@@ -330,6 +342,21 @@ const AddTenantForm = () => {
             {addTenantMutation.isPending ? "جارٍ الحفظ..." : "حفظ بيانات المستأجر"}
           </Button>
         </form>
+
+        {/* Contract Step Dialog */}
+        <ContractStepDialog
+          open={showContractDialog}
+          onOpenChange={setShowContractDialog}
+          tenantId={newTenantId}
+          tenantName={newTenantName}
+          onContractCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ['rental-tenants'] });
+            toast({
+              title: "تم إنشاء العقد والمعاملة الحكومية بنجاح",
+              description: "يمكنك متابعة تقدم المعاملة من صفحة الخدمات الحكومية"
+            });
+          }}
+        />
       </CardContent>
     </Card>
   );
