@@ -44,14 +44,71 @@ const AddCommissionForm = () => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('User not authenticated');
 
-      // إنشاء معرف فريد للعمولة اليدوية
-      const manualCommissionId = crypto.randomUUID();
+      // البحث عن صفقة افتراضية موجودة للعمولات اليدوية
+      let { data: existingDeal } = await supabase
+        .from('deals')
+        .select('id')
+        .eq('deal_type', 'عمولة يدوية')
+        .limit(1)
+        .maybeSingle();
 
-      // إضافة العمولة مباشرة
+      // إذا لم توجد صفقة افتراضية، أنشئها
+      if (!existingDeal) {
+        // إنشاء عميل افتراضي أولاً
+        const { data: defaultClient } = await supabase
+          .from('clients')
+          .insert({
+            name: 'عميل افتراضي - عمولات يدوية',
+            phone: '0000000000',
+            email: 'default@manual-commission.local',
+            notes: 'عميل افتراضي للعمولات اليدوية',
+            client_status: 'inactive',
+            created_by: user.id,
+            assigned_to: user.id
+          })
+          .select('id')
+          .single();
+
+        // إنشاء عقار افتراضي
+        const { data: defaultProperty } = await supabase
+          .from('properties')
+          .insert({
+            title: 'عقار افتراضي - عمولات يدوية',
+            description: 'عقار افتراضي للعمولات اليدوية',
+            property_type: 'commercial',
+            location: 'افتراضي',
+            price: 0,
+            status: 'unavailable',
+            listed_by: user.id
+          })
+          .select('id')
+          .single();
+
+        // إنشاء صفقة افتراضية
+        const { data: newDeal } = await supabase
+          .from('deals')
+          .insert({
+            client_id: defaultClient.id,
+            property_id: defaultProperty.id,
+            amount: 0,
+            deal_type: 'عمولة يدوية',
+            status: 'closed',
+            handled_by: user.id,
+            commission_rate: 0,
+            notes: 'صفقة افتراضية للعمولات اليدوية',
+            closed_at: new Date().toISOString()
+          })
+          .select('id')
+          .single();
+        
+        existingDeal = newDeal;
+      }
+
+      // إضافة العمولة مع deal_id صحيح
       const { data: newCommission, error: commissionError } = await supabase
         .from('commissions')
         .insert({
-          deal_id: manualCommissionId, // استخدام معرف فريد كبديل
+          deal_id: existingDeal.id,
           amount: totalCommission,
           percentage: 0,
           total_commission: totalCommission,
