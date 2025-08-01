@@ -178,6 +178,52 @@ export default function GovernmentServices() {
 
   const queryClient = useQueryClient();
 
+  // Mutation لإضافة معاملة جديدة
+  const addServiceMutation = useMutation({
+    mutationFn: async (serviceData: any) => {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('government_services')
+        .insert([{
+          service_name: serviceData.service_name,
+          service_type: serviceData.service_type,
+          government_entity: serviceData.government_entity,
+          category: serviceData.category,
+          priority: serviceData.priority,
+          official_fees: serviceData.official_fees,
+          cost: serviceData.cost,
+          expected_completion_date: serviceData.expected_completion_date,
+          due_date: serviceData.due_date,
+          notes: serviceData.notes,
+          handled_by: userData.user?.id,
+          application_date: new Date().toISOString().split('T')[0],
+          status: 'pending',
+          contract_id: '00000000-0000-0000-0000-000000000000' // معرف عقد افتراضي
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      setShowNewServiceDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['government-services'] });
+      toast({
+        title: "تم إضافة المعاملة بنجاح",
+        description: "تم إضافة المعاملة الحكومية الجديدة"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ في إضافة المعاملة",
+        description: error.message || "حدث خطأ أثناء إضافة المعاملة",
+        variant: "destructive"
+      });
+    }
+  });
+
   // جلب الخدمات الحكومية من قاعدة البيانات
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['government-services'],
@@ -344,10 +390,11 @@ export default function GovernmentServices() {
                   أدخل بيانات المعاملة الحكومية الجديدة
                 </DialogDescription>
               </DialogHeader>
-              {/* نموذج إضافة معاملة - سيتم تطويره لاحقاً */}
-              <div className="p-4 text-center text-gray-500 font-tajawal">
-                سيتم إضافة نموذج المعاملة هنا
-              </div>
+              <GovernmentServiceForm 
+                onSubmit={(data) => addServiceMutation.mutate(data)}
+                onCancel={() => setShowNewServiceDialog(false)}
+                loading={addServiceMutation.isPending}
+              />
             </DialogContent>
           </Dialog>
           
