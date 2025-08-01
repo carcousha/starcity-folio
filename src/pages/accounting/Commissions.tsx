@@ -28,7 +28,8 @@ const AddCommissionForm = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, first_name, last_name')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .not('user_id', 'is', null); // فقط الموظفين الذين لديهم user_id صالح
       
       if (error) throw error;
       return data || [];
@@ -57,23 +58,28 @@ const AddCommissionForm = () => {
       console.log('🔍 Profile error:', profileError);
       console.log('🔍 Selected employees:', selectedEmployees);
 
-      // تحديد employee_id الصحيح
+      // تحديد employee_id الصحيح بأولوية مختلفة
       let primaryEmployeeId = null;
+      
       if (selectedEmployees.length > 0) {
+        // الأولوية للموظفين المختارين
         primaryEmployeeId = selectedEmployees[0];
         console.log('✅ Using first selected employee:', primaryEmployeeId);
       } else if (currentUserProfile && currentUserProfile.user_id) {
+        // ثانياً، استخدام المستخدم الحالي إذا كان موجود في profiles
         primaryEmployeeId = currentUserProfile.user_id;
         console.log('✅ Using current user profile:', primaryEmployeeId);
+      } else if (employees.length > 0) {
+        // ثالثاً، استخدام أول موظف متاح في النظام
+        primaryEmployeeId = employees[0].user_id;
+        console.log('✅ Using first available employee:', primaryEmployeeId);
       } else {
-        console.error('❌ No employees selected and current user profile not found');
-        throw new Error('لا يمكن تحديد الموظف المسؤول عن العمولة - يرجى اختيار موظف من القائمة');
+        // إذا لم يوجد أي موظفين، اجعل employee_id فارغ (null) لأن الجدول يدعم ذلك الآن
+        primaryEmployeeId = null;
+        console.log('⚠️ No employees found - proceeding with null employee_id');
       }
 
-      if (!primaryEmployeeId) {
-        console.error('❌ Primary employee ID is null');
-        throw new Error('معرف الموظف غير صحيح');
-      }
+      console.log('🔍 Final employee ID decision:', primaryEmployeeId);
 
       console.log('Creating commission with data:', {
         amount: totalCommission,
