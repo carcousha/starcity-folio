@@ -397,33 +397,46 @@ serve(async (req) => {
     // حفظ سجل العقد في قاعدة البيانات
     console.log('Saving contract record...');
     const propertyTitle = `${contractData.area_ar || contractData.area_en || ''} - وحدة ${contractData.unit_number}`;
-    const { data: contractRecord, error: recordError } = await supabaseClient
+    
+    // التأكد من أن جميع الحقول المطلوبة موجودة
+    const contractRecord = {
+      contract_number: `CONTRACT-${timestamp}`,
+      tenant_name: tenantDisplayName,
+      property_title: propertyTitle,
+      tenant_id: contractData.tenant_id || null,
+      property_id: contractData.property_id || null,
+      rent_amount: contractData.total_rental_value,
+      start_date: contractData.start_date,
+      end_date: contractData.end_date,
+      payment_method: contractData.payment_method_ar || contractData.payment_method_en || 'نقداً',
+      installments_count: contractData.installments_count || 1,
+      contract_status: 'generated',
+      generated_pdf_path: contractFileName,
+      pdf_template_id: contractData.template_id,
+      created_by: user.id,
+      contract_duration_months: 12,
+      security_deposit: contractData.security_deposit || 0,
+      unit_number: contractData.unit_number || '',
+      unit_type: contractData.unit_type_ar || contractData.unit_type_en || '',
+      owner_name: contractData.owner_name_ar || contractData.owner_name_en || '',
+      purpose_of_use: contractData.purpose_of_use_ar || contractData.purpose_of_use_en || 'سكني'
+    };
+
+    console.log('Attempting to insert contract record:', JSON.stringify(contractRecord, null, 2));
+    
+    const { data: savedRecord, error: recordError } = await supabaseClient
       .from('rental_contracts')
-      .insert({
-        contract_number: `CONTRACT-${timestamp}`,
-        tenant_name: tenantDisplayName,
-        property_title: propertyTitle,
-        tenant_id: contractData.tenant_id,
-        property_id: contractData.property_id,
-        rent_amount: contractData.total_rental_value,
-        start_date: contractData.start_date,
-        end_date: contractData.end_date,
-        payment_method: contractData.payment_method_ar || contractData.payment_method_en,
-        installments_count: contractData.installments_count,
-        contract_status: 'generated',
-        generated_pdf_path: contractFileName,
-        pdf_template_id: contractData.template_id,
-        created_by: user.id
-      })
+      .insert(contractRecord)
       .select()
       .single();
 
     if (recordError) {
-      console.error('Record error:', recordError);
+      console.error('Record insertion error:', recordError);
+      console.error('Error details:', JSON.stringify(recordError, null, 2));
       throw new Error(`فشل في حفظ سجل العقد: ${recordError.message}`);
     }
 
-    console.log('Contract record saved:', contractRecord.id);
+    console.log('Contract record saved:', savedRecord.id);
 
     // رفع العقد المولد إلى التخزين بعد حفظ السجل
     console.log('Uploading PDF to storage...');
@@ -456,16 +469,13 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      contract_id: contractRecord.id,
+      message: 'تم إنشاء العقد بنجاح',
+      contract_id: savedRecord.id,
       download_url: signedUrl?.signedUrl,
-      file_path: uploadData.path,
-      contract_number: contractRecord.contract_number,
-      message: 'تم إنشاء العقد بنجاح'
+      contract_number: savedRecord.contract_number
     }), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders,
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
     });
 
   } catch (error: any) {
