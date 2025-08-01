@@ -409,6 +409,7 @@ serve(async (req) => {
       start_date: contractData.start_date,
       end_date: contractData.end_date,
       payment_method: contractData.payment_method_ar || contractData.payment_method_en || 'نقداً',
+      installment_frequency: 'yearly', // إضافة الحقل المفقود
       installments_count: contractData.installments_count || 1,
       contract_status: 'generated',
       generated_pdf_path: contractFileName,

@@ -50,6 +50,7 @@ interface AdvancedContractData {
   end_date: string;
   payment_method_ar: string;
   payment_method_en: string;
+  installment_frequency: string;
   installments_count: number;
   security_deposit: number;
   tenant_id?: string;
@@ -85,6 +86,7 @@ const AdvancedContractGenerator = () => {
     end_date: '',
     payment_method_ar: '',
     payment_method_en: '',
+    installment_frequency: 'yearly',
     installments_count: 1,
     security_deposit: 0
   });
