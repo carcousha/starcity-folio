@@ -2,7 +2,8 @@ import { useLocation, Link } from "react-router-dom";
 import { useState } from "react";
 import { 
   Home, 
-  Users, 
+  Users,
+  User, 
   Building,
   TrendingUp, 
   HandCoins, 
@@ -105,6 +106,7 @@ export function AppSidebar() {
       submenu: [
         { title: "لوحة التحكم", url: "/rental", icon: Home },
         { title: "إدارة العقارات", url: "/rental/properties", icon: Building2 },
+        { title: "الملاك", url: "/rental/property-owners", icon: User },
         { title: "إدارة المستأجرين", url: "/rental/tenants", icon: Users },
         { title: "عقود الإيجار", url: "/rental/contracts", icon: FileText },
         { title: "جدول الأقساط", url: "/rental/installments", icon: CreditCard },
