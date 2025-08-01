@@ -88,7 +88,7 @@ interface EmployeeStats {
 interface NewEmployeeForm {
   firstName: string;
   lastName: string;
-  email: string;
+  email: string; // إجباري الآن
   phone: string;
   role: 'admin' | 'accountant' | 'employee';
 }
@@ -144,6 +144,7 @@ export default function Staff() {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
+      .not('user_id', 'is', null) // فقط الموظفين الذين لديهم user_id صالح
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -171,42 +172,83 @@ export default function Staff() {
 
   const addEmployeeMutation = useMutation({
     mutationFn: async (employee: NewEmployeeForm) => {
-      // Create auth user first
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: employee.email,
-        password: 'temp123456', // Temporary password
-        email_confirm: true,
-        user_metadata: {
-          first_name: employee.firstName,
-          last_name: employee.lastName
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Create profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          first_name: employee.firstName,
-          last_name: employee.lastName,
+      try {
+        // إنشاء كلمة مرور عشوائية قوية
+        const randomPassword = generateRandomPassword();
+        
+        console.log('🔄 Creating auth user for:', employee.email);
+        
+        // إنشاء مستخدم Auth أولاً بدون تأكيد بريد إلكتروني
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
           email: employee.email,
-          phone: employee.phone,
-          role: employee.role
-        })
-        .select()
-        .single();
+          password: randomPassword,
+          email_confirm: true, // تأكيد تلقائي بدون إرسال بريد
+          user_metadata: {
+            first_name: employee.firstName,
+            last_name: employee.lastName
+          }
+        });
 
-      if (profileError) throw profileError;
+        if (authError) {
+          console.error('❌ Auth user creation failed:', authError);
+          throw new Error(`فشل في إنشاء حساب المستخدم: ${authError.message}`);
+        }
 
-      return profileData;
+        if (!authData.user) {
+          throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
+        }
+
+        console.log('✅ Auth user created:', authData.user.id);
+
+        // إنشاء Profile مرتبط بـ user_id
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: authData.user.id,
+            first_name: employee.firstName,
+            last_name: employee.lastName,
+            email: employee.email,
+            phone: employee.phone,
+            role: employee.role,
+            is_active: true
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error('❌ Profile creation failed:', profileError);
+          // حذف Auth user إذا فشل إنشاء Profile
+          await supabase.auth.admin.deleteUser(authData.user.id);
+          throw new Error(`فشل في إنشاء ملف الموظف: ${profileError.message}`);
+        }
+
+        console.log('✅ Profile created successfully:', profileData);
+
+        return {
+          ...profileData,
+          user_id: authData.user.id,
+          temporary_password: randomPassword // لعرضه للمستخدم
+        };
+      } catch (error) {
+        console.error('❌ Complete employee creation failed:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: "تم الإضافة",
-        description: "تم إضافة الموظف بنجاح",
+        title: "تم الإضافة بنجاح",
+        description: `تم إضافة الموظف ${data.first_name} ${data.last_name} بنجاح مع user_id: ${data.user_id}`,
       });
+      
+      // عرض كلمة المرور المؤقتة للمدير
+      if (data.temporary_password) {
+        toast({
+          title: "كلمة المرور المؤقتة",
+          description: `كلمة المرور: ${data.temporary_password} - يرجى إعطاؤها للموظف`,
+          duration: 10000, // عرض لـ 10 ثوان
+        });
+      }
+      
       setAddDialogOpen(false);
       setNewEmployee({
         firstName: '',
@@ -217,10 +259,19 @@ export default function Staff() {
       });
       queryClient.invalidateQueries({ queryKey: ['staff'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('❌ Employee addition failed:', error);
+      
+      let errorMessage = "فشل في إضافة الموظف";
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.details) {
+        errorMessage = error.details;
+      }
+      
       toast({
-        title: "خطأ",
-        description: "فشل في إضافة الموظف",
+        title: "خطأ في إضافة الموظف",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -265,16 +316,58 @@ export default function Staff() {
     setProfileDialogOpen(true);
   };
 
+  // دالة إنشاء كلمة مرور عشوائية قوية
+  const generateRandomPassword = (): string => {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  };
+
   const handleAddEmployee = () => {
-    if (!newEmployee.firstName || !newEmployee.lastName || !newEmployee.email) {
+    // التحقق من الحقول المطلوبة مع التركيز على البريد الإلكتروني
+    if (!newEmployee.firstName.trim()) {
       toast({
-        title: "خطأ",
-        description: "يرجى ملء جميع الحقول المطلوبة",
+        title: "خطأ في البيانات",
+        description: "يرجى إدخال الاسم الأول",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!newEmployee.lastName.trim()) {
+      toast({
+        title: "خطأ في البيانات", 
+        description: "يرجى إدخال الاسم الأخير",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!newEmployee.email.trim()) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "البريد الإلكتروني مطلوب وإجباري",
         variant: "destructive",
       });
       return;
     }
 
+    // التحقق من صحة البريد الإلكتروني
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmployee.email)) {
+      toast({
+        title: "خطأ في البريد الإلكتروني",
+        description: "يرجى إدخال بريد إلكتروني صحيح",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('🔄 Starting employee creation process...');
     addEmployeeMutation.mutate(newEmployee);
   };
 
