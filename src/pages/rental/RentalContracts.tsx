@@ -621,7 +621,7 @@ const ContractsList = () => {
                   <div className="text-sm">
                     <span className="font-medium">فترة العقد:</span>
                     <span className="ml-2">
-                      {new Date(contract.start_date).toLocaleDateString('ar-SA')} - {new Date(contract.end_date).toLocaleDateString('ar-SA')}
+                      {new Date(contract.start_date).toLocaleDateString('ar-AE')} - {new Date(contract.end_date).toLocaleDateString('ar-AE')}
                     </span>
                   </div>
                   <div className="text-sm">
