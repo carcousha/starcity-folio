@@ -605,6 +605,7 @@ const RentalTenants = () => {
                         size="sm"
                         onClick={() => handleWhatsApp(tenant.phone)}
                         title="إرسال رسالة واتس آب"
+                        className="bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
                       >
                         <MessageCircle className="h-4 w-4" />
                       </Button>
