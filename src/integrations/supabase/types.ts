@@ -2249,6 +2249,66 @@ export type Database = {
         }
         Relationships: []
       }
+      system_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_browser_sent: boolean
+          is_read: boolean
+          is_sound_played: boolean
+          message: string
+          metadata: Json | null
+          priority: string
+          read_at: string | null
+          related_id: string | null
+          related_table: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_browser_sent?: boolean
+          is_read?: boolean
+          is_sound_played?: boolean
+          message: string
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          related_id?: string | null
+          related_table?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_browser_sent?: boolean
+          is_read?: boolean
+          is_sound_played?: boolean
+          message?: string
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          related_id?: string | null
+          related_table?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       task_assignments: {
         Row: {
           assigned_at: string
@@ -2624,6 +2684,51 @@ export type Database = {
           },
         ]
       }
+      user_notification_settings: {
+        Row: {
+          browser_notifications: boolean
+          created_at: string
+          do_not_disturb_end: string | null
+          do_not_disturb_start: string | null
+          enabled_types: Json
+          id: string
+          in_app_notifications: boolean
+          reminder_frequency: number
+          sound_file: string
+          sound_notifications: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          browser_notifications?: boolean
+          created_at?: string
+          do_not_disturb_end?: string | null
+          do_not_disturb_start?: string | null
+          enabled_types?: Json
+          id?: string
+          in_app_notifications?: boolean
+          reminder_frequency?: number
+          sound_file?: string
+          sound_notifications?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          browser_notifications?: boolean
+          created_at?: string
+          do_not_disturb_end?: string | null
+          do_not_disturb_start?: string | null
+          enabled_types?: Json
+          id?: string
+          in_app_notifications?: boolean
+          reminder_frequency?: number
+          sound_file?: string
+          sound_notifications?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string
@@ -2868,6 +2973,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_system_notification: {
+        Args: {
+          p_user_id: string
+          p_title: string
+          p_message: string
+          p_type: string
+          p_priority?: string
+          p_related_table?: string
+          p_related_id?: string
+          p_scheduled_for?: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       create_task_notification: {
         Args: {
           p_task_id: string
@@ -2955,6 +3074,10 @@ export type Database = {
           status: string
           transaction_count: number
         }[]
+      }
+      get_unread_system_notifications_count: {
+        Args: { p_user_id: string }
+        Returns: number
       }
       get_user_role: {
         Args: { user_uuid: string }

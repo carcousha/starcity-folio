@@ -6,6 +6,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, LogOut } from "lucide-react";
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { useToast } from "@/hooks/use-toast";
 
 interface AppLayoutProps {
@@ -93,12 +94,9 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             
             <div className="flex items-center space-x-2 space-x-reverse">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full"></span>
-              </Button>
+              <NotificationCenter />
               
-              <Button 
+              <Button
                 variant="ghost" 
                 size="sm" 
                 onClick={handleSignOut}
