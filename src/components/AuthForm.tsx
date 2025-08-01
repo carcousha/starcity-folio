@@ -215,158 +215,55 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         </CardHeader>
         
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">تسجيل الدخول</TabsTrigger>
-              <TabsTrigger value="signup">إنشاء حساب</TabsTrigger>
-            </TabsList>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="signin-email">البريد الإلكتروني</Label>
+              <Input
+                id="signin-email"
+                type="email"
+                value={signInForm.email}
+                onChange={(e) => setSignInForm({ ...signInForm, email: e.target.value })}
+                placeholder="user@example.com"
+                required
+                dir="ltr"
+              />
+            </div>
             
-            <TabsContent value="signin" className="space-y-4">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">البريد الإلكتروني</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    value={signInForm.email}
-                    onChange={(e) => setSignInForm({ ...signInForm, email: e.target.value })}
-                    placeholder="user@example.com"
-                    required
-                    dir="ltr"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">كلمة المرور</Label>
-                  <div className="relative">
-                    <Input
-                      id="signin-password"
-                      type={showPassword ? "text" : "password"}
-                      value={signInForm.password}
-                      onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
-                      placeholder="كلمة المرور"
-                      required
-                      dir="ltr"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="space-y-2">
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
-                  </Button>
-                  
-                  {/* Quick test login removed for security */}
-                </div>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup" className="space-y-4">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-firstname">الاسم الأول</Label>
-                    <Input
-                      id="signup-firstname"
-                      type="text"
-                      value={signUpForm.firstName}
-                      onChange={(e) => setSignUpForm({ ...signUpForm, firstName: e.target.value })}
-                      placeholder="الاسم الأول"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-lastname">اسم العائلة</Label>
-                    <Input
-                      id="signup-lastname"
-                      type="text"
-                      value={signUpForm.lastName}
-                      onChange={(e) => setSignUpForm({ ...signUpForm, lastName: e.target.value })}
-                      placeholder="اسم العائلة"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">البريد الإلكتروني</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={signUpForm.email}
-                    onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
-                    placeholder="user@example.com"
-                    required
-                    dir="ltr"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">كلمة المرور</Label>
-                  <div className="relative">
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? "text" : "password"}
-                      value={signUpForm.password}
-                      onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
-                      placeholder="كلمة المرور (6 أحرف على الأقل)"
-                      required
-                      dir="ltr"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm-password">تأكيد كلمة المرور</Label>
-                  <Input
-                    id="signup-confirm-password"
-                    type="password"
-                    value={signUpForm.confirmPassword}
-                    onChange={(e) => setSignUpForm({ ...signUpForm, confirmPassword: e.target.value })}
-                    placeholder="تأكيد كلمة المرور"
-                    required
-                    dir="ltr"
-                  />
-                </div>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "جارٍ إنشاء الحساب..." : "إنشاء حساب"}
+            <div className="space-y-2">
+              <Label htmlFor="signin-password">كلمة المرور</Label>
+              <div className="relative">
+                <Input
+                  id="signin-password"
+                  type={showPassword ? "text" : "password"}
+                  value={signInForm.password}
+                  onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
+                  placeholder="كلمة المرور"
+                  required
+                  dir="ltr"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+              </div>
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
