@@ -224,12 +224,18 @@ export default function Staff() {
         description: `تم إضافة الموظف ${data.first_name} ${data.last_name} بنجاح مع user_id: ${data.user_id}`,
       });
       
-      // عرض كلمة المرور المؤقتة للمدير
+      // عرض كلمة المرور المؤقتة للمدير (إذا تم إنشاء كلمة مرور جديدة)
       if (data.temporary_password) {
         toast({
           title: "كلمة المرور المؤقتة",
           description: `كلمة المرور: ${data.temporary_password} - يرجى إعطاؤها للموظف`,
           duration: 10000, // عرض لـ 10 ثوان
+        });
+      } else {
+        toast({
+          title: "ملاحظة",
+          description: "تم ربط الموظف بحساب موجود - لا حاجة لكلمة مرور جديدة",
+          duration: 5000,
         });
       }
       
