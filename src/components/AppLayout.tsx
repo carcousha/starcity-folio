@@ -115,6 +115,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Main Content */}
         <main className="flex-1 pt-16 p-6 overflow-auto">
           {children}
+          
+          {/* Developer Credit */}
+          <div className="fixed bottom-4 left-4 bg-background/80 backdrop-blur-sm border border-border rounded-lg px-3 py-2 text-xs text-muted-foreground z-30">
+            البرمجة تمت بواسطة mohamed kamel egywbas@gmail.com
+          </div>
         </main>
       </div>
     </SidebarProvider>
