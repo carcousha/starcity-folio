@@ -131,7 +131,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
       if (taskData.property_id) taskPayload.property_id = taskData.property_id;
       if (taskData.contract_id) taskPayload.contract_id = taskData.contract_id;
 
-      const { data: task, error: taskError } = await supabase
+      const { data: task, error: taskError } = await (supabase as any)
         .from('tasks')
         .insert(taskPayload)
         .select()
@@ -147,7 +147,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
           assigned_by: user.id,
         }));
 
-        const { error: assignmentError } = await supabase
+        const { error: assignmentError } = await (supabase as any)
           .from('task_assignments')
           .insert(assignments);
 

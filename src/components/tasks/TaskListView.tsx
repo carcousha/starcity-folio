@@ -18,16 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  status: 'new' | 'in_progress' | 'completed' | 'cancelled';
-  due_date: string | null;
-  created_at: string;
-}
+import { Task } from '@/types/tasks';
 
 interface TaskFilters {
   status: string;
@@ -49,13 +40,24 @@ const TaskListView = ({ filters }: TaskListViewProps) => {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks-list', filters],
     queryFn: async () => {
-      // استعلام مبسط مؤقت
-      const { data, error } = await supabase
-        .rpc('get_user_tasks') // سنحتاج لإنشاء هذه الدالة
-        .then(() => []) // مؤقت
-        .catch(() => []);
+      try {
+        // استعلام مؤقت باستخدام التحويل النوعي
+        const { data, error } = await (supabase as any)
+          .from('tasks')
+          .select(`
+            *,
+            task_assignments(assigned_to),
+            clients(name),
+            properties(title),
+            rental_contracts(contract_number)
+          `);
 
-      return [];
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        return [];
+      }
     }
   });
 

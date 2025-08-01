@@ -68,36 +68,41 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', filters],
     queryFn: async () => {
-      let query = supabase
-        .from('tasks')
-        .select(`
-          *,
-          task_assignments!inner(
-            assigned_to,
-            profiles!inner(first_name, last_name, avatar_url)
-          ),
-          task_comments(id),
-          task_attachments(id),
-          clients(name),
-          properties(title),
-          rental_contracts(contract_number)
-        `);
+      try {
+        let query = (supabase as any)
+          .from('tasks')
+          .select(`
+            *,
+            task_assignments!inner(
+              assigned_to,
+              profiles!inner(first_name, last_name, avatar_url)
+            ),
+            task_comments(id),
+            task_attachments(id),
+            clients(name),
+            properties(title),
+            rental_contracts(contract_number)
+          `);
 
-      // تطبيق الفلاتر
-      if (filters.status !== 'all') {
-        query = query.eq('status', filters.status);
-      }
-      if (filters.priority !== 'all') {
-        query = query.eq('priority', filters.priority);
-      }
-      if (filters.assignedTo !== 'all') {
-        query = query.eq('task_assignments.assigned_to', filters.assignedTo);
-      }
+        // تطبيق الفلاتر
+        if (filters.status !== 'all') {
+          query = query.eq('status', filters.status);
+        }
+        if (filters.priority !== 'all') {
+          query = query.eq('priority', filters.priority);
+        }
+        if (filters.assignedTo !== 'all') {
+          query = query.eq('task_assignments.assigned_to', filters.assignedTo);
+        }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as Task[];
+        if (error) throw error;
+        return data as Task[] || [];
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        return [];
+      }
     }
   });
 
@@ -110,7 +115,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
         updates.completed_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('tasks')
         .update(updates)
         .eq('id', taskId);
