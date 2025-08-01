@@ -27,7 +27,8 @@ import {
   TrendingUp,
   Eye,
   UserPlus,
-  MessageSquare
+  MessageSquare,
+  Trash2
 } from "lucide-react";
 import { LeadForm } from "@/components/crm/LeadForm";
 import { LeadDetails } from "@/components/crm/LeadDetails";
@@ -255,6 +256,33 @@ export default function Leads() {
     }
   });
 
+  // حذف الليد (خاص بالمدير فقط)
+  const deleteLeadMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { error } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', leadId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف الليد بنجاح",
+      });
+      setIsDetailsOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حذف الليد",
+        variant: "destructive",
+      });
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -457,13 +485,29 @@ export default function Leads() {
                                     <h4 className="font-semibold text-sm truncate flex-1">
                                       {lead.full_name}
                                     </h4>
-                                    <Badge 
-                                      variant={lead.lead_score >= 70 ? "default" : "secondary"}
-                                      className="text-xs"
-                                    >
-                                      {lead.lead_score}
-                                    </Badge>
-                                  </div>
+                                     <div className="flex gap-2 items-center">
+                                       <Badge 
+                                         variant={lead.lead_score >= 70 ? "default" : "secondary"}
+                                         className="text-xs"
+                                       >
+                                         {lead.lead_score}
+                                       </Badge>
+                                       {userRole === 'admin' && (
+                                         <Button
+                                           size="sm"
+                                           variant="ghost"
+                                           className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                                           onClick={(e) => {
+                                             e.stopPropagation();
+                                             deleteLeadMutation.mutate(lead.id);
+                                           }}
+                                           disabled={deleteLeadMutation.isPending}
+                                         >
+                                           <Trash2 className="h-3 w-3" />
+                                         </Button>
+                                       )}
+                                     </div>
+                                   </div>
                                   
                                   <div className="space-y-1 text-xs text-muted-foreground">
                                     <div className="flex items-center space-x-1 space-x-reverse">
