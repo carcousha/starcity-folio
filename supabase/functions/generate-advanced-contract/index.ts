@@ -176,13 +176,33 @@ serve(async (req) => {
       installments_count: { x: 400, y: height - 460 }
     };
 
-    // Helper function to safely encode text for PDF
-    const safeText = (text: string) => {
-      // Convert Arabic text to Latin transliteration to avoid encoding issues
-      return text.replace(/[^\x00-\x7F]/g, function(char) {
-        // Replace Arabic characters with their Unicode code points
-        return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`;
-      });
+    // Utility function to safely handle Arabic text - convert to transliterated form
+    const safeText = (arabic: string, english: string, label: string = '') => {
+      if (english && english.trim()) {
+        return english;
+      }
+      if (arabic && arabic.trim()) {
+        // For Arabic text, use transliteration or English equivalent
+        const transliterations: Record<string, string> = {
+          'محمد': 'Mohammed',
+          'أحمد': 'Ahmed', 
+          'علي': 'Ali',
+          'فاطمة': 'Fatima',
+          'عائشة': 'Aisha',
+          'شيكات مؤجلة': 'Post-dated Cheques',
+          'نقداً': 'Cash',
+          'تحويل بنكي': 'Bank Transfer',
+          'شيكات ونقداً': 'Cheques & Cash',
+          'أقساط شهرية': 'Monthly Installments',
+          'فيلا': 'Villa',
+          'شقة': 'Apartment',
+          'مكتب': 'Office',
+          'محل تجاري': 'Commercial Shop'
+        };
+        
+        return transliterations[arabic] || `${label}: ${arabic.split('').map(char => char.charCodeAt(0) < 128 ? char : '?').join('')}`;
+      }
+      return '';
     };
 
     // إضافة البيانات إلى PDF
@@ -195,21 +215,21 @@ serve(async (req) => {
       color: textColor,
     });
 
-    // معلومات المالك
-    const ownerName = contractData.owner_name_en || 
-                     (contractData.owner_name_ar ? `Owner: ${contractData.owner_name_ar}` : '');
-    firstPage.drawText(`Owner/Landlord: ${ownerName}`, {
-      x: positions.owner_name.x,
-      y: positions.owner_name.y,
-      size: fontSize,
-      font: helveticaBold,
-      color: textColor,
-    });
+    // معلومات المالك والوكيل
+    const ownerName = safeText(contractData.owner_name_ar || '', contractData.owner_name_en || '', 'Owner');
+    if (ownerName) {
+      firstPage.drawText(`Owner/Landlord: ${ownerName}`, {
+        x: positions.owner_name.x,
+        y: positions.owner_name.y,
+        size: fontSize,
+        font: helveticaBold,
+        color: textColor,
+      });
+    }
 
     // الوكيل (إذا وجد)
-    if (contractData.proxy_ar || contractData.proxy_en) {
-      const proxyName = contractData.proxy_en || 
-                       (contractData.proxy_ar ? `Proxy: ${contractData.proxy_ar}` : '');
+    const proxyName = safeText(contractData.proxy_ar || '', contractData.proxy_en || '', 'Agent');
+    if (proxyName) {
       firstPage.drawText(`Agent: ${proxyName}`, {
         x: positions.owner_name.x,
         y: positions.owner_name.y - 25,
@@ -220,37 +240,42 @@ serve(async (req) => {
     }
 
     // معلومات المستأجر  
-    const tenantName = contractData.tenant_name_en || 
-                      (contractData.tenant_name_ar ? `Tenant: ${contractData.tenant_name_ar}` : '');
-    firstPage.drawText(`Tenant: ${tenantName}`, {
-      x: positions.tenant_name.x,
-      y: positions.tenant_name.y,
-      size: fontSize,
-      font: helveticaBold,
-      color: textColor,
-    });
+    const tenantName = safeText(contractData.tenant_name_ar || '', contractData.tenant_name_en || '', 'Tenant');
+    if (tenantName) {
+      firstPage.drawText(`Tenant: ${tenantName}`, {
+        x: positions.tenant_name.x,
+        y: positions.tenant_name.y,
+        size: fontSize,
+        font: helveticaBold,
+        color: textColor,
+      });
+    }
 
-    // معلومات العقار - Use English labels to avoid encoding issues
-    const area = contractData.area_en || contractData.area_ar || '';
-    firstPage.drawText(`Area: ${area}`, {
-      x: positions.area.x,
-      y: positions.area.y,
-      size: fontSize,
-      font: helveticaFont,
-      color: textColor,
-    });
+    // معلومات العقار
+    const area = safeText(contractData.area_ar || '', contractData.area_en || '', 'Area');
+    if (area) {
+      firstPage.drawText(`Area: ${area}`, {
+        x: positions.area.x,
+        y: positions.area.y,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
 
-    firstPage.drawText(`Plot Number: ${contractData.plot_number}`, {
-      x: positions.plot_number.x,
-      y: positions.plot_number.y,
-      size: fontSize,
-      font: helveticaFont,
-      color: textColor,
-    });
+    if (contractData.plot_number) {
+      firstPage.drawText(`Plot Number: ${contractData.plot_number}`, {
+        x: positions.plot_number.x,
+        y: positions.plot_number.y,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
 
     // Building name
-    if (contractData.building_name_ar || contractData.building_name_en) {
-      const buildingName = contractData.building_name_en || contractData.building_name_ar;
+    const buildingName = safeText(contractData.building_name_ar || '', contractData.building_name_en || '', 'Building');
+    if (buildingName) {
       firstPage.drawText(`Building: ${buildingName}`, {
         x: positions.area.x,
         y: positions.area.y - 25,
@@ -260,31 +285,37 @@ serve(async (req) => {
       });
     }
 
-    const purposeOfUse = contractData.purpose_of_use_en || contractData.purpose_of_use_ar || '';
-    firstPage.drawText(`Purpose: ${purposeOfUse}`, {
-      x: positions.purpose_of_use.x,
-      y: positions.purpose_of_use.y,
-      size: fontSize,
-      font: helveticaFont,
-      color: textColor,
-    });
+    const purposeOfUse = safeText(contractData.purpose_of_use_ar || '', contractData.purpose_of_use_en || '', 'Purpose');
+    if (purposeOfUse) {
+      firstPage.drawText(`Purpose: ${purposeOfUse}`, {
+        x: positions.purpose_of_use.x,
+        y: positions.purpose_of_use.y,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
 
-    firstPage.drawText(`Unit Number: ${contractData.unit_number}`, {
-      x: positions.unit_number.x,
-      y: positions.unit_number.y,
-      size: fontSize,
-      font: helveticaFont,
-      color: textColor,
-    });
+    if (contractData.unit_number) {
+      firstPage.drawText(`Unit Number: ${contractData.unit_number}`, {
+        x: positions.unit_number.x,
+        y: positions.unit_number.y,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
 
-    const unitType = contractData.unit_type_en || contractData.unit_type_ar || '';
-    firstPage.drawText(`Unit Type: ${unitType}`, {
-      x: positions.unit_type.x,
-      y: positions.unit_type.y,
-      size: fontSize,
-      font: helveticaFont,
-      color: textColor,
-    });
+    const unitType = safeText(contractData.unit_type_ar || '', contractData.unit_type_en || '', 'Unit Type');
+    if (unitType) {
+      firstPage.drawText(`Unit Type: ${unitType}`, {
+        x: positions.unit_type.x,
+        y: positions.unit_type.y,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
 
     // Financial information
     firstPage.drawText(`Rental Value: ${contractData.total_rental_value.toLocaleString()} AED`, {
@@ -322,15 +353,17 @@ serve(async (req) => {
       color: textColor,
     });
 
-    // Payment information
-    const paymentMethod = contractData.payment_method_en || contractData.payment_method_ar || '';
-    firstPage.drawText(`Payment Method: ${paymentMethod}`, {
-      x: positions.payment_method.x,
-      y: positions.payment_method.y,
-      size: fontSize,
-      font: helveticaFont,
-      color: textColor,
-    });
+    // Payment method
+    const paymentMethodText = safeText(contractData.payment_method_ar || '', contractData.payment_method_en || '', 'Payment Method');
+    if (paymentMethodText) {
+      firstPage.drawText(`Payment Method: ${paymentMethodText}`, {
+        x: positions.payment_method.x,
+        y: positions.payment_method.y,
+        size: fontSize,
+        font: helveticaFont,
+        color: textColor,
+      });
+    }
 
     firstPage.drawText(`Installments: ${contractData.installments_count}`, {
       x: positions.installments_count.x,

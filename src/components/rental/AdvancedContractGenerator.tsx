@@ -196,10 +196,27 @@ const AdvancedContractGenerator = () => {
     }
   });
 
+  const splitBilingualValue = (value: string): { ar: string; en: string } => {
+    if (value.includes(' // ')) {
+      const [en, ar] = value.split(' // ');
+      return { ar: ar?.trim() || '', en: en?.trim() || '' };
+    }
+    return { ar: value, en: value };
+  };
+
   const handleInputChange = (field: keyof AdvancedContractData, value: string | number) => {
     setContractData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleBilingualDropdownChange = (baseField: string, value: string) => {
+    const { ar, en } = splitBilingualValue(value);
+    setContractData(prev => ({
+      ...prev,
+      [`${baseField}_ar`]: ar,
+      [`${baseField}_en`]: en
     }));
   };
 
@@ -717,38 +734,20 @@ const AdvancedContractGenerator = () => {
                 </div>
 
                 {/* طريقة السداد */}
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="payment_method_ar">طريقة السداد (عربي) *</Label>
-                    <Select value={contractData.payment_method_ar} onValueChange={(value) => handleInputChange('payment_method_ar', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر طريقة السداد" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="شيكات">شيكات مؤجلة</SelectItem>
-                        <SelectItem value="نقداً">نقداً</SelectItem>
-                        <SelectItem value="تحويل بنكي">تحويل بنكي</SelectItem>
-                        <SelectItem value="شيكات ونقداً">شيكات ونقداً</SelectItem>
-                        <SelectItem value="أقساط شهرية">أقساط شهرية</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="payment_method_en">Payment Method (English) *</Label>
-                    <Select value={contractData.payment_method_en} onValueChange={(value) => handleInputChange('payment_method_en', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Post-dated Cheques">Post-dated Cheques</SelectItem>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="Cheques & Cash">Cheques & Cash</SelectItem>
-                        <SelectItem value="Monthly Installments">Monthly Installments</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="payment_method">طريقة السداد / Payment Method *</Label>
+                  <Select onValueChange={(value) => handleBilingualDropdownChange('payment_method', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر طريقة السداد / Select payment method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Post-dated Cheques // شيكات مؤجلة">Post-dated Cheques // شيكات مؤجلة</SelectItem>
+                      <SelectItem value="Cash // نقداً">Cash // نقداً</SelectItem>
+                      <SelectItem value="Bank Transfer // تحويل بنكي">Bank Transfer // تحويل بنكي</SelectItem>
+                      <SelectItem value="Cheques & Cash // شيكات ونقداً">Cheques & Cash // شيكات ونقداً</SelectItem>
+                      <SelectItem value="Monthly Installments // أقساط شهرية">Monthly Installments // أقساط شهرية</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
