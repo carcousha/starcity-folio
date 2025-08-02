@@ -2,9 +2,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { HandCoins, TrendingUp, Calculator, FileText, Car, UserCheck, Plus, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import AccountantDashboard from "./AccountantDashboard";
 
 export default function AccountingOverview() {
   const navigate = useNavigate();
+  const { isAdmin, isAccountant } = useRoleAccess();
+
+  // إظهار لوحة المحاسب الخاصة للمحاسبين
+  if (isAccountant && !isAdmin) {
+    return <AccountantDashboard />;
+  }
 
   const modules = [
     {

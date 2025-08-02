@@ -3053,6 +3053,10 @@ export type Database = {
         }
         Returns: string
       }
+      fix_data_integrity: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_contract_number: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3091,7 +3095,7 @@ export type Database = {
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
-        Returns: Database["public"]["Enums"]["app_role"]
+        Returns: string
       }
       get_employee_commission_statement: {
         Args: { employee_id_param?: string }
@@ -3138,6 +3142,10 @@ export type Database = {
       get_user_role: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_crm_access: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       has_role: {
         Args: {

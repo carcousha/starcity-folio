@@ -222,13 +222,13 @@ const App = () => (
                   <TreasuryReports />
                 </ProtectedRoute>
               } />
-              
-              {/* Employee Routes */}
-              <Route path="/my-commissions" element={
-                <ProtectedRoute requiredPermission="canViewAllCommissions">
-                  <MyCommissions />
-                </ProtectedRoute>
-              } />
+               
+               {/* Employee Routes */}
+               <Route path="/my-commissions" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyCommissions />
+                 </ProtectedRoute>
+               } />
               <Route path="/my-goals" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <MyGoals />
