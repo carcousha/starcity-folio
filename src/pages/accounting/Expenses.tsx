@@ -607,11 +607,11 @@ export default function Expenses() {
     }
   };
 
+  const canManageExpenses = profile?.role === 'admin' || profile?.role === 'accountant';
+
   const calculateTotalExpenses = () => {
     return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   };
-
-  const canManageExpenses = profile?.role === 'admin' || profile?.role === 'accountant';
 
   if (loading) {
     return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
