@@ -23,6 +23,7 @@ import Staff from "./pages/accounting/Staff";
 import Treasury from "./pages/accounting/Treasury";
 import ActivityLogPage from "./pages/accounting/ActivityLog";
 import AdvancedDebts from "./pages/accounting/AdvancedDebts";
+import DailyJournal from "./pages/accounting/DailyJournal";
 import ReportsIndex from "./pages/reports/index";
 import RentalIndex from "./pages/rental/index";
 import PropertyOwners from "./pages/rental/PropertyOwners";
@@ -136,6 +137,11 @@ const App = () => (
               <Route path="/accounting/treasury" element={
                 <ProtectedRoute requiredPermission="canViewTreasury">
                   <Treasury />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/daily-journal" element={
+                <ProtectedRoute requiredPermission="canViewFinancials">
+                  <DailyJournal />
                 </ProtectedRoute>
               } />
               <Route path="/accounting/activity-log" element={

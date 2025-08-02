@@ -16,6 +16,13 @@ export default function AccountingOverview() {
 
   const modules = [
     {
+      title: "اليومية",
+      description: "سجل يومي لجميع المعاملات المالية للمكتب",
+      icon: FileText,
+      path: "/accounting/daily-journal",
+      color: "bg-blue-600"
+    },
+    {
       title: "المصروفات",
       description: "إدارة جميع مصروفات الشركة والموظفين",
       icon: HandCoins,

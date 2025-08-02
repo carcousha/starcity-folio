@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, TrendingUp, Download, Calendar, BarChart3, Users, PieChart } from "lucide-react";
+import { Plus, Search, Filter, TrendingUp, Download, Calendar, BarChart3, Users, PieChart, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +30,7 @@ interface Profile {
   id: string;
   first_name: string;
   last_name: string;
+  user_id: string;
 }
 
 export default function Revenues() {
@@ -38,6 +39,8 @@ export default function Revenues() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRevenue, setEditingRevenue] = useState<Revenue | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -83,7 +86,7 @@ export default function Revenues() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name')
+        .select('id, first_name, last_name, user_id')
         .eq('is_active', true);
 
       if (error) throw error;
@@ -220,6 +223,123 @@ export default function Revenues() {
     }
   };
 
+  const handleEditRevenue = (revenue: Revenue) => {
+    setEditingRevenue(revenue);
+    setFormData({
+      title: revenue.title,
+      description: revenue.description || "",
+      amount: revenue.amount.toString(),
+      source: revenue.source,
+      revenue_date: revenue.revenue_date
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateRevenue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingRevenue || !formData.title || !formData.amount || !formData.source) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('revenues')
+        .update({
+          title: formData.title.trim(),
+          description: formData.description?.trim() || null,
+          amount: parseFloat(formData.amount),
+          source: formData.source.trim(),
+          revenue_date: formData.revenue_date
+        })
+        .eq('id', editingRevenue.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث الإيراد بنجاح",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingRevenue(null);
+      setFormData({
+        title: "",
+        description: "",
+        amount: "",
+        source: "",
+        revenue_date: new Date().toISOString().split('T')[0]
+      });
+      fetchRevenues();
+    } catch (error: any) {
+      console.error('Error updating revenue:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في تحديث الإيراد",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteRevenue = async (revenueId: string) => {
+    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإيراد؟ هذه العملية لا يمكن التراجع عنها.");
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('revenues')
+        .delete()
+        .eq('id', revenueId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف الإيراد بنجاح",
+      });
+
+      fetchRevenues();
+    } catch (error: any) {
+      console.error('Error deleting revenue:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف الإيراد",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = ['العنوان', 'المصدر', 'النوع', 'المبلغ', 'التاريخ', 'الموظف المسؤول', 'الوصف'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredRevenues.map(revenue => {
+        const employee = profiles.find(p => p.user_id === revenue.recorded_by);
+        const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : '-';
+        return [
+          revenue.title,
+          revenue.source,
+          revenue.revenue_type || '-',
+          revenue.amount,
+          revenue.revenue_date,
+          employeeName,
+          revenue.description || ''
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `revenues_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   const totalRevenues = filteredRevenues.reduce((sum, revenue) => sum + revenue.amount, 0);
 
   // Chart data preparation
@@ -248,32 +368,6 @@ export default function Revenues() {
   })).filter(item => item.value > 0);
 
   const COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16', '#ec4899', '#10b981', '#f97316'];
-
-  const exportToCSV = () => {
-    const headers = ['العنوان', 'المصدر', 'النوع', 'المبلغ', 'التاريخ', 'الموظف المسؤول', 'الوصف'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredRevenues.map(revenue => {
-        const employee = profiles.find(p => p.id === revenue.employee_id);
-        const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : '-';
-        return [
-          revenue.title,
-          revenue.source,
-          revenue.revenue_type || '-',
-          revenue.amount,
-          revenue.revenue_date,
-          employeeName,
-          revenue.description || ''
-        ].join(',');
-      })
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `revenues_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
 
   if (loading) {
     return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
@@ -483,23 +577,22 @@ export default function Revenues() {
                 {sourceData.map((source, index) => {
                   const totalAmount = sourceData.reduce((sum, src) => sum + src.value, 0);
                   const percentage = ((source.value / totalAmount) * 100).toFixed(1);
-                  const color = COLORS[index % COLORS.length];
                   return (
-                    <div key={source.name} className="space-y-2">
-                      <div className="flex justify-between items-center text-sm">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="font-medium">{source.name}</span>
-                        </div>
-                        <span className="text-green-600 font-semibold">
-                          {source.value.toLocaleString('ar-AE')} درهم
-                        </span>
+                    <div key={source.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="text-sm font-medium">{source.name}</span>
                       </div>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>{percentage}% من الإجمالي</span>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">
+                          {source.value.toLocaleString('ar-AE')} درهم
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {percentage}%
+                        </div>
                       </div>
                     </div>
                   );
@@ -512,13 +605,14 @@ export default function Revenues() {
 
       <Card>
         <CardHeader>
-          <CardTitle>البحث والتصفية</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-[200px]">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle>سجل الإيرادات</CardTitle>
+              <CardDescription>جميع الإيرادات المسجلة مع إمكانية البحث والتصفية</CardDescription>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative">
-                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="البحث في الإيرادات..."
                   value={searchTerm}
@@ -526,112 +620,162 @@ export default function Revenues() {
                   className="pr-10"
                 />
               </div>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="تصفية حسب المصدر" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع المصادر</SelectItem>
+                  {sources.map((source) => (
+                    <SelectItem key={source} value={source}>
+                      {source}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
-              <SelectTrigger className="w-[200px]">
-                <Filter className="h-4 w-4 ml-2" />
-                <SelectValue placeholder="تصفية حسب المصدر" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع المصادر</SelectItem>
-                {sources.map((source) => (
-                  <SelectItem key={source} value={source}>
-                    {source}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[200px]">
-                <Filter className="h-4 w-4 ml-2" />
-                <SelectValue placeholder="تصفية حسب النوع" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع الأنواع</SelectItem>
-                {revenueTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="month"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-[200px]"
-              placeholder="تصفية حسب الشهر"
-            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">العنوان</TableHead>
+                  <TableHead className="text-right">المصدر</TableHead>
+                  <TableHead className="text-right">المبلغ</TableHead>
+                  <TableHead className="text-right">التاريخ</TableHead>
+                  <TableHead className="text-right">الموظف المسؤول</TableHead>
+                  <TableHead className="text-right">الوصف</TableHead>
+                  <TableHead className="text-right">العمليات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRevenues.length > 0 ? (
+                  filteredRevenues.map((revenue) => {
+                    const employee = profiles.find(p => p.user_id === revenue.recorded_by);
+                    const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : '-';
+                    
+                    return (
+                      <TableRow key={revenue.id}>
+                        <TableCell className="font-medium">{revenue.title}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{revenue.source}</Badge>
+                        </TableCell>
+                        <TableCell className="font-semibold text-green-600">
+                          {revenue.amount.toLocaleString('ar-AE')} درهم
+                        </TableCell>
+                        <TableCell>
+                          {new Date(revenue.revenue_date).toLocaleDateString('ar-AE')}
+                        </TableCell>
+                        <TableCell>{employeeName}</TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {revenue.description || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditRevenue(revenue)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteRevenue(revenue.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      لا توجد إيرادات متاحة
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>قائمة الإيرادات</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>العنوان</TableHead>
-                <TableHead>المصدر</TableHead>
-                <TableHead>النوع</TableHead>
-                <TableHead>المبلغ</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead>الموظف المسؤول</TableHead>
-                <TableHead>الوصف</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRevenues.map((revenue) => {
-                const employee = profiles.find(p => p.id === revenue.employee_id);
-                return (
-                  <TableRow key={revenue.id}>
-                    <TableCell className="font-medium">{revenue.title}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-green-50 text-green-700">
-                        {revenue.source}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {revenue.revenue_type ? (
-                        <Badge variant="secondary">{revenue.revenue_type}</Badge>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-green-600 font-semibold">
-                      {revenue.amount.toLocaleString('ar-AE')} درهم
-                    </TableCell>
-                    <TableCell>{new Date(revenue.revenue_date).toLocaleDateString('ar-AE')}</TableCell>
-                    <TableCell>
-                      {employee ? (
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-gray-400" />
-                          <span>{employee.first_name} {employee.last_name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {revenue.description || "-"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {filteredRevenues.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    لا توجد إيرادات لعرضها
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Dialog للتعديل */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل الإيراد</DialogTitle>
+            <DialogDescription>
+              تعديل تفاصيل الإيراد
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateRevenue} className="space-y-4">
+            <div>
+              <Label htmlFor="edit_title">عنوان الإيراد</Label>
+              <Input
+                id="edit_title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_source">المصدر</Label>
+              <Select value={formData.source} onValueChange={(value) => setFormData(prev => ({ ...prev, source: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر المصدر" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sources.map((source) => (
+                    <SelectItem key={source} value={source}>
+                      {source}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit_amount">المبلغ</Label>
+              <Input
+                id="edit_amount"
+                type="number"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_revenue_date">تاريخ الإيراد</Label>
+              <Input
+                id="edit_revenue_date"
+                type="date"
+                value={formData.revenue_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, revenue_date: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_description">الوصف</Label>
+              <Textarea
+                id="edit_description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              تحديث الإيراد
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

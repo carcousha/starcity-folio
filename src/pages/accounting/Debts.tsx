@@ -174,10 +174,10 @@ export default function Debts() {
     
     try {
       const insertData: any = {
-        debtor_name: formData.debtor_name,
+        debtor_name: formData.debtor_name.trim(),
         debtor_type: formData.debtor_type === "موظف" ? "employee" : formData.debtor_type.toLowerCase(),
         amount: parseFloat(formData.amount),
-        description: formData.description,
+        description: formData.description.trim(),
         due_date: formData.due_date || null,
         status: 'pending',
         recorded_by: profile?.user_id
@@ -187,11 +187,19 @@ export default function Debts() {
         insertData.debtor_id = formData.debtor_id;
       }
 
-      const { error } = await supabase
-        .from('debts')
-        .insert([insertData]);
+      console.log('Inserting debt data:', insertData);
 
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('debts')
+        .insert([insertData])
+        .select();
+
+      console.log('Insert result:', { data, error });
+
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
 
       toast({
         title: "نجح الحفظ",
@@ -362,17 +370,44 @@ export default function Debts() {
   };
 
   const handleDelete = async (debtId: string, debtorName: string) => {
-    const confirmed = window.confirm(`هل أنت متأكد من حذف مديونية "${debtorName}"؟`);
+    if (!canDelete) {
+      toast({
+        title: "غير مصرح",
+        description: "ليس لديك صلاحية لحذف المديونيات",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(`هل أنت متأكد من حذف مديونية "${debtorName}"؟ هذه العملية لا يمكن التراجع عنها.`);
     
     if (!confirmed) return;
 
     try {
-      const { error } = await supabase
+      console.log('Attempting to delete debt with ID:', debtId);
+      
+      const { data, error } = await supabase
         .from('debts')
         .delete()
-        .eq('id', debtId);
+        .eq('id', debtId)
+        .select();
 
-      if (error) throw error;
+      console.log('Delete result:', { data, error });
+
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('No rows were deleted');
+        toast({
+          title: "تحذير",
+          description: "لم يتم العثور على المديونية المطلوب حذفها",
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
         title: "تم الحذف",
@@ -380,10 +415,11 @@ export default function Debts() {
       });
 
       fetchDebts();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error deleting debt:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حذف المديونية",
+        description: `فشل في حذف المديونية: ${error.message || 'خطأ غير محدد'}`,
         variant: "destructive",
       });
     }

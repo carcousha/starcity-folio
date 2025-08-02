@@ -480,7 +480,21 @@ export default function Expenses() {
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
+    if (!canManageExpenses) {
+      toast({
+        title: "غير مصرح",
+        description: "ليس لديك صلاحية لحذف المصروفات",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا المصروف؟ هذه العملية لا يمكن التراجع عنها.");
+    if (!confirmDelete) return;
+
     try {
+      setDeletingExpenseId(expenseId);
+
       // حذف المرفقات من التخزين
       const { data: attachments } = await supabase
         .from('expense_attachments')
@@ -522,6 +536,8 @@ export default function Expenses() {
         description: "فشل في حذف المصروف",
         variant: "destructive",
       });
+    } finally {
+      setDeletingExpenseId(null);
     }
   };
 
