@@ -41,7 +41,7 @@ export const StarcityHomeMockup = () => {
     },
     {
       title: "الصفقات هذا الشهر",
-      value: "﷼2.8M",
+      value: "2.8M د.إ",
       unit: "",
       icon: TrendingUp,
       change: "+8.5%",
@@ -50,7 +50,7 @@ export const StarcityHomeMockup = () => {
     },
     {
       title: "الدخل الصافي",
-      value: "﷼1.2M",
+      value: "1.2M د.إ",
       unit: "",
       icon: DollarSign,
       change: "+15%",
@@ -59,7 +59,7 @@ export const StarcityHomeMockup = () => {
     },
     {
       title: "العمولات المستحقة",
-      value: "﷼340K",
+      value: "340K د.إ",
       unit: "",
       icon: Target,
       change: "+22%",
