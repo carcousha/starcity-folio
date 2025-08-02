@@ -125,6 +125,42 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          success: boolean
+          user_agent: string | null
+          user_identifier: string
+        }
+        Insert: {
+          attempt_type: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          success: boolean
+          user_agent?: string | null
+          user_identifier: string
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          success?: boolean
+          user_agent?: string | null
+          user_identifier?: string
+        }
+        Relationships: []
+      }
       budget_limits: {
         Row: {
           alert_threshold: number | null
@@ -3102,8 +3138,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_accountant_or_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_admin: {
-        Args: { user_uuid: string }
+        Args: Record<PropertyKey, never> | { user_uuid: string }
         Returns: boolean
       }
       link_service_to_accounting: {
