@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useFinancialIntegration } from "@/hooks/useFinancialIntegration";
+import { useNotifications } from "@/hooks/useNotifications";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,7 @@ import {
 export const StarcityHomeMockup = () => {
   const { profile } = useAuth();
   const { summary, loading: financialLoading } = useFinancialIntegration();
+  const { unreadCount } = useNotifications();
 
   // جلب إحصائيات حقيقية من قاعدة البيانات
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -287,17 +289,27 @@ export const StarcityHomeMockup = () => {
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" className="relative hover:bg-gray-100 rounded-lg p-2">
               <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                3
-              </span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                  {unreadCount}
+                </span>
+              )}
             </Button>
             <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-4 py-2 hover:bg-gray-100 transition-colors cursor-pointer">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">محمد أحمد السعيد</p>
-                <p className="text-xs text-gray-500">مدير النظام</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {profile?.first_name} {profile?.last_name}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {profile?.role === 'admin' ? 'مدير النظام' : 
+                   profile?.role === 'accountant' ? 'محاسب' : 
+                   profile?.role === 'employee' ? 'موظف' : 'مستخدم'}
+                </p>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">م</span>
+                <span className="text-white text-sm font-medium">
+                  {profile?.first_name?.charAt(0) || 'م'}
+                </span>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </div>
