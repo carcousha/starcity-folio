@@ -3,6 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/hooks/useAuth";
+import { useFinancialIntegration } from "@/hooks/useFinancialIntegration";
+import { formatCurrency } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Building2, 
   Users, 
@@ -28,11 +33,50 @@ import {
 } from "lucide-react";
 
 export const StarcityHomeMockup = () => {
-  // بطاقات KPI الرئيسية
+  const { profile } = useAuth();
+  const { summary, loading: financialLoading } = useFinancialIntegration();
+
+  // جلب إحصائيات حقيقية من قاعدة البيانات
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const [clientsResult, propertiesResult, dealsResult, contractsResult] = await Promise.all([
+        supabase.from('clients').select('*'),
+        supabase.from('properties').select('*'),
+        supabase.from('deals').select('*').eq('status', 'closed'),
+        supabase.from('rental_contracts').select('*')
+      ]);
+
+      return {
+        clients: clientsResult.data?.length || 0,
+        properties: propertiesResult.data?.length || 0,
+        deals: dealsResult.data?.length || 0,
+        contracts: contractsResult.data?.length || 0
+      };
+    }
+  });
+
+  // جلب النشاطات الحقيقية
+  const { data: activities } = useQuery({
+    queryKey: ['recent-activities'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(8);
+      
+      return data || [];
+    }
+  });
+
+  const isLoading = financialLoading || statsLoading;
+
+  // بطاقات KPI مع البيانات الحقيقية
   const kpiCards = [
     {
       title: "إجمالي العملاء",
-      value: "1,247",
+      value: isLoading ? "..." : stats?.clients?.toString() || "0",
       unit: "عميل",
       icon: Users,
       change: "+12%",
@@ -41,7 +85,7 @@ export const StarcityHomeMockup = () => {
     },
     {
       title: "الصفقات هذا الشهر",
-      value: "2.8M د.إ",
+      value: isLoading ? "..." : formatCurrency(summary?.totalRevenues || 0),
       unit: "",
       icon: TrendingUp,
       change: "+8.5%",
@@ -50,16 +94,16 @@ export const StarcityHomeMockup = () => {
     },
     {
       title: "الدخل الصافي",
-      value: "1.2M د.إ",
+      value: isLoading ? "..." : formatCurrency((summary?.totalRevenues || 0) - (summary?.totalExpenses || 0)),
       unit: "",
       icon: DollarSign,
-      change: "+15%",
-      changeType: "positive",
+      change: summary && (summary.totalRevenues - summary.totalExpenses) > 0 ? "+15%" : "0%",
+      changeType: summary && (summary.totalRevenues - summary.totalExpenses) > 0 ? "positive" : "neutral",
       color: "bg-purple-50 text-purple-600 border-purple-200"
     },
     {
       title: "العمولات المستحقة",
-      value: "340K د.إ",
+      value: isLoading ? "..." : formatCurrency(summary?.pendingCommissions || 0),
       unit: "",
       icon: Target,
       change: "+22%",
@@ -68,7 +112,7 @@ export const StarcityHomeMockup = () => {
     },
     {
       title: "العقارات المتاحة",
-      value: "456",
+      value: isLoading ? "..." : stats?.properties?.toString() || "0",
       unit: "عقار",
       icon: Building2,
       change: "+5",
@@ -76,13 +120,13 @@ export const StarcityHomeMockup = () => {
       color: "bg-cyan-50 text-cyan-600 border-cyan-200"
     },
     {
-      title: "التنبيهات الحرجة",
-      value: "12",
+      title: "العقود النشطة",
+      value: isLoading ? "..." : stats?.contracts?.toString() || "0",
       unit: "عقد",
-      icon: AlertTriangle,
-      change: "قرب الانتهاء",
-      changeType: "warning",
-      color: "bg-red-50 text-red-600 border-red-200"
+      icon: FileText,
+      change: "نشط",
+      changeType: "positive",
+      color: "bg-indigo-50 text-indigo-600 border-indigo-200"
     }
   ];
 
@@ -265,14 +309,23 @@ export const StarcityHomeMockup = () => {
         {/* ترحيب */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">أهلاً وسهلاً، محمد!</h2>
+            <h2 className="text-3xl font-bold text-gray-900">
+              أهلاً وسهلاً، {profile?.first_name || 'مستخدم'}!
+            </h2>
             <p className="text-gray-600 mt-1 flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              اليوم الخميس، 2 أغسطس 2025
+              اليوم {new Date().toLocaleDateString('ar-EG', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
             </p>
           </div>
           <Badge className="bg-blue-100 text-blue-700 px-4 py-2 text-sm font-medium">
-            مدير النظام
+            {profile?.role === 'admin' ? 'مدير النظام' : 
+             profile?.role === 'accountant' ? 'محاسب' : 
+             profile?.role === 'employee' ? 'موظف' : 'مستخدم'}
           </Badge>
         </div>
 
@@ -414,17 +467,31 @@ export const StarcityHomeMockup = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
-                {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition-colors">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 mb-1">{activity.action}</p>
-                      <p className="text-xs text-gray-500">بواسطة {activity.user}</p>
+                {activities && activities.length > 0 ? (
+                  activities.map((activity) => (
+                    <div key={activity.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition-colors">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 mb-1">{activity.description}</p>
+                        <p className="text-xs text-gray-500">
+                          {activity.operation_type} - {activity.source_table}
+                        </p>
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs text-gray-400 font-medium">
+                          {new Date(activity.created_at).toLocaleDateString('ar-EG', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <span className="text-xs text-gray-400 font-medium">{activity.time}</span>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>لا توجد نشاطات حديثة</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
