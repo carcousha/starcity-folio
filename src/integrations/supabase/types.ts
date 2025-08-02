@@ -583,6 +583,7 @@ export type Database = {
           commission_calculated: boolean | null
           commission_rate: number
           created_at: string
+          created_by: string | null
           deal_type: string
           handled_by: string
           id: string
@@ -599,6 +600,7 @@ export type Database = {
           commission_calculated?: boolean | null
           commission_rate?: number
           created_at?: string
+          created_by?: string | null
           deal_type: string
           handled_by: string
           id?: string
@@ -615,6 +617,7 @@ export type Database = {
           commission_calculated?: boolean | null
           commission_rate?: number
           created_at?: string
+          created_by?: string | null
           deal_type?: string
           handled_by?: string
           id?: string
@@ -923,6 +926,7 @@ export type Database = {
           budget_category: string | null
           category: string
           created_at: string
+          created_by: string | null
           description: string | null
           expense_date: string
           id: string
@@ -940,6 +944,7 @@ export type Database = {
           budget_category?: string | null
           category: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           expense_date?: string
           id?: string
@@ -957,6 +962,7 @@ export type Database = {
           budget_category?: string | null
           category?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           expense_date?: string
           id?: string
@@ -1679,6 +1685,7 @@ export type Database = {
           bathrooms: number | null
           bedrooms: number | null
           created_at: string
+          created_by: string | null
           description: string | null
           features: string[] | null
           id: string
@@ -1696,6 +1703,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           features?: string[] | null
           id?: string
@@ -1713,6 +1721,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           features?: string[] | null
           id?: string
@@ -2178,6 +2187,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          created_by: string | null
           description: string | null
           employee_id: string | null
           id: string
@@ -2191,6 +2201,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          created_by?: string | null
           description?: string | null
           employee_id?: string | null
           id?: string
@@ -2204,6 +2215,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          created_by?: string | null
           description?: string | null
           employee_id?: string | null
           id?: string
