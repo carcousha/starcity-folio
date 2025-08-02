@@ -66,16 +66,16 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               
               {/* CRM Routes - Admin and some for employees */}
-              <Route path="/crm" element={
-                <ProtectedRoute requiredPermission="canViewAllClients">
-                  <CRMIndex />
-                </ProtectedRoute>
-              } />
-              <Route path="/crm/clients" element={
-                <ProtectedRoute requiredPermission="canViewAllClients">
-                  <Clients />
-                </ProtectedRoute>
-              } />
+               <Route path="/crm" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <CRMIndex />
+                 </ProtectedRoute>
+               } />
+               <Route path="/crm/clients" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Clients />
+                 </ProtectedRoute>
+               } />
               <Route path="/crm/leads" element={
                 <ProtectedRoute requiredPermission="crmAccess">
                   <Leads />

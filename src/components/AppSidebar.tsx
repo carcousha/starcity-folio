@@ -222,11 +222,20 @@ export function AppSidebar() {
                       'other'
                     ) && !collapsed && (
                       <div className="mr-4 space-y-1">
-                         {item.submenu?.filter(subItem => {
-                           // Check permissions for each submenu item
-                           if (subItem.url.includes('/crm/')) {
-                             return checkPermission('canViewAllClients');
-                           }
+                          {item.submenu?.filter(subItem => {
+                            // Check permissions for each submenu item
+                            if (subItem.url.includes('/crm/clients')) {
+                              return checkPermission('crmAccess');
+                            }
+                            if (subItem.url.includes('/crm/leads')) {
+                              return checkPermission('crmAccess'); 
+                            }
+                            if (subItem.url.includes('/crm/properties')) {
+                              return checkPermission('crmAccess');
+                            }
+                            if (subItem.url.includes('/crm/')) {
+                              return checkPermission('crmAccess');
+                            }
                            if (subItem.url.includes('/accounting/expenses')) {
                              return checkPermission('canManageExpenses');
                            }
