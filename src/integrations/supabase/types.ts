@@ -3008,6 +3008,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_rate_limit_enhanced: {
+        Args: {
+          user_email: string
+          max_attempts?: number
+          time_window_minutes?: number
+        }
+        Returns: boolean
+      }
       convert_lead_to_client: {
         Args: { lead_id_param: string }
         Returns: string
@@ -3178,6 +3186,16 @@ export type Database = {
         }
         Returns: string
       }
+      log_security_event: {
+        Args: {
+          event_type: string
+          description: string
+          severity?: string
+          user_id_param?: string
+          metadata?: Json
+        }
+        Returns: string
+      }
       process_installment_payment: {
         Args: {
           p_installment_id: string
@@ -3213,6 +3231,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      security_audit_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       send_commission_notification: {
         Args: {
           employee_id_param: string
@@ -3233,6 +3255,10 @@ export type Database = {
           notes_param?: string
         }
         Returns: boolean
+      }
+      validate_password_strength: {
+        Args: { password: string }
+        Returns: Json
       }
       validate_role_access: {
         Args: { required_role: Database["public"]["Enums"]["app_role"] }
