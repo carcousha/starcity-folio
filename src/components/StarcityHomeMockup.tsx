@@ -237,22 +237,26 @@ export const StarcityHomeMockup = () => {
     {
       title: "إضافة عميل جديد",
       icon: UserPlus,
-      color: "bg-blue-500 hover:bg-blue-600"
+      color: "bg-blue-500 hover:bg-blue-600",
+      link: "/crm/clients"
     },
     {
-      title: "عقد جديد",
+      title: "اليومية المحاسبية",
       icon: FileText,
-      color: "bg-green-500 hover:bg-green-600"
+      color: "bg-green-500 hover:bg-green-600",
+      link: "/accounting/daily-journal"
     },
     {
       title: "إنشاء تقرير",
       icon: BarChart3,
-      color: "bg-purple-500 hover:bg-purple-600"
+      color: "bg-purple-500 hover:bg-purple-600",
+      link: "/reports"
     },
     {
       title: "وحدة الإيجارات",
       icon: Home,
-      color: "bg-orange-500 hover:bg-orange-600"
+      color: "bg-orange-500 hover:bg-orange-600",
+      link: "/rental"
     }
   ];
 
@@ -564,6 +568,7 @@ export const StarcityHomeMockup = () => {
                   key={index}
                   variant="outline"
                   className={`h-24 flex flex-col items-center gap-3 ${action.color} text-white border-0 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1`}
+                  onClick={() => window.location.href = action.link}
                 >
                   <action.icon className="w-7 h-7" />
                   <span className="text-sm font-medium text-center leading-tight">{action.title}</span>

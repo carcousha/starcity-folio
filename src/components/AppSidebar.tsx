@@ -95,6 +95,7 @@ export function AppSidebar() {
         { title: "الموظفين", url: "/accounting/staff", icon: UserCheck },
         { title: "الخزينة والبنوك", url: "/accounting/treasury", icon: Wallet },
         { title: "سجل النشاطات", url: "/accounting/activity-log", icon: BarChart3 },
+        { title: "اليومية المحاسبية", url: "/accounting/daily-journal", icon: Calendar },
         { title: "التقارير المالية", url: "/reports", icon: BarChart3 },
       ]
     },
