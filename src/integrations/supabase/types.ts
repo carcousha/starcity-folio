@@ -2992,6 +2992,10 @@ export type Database = {
         Args: { service_id_param: string }
         Returns: number
       }
+      can_manage_financials: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_module_permission: {
         Args: {
           module_name_param: string
@@ -3154,12 +3158,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_accountant: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_accountant_or_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_admin: {
         Args: Record<PropertyKey, never> | { user_uuid: string }
+        Returns: boolean
+      }
+      is_employee: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_manager: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       link_service_to_accounting: {
