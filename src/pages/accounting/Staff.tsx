@@ -185,86 +185,35 @@ export default function Staff() {
 
       console.log('🔄 Starting employee creation process...');
       
-      // Check if user already exists in profiles
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('user_id, email')
-        .eq('email', employee.email.trim())
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('❌ Error checking existing profile:', checkError);
-        throw new Error('فشل في التحقق من الموظف الموجود');
-      }
-
-      if (existingProfile) {
-        throw new Error('موظف بهذا البريد الإلكتروني موجود بالفعل');
-      }
-
-      // Generate a strong random password
-      const password = generateRandomPassword();
-      
-      console.log('🔄 Creating auth user for:', employee.email.trim());
-      
-      // Create auth user using admin API (with proper error handling)
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: employee.email.trim(),
-        password: password,
-        email_confirm: true, // Skip email confirmation
-        user_metadata: {
-          first_name: employee.firstName.trim(),
-          last_name: employee.lastName.trim()
+      // Call the Edge Function to create the user and profile
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-employee-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email: employee.email.trim(),
+            password: generateRandomPassword(), // Generate a temporary password
+            first_name: employee.firstName.trim(),
+            last_name: employee.lastName.trim(),
+            phone: employee.phone?.trim() || null,
+            role: employee.role,
+          }),
         }
-      });
+      );
 
-      if (authError) {
-        console.error('❌ Auth user creation failed:', authError);
-        if (authError.message?.includes('already been registered')) {
-          throw new Error('هذا البريد الإلكتروني مسجل بالفعل');
-        }
-        throw new Error(`فشل في إنشاء حساب المستخدم: ${authError.message}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("❌ Edge Function error:", data);
+        throw new Error(data.message || "فشل في إضافة الموظف عبر Edge Function");
       }
 
-      if (!authData?.user) {
-        throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');
-      }
-
-      console.log('✅ Auth user created:', authData.user.id);
-
-      // Create profile record
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          first_name: employee.firstName.trim(),
-          last_name: employee.lastName.trim(),
-          email: employee.email.trim(),
-          phone: employee.phone?.trim() || null,
-          role: employee.role,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (profileError) {
-        console.error('❌ Profile creation failed:', profileError);
-        // Clean up auth user if profile creation fails
-        try {
-          await supabase.auth.admin.deleteUser(authData.user.id);
-          console.log('🧹 Cleaned up auth user after profile creation failure');
-        } catch (deleteError) {
-          console.error('❌ Failed to cleanup auth user:', deleteError);
-        }
-        throw new Error(`فشل في إنشاء ملف الموظف: ${profileError.message}`);
-      }
-
-      console.log('✅ Profile created successfully:', profileData);
-
-      return {
-        ...profileData,
-        user_id: authData.user.id,
-        temporary_password: password
-      };
+      console.log("✅ Employee created via Edge Function:", data);
+      return { ...data.profile, temporary_password: data.temporary_password };
     },
     onSuccess: (data) => {
       toast({
