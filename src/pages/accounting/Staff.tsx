@@ -185,31 +185,21 @@ export default function Staff() {
 
       console.log('🔄 Starting employee creation process...');
       
-      // Call the Edge Function to create the user and profile
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-employee-user`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            email: employee.email.trim(),
-            password: generateRandomPassword(), // Generate a temporary password
-            first_name: employee.firstName.trim(),
-            last_name: employee.lastName.trim(),
-            phone: employee.phone?.trim() || null,
-            role: employee.role,
-          }),
-        }
-      );
+      // Call the Edge Function using the Supabase client
+      const { data, error } = await supabase.functions.invoke('create-employee-user', {
+        body: {
+          email: employee.email.trim(),
+          password: generateRandomPassword(), // Generate a temporary password
+          first_name: employee.firstName.trim(),
+          last_name: employee.lastName.trim(),
+          phone: employee.phone?.trim() || null,
+          role: employee.role,
+        },
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("❌ Edge Function error:", data);
-        throw new Error(data.message || "فشل في إضافة الموظف عبر Edge Function");
+      if (error) {
+        console.error("❌ Edge Function error:", error);
+        throw new Error(error.message || "فشل في إضافة الموظف عبر Edge Function");
       }
 
       console.log("✅ Employee created via Edge Function:", data);
