@@ -32,13 +32,8 @@ interface EmployeeReport {
 }
 
 export default function EmployeeReports() {
-  const { checkPermission, requirePermission, userRole } = useRoleAccess();
+  const { userRole } = useRoleAccess();
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Check permissions
-  if (!requirePermission('canViewAllStaff') && userRole !== 'employee') {
-    return null;
-  }
 
   const { data: employeeReports, isLoading } = useQuery({
     queryKey: ['employee-reports'],

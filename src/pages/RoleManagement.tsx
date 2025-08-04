@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +27,7 @@ interface UserProfile {
 }
 
 export default function RoleManagement() {
-  const { requirePermission } = useRoleAccess();
   const queryClient = useQueryClient();
-
-  // Check permission on component mount
-  if (!requirePermission('canManageRoles')) {
-    return null;
-  }
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
