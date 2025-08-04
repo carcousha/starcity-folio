@@ -1,11 +1,11 @@
 import { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useRoleAccess, RolePermissions } from '@/hooks/useRoleAccess';
+import { useRoleAccess, PermissionKey } from '@/hooks/useRoleAccess';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredPermission: keyof RolePermissions;
+  requiredPermission: PermissionKey;
   fallback?: ReactNode;
 }
 

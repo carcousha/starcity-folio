@@ -1,178 +1,95 @@
-import { useAuth } from './useAuth';
-import { toast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from "./useAuth";
+import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { usePermissions } from "./usePermissions";
 
-export type UserRole = 'admin' | 'accountant' | 'employee';
+export type UserRole = "admin" | "accountant" | "employee";
 
-export interface RolePermissions {
-  // CRM Permissions
-  crmAccess: boolean;
-  canViewAllClients: boolean;
-  canManageClients: boolean;
-  canViewAllDeals: boolean;
-  canManageDeals: boolean;
-  canViewAllProperties: boolean;
-  canManageProperties: boolean;
-  
-  // Accounting Permissions
-  canViewFinancials: boolean;
-  canManageExpenses: boolean;
-  canManageRevenues: boolean;
-  canManageCommissions: boolean;
-  canManageDebts: boolean;
-  canViewTreasury: boolean;
-  canManageTreasury: boolean;
-  
-  // Staff Permissions
-  canViewAllStaff: boolean;
-  canManageStaff: boolean;
-  canViewAllCommissions: boolean;
-  canManageRoles: boolean;
-  
-  // Vehicle Permissions
-  canViewAllVehicles: boolean;
-  canManageVehicles: boolean;
-  
-  // Reports Permissions
-  canViewAllReports: boolean;
-  canExportReports: boolean;
-  
-  // Activity Log Permissions
-  canViewActivityLogs: boolean;
-}
+const permissionMap = {
+  crmAccess: { module: "crm", action: "access" },
+  canViewAllClients: { module: "clients", action: "view_all" },
+  canManageClients: { module: "clients", action: "manage" },
+  canViewAllDeals: { module: "deals", action: "view_all" },
+  canManageDeals: { module: "deals", action: "manage" },
+  canViewAllProperties: { module: "properties", action: "view_all" },
+  canManageProperties: { module: "properties", action: "manage" },
+  canViewFinancials: { module: "financials", action: "view" },
+  canManageExpenses: { module: "expenses", action: "manage" },
+  canManageRevenues: { module: "revenues", action: "manage" },
+  canManageCommissions: { module: "commissions", action: "manage" },
+  canManageDebts: { module: "debts", action: "manage" },
+  canViewTreasury: { module: "treasury", action: "view" },
+  canManageTreasury: { module: "treasury", action: "manage" },
+  canViewAllStaff: { module: "staff", action: "view_all" },
+  canManageStaff: { module: "staff", action: "manage" },
+  canViewAllCommissions: { module: "commissions", action: "view_all" },
+  canManageRoles: { module: "roles", action: "manage" },
+  canViewAllVehicles: { module: "vehicles", action: "view_all" },
+  canManageVehicles: { module: "vehicles", action: "manage" },
+  canViewAllReports: { module: "reports", action: "view_all" },
+  canExportReports: { module: "reports", action: "export" },
+  canViewActivityLogs: { module: "activity_logs", action: "view" },
+} as const;
 
-const rolePermissions: Record<UserRole, RolePermissions> = {
-  admin: {
-    // Full access to everything
-    crmAccess: true,
-    canViewAllClients: true,
-    canManageClients: true,
-    canViewAllDeals: true,
-    canManageDeals: true,
-    canViewAllProperties: true,
-    canManageProperties: true,
-    canViewFinancials: true,
-    canManageExpenses: true,
-    canManageRevenues: true,
-    canManageCommissions: true,
-    canManageDebts: true,
-    canViewTreasury: true,
-    canManageTreasury: true,
-    canViewAllStaff: true,
-    canManageStaff: true,
-    canViewAllCommissions: true,
-    canManageRoles: true,
-    canViewAllVehicles: true,
-    canManageVehicles: true,
-    canViewAllReports: true,
-    canExportReports: true,
-    canViewActivityLogs: true,
-  },
-  accountant: {
-    // Financial modules only
-    crmAccess: true,
-    canViewAllClients: false,
-    canManageClients: false,
-    canViewAllDeals: false,
-    canManageDeals: false,
-    canViewAllProperties: false,
-    canManageProperties: false,
-    canViewFinancials: true,
-    canManageExpenses: true,
-    canManageRevenues: true,
-    canManageCommissions: true,
-    canManageDebts: true,
-    canViewTreasury: true,
-    canManageTreasury: true,
-    canViewAllStaff: false,
-    canManageStaff: false,
-    canViewAllCommissions: true,
-    canManageRoles: false,
-    canViewAllVehicles: true,
-    canManageVehicles: true,
-    canViewAllReports: true,
-    canExportReports: true,
-    canViewActivityLogs: true,
-  },
-  employee: {
-    // Limited access to own data only
-    crmAccess: true,
-    canViewAllClients: false,
-    canManageClients: false,
-    canViewAllDeals: false,
-    canManageDeals: false,
-    canViewAllProperties: false,
-    canManageProperties: false,
-    canViewFinancials: false,
-    canManageExpenses: false,
-    canManageRevenues: false,
-    canManageCommissions: false,
-    canManageDebts: false,
-    canViewTreasury: false,
-    canManageTreasury: false,
-    canViewAllStaff: false,
-    canManageStaff: false,
-    canViewAllCommissions: false,
-    canManageRoles: false,
-    canViewAllVehicles: false,
-    canManageVehicles: false,
-    canViewAllReports: false,
-    canExportReports: false,
-    canViewActivityLogs: true, // السماح للموظفين برؤية سجل النشاطات
-  },
-};
+export type PermissionKey = keyof typeof permissionMap;
 
 export const useRoleAccess = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { permissions, checkPermission: serverCheckPermission } = usePermissions();
 
   const userRole = profile?.role as UserRole;
-  const permissions = userRole ? rolePermissions[userRole] : rolePermissions.employee;
 
-  const checkPermission = (permission: keyof RolePermissions): boolean => {
-    return permissions[permission];
+  const checkPermission = (permission: PermissionKey): boolean => {
+    const mapping = permissionMap[permission];
+    const perm = permissions.find(
+      (p) =>
+        p.module_name === mapping.module &&
+        p.action_type === mapping.action &&
+        p.is_active
+    );
+
+    if (!perm) return false;
+
+    if (userRole && perm.allowed_roles.includes(userRole)) return true;
+
+    if (profile?.user_id && perm.allowed_users.includes(profile.user_id)) return true;
+
+    return false;
   };
 
-  const requirePermission = async (permission: keyof RolePermissions, redirectPath = '/') => {
+  const requirePermission = async (
+    permission: PermissionKey,
+    redirectPath = "/"
+  ) => {
     if (!profile) {
       toast({
         title: "غير مصرح",
         description: "يجب تسجيل الدخول أولاً",
         variant: "destructive",
       });
-      navigate('/auth');
+      navigate("/auth");
       return false;
     }
 
-    // Server-side permission validation - Enhanced security
+    const mapping = permissionMap[permission];
+
     try {
-      const { data: hasValidRole, error } = await supabase.rpc('validate_role_access', {
-        required_role: userRole
-      });
+      const hasPermission = await serverCheckPermission(
+        mapping.module,
+        mapping.action
+      );
 
-      if (error) {
-        console.error('Permission validation error:', error);
-        toast({
-          title: "خطأ في التحقق من الصلاحيات",
-          description: "حدث خطأ في التحقق من صلاحياتك",
-          variant: "destructive",
-        });
-        navigate(redirectPath);
-        return false;
-      }
-
-      if (!hasValidRole) {
+      if (!hasPermission) {
         toast({
           title: "غير مصرح",
-          description: "لا تملك الصلاحية للوصول لهذه الصفحة",
+          description: "لا تملك الصلاحية المطلوبة لهذا الإجراء",
           variant: "destructive",
         });
         navigate(redirectPath);
         return false;
       }
 
-      // Additional client-side permission check (redundant security layer)
       if (!checkPermission(permission)) {
         toast({
           title: "غير مصرح",
@@ -183,7 +100,7 @@ export const useRoleAccess = () => {
         return false;
       }
     } catch (error) {
-      console.error('Critical permission validation error:', error);
+      console.error("Permission validation error:", error);
       toast({
         title: "خطأ أمني",
         description: "فشل في التحقق من الصلاحيات",
@@ -192,17 +109,16 @@ export const useRoleAccess = () => {
       navigate(redirectPath);
       return false;
     }
-    
+
     return true;
   };
 
-  const isAdmin = userRole === 'admin';
-  const isAccountant = userRole === 'accountant';
-  const isEmployee = userRole === 'employee';
+  const isAdmin = userRole === "admin";
+  const isAccountant = userRole === "accountant";
+  const isEmployee = userRole === "employee";
 
   return {
     userRole,
-    permissions,
     checkPermission,
     requirePermission,
     isAdmin,
@@ -210,3 +126,4 @@ export const useRoleAccess = () => {
     isEmployee,
   };
 };
+
