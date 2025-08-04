@@ -379,13 +379,14 @@ export type Database = {
           created_at: string
           deal_id: string | null
           employee_id: string | null
+          has_custom_employee_percentages: boolean | null
           id: string
           notes: string | null
           office_share: number | null
           paid_at: string | null
           percentage: number
           remaining_for_employees: number | null
-            status: Database["public"]["Enums"]["commission_status"]
+          status: string
           total_commission: number | null
           updated_at: string
         }
@@ -395,13 +396,14 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           employee_id?: string | null
+          has_custom_employee_percentages?: boolean | null
           id?: string
           notes?: string | null
           office_share?: number | null
           paid_at?: string | null
           percentage: number
           remaining_for_employees?: number | null
-            status?: Database["public"]["Enums"]["commission_status"]
+          status?: string
           total_commission?: number | null
           updated_at?: string
         }
@@ -411,13 +413,14 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           employee_id?: string | null
+          has_custom_employee_percentages?: boolean | null
           id?: string
           notes?: string | null
           office_share?: number | null
           paid_at?: string | null
           percentage?: number
           remaining_for_employees?: number | null
-            status?: Database["public"]["Enums"]["commission_status"]
+          status?: string
           total_commission?: number | null
           updated_at?: string
         }
@@ -547,7 +550,7 @@ export type Database = {
           office_share: number
           paid_at: string | null
           property_title: string | null
-          status: Database["public"]["Enums"]["commission_status"]
+          status: string
           total_amount: number
           updated_at: string
         }
@@ -568,7 +571,7 @@ export type Database = {
           office_share?: number
           paid_at?: string | null
           property_title?: string | null
-          status?: Database["public"]["Enums"]["commission_status"]
+          status?: string
           total_amount?: number
           updated_at?: string
         }
@@ -589,7 +592,7 @@ export type Database = {
           office_share?: number
           paid_at?: string | null
           property_title?: string | null
-          status?: Database["public"]["Enums"]["commission_status"]
+          status?: string
           total_amount?: number
           updated_at?: string
         }
@@ -625,7 +628,7 @@ export type Database = {
           id: string
           notes: string | null
           property_id: string
-              status: Database["public"]["Enums"]["deal_status"]
+          status: string
           updated_at: string
         }
         Insert: {
@@ -642,7 +645,7 @@ export type Database = {
           id?: string
           notes?: string | null
           property_id: string
-              status?: Database["public"]["Enums"]["deal_status"]
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -659,7 +662,7 @@ export type Database = {
           id?: string
           notes?: string | null
           property_id?: string
-              status?: Database["public"]["Enums"]["deal_status"]
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -680,7 +683,7 @@ export type Database = {
         ]
       }
       debt_installments: {
-          Row: {
+        Row: {
           amount: number
           created_at: string
           debt_id: string
@@ -703,7 +706,7 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           paid_at?: string | null
-            status?: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -716,7 +719,7 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           paid_at?: string | null
-            status?: string
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -741,7 +744,7 @@ export type Database = {
           notification_type: string
           scheduled_for: string
           sent_at: string | null
-              status: string
+          status: string
           target_user_id: string | null
           title: string
         }
@@ -756,7 +759,7 @@ export type Database = {
           notification_type: string
           scheduled_for: string
           sent_at?: string | null
-              status?: string
+          status?: string
           target_user_id?: string | null
           title: string
         }
@@ -771,7 +774,7 @@ export type Database = {
           notification_type?: string
           scheduled_for?: string
           sent_at?: string | null
-              status?: string
+          status?: string
           target_user_id?: string | null
           title?: string
         }
@@ -792,7 +795,7 @@ export type Database = {
           },
         ]
       }
-        debts: {
+      debts: {
         Row: {
           amount: number
           auto_deduct_from_commission: boolean | null
@@ -814,7 +817,7 @@ export type Database = {
           payment_method: string | null
           priority_level: number | null
           recorded_by: string
-          status: Database["public"]["Enums"]["debt_status"]
+          status: string
           updated_at: string
         }
         Insert: {
@@ -838,7 +841,7 @@ export type Database = {
           payment_method?: string | null
           priority_level?: number | null
           recorded_by: string
-          status?: Database["public"]["Enums"]["debt_status"]
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -862,7 +865,7 @@ export type Database = {
           payment_method?: string | null
           priority_level?: number | null
           recorded_by?: string
-          status?: Database["public"]["Enums"]["debt_status"]
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -1194,7 +1197,7 @@ export type Database = {
           service_name: string
           service_type: string
           stage_order: number | null
-            status: string
+          status: string
           timeline_stages: Json | null
           updated_at: string
           workflow_stage: string | null
@@ -1224,7 +1227,7 @@ export type Database = {
           service_name: string
           service_type: string
           stage_order?: number | null
-            status?: string
+          status?: string
           timeline_stages?: Json | null
           updated_at?: string
           workflow_stage?: string | null
@@ -1254,7 +1257,7 @@ export type Database = {
           service_name?: string
           service_type?: string
           stage_order?: number | null
-            status?: string
+          status?: string
           timeline_stages?: Json | null
           updated_at?: string
           workflow_stage?: string | null
@@ -1448,7 +1451,7 @@ export type Database = {
           phone: string
           preferred_language: string
           preferred_location: string | null
-          property_type: Database["public"]["Enums"]["property_type"]
+          property_type: string
           purchase_purpose: string
           stage: string
           updated_at: string | null
@@ -1473,7 +1476,7 @@ export type Database = {
           phone: string
           preferred_language?: string
           preferred_location?: string | null
-          property_type: Database["public"]["Enums"]["property_type"]
+          property_type: string
           purchase_purpose: string
           stage?: string
           updated_at?: string | null
@@ -1498,7 +1501,7 @@ export type Database = {
           phone?: string
           preferred_language?: string
           preferred_location?: string | null
-          property_type?: Database["public"]["Enums"]["property_type"]
+          property_type?: string
           purchase_purpose?: string
           stage?: string
           updated_at?: string | null
@@ -1531,7 +1534,7 @@ export type Database = {
           metadata: Json | null
           notification_type: string
           sent_at: string | null
-            status: string
+          status: string
           title: string
         }
         Insert: {
@@ -1729,8 +1732,8 @@ export type Database = {
           listed_by: string
           location: string
           price: number
-          property_type: Database["public"]["Enums"]["property_type"]
-          status: Database["public"]["Enums"]["property_status"]
+          property_type: string
+          status: string
           title: string
           updated_at: string
         }
@@ -1747,8 +1750,8 @@ export type Database = {
           listed_by: string
           location: string
           price: number
-          property_type: Database["public"]["Enums"]["property_type"]
-          status?: Database["public"]["Enums"]["property_status"]
+          property_type: string
+          status?: string
           title: string
           updated_at?: string
         }
@@ -1765,8 +1768,8 @@ export type Database = {
           listed_by?: string
           location?: string
           price?: number
-          property_type?: Database["public"]["Enums"]["property_type"]
-          status?: Database["public"]["Enums"]["property_status"]
+          property_type?: string
+          status?: string
           title?: string
           updated_at?: string
         }
@@ -2039,8 +2042,8 @@ export type Database = {
           owner_phone: string
           property_address: string
           property_title: string
-          property_type: Database["public"]["Enums"]["property_type"]
-          status: Database["public"]["Enums"]["property_status"]
+          property_type: string
+          status: string
           unit_number: string | null
           updated_at: string
         }
@@ -2061,8 +2064,8 @@ export type Database = {
           owner_phone: string
           property_address: string
           property_title: string
-          property_type?: Database["public"]["Enums"]["property_type"]
-          status?: Database["public"]["Enums"]["property_status"]
+          property_type?: string
+          status?: string
           unit_number?: string | null
           updated_at?: string
         }
@@ -2083,8 +2086,8 @@ export type Database = {
           owner_phone?: string
           property_address?: string
           property_title?: string
-          property_type?: Database["public"]["Enums"]["property_type"]
-          status?: Database["public"]["Enums"]["property_status"]
+          property_type?: string
+          status?: string
           unit_number?: string | null
           updated_at?: string
         }
@@ -2901,7 +2904,7 @@ export type Database = {
           odometer_reading: number | null
           purchase_date: string | null
           purchase_price: number | null
-          status: Database["public"]["Enums"]["vehicle_status"]
+          status: string
           updated_at: string
           year: number
         }
@@ -2921,7 +2924,7 @@ export type Database = {
           odometer_reading?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
-          status?: Database["public"]["Enums"]["vehicle_status"]
+          status?: string
           updated_at?: string
           year: number
         }
@@ -2941,7 +2944,7 @@ export type Database = {
           odometer_reading?: number | null
           purchase_date?: string | null
           purchase_price?: number | null
-          status?: Database["public"]["Enums"]["vehicle_status"]
+          status?: string
           updated_at?: string
           year?: number
         }
@@ -2967,6 +2970,10 @@ export type Database = {
       calculate_and_apply_incentives: {
         Args: { target_id_param: string }
         Returns: Json
+      }
+      calculate_commission_distribution: {
+        Args: { p_commission_id: string }
+        Returns: undefined
       }
       calculate_deal_commission: {
         Args: { deal_id_param: string }
@@ -3291,12 +3298,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "accountant" | "employee"
-      property_type: "villa" | "apartment" | "land" | "commercial"
-      property_status: "available" | "rented" | "sold" | "reserved"
-      deal_status: "open" | "closed" | "cancelled"
-      commission_status: "pending" | "paid" | "cancelled"
-      debt_status: "pending" | "paid" | "overdue" | "cancelled"
-      vehicle_status: "active" | "maintenance" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
