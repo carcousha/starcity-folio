@@ -187,12 +187,12 @@ export default function Staff() {
       
       // Call the Edge Function to create the user and profile
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-employee-user`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-employee-user`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
             email: employee.email.trim(),
