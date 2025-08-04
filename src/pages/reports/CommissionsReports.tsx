@@ -50,7 +50,7 @@ export default function CommissionsReports() {
         `);
       
       if (selectedStatus !== 'all') {
-        query = query.eq('status', selectedStatus);
+        query = query.eq('status', selectedStatus as 'pending' | 'paid' | 'cancelled');
       }
       
       if (dateRange?.from) {

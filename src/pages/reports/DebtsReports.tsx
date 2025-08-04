@@ -39,7 +39,7 @@ export default function DebtsReports() {
       let query = supabase.from('debts').select('*');
       
       if (selectedStatus !== 'all') {
-        query = query.eq('status', selectedStatus);
+        query = query.eq('status', selectedStatus as 'pending' | 'paid' | 'cancelled' | 'overdue');
       }
       
       if (selectedType !== 'all') {

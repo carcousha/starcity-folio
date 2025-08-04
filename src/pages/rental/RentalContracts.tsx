@@ -69,7 +69,7 @@ const CreateContractForm = () => {
       const { data, error } = await supabase
         .from('rental_properties')
         .select('*')
-        .eq('status', 'متاح')
+        .eq('status', 'available')
         .order('property_title');
       
       if (error) throw error;
