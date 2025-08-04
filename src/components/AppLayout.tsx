@@ -1,11 +1,11 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,12 +18,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    if (!loading && !user && location.pathname !== "/auth") {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate, location.pathname]);
 
   const handleSignOut = async () => {
     try {
@@ -53,13 +47,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  // Don't show layout for auth page
-  if (location.pathname === "/auth") {
+  // Don't show layout for auth page or unauthenticated users
+  if (location.pathname === "/auth" || !user) {
     return <>{children}</>;
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

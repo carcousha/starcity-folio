@@ -90,15 +90,10 @@ const reportSections = [
 ];
 
 export default function ReportsIndex() {
-  const { checkPermission, requirePermission } = useRoleAccess();
-
-  // Check if user has permission to view reports
-  if (!requirePermission('canViewAllReports')) {
-    return null;
-  }
+  const { checkPermission } = useRoleAccess();
 
   // Filter sections based on user permissions
-  const availableSections = reportSections.filter(section => 
+  const availableSections = reportSections.filter(section =>
     checkPermission(section.requiredPermission)
   );
 

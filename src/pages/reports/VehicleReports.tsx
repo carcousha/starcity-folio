@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,13 +33,7 @@ interface VehicleReport {
 }
 
 export default function VehicleReports() {
-  const { requirePermission } = useRoleAccess();
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Check permissions
-  if (!requirePermission('canViewAllVehicles')) {
-    return null;
-  }
 
   const { data: vehicleReports, isLoading } = useQuery({
     queryKey: ['vehicle-reports'],
