@@ -204,12 +204,18 @@ export default function Staff() {
           }),
         }
       );
-
-      const data = await response.json();
+      const responseText = await response.text();
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (err) {
+        console.error("❌ Invalid JSON response:", err);
+        throw new Error("الاستجابة من الخادم ليست JSON صالح");
+      }
 
       if (!response.ok) {
         console.error("❌ Edge Function error:", data);
-        throw new Error(data.message || "فشل في إضافة الموظف عبر Edge Function");
+        throw new Error(data.message || responseText || "فشل في إضافة الموظف عبر Edge Function");
       }
 
       console.log("✅ Employee created via Edge Function:", data);
