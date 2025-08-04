@@ -205,11 +205,48 @@ export default function Staff() {
         }
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get("Content-Type") || "";
+      let data: any = null;
 
+      // Handle error responses before attempting to parse
       if (!response.ok) {
-        console.error("❌ Edge Function error:", data);
-        throw new Error(data.message || "فشل في إضافة الموظف عبر Edge Function");
+        if (contentType.includes("application/json")) {
+          try {
+            data = await response.json();
+          } catch {
+            data = await response.text();
+          }
+        } else {
+          data = await response.text();
+        }
+
+        const message =
+          (typeof data === "object" && data?.message) ||
+          (typeof data === "string" && data) ||
+          `فشل في إضافة الموظف عبر Edge Function (خطأ ${response.status})`;
+
+        throw new Error(message);
+      }
+
+      if (contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch {
+          const text = await response.text();
+          throw new Error(text || "استجابة غير صالحة من الخادم");
+        }
+      } else {
+        data = await response.text();
+        if (!data) {
+          throw new Error("الاستجابة فارغة من الخادم");
+        }
+        throw new Error(
+          typeof data === "string" ? data : "استجابة غير متوقعة من الخادم"
+        );
+      }
+
+      if (!data) {
+        throw new Error("الاستجابة فارغة من الخادم");
       }
 
       console.log("✅ Employee created via Edge Function:", data);
