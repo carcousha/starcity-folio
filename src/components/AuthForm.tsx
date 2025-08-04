@@ -51,13 +51,19 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     
     return {
-      isValid: minLength && hasUpperCase && hasLowerCase && hasNumbers,
+      isValid:
+        minLength &&
+        hasUpperCase &&
+        hasLowerCase &&
+        hasNumbers &&
+        hasSpecialChar,
       suggestions: [
         !minLength && "8 أحرف على الأقل",
         !hasUpperCase && "حرف كبير واحد على الأقل",
-        !hasLowerCase && "حرف صغير واحد على الأقل", 
-        !hasNumbers && "رقم واحد على الأقل"
-      ].filter(Boolean)
+        !hasLowerCase && "حرف صغير واحد على الأقل",
+        !hasNumbers && "رقم واحد على الأقل",
+        !hasSpecialChar && "رمز خاص واحد على الأقل",
+      ].filter(Boolean),
     };
   };
 
