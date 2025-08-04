@@ -90,6 +90,8 @@ const RentalProperties = () => {
     try {
       const propertyData = {
         ...formData,
+        property_type: formData.property_type as 'villa' | 'apartment' | 'land' | 'commercial',
+        status: formData.status as 'available' | 'rented' | 'sold' | 'reserved',
         area: formData.area ? parseFloat(formData.area) : null,
         bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
         bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
@@ -252,9 +254,7 @@ const RentalProperties = () => {
                     <SelectContent>
                       <SelectItem value="apartment">شقة</SelectItem>
                       <SelectItem value="villa">فيلا</SelectItem>
-                      <SelectItem value="office">مكتب</SelectItem>
-                      <SelectItem value="shop">محل تجاري</SelectItem>
-                      <SelectItem value="warehouse">مستودع</SelectItem>
+                      <SelectItem value="commercial">تجاري</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -372,7 +372,8 @@ const RentalProperties = () => {
                   <SelectContent>
                     <SelectItem value="available">متاح</SelectItem>
                     <SelectItem value="rented">مؤجر</SelectItem>
-                    <SelectItem value="maintenance">صيانة</SelectItem>
+                    <SelectItem value="sold">مبيع</SelectItem>
+                    <SelectItem value="reserved">محجوز</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

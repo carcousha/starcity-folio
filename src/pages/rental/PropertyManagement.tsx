@@ -62,23 +62,20 @@ const AddPropertyForm = () => {
       if (!user) throw new Error('المستخدم غير مسجل');
 
       const { data: property, error } = await supabase
-        .from('rental_properties')
+        .from('properties')
         .insert({
-          property_title: data.title,
-          property_address: data.location,
-          unit_number: "1", // Default unit number
-          property_type: data.property_type,
+          title: data.title,
+          location: data.location,
+          property_type: data.property_type as 'villa' | 'apartment' | 'land' | 'commercial',
           area: data.area,
           bedrooms: data.bedrooms,
           bathrooms: data.bathrooms,
           features: data.features,
-          owner_name: "مالك العقار", // Default owner name
-          owner_phone: "000000000", // Default owner phone
-          notes: data.description,
-          status: data.status,
-          agreed_rent_amount: data.agreed_rent_amount,
-          commission_percentage: data.commission_percentage,
-          created_by: user.id
+          description: data.description,
+          status: data.status as 'available' | 'rented' | 'sold' | 'reserved',
+          price: data.agreed_rent_amount,
+          created_by: user.id,
+          listed_by: user.id
         })
         .select()
         .single();
@@ -103,12 +100,12 @@ const AddPropertyForm = () => {
         bathrooms: 0,
         features: [],
         description: '',
-        status: 'متاح',
+    status: 'available',
         agreed_rent_amount: 0,
         commission_percentage: 2.5
       });
       
-      queryClient.invalidateQueries({ queryKey: ['rental-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
     },
     onError: (error) => {
       toast({
@@ -208,12 +205,10 @@ const AddPropertyForm = () => {
                     <SelectValue placeholder="اختر نوع العقار" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="فيلا">فيلا</SelectItem>
-                    <SelectItem value="شقة">شقة</SelectItem>
-                    <SelectItem value="محل تجاري">محل تجاري</SelectItem>
-                    <SelectItem value="مكتب">مكتب</SelectItem>
-                    <SelectItem value="مستودع">مستودع</SelectItem>
-                    <SelectItem value="أرض">أرض</SelectItem>
+                    <SelectItem value="villa">فيلا</SelectItem>
+                    <SelectItem value="apartment">شقة</SelectItem>
+                    <SelectItem value="commercial">تجاري</SelectItem>
+                    <SelectItem value="land">أرض</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -362,10 +357,10 @@ const AddPropertyForm = () => {
 
 const PropertiesList = () => {
   const { data: properties = [], isLoading } = useQuery({
-    queryKey: ['rental-properties-all'],
+    queryKey: ['properties-all'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('rental_properties')
+        .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
 

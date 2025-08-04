@@ -46,7 +46,6 @@ const PROPERTY_TYPES = [
   { value: 'villa', label: 'فيلا' },
   { value: 'apartment', label: 'شقة' },
   { value: 'land', label: 'أرض' },
-  { value: 'townhouse', label: 'تاون هاوس' },
   { value: 'commercial', label: 'تجاري' },
 ];
 
@@ -110,6 +109,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
     mutationFn: async (data: LeadFormData) => {
       const formData = {
         ...data,
+        property_type: data.property_type as 'villa' | 'apartment' | 'land' | 'commercial',
         budget_min: data.budget_min ? Number(data.budget_min) : null,
         budget_max: data.budget_max ? Number(data.budget_max) : null,
         assigned_to: data.assigned_to === "unassigned" ? null : data.assigned_to,
