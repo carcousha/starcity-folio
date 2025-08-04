@@ -63,7 +63,14 @@ const App = () => (
         <BrowserRouter>
           <AppLayout>
             <Routes>
-              <Route path="/" element={<DashboardHome />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <DashboardHome />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/auth" element={<Auth />} />
               
               {/* CRM Routes - Admin and some for employees */}
@@ -254,7 +261,14 @@ const App = () => (
               } />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route
+                path="*"
+                element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <NotFound />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </AppLayout>
         </BrowserRouter>
