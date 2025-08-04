@@ -6,7 +6,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut } from "lucide-react";
-import NotificationCenter from '@/components/notifications/NotificationCenter';
+import NotificationCenter from "@/components/notifications/NotificationCenter";
 import { useToast } from "@/hooks/use-toast";
 
 interface AppLayoutProps {
@@ -14,7 +14,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { user, profile, signOut, loading } = useAuth();
+  const { profile, signOut, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,8 +47,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  // Don't show layout for auth page or unauthenticated users
-  if (location.pathname === "/auth" || !user) {
+  // Don't show layout for auth page
+  if (location.pathname === "/auth") {
     return <>{children}</>;
   }
 
