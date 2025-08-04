@@ -41,6 +41,9 @@ export const useRoleAccess = () => {
   const userRole = profile?.role as UserRole;
 
   const checkPermission = (permission: PermissionKey): boolean => {
+    // إعطاء صلاحية كاملة للمديرين
+    if (userRole === "admin") return true;
+    
     const mapping = permissionMap[permission];
     const perm = permissions.find(
       (p) =>
@@ -71,6 +74,9 @@ export const useRoleAccess = () => {
       navigate("/auth");
       return false;
     }
+
+    // إعطاء صلاحية كاملة للمديرين
+    if (userRole === "admin") return true;
 
     const mapping = permissionMap[permission];
 
