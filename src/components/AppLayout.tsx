@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut } from "lucide-react";
 import NotificationCenter from "@/components/notifications/NotificationCenter";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 
 interface AppLayoutProps {
@@ -84,6 +85,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             
             <div className="flex items-center space-x-2 space-x-reverse">
+              <ThemeToggle />
               <NotificationCenter />
               
               <Button
