@@ -131,7 +131,7 @@ export const StarcityHomeMockup = () => {
         .order('created_at', { ascending: true });
       
       // تجميع البيانات بالشهر
-      const monthlyData = {};
+      const monthlyData: Record<number, number> = {};
       data?.forEach(revenue => {
         const month = new Date(revenue.created_at).getMonth();
         monthlyData[month] = (monthlyData[month] || 0) + revenue.amount;
@@ -151,7 +151,7 @@ export const StarcityHomeMockup = () => {
       unit: "عميل",
       icon: Users,
       change: "+12%",
-      changeType: "positive",
+      changeType: "positive" as const,
       color: "bg-blue-50 text-blue-600 border-blue-200"
     },
     {
@@ -160,7 +160,7 @@ export const StarcityHomeMockup = () => {
       unit: "",
       icon: TrendingUp,
       change: "+8.5%",
-      changeType: "positive",
+      changeType: "positive" as const,
       color: "bg-green-50 text-green-600 border-green-200"
     },
     {
@@ -169,7 +169,7 @@ export const StarcityHomeMockup = () => {
       unit: "",
       icon: DollarSign,
       change: summary && (summary.totalRevenues - summary.totalExpenses) > 0 ? "+15%" : "0%",
-      changeType: summary && (summary.totalRevenues - summary.totalExpenses) > 0 ? "positive" : "neutral",
+      changeType: summary && (summary.totalRevenues - summary.totalExpenses) > 0 ? "positive" as const : "neutral" as const,
       color: "bg-purple-50 text-purple-600 border-purple-200"
     },
     {
@@ -178,7 +178,7 @@ export const StarcityHomeMockup = () => {
       unit: "",
       icon: Target,
       change: "+22%",
-      changeType: "positive",
+      changeType: "positive" as const,
       color: "bg-orange-50 text-orange-600 border-orange-200"
     },
     {
@@ -187,7 +187,7 @@ export const StarcityHomeMockup = () => {
       unit: "عقار",
       icon: Building2,
       change: "+5",
-      changeType: "positive",
+      changeType: "positive" as const,
       color: "bg-cyan-50 text-cyan-600 border-cyan-200"
     },
     {
@@ -196,12 +196,10 @@ export const StarcityHomeMockup = () => {
       unit: "عقد",
       icon: FileText,
       change: "نشط",
-      changeType: "positive",
+      changeType: "positive" as const,
       color: "bg-indigo-50 text-indigo-600 border-indigo-200"
     }
   ];
-
-  // إزالة البيانات الوهمية - لن نستخدمها بعد الآن
 
   // روابط سريعة
   const quickActions = [
@@ -575,7 +573,6 @@ export const StarcityHomeMockup = () => {
           </CardContent>
         </Card>
       </div>
-
     </div>
   );
 };
