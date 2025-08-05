@@ -66,6 +66,7 @@ export const useRoleAccess = () => {
     redirectPath = "/"
   ) => {
     if (!profile) {
+      console.log('No profile found, redirecting to auth');
       toast({
         title: "غير مصرح",
         description: "يجب تسجيل الدخول أولاً",
@@ -76,7 +77,10 @@ export const useRoleAccess = () => {
     }
 
     // إعطاء صلاحية كاملة للمديرين
-    if (userRole === "admin") return true;
+    if (userRole === "admin") {
+      console.log('Admin user, access granted');
+      return true;
+    }
 
     const mapping = permissionMap[permission];
 
@@ -87,6 +91,7 @@ export const useRoleAccess = () => {
       );
 
       if (!hasPermission) {
+        console.log('Server permission check failed');
         toast({
           title: "غير مصرح",
           description: "لا تملك الصلاحية المطلوبة لهذا الإجراء",
@@ -96,15 +101,7 @@ export const useRoleAccess = () => {
         return false;
       }
 
-      if (!checkPermission(permission)) {
-        toast({
-          title: "غير مصرح",
-          description: "لا تملك الصلاحية المطلوبة لهذا الإجراء",
-          variant: "destructive",
-        });
-        navigate(redirectPath);
-        return false;
-      }
+      return true;
     } catch (error) {
       console.error("Permission validation error:", error);
       toast({
@@ -115,8 +112,6 @@ export const useRoleAccess = () => {
       navigate(redirectPath);
       return false;
     }
-
-    return true;
   };
 
   const isAdmin = userRole === "admin";
