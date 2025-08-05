@@ -15,12 +15,15 @@ import {
   Target, 
   AlertTriangle,
   CheckCircle,
-  Settings
+  Settings,
+  TableIcon,
+  BarChart3
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { CommissionDistributionForm } from "./CommissionDistributionForm";
+import CommissionsTable from "./CommissionsTable";
 
 interface Employee {
   id: string;
@@ -189,291 +192,312 @@ const CommissionManagementNew = () => {
         </p>
       </div>
 
-      {/* 1. Commission Form - إضافة عمولة جديدة */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            إضافة عمولة جديدة
-          </CardTitle>
-          <CardDescription>
-            أدخل تفاصيل العمولة وسيتم تطبيق النظام الجديد 50/50 تلقائياً
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="clientName">اسم العميل</Label>
-                <Input
-                  id="clientName"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="أدخل اسم العميل"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="transactionType">نوع المعاملة</Label>
-                <Select value={transactionType} onValueChange={setTransactionType} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر نوع المعاملة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="بيع">بيع</SelectItem>
-                    <SelectItem value="إيجار">إيجار</SelectItem>
-                    <SelectItem value="وساطة خارجية">وساطة خارجية</SelectItem>
-                    <SelectItem value="أخرى">أخرى</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="propertyType">نوع الوحدة</Label>
-                <Select value={propertyType} onValueChange={setPropertyType} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر نوع الوحدة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="أرض">أرض</SelectItem>
-                    <SelectItem value="فيلا">فيلا</SelectItem>
-                    <SelectItem value="شقة">شقة</SelectItem>
-                    <SelectItem value="محل تجاري">محل تجاري</SelectItem>
-                    <SelectItem value="أخرى">أخرى</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="amount">إجمالي العمولة (د.إ)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="أدخل إجمالي العمولة"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </div>
+      {/* التبويبات الرئيسية */}
+      <Tabs defaultValue="add" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="add" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            إضافة عمولة
+          </TabsTrigger>
+          <TabsTrigger value="view" className="flex items-center gap-2">
+            <TableIcon className="h-4 w-4" />
+            عرض العمولات
+          </TabsTrigger>
+        </TabsList>
 
-            {/* Employee Selection */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-medium">الموظفين المشاركين</Label>
-                {selectedEmployees.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant={distributionMode === 'equal' ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setDistributionMode('equal')}
-                    >
-                      توزيع متساوي
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={distributionMode === 'custom' ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setDistributionMode('custom')}
-                    >
-                      نسب مخصصة
-                    </Button>
-                  </div>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto border rounded-lg p-4">
-                {employees.map((employee) => {
-                  const isSelected = selectedEmployees.some(emp => emp.employee_id === employee.employee_id);
-                  return (
-                    <label 
-                      key={employee.employee_id} 
-                      className={`flex items-center space-x-3 space-x-reverse p-3 rounded-lg border cursor-pointer transition-colors ${
-                        isSelected ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleEmployeeSelection(employee)}
-                        className="rounded border-gray-300"
-                      />
-                      <span className="text-sm font-medium">
-                        {employee.first_name} {employee.last_name}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              
-              {selectedEmployees.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  لم يتم اختيار موظفين - ستذهب العمولة كاملة للمكتب
-                </p>
-              )}
-            </div>
-
-
-            {/* Quick Summary */}
-            {amount && (
-              <Card className="bg-gray-50">
-                <CardContent className="p-4">
-                  <h4 className="font-medium mb-3">ملخص سريع</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-blue-600" />
-                      <span>نصيب المكتب: {(parseFloat(amount || "0") * 0.5).toFixed(2)} د.إ</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-green-600" />
-                      <span>نصيب الموظفين: {(parseFloat(amount || "0") * 0.5).toFixed(2)} د.إ</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calculator className="h-4 w-4 text-purple-600" />
-                      <span>إجمالي العمولة: {parseFloat(amount || "0").toFixed(2)} د.إ</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Submit Button */}
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={createCommissionMutation.isPending}
-              size="lg"
-            >
-              {createCommissionMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  جارٍ إنشاء العمولة...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  إنشاء العمولة
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* 2. Real-time Visualization - محاكاة التوزيع */}
-      {amount && selectedEmployees.length > 0 && (
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <Target className="h-5 w-5" />
-              محاكاة توزيع العمولة
-            </CardTitle>
-            <CardDescription className="text-blue-600">
-              معاينة توزيع العمولة في الوقت الحقيقي قبل الحفظ
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CommissionDistributionForm
-              totalCommission={parseFloat(amount || "0")}
-              selectedEmployees={selectedEmployees}
-              onDistributionChange={handleDistributionChange}
-              showVisualization={true}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 3. Custom Percentages Section - تخصيص النسب */}
-      {amount && selectedEmployees.length > 1 && distributionMode === 'custom' && (
-        <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <Settings className="h-5 w-5" />
-              تخصيص النسب للموظفين
-            </CardTitle>
-            <CardDescription className="text-orange-600">
-              قم بتحديد النسبة المطلوبة لكل موظف من إجمالي نصيب الموظفين (50%)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {selectedEmployees.map((employee) => (
-                <div key={employee.employee_id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <span className="text-orange-800 font-medium">
-                        {employee.first_name.charAt(0)}{employee.last_name.charAt(0)}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {employee.first_name} {employee.last_name}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        المبلغ: {((customPercentages[employee.employee_id] || 0) * parseFloat(amount || "0") * 0.5 / 100).toFixed(2)} د.إ
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
+        {/* تبويب إضافة العمولة */}
+        <TabsContent value="add" className="space-y-6">
+          {/* 1. Commission Form - إضافة عمولة جديدة */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                إضافة عمولة جديدة
+              </CardTitle>
+              <CardDescription>
+                أدخل تفاصيل العمولة وسيتم تطبيق النظام الجديد 50/50 تلقائياً
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clientName">اسم العميل</Label>
                     <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={customPercentages[employee.employee_id] || ""}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        setCustomPercentages(prev => ({
-                          ...prev,
-                          [employee.employee_id]: value
-                        }));
-                      }}
-                      placeholder="0"
-                      className="w-20 text-center"
+                      id="clientName"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      placeholder="أدخل اسم العميل"
+                      required
                     />
-                    <span className="text-sm text-gray-500">%</span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="transactionType">نوع المعاملة</Label>
+                    <Select value={transactionType} onValueChange={setTransactionType} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر نوع المعاملة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="بيع">بيع</SelectItem>
+                        <SelectItem value="إيجار">إيجار</SelectItem>
+                        <SelectItem value="وساطة خارجية">وساطة خارجية</SelectItem>
+                        <SelectItem value="أخرى">أخرى</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="propertyType">نوع الوحدة</Label>
+                    <Select value={propertyType} onValueChange={setPropertyType} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر نوع الوحدة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="أرض">أرض</SelectItem>
+                        <SelectItem value="فيلا">فيلا</SelectItem>
+                        <SelectItem value="شقة">شقة</SelectItem>
+                        <SelectItem value="محل تجاري">محل تجاري</SelectItem>
+                        <SelectItem value="أخرى">أخرى</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">إجمالي العمولة (د.إ)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="أدخل إجمالي العمولة"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
                   </div>
                 </div>
-              ))}
-              
-              {/* التحقق من مجموع النسب */}
-              <div className="mt-4 p-4 rounded-lg bg-gray-50">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">إجمالي النسب المخصصة:</span>
-                  <span className={`font-bold ${
-                    Object.values(customPercentages).reduce((sum, p) => sum + p, 0) > 100 
-                      ? 'text-red-600' 
-                      : 'text-green-600'
-                  }`}>
-                    {Object.values(customPercentages).reduce((sum, p) => sum + p, 0).toFixed(1)}%
-                  </span>
+
+                {/* Employee Selection */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">الموظفين المشاركين</Label>
+                    {selectedEmployees.length > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant={distributionMode === 'equal' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setDistributionMode('equal')}
+                        >
+                          توزيع متساوي
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={distributionMode === 'custom' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setDistributionMode('custom')}
+                        >
+                          نسب مخصصة
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto border rounded-lg p-4">
+                    {employees.map((employee) => {
+                      const isSelected = selectedEmployees.some(emp => emp.employee_id === employee.employee_id);
+                      return (
+                        <label 
+                          key={employee.employee_id} 
+                          className={`flex items-center space-x-3 space-x-reverse p-3 rounded-lg border cursor-pointer transition-colors ${
+                            isSelected ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleEmployeeSelection(employee)}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium">
+                            {employee.first_name} {employee.last_name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  
+                  {selectedEmployees.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      لم يتم اختيار موظفين - ستذهب العمولة كاملة للمكتب
+                    </p>
+                  )}
                 </div>
-                
-                {Object.values(customPercentages).reduce((sum, p) => sum + p, 0) > 100 && (
-                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-800 text-sm">
-                      ⚠️ تحذير: إجمالي النسب يتجاوز 100%. يرجى تعديل النسب.
-                    </p>
-                  </div>
+
+                {/* Quick Summary */}
+                {amount && (
+                  <Card className="bg-gray-50">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-3">ملخص سريع</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-blue-600" />
+                          <span>نصيب المكتب: {(parseFloat(amount || "0") * 0.5).toFixed(2)} د.إ</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-green-600" />
+                          <span>نصيب الموظفين: {(parseFloat(amount || "0") * 0.5).toFixed(2)} د.إ</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calculator className="h-4 w-4 text-purple-600" />
+                          <span>إجمالي العمولة: {parseFloat(amount || "0").toFixed(2)} د.إ</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-                
-                {Object.values(customPercentages).reduce((sum, p) => sum + p, 0) < 100 && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-blue-800 text-sm">
-                      ℹ️ النسبة المتبقية ({(100 - Object.values(customPercentages).reduce((sum, p) => sum + p, 0)).toFixed(1)}%) ستعود للمكتب
-                    </p>
+
+                {/* Submit Button */}
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={createCommissionMutation.isPending}
+                  size="lg"
+                >
+                  {createCommissionMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      جارٍ إنشاء العمولة...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      إنشاء العمولة
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* 2. Real-time Visualization - محاكاة التوزيع */}
+          {amount && selectedEmployees.length > 0 && (
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-blue-800">
+                  <Target className="h-5 w-5" />
+                  محاكاة توزيع العمولة
+                </CardTitle>
+                <CardDescription className="text-blue-600">
+                  معاينة توزيع العمولة في الوقت الحقيقي قبل الحفظ
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CommissionDistributionForm
+                  totalCommission={parseFloat(amount || "0")}
+                  selectedEmployees={selectedEmployees}
+                  onDistributionChange={handleDistributionChange}
+                  showVisualization={true}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 3. Custom Percentages Section - تخصيص النسب */}
+          {amount && selectedEmployees.length > 1 && distributionMode === 'custom' && (
+            <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-800">
+                  <Settings className="h-5 w-5" />
+                  تخصيص النسب للموظفين
+                </CardTitle>
+                <CardDescription className="text-orange-600">
+                  قم بتحديد النسبة المطلوبة لكل موظف من إجمالي نصيب الموظفين (50%)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {selectedEmployees.map((employee) => (
+                    <div key={employee.employee_id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                          <span className="text-orange-800 font-medium">
+                            {employee.first_name.charAt(0)}{employee.last_name.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {employee.first_name} {employee.last_name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            المبلغ: {((customPercentages[employee.employee_id] || 0) * parseFloat(amount || "0") * 0.5 / 100).toFixed(2)} د.إ
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={customPercentages[employee.employee_id] || ""}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 0;
+                            setCustomPercentages(prev => ({
+                              ...prev,
+                              [employee.employee_id]: value
+                            }));
+                          }}
+                          placeholder="0"
+                          className="w-20 text-center"
+                        />
+                        <span className="text-sm text-gray-500">%</span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* التحقق من مجموع النسب */}
+                  <div className="mt-4 p-4 rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">إجمالي النسب المخصصة:</span>
+                      <span className={`font-bold ${
+                        Object.values(customPercentages).reduce((sum, p) => sum + p, 0) > 100 
+                          ? 'text-red-600' 
+                          : 'text-green-600'
+                      }`}>
+                        {Object.values(customPercentages).reduce((sum, p) => sum + p, 0).toFixed(1)}%
+                      </span>
+                    </div>
+                    
+                    {Object.values(customPercentages).reduce((sum, p) => sum + p, 0) > 100 && (
+                      <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-800 text-sm">
+                          ⚠️ تحذير: إجمالي النسب يتجاوز 100%. يرجى تعديل النسب.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {Object.values(customPercentages).reduce((sum, p) => sum + p, 0) < 100 && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-blue-800 text-sm">
+                          ℹ️ النسبة المتبقية ({(100 - Object.values(customPercentages).reduce((sum, p) => sum + p, 0)).toFixed(1)}%) ستعود للمكتب
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* تبويب عرض العمولات */}
+        <TabsContent value="view" className="space-y-6">
+          <CommissionsTable />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
