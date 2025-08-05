@@ -8,11 +8,18 @@ const corsHeaders = {
 
 interface CreateEmployeeRequest {
   email: string;
-  password: string;
+  password?: string; // كلمة المرور اختيارية
   first_name: string;
   last_name: string;
   phone?: string | null;
   role: string;
+}
+
+// وظيفة لإنشاء كلمة مرور بسيطة
+function generateSimplePassword(): string {
+  const prefix = "Star";
+  const randomNumber = Math.floor(Math.random() * 9999) + 1000; // رقم من 1000 إلى 9999
+  return `${prefix}${randomNumber}`;
 }
 
 serve(async (req: Request) => {
@@ -61,12 +68,14 @@ serve(async (req: Request) => {
       role: body.role
     });
 
-    const { email, password, first_name, last_name, phone, role } = body;
+    const { email, first_name, last_name, phone, role } = body;
+    
+    // إنشاء كلمة مرور بسيطة أو استخدام المرسلة
+    const finalPassword = body.password || generateSimplePassword();
 
-    if (!email || !password || !first_name || !last_name || !role) {
+    if (!email || !first_name || !last_name || !role) {
       console.error("Missing required fields:", {
         email: !!email,
-        password: !!password,
         first_name: !!first_name,
         last_name: !!last_name,
         role: !!role
@@ -88,7 +97,7 @@ serve(async (req: Request) => {
       // تحديث كلمة المرور للمستخدم الموجود
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         existingUser.id,
-        { password }
+        { password: finalPassword }
       );
       
       if (updateError) {
@@ -101,7 +110,7 @@ serve(async (req: Request) => {
       console.log(`Creating new user with email: ${email}`);
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password,
+        password: finalPassword,
         email_confirm: true,
       });
 
@@ -185,7 +194,7 @@ serve(async (req: Request) => {
       JSON.stringify({ 
         success: true,
         profile, 
-        temporary_password: password 
+        temporary_password: finalPassword 
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" }, 
