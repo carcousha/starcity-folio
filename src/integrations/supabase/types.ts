@@ -3026,6 +3026,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      can_manage_vehicle_expenses: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_module_permission: {
         Args: {
           module_name_param: string
