@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleAccess, PermissionKey } from '@/hooks/useRoleAccess';
@@ -14,24 +14,11 @@ export const ProtectedRoute = ({
   requiredPermission, 
   fallback 
 }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
-  const { checkPermission, requirePermission } = useRoleAccess();
+  const { user, profile, loading } = useAuth();
+  const { checkPermission } = useRoleAccess();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-      return;
-    }
-    
-    if (user) {
-      // Use server-side validation for critical security check
-      requirePermission(requiredPermission).catch(() => {
-        // Error handling is done inside requirePermission
-      });
-    }
-  }, [user, loading, requiredPermission, requirePermission, navigate]);
-
+  // إذا كان التحميل جاري، أظهر loading
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -40,10 +27,22 @@ export const ProtectedRoute = ({
     );
   }
 
+  // إذا لم يكن هناك مستخدم، توجه لصفحة الدخول
   if (!user) {
-    return null; // سيتم التوجيه لصفحة الدخول
+    navigate('/auth');
+    return null;
   }
 
+  // إذا لم يتم تحميل profile بعد، أظهر loading
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">جاري تحميل البيانات...</div>
+      </div>
+    );
+  }
+
+  // تحقق من الصلاحية بعد تحميل كل شيء
   if (!checkPermission(requiredPermission)) {
     return fallback || (
       <div className="min-h-screen flex items-center justify-center">
