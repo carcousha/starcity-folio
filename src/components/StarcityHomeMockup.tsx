@@ -240,7 +240,7 @@ export const StarcityHomeMockup = () => {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                 <img 
-                  src={starcityLogo} 
+                  src="/lovable-uploads/af7a2144-3a4d-4d94-9563-fc366cea9b8c.png" 
                   alt="ستار سيتي العقارية" 
                   className="w-full h-full object-contain"
                 />
