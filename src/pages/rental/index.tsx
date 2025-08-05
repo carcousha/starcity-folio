@@ -39,6 +39,14 @@ const RentalManagement = () => {
       stats: { total: 0, active: 0 }
     },
     {
+      title: "العقود المنشأة",
+      description: "عرض وإدارة العقود المولدة والمحفوظة",
+      icon: FileText,
+      link: "/rental/generated-contracts",
+      color: "bg-indigo-500",
+      stats: { total: 0, downloaded: 0 }
+    },
+    {
       title: "جدول الأقساط",
       description: "متابعة أقساط الإيجار والمدفوعات",
       icon: CreditCard,
