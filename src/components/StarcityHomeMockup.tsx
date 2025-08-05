@@ -9,6 +9,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import starcityLogo from "@/assets/starcity-logo.png";
 import { 
   Building2, 
   Users, 
@@ -237,8 +238,12 @@ export const StarcityHomeMockup = () => {
           {/* الشعار والعنوان */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                <Building2 className="w-7 h-7 text-white" />
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                <img 
+                  src={starcityLogo} 
+                  alt="ستار سيتي العقارية" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">ستار سيتي العقارية</h1>
