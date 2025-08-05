@@ -89,6 +89,7 @@ export default function DailyJournal() {
 
   const [formData, setFormData] = useState({
     type: 'revenue' as 'revenue' | 'expense',
+    expenseType: 'company' as 'personal' | 'company', // نوع المصروف
     subType: "",
     title: "",
     description: "",
@@ -310,10 +311,21 @@ export default function DailyJournal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.totalAmount || !formData.subType || !formData.employeeId) {
+    // التحقق من الحقول الأساسية
+    if (!formData.title || !formData.totalAmount || !formData.subType) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // التحقق من الموظف للمصروفات الشخصية
+    if (formData.type === 'expense' && formData.expenseType === 'personal' && !formData.employeeId) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار موظف للمصروف الشخصي",
         variant: "destructive",
       });
       return;
@@ -344,23 +356,33 @@ export default function DailyJournal() {
         });
 
       } else {
-        // حفظ في جدول المصروفات
+        // حفظ في جدول المصروفات مع دعم النوع الجديد
+        const expenseData: any = {
+          title: formData.title,
+          description: formData.description,
+          category: formData.subType,
+          amount: totalAmount,
+          expense_date: filters.startDate,
+          expense_type: formData.expenseType,
+        };
+
+        // إضافة recorded_by فقط للمصروفات الشخصية
+        if (formData.expenseType === 'personal') {
+          expenseData.recorded_by = formData.employeeId;
+        } else if (formData.employeeId) {
+          // إضافة recorded_by اختياري لمصروفات الشركة
+          expenseData.recorded_by = formData.employeeId;
+        }
+
         const { error: expenseError } = await supabase
           .from('expenses')
-          .insert({
-            title: formData.title,
-            description: formData.description,
-            category: formData.subType,
-            amount: totalAmount,
-            expense_date: filters.startDate,
-            recorded_by: user?.id
-          });
+          .insert(expenseData);
 
         if (expenseError) throw expenseError;
 
         toast({
           title: "تم بنجاح",
-          description: "تم إضافة قيد المصروف بنجاح",
+          description: `تم إضافة ${formData.expenseType === 'personal' ? 'المصروف الشخصي' : 'مصروف الشركة'} بنجاح`,
         });
       }
 
@@ -370,6 +392,7 @@ export default function DailyJournal() {
       setIsDialogOpen(false);
       setFormData({
         type: 'revenue',
+        expenseType: 'company',
         subType: "",
         title: "",
         description: "",
@@ -541,6 +564,22 @@ export default function DailyJournal() {
                       />
                     </div>
 
+                    {/* نوع المصروف - يظهر فقط عند اختيار مصروف */}
+                    {formData.type === 'expense' && (
+                      <div>
+                        <Label htmlFor="expenseType">🏢 نوع المصروف</Label>
+                        <Select value={formData.expenseType} onValueChange={(value: 'personal' | 'company') => setFormData(prev => ({ ...prev, expenseType: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر نوع المصروف" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="company">🏢 مصروف الشركة</SelectItem>
+                            <SelectItem value="personal">👤 مصروف شخصي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
                      <div className="grid grid-cols-2 gap-4">
                        <div>
                          <Label htmlFor="subType">فئة العملية</Label>
@@ -558,12 +597,20 @@ export default function DailyJournal() {
                          </Select>
                        </div>
                        <div>
-                         <Label htmlFor="employee">الموظف/الوسيط المرتبط</Label>
-                         <Select value={formData.employeeId} onValueChange={(value) => setFormData(prev => ({ ...prev, employeeId: value }))}>
+                         <Label htmlFor="employee">
+                           {formData.type === 'expense' && formData.expenseType === 'personal' 
+                             ? '👤 الموظف (مطلوب)' 
+                             : '👥 الموظف/الوسيط المرتبط (اختياري)'}
+                         </Label>
+                         <Select 
+                           value={formData.employeeId} 
+                           onValueChange={(value) => setFormData(prev => ({ ...prev, employeeId: value }))}
+                         >
                            <SelectTrigger>
                              <SelectValue placeholder="اختر الموظف" />
                            </SelectTrigger>
                            <SelectContent>
+                             <SelectItem value="">بدون موظف محدد</SelectItem>
                              {employees.map((employee) => (
                                <SelectItem key={employee.id} value={employee.id}>
                                  {employee.name}
