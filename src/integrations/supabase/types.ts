@@ -3185,6 +3185,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_profile_owner: {
+        Args: { profile_user_id: string }
+        Returns: boolean
+      }
       link_service_to_accounting: {
         Args: {
           service_id_param: string
