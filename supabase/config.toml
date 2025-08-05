@@ -1,4 +1,7 @@
 project_id = "hrjyjemacsjoouobcgri"
 
+[functions.create-employee-user]
+verify_jwt = true
+
 [functions.generate-advanced-contract]
 verify_jwt = true
