@@ -61,7 +61,8 @@ import {
   TrendingUp, 
   FileText, 
   Activity,
-  Camera
+  Camera,
+  Key
 } from 'lucide-react';
 
 interface Staff {
@@ -298,6 +299,46 @@ export default function Staff() {
     return password;
   };
 
+  // دالة إعادة تعيين كلمة المرور
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (employee: Staff) => {
+      const { data, error } = await supabase.functions.invoke('create-employee-user', {
+        body: {
+          email: employee.email,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          phone: employee.phone || null,
+          role: employee.role,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || "فشل في إعادة تعيين كلمة المرور");
+      }
+
+      return data.temporary_password;
+    },
+    onSuccess: (newPassword) => {
+      setGeneratedPassword(newPassword);
+      setPasswordDialogOpen(true);
+      toast({
+        title: "تم إعادة تعيين كلمة المرور",
+        description: "تم إنشاء كلمة مرور جديدة بنجاح",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل في إعادة تعيين كلمة المرور",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const resetEmployeePassword = (employee: Staff) => {
+    resetPasswordMutation.mutate(employee);
+  };
+
   const handleAddEmployee = () => {
     // التحقق من الحقول المطلوبة مع التركيز على البريد الإلكتروني
     if (!newEmployee.firstName.trim()) {
@@ -504,33 +545,44 @@ export default function Staff() {
                              }}
                              title="تعديل الصورة الشخصية"
                            >
-                             <Camera className="h-4 w-4" />
+                              <Camera className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => resetEmployeePassword(employee)}
+                              title="إعادة تعيين كلمة المرور"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Key className="h-4 w-4" />
+                            </Button>
+                           <Button 
+                             size="sm" 
+                             variant="outline"
+                             onClick={() => {
+                               setSelectedEmployee(employee);
+                               setEditEmployee({
+                                 firstName: employee.first_name,
+                                 lastName: employee.last_name,
+                                 email: employee.email,
+                                 phone: employee.phone || '',
+                                 role: employee.role,
+                                 isActive: employee.is_active
+                               });
+                               setEditDialogOpen(true);
+                             }}
+                             className="h-8 w-8 p-0"
+                           >
+                             <Edit className="h-4 w-4" />
                            </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedEmployee(employee);
-                              setEditEmployee({
-                                firstName: employee.first_name,
-                                lastName: employee.last_name,
-                                email: employee.email,
-                                phone: employee.phone || '',
-                                role: employee.role,
-                                isActive: employee.is_active
-                              });
-                              setEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setConfirmDelete({ open: true, employee })}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                           <Button 
+                             size="sm" 
+                             variant="outline"
+                             onClick={() => setConfirmDelete({ open: true, employee })}
+                             className="h-8 w-8 p-0"
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
                         </>
                       )}
                     </div>
