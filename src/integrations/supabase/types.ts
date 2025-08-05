@@ -3174,7 +3174,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
-        Args: Record<PropertyKey, never> | { user_uuid: string }
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_employee: {
