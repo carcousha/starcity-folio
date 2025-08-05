@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Fuel, Wrench, Shield, AlertTriangle, Download, Search, Filter, Car, BarChart3, TrendingDown } from "lucide-react";
+import { Plus, Fuel, Wrench, Shield, AlertTriangle, Download, Search, Filter, Car, BarChart3, TrendingDown, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,6 +51,8 @@ export default function VehicleExpenses() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<VehicleExpense | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [vehicleFilter, setVehicleFilter] = useState("");
@@ -275,6 +278,120 @@ export default function VehicleExpenses() {
       toast({
         title: "خطأ",
         description: `فشل في حفظ البيانات: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (expense: VehicleExpense) => {
+    setEditingExpense(expense);
+    setFormData({
+      vehicle_id: expense.vehicle_id,
+      expense_type: expense.expense_type,
+      amount: expense.amount.toString(),
+      expense_date: expense.expense_date,
+      odometer_reading: expense.odometer_reading?.toString() || "",
+      description: expense.description || "",
+      debt_assignment: expense.debt_assignment || "company",
+      assigned_employee: ""
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingExpense || !formData.vehicle_id || !formData.expense_type || !formData.amount) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updateData = {
+        vehicle_id: formData.vehicle_id,
+        expense_type: formData.expense_type,
+        amount: parseFloat(formData.amount),
+        expense_date: formData.expense_date,
+        odometer_reading: formData.odometer_reading ? parseInt(formData.odometer_reading) : null,
+        description: formData.description || null,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('vehicle_expenses')
+        .update(updateData)
+        .eq('id', editingExpense.id);
+
+      if (error) throw error;
+
+      // Update general expenses entry as well
+      const vehicle = vehicles.find(v => v.id === formData.vehicle_id);
+      const expenseTypeLabel = expenseTypes.find(t => t.value === formData.expense_type)?.label;
+      
+      await supabase
+        .from('expenses')
+        .update({
+          title: `مصروف سيارة - ${expenseTypeLabel}`,
+          description: `${vehicle?.make} ${vehicle?.model} (${vehicle?.license_plate}) - ${formData.description || ''}`,
+          amount: parseFloat(formData.amount),
+          category: "مواصلات",
+          expense_date: formData.expense_date,
+        })
+        .ilike('description', `%${vehicle?.license_plate}%`)
+        .eq('category', 'مواصلات')
+        .eq('amount', editingExpense.amount);
+
+      toast({
+        title: "نجح التحديث",
+        description: "تم تحديث مصروف السيارة بنجاح",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingExpense(null);
+      fetchExpenses();
+    } catch (error: any) {
+      console.error('Error updating vehicle expense:', error);
+      toast({
+        title: "خطأ",
+        description: `فشل في تحديث البيانات: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (expense: VehicleExpense) => {
+    try {
+      const { error } = await supabase
+        .from('vehicle_expenses')
+        .delete()
+        .eq('id', expense.id);
+
+      if (error) throw error;
+
+      // Delete related general expense entry
+      const vehicle = vehicles.find(v => v.id === expense.vehicle_id);
+      await supabase
+        .from('expenses')
+        .delete()
+        .ilike('description', `%${vehicle?.license_plate}%`)
+        .eq('category', 'مواصلات')
+        .eq('amount', expense.amount);
+
+      toast({
+        title: "نجح الحذف",
+        description: "تم حذف مصروف السيارة بنجاح",
+      });
+
+      fetchExpenses();
+    } catch (error: any) {
+      console.error('Error deleting vehicle expense:', error);
+      toast({
+        title: "خطأ",
+        description: `فشل في حذف البيانات: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -733,6 +850,7 @@ export default function VehicleExpenses() {
                 <TableHead>قراءة العداد</TableHead>
                 <TableHead>تخصيص الدين</TableHead>
                 <TableHead>الوصف</TableHead>
+                <TableHead>الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -775,12 +893,47 @@ export default function VehicleExpenses() {
                     <TableCell className="max-w-[200px] truncate">
                       {expense.description || "-"}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleEdit(expense)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent dir="rtl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                هل أنت متأكد من حذف هذا المصروف؟ لا يمكن التراجع عن هذا الإجراء.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDelete(expense)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                حذف
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 );
               })}
               {filteredExpenses.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                     لا توجد مصروفات لعرضها
                   </TableCell>
                 </TableRow>
@@ -789,6 +942,103 @@ export default function VehicleExpenses() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل مصروف السيارة</DialogTitle>
+            <DialogDescription>
+              تعديل تفاصيل المصروف
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div>
+              <Label htmlFor="edit_vehicle_id">السيارة</Label>
+              <Select value={formData.vehicle_id} onValueChange={(value) => setFormData(prev => ({ ...prev, vehicle_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر السيارة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.map((vehicle) => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="edit_expense_type">نوع المصروف</Label>
+              <Select value={formData.expense_type} onValueChange={(value) => setFormData(prev => ({ ...prev, expense_type: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع المصروف" />
+                </SelectTrigger>
+                <SelectContent>
+                  {expenseTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="edit_amount">المبلغ (درهم)</Label>
+              <Input
+                id="edit_amount"
+                type="number"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit_expense_date">تاريخ المصروف</Label>
+              <Input
+                id="edit_expense_date"
+                type="date"
+                value={formData.expense_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, expense_date: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit_odometer_reading">قراءة العداد (اختياري)</Label>
+              <Input
+                id="edit_odometer_reading"
+                type="number"
+                value={formData.odometer_reading}
+                onChange={(e) => setFormData(prev => ({ ...prev, odometer_reading: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit_description">الوصف</Label>
+              <Textarea
+                id="edit_description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">
+                تحديث المصروف
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                إلغاء
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
