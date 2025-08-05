@@ -751,15 +751,9 @@ export default function DailyJournal() {
                     {filteredEntries.map((entry) => (
                       <TableRow key={entry.id} className="hover:bg-muted/50">
                         <TableCell>
-                          <Select defaultValue={entry.type}>
-                            <SelectTrigger className="w-[90px] h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="revenue">إيراد</SelectItem>
-                              <SelectItem value="expense">صرف</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <Badge variant={entry.type === 'revenue' ? 'default' : 'destructive'}>
+                            {entry.type === 'revenue' ? 'إيراد' : 'مصروف'}
+                          </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">
                           {new Date(entry.date).toLocaleDateString('ar-AE')}
