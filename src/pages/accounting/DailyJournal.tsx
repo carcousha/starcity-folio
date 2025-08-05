@@ -421,12 +421,43 @@ export default function DailyJournal() {
     });
   };
 
-  const handleDelete = (entryId: string) => {
-    setEntries(prev => prev.filter(entry => entry.id !== entryId));
-    toast({
-      title: "تم الحذف",
-      description: "تم حذف القيد بنجاح",
-    });
+  const handleDelete = async (entryId: string) => {
+    try {
+      const entry = entries.find(e => e.id === entryId);
+      if (!entry) return;
+
+      // حذف من قاعدة البيانات حسب نوع القيد
+      if (entry.type === 'revenue') {
+        const { error } = await supabase
+          .from('revenues')
+          .delete()
+          .eq('id', entryId);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('expenses')
+          .delete()
+          .eq('id', entryId);
+        
+        if (error) throw error;
+      }
+
+      // إزالة من الحالة المحلية
+      setEntries(prev => prev.filter(entry => entry.id !== entryId));
+      
+      toast({
+        title: "تم الحذف نهائياً",
+        description: "تم حذف القيد من قاعدة البيانات بشكل نهائي",
+      });
+    } catch (error: any) {
+      console.error('Error deleting entry:', error);
+      toast({
+        title: "خطأ في الحذف",
+        description: "فشل في حذف القيد: " + (error.message || 'خطأ غير معروف'),
+        variant: "destructive",
+      });
+    }
   };
 
   const handleView = (entryId: string) => {
