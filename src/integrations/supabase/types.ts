@@ -333,9 +333,11 @@ export type Database = {
           calculated_share: number
           commission_id: string
           created_at: string
+          custom_percentage: number | null
           deducted_debt: number
           employee_id: string
           id: string
+          is_custom_distribution: boolean | null
           net_share: number
           percentage: number
           updated_at: string
@@ -344,9 +346,11 @@ export type Database = {
           calculated_share?: number
           commission_id: string
           created_at?: string
+          custom_percentage?: number | null
           deducted_debt?: number
           employee_id: string
           id?: string
+          is_custom_distribution?: boolean | null
           net_share?: number
           percentage: number
           updated_at?: string
@@ -355,9 +359,11 @@ export type Database = {
           calculated_share?: number
           commission_id?: string
           created_at?: string
+          custom_percentage?: number | null
           deducted_debt?: number
           employee_id?: string
           id?: string
+          is_custom_distribution?: boolean | null
           net_share?: number
           percentage?: number
           updated_at?: string
@@ -378,6 +384,7 @@ export type Database = {
           client_name: string | null
           created_at: string
           deal_id: string | null
+          distribution_type: string | null
           employee_id: string | null
           has_custom_employee_percentages: boolean | null
           id: string
@@ -388,6 +395,7 @@ export type Database = {
           remaining_for_employees: number | null
           status: string
           total_commission: number | null
+          unused_employee_amount: number | null
           updated_at: string
         }
         Insert: {
@@ -395,6 +403,7 @@ export type Database = {
           client_name?: string | null
           created_at?: string
           deal_id?: string | null
+          distribution_type?: string | null
           employee_id?: string | null
           has_custom_employee_percentages?: boolean | null
           id?: string
@@ -405,6 +414,7 @@ export type Database = {
           remaining_for_employees?: number | null
           status?: string
           total_commission?: number | null
+          unused_employee_amount?: number | null
           updated_at?: string
         }
         Update: {
@@ -412,6 +422,7 @@ export type Database = {
           client_name?: string | null
           created_at?: string
           deal_id?: string | null
+          distribution_type?: string | null
           employee_id?: string | null
           has_custom_employee_percentages?: boolean | null
           id?: string
@@ -422,6 +433,7 @@ export type Database = {
           remaining_for_employees?: number | null
           status?: string
           total_commission?: number | null
+          unused_employee_amount?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -2975,6 +2987,17 @@ export type Database = {
         Args: { p_commission_id: string }
         Returns: undefined
       }
+      calculate_commission_new_system: {
+        Args: {
+          p_client_name: string
+          p_transaction_type: string
+          p_property_type: string
+          p_total_amount: number
+          p_employee_ids?: string[]
+          p_custom_percentages?: Json
+        }
+        Returns: Json
+      }
       calculate_deal_commission: {
         Args: { deal_id_param: string }
         Returns: Json
@@ -3277,6 +3300,10 @@ export type Database = {
           commission_amount: number
         }
         Returns: string
+      }
+      update_commission_employee_percentages: {
+        Args: { p_commission_id: string; p_employee_percentages: Json }
+        Returns: Json
       }
       update_employee_targets_progress: {
         Args: { employee_id_param: string }

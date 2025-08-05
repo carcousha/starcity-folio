@@ -99,6 +99,7 @@ export const CommissionDistributionForm = ({
   onDistributionChange 
 }: CommissionDistributionFormProps) => {
   const [managerPercentages, setManagerPercentages] = useState<{ [key: string]: number }>({});
+  const [isCustomMode, setIsCustomMode] = useState(false);
 
   // Initialize percentages for single employee or equal distribution
   useEffect(() => {
@@ -174,11 +175,36 @@ export const CommissionDistributionForm = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator className="h-5 w-5" />
-          معاينة توزيع العمولة
+          معاينة توزيع العمولة - النظام الجديد 50/50
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          يتم تقسيم العمولة تلقائياً: 50% للمكتب و 50% للموظفين. يمكنك تعديل نسبة كل موظف حسب الحاجة.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            التقسيم الثابت: 50% للمكتب + 50% للموظفين (أي نسبة غير مستخدمة تعود للمكتب)
+          </p>
+          
+          {selectedEmployees.length > 1 && (
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant={!isCustomMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsCustomMode(false)}
+                className="text-xs"
+              >
+                توزيع متساوي
+              </Button>
+              <Button
+                type="button"
+                variant={isCustomMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsCustomMode(true)}
+                className="text-xs"
+              >
+                نسب مخصصة
+              </Button>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Office Share Display */}
@@ -239,7 +265,7 @@ export const CommissionDistributionForm = ({
                     
                     <div className="flex items-center gap-3">
                       <Label htmlFor={`percentage-${employee.employee_id}`} className="text-sm text-green-700 min-w-fit">
-                        النسبة:
+                        النسبة من نصيب الموظفين:
                       </Label>
                       <div className="flex items-center gap-2 flex-1">
                         <Input
@@ -251,6 +277,7 @@ export const CommissionDistributionForm = ({
                           value={managerPercentages[employee.employee_id] || 0}
                           onChange={(e) => handlePercentageChange(employee.employee_id, e.target.value)}
                           className="w-20 text-center"
+                          disabled={!isCustomMode && selectedEmployees.length > 1}
                         />
                         <span className="text-sm text-green-700">%</span>
                         <span className="text-xs text-muted-foreground">
@@ -258,6 +285,12 @@ export const CommissionDistributionForm = ({
                         </span>
                       </div>
                     </div>
+                    
+                    {!isCustomMode && selectedEmployees.length > 1 && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        التوزيع متساوي: {(100 / selectedEmployees.length).toFixed(1)}% لكل موظف
+                      </p>
+                    )}
                   </div>
                 );
               })}
