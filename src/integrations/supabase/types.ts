@@ -980,11 +980,12 @@ export type Database = {
           created_by: string | null
           description: string | null
           expense_date: string
+          expense_type: string | null
           id: string
           is_approved: boolean | null
           receipt_reference: string | null
           receipt_url: string | null
-          recorded_by: string
+          recorded_by: string | null
           title: string
           updated_at: string
         }
@@ -998,11 +999,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           expense_date?: string
+          expense_type?: string | null
           id?: string
           is_approved?: boolean | null
           receipt_reference?: string | null
           receipt_url?: string | null
-          recorded_by: string
+          recorded_by?: string | null
           title: string
           updated_at?: string
         }
@@ -1016,11 +1018,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           expense_date?: string
+          expense_type?: string | null
           id?: string
           is_approved?: boolean | null
           receipt_reference?: string | null
           receipt_url?: string | null
-          recorded_by?: string
+          recorded_by?: string | null
           title?: string
           updated_at?: string
         }
