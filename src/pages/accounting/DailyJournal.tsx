@@ -423,35 +423,54 @@ export default function DailyJournal() {
 
   const handleDelete = async (entryId: string) => {
     try {
+      console.log('🗑️ Attempting to delete entry:', entryId);
       const entry = entries.find(e => e.id === entryId);
-      if (!entry) return;
+      if (!entry) {
+        console.log('❌ Entry not found in local state');
+        return;
+      }
+
+      console.log('🔍 Found entry to delete:', entry);
 
       // حذف من قاعدة البيانات حسب نوع القيد
       if (entry.type === 'revenue') {
+        console.log('💰 Deleting revenue entry from database');
         const { error } = await supabase
           .from('revenues')
           .delete()
           .eq('id', entryId);
         
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Revenue deletion error:', error);
+          throw error;
+        }
+        console.log('✅ Revenue deleted successfully');
       } else {
+        console.log('💸 Deleting expense entry from database');
         const { error } = await supabase
           .from('expenses')
           .delete()
           .eq('id', entryId);
         
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Expense deletion error:', error);
+          throw error;
+        }
+        console.log('✅ Expense deleted successfully');
       }
 
-      // إزالة من الحالة المحلية
-      setEntries(prev => prev.filter(entry => entry.id !== entryId));
+      // إعادة تحميل البيانات من قاعدة البيانات
+      console.log('🔄 Refreshing data from database...');
+      await fetchJournalData();
       
       toast({
         title: "تم الحذف نهائياً",
         description: "تم حذف القيد من قاعدة البيانات بشكل نهائي",
       });
+      
+      console.log('✅ Delete operation completed successfully');
     } catch (error: any) {
-      console.error('Error deleting entry:', error);
+      console.error('❌ Error deleting entry:', error);
       toast({
         title: "خطأ في الحذف",
         description: "فشل في حذف القيد: " + (error.message || 'خطأ غير معروف'),
@@ -641,7 +660,7 @@ export default function DailyJournal() {
                              <SelectValue placeholder="اختر الموظف" />
                            </SelectTrigger>
                            <SelectContent>
-                             <SelectItem value="">بدون موظف محدد</SelectItem>
+                              {!formData.employeeId && <SelectItem value="none">بدون موظف محدد</SelectItem>}
                              {employees.map((employee) => (
                                <SelectItem key={employee.id} value={employee.id}>
                                  {employee.name}
