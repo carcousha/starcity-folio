@@ -7,146 +7,246 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, TrendingUp, TrendingDown, BarChart3, FileText, Download } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Plus, Calendar, TrendingUp, TrendingDown, BarChart3, FileText, Download, Search, 
+  Filter, Edit, Trash2, Eye, FileUp, RefreshCw, Save, X, ChevronDown, Users
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
-interface DailyEntry {
+interface JournalEntry {
   id: string;
+  entry_number: string;
   date: string;
   type: 'revenue' | 'expense';
   title: string;
-  amount: number;
-  category: string;
-  description?: string;
+  description: string;
+  debit_account: string;
+  credit_account: string;
+  total_amount: number;
+  paid_amount: number;
+  remaining_amount: number;
+  status: 'draft' | 'posted' | 'approved';
   recorded_by: string;
   created_at: string;
+  attachments?: string[];
+  is_transferred: boolean;
 }
 
 interface DailySummary {
   date: string;
-  totalRevenues: number;
-  totalExpenses: number;
-  netIncome: number;
-  revenuesCount: number;
-  expensesCount: number;
+  totalDebit: number;
+  totalCredit: number;
+  entriesCount: number;
+  draftCount: number;
+  postedCount: number;
+}
+
+interface FilterState {
+  startDate: string;
+  endDate: string;
+  employee: string;
+  status: string;
+  entryType: string;
+}
+
+interface MonthlyData {
+  month: string;
+  entries: number;
+}
+
+interface TypeData {
+  name: string;
+  value: number;
+  color: string;
 }
 
 export default function DailyJournal() {
-  const [entries, setEntries] = useState<DailyEntry[]>([]);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
   const [summary, setSummary] = useState<DailySummary | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [typeData, setTypeData] = useState<TypeData[]>([]);
   const { toast } = useToast();
   const { user, profile } = useAuth();
+
+  const [filters, setFilters] = useState<FilterState>({
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
+    employee: '',
+    status: '',
+    entryType: ''
+  });
 
   const [formData, setFormData] = useState({
     type: 'revenue' as 'revenue' | 'expense',
     title: "",
-    amount: "",
-    category: "",
-    description: ""
+    description: "",
+    debitAccount: "",
+    creditAccount: "",
+    totalAmount: "",
+    paidAmount: "",
+    attachments: [] as File[],
+    transferToLedger: false,
+    saveAsDraft: false
   });
 
-  const revenueCategories = [
-    "مبيعات عقارات",
-    "إيجارات", 
-    "عمولات",
-    "خدمات استشارية",
-    "خدمات إدارية",
-    "استثمارات",
-    "أخرى"
+  const debitAccounts = [
+    "حساب العملاء",
+    "حساب البنك",
+    "حساب الصندوق",
+    "حساب المدينين",
+    "حساب الأصول الثابتة",
+    "حساب المصروفات",
+    "حساب المخزون",
+    "حساب الاستثمارات"
   ];
 
-  const expenseCategories = [
-    "وقود",
-    "صيانة", 
-    "رسوم حكومية",
-    "تسويق",
-    "مواصلات",
-    "اتصالات",
-    "كهرباء", 
-    "ماء",
-    "إيجار",
-    "مكتبية",
-    "رواتب",
-    "تأمين",
-    "أخرى"
+  const creditAccounts = [
+    "حساب الإيرادات",
+    "حساب العمولات",
+    "حساب الدائنين",
+    "حساب رأس المال",
+    "حساب القروض",
+    "حساب الأرباح المحتجزة",
+    "حساب المبيعات",
+    "حساب الخدمات"
+  ];
+
+  const statusOptions = [
+    { value: '', label: 'جميع الحالات' },
+    { value: 'draft', label: 'مسودة' },
+    { value: 'posted', label: 'مرحّل' },
+    { value: 'approved', label: 'معتمد' }
+  ];
+
+  const entryTypes = [
+    { value: '', label: 'جميع الأنواع' },
+    { value: 'revenue', label: 'إيراد' },
+    { value: 'expense', label: 'مصروف' }
   ];
 
   useEffect(() => {
-    fetchDailyData();
-  }, [selectedDate]);
+    fetchJournalData();
+    fetchMonthlyData();
+    fetchTypeData();
+  }, [filters]);
 
-  const fetchDailyData = async () => {
+  useEffect(() => {
+    filterEntries();
+  }, [entries, searchTerm]);
+
+  const filterEntries = () => {
+    let filtered = entries;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(entry => 
+        entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.entry_number.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    setFilteredEntries(filtered);
+  };
+
+  const fetchJournalData = async () => {
     setLoading(true);
     try {
-      // جلب الإيرادات لليوم المحدد
-      const { data: revenues, error: revenueError } = await supabase
-        .from('revenues')
-        .select('*')
-        .eq('revenue_date', selectedDate)
-        .order('created_at', { ascending: false });
+      // محاكاة بيانات القيود المحاسبية
+      const mockEntries: JournalEntry[] = [
+        {
+          id: '1',
+          entry_number: 'JE-001',
+          date: filters.startDate,
+          type: 'revenue',
+          title: 'بيع عقار في دبي',
+          description: 'بيع فيلا 4 غرف في المرابع العربية',
+          debit_account: 'حساب البنك',
+          credit_account: 'حساب الإيرادات',
+          total_amount: 2500000,
+          paid_amount: 2500000,
+          remaining_amount: 0,
+          status: 'posted',
+          recorded_by: user?.id || '',
+          created_at: new Date().toISOString(),
+          is_transferred: true
+        },
+        {
+          id: '2',
+          entry_number: 'JE-002',
+          date: filters.startDate,
+          type: 'expense',
+          title: 'دفع عمولة',
+          description: 'عمولة وسطاء العقار',
+          debit_account: 'حساب المصروفات',
+          credit_account: 'حساب البنك',
+          total_amount: 75000,
+          paid_amount: 50000,
+          remaining_amount: 25000,
+          status: 'posted',
+          recorded_by: user?.id || '',
+          created_at: new Date().toISOString(),
+          is_transferred: true
+        },
+        {
+          id: '3',
+          entry_number: 'JE-003',
+          date: filters.startDate,
+          type: 'revenue',
+          title: 'إيجار شهري',
+          description: 'إيجار شقق الاستثمار',
+          debit_account: 'حساب المدينين',
+          credit_account: 'حساب الإيرادات',
+          total_amount: 45000,
+          paid_amount: 0,
+          remaining_amount: 45000,
+          status: 'draft',
+          recorded_by: user?.id || '',
+          created_at: new Date().toISOString(),
+          is_transferred: false
+        }
+      ];
 
-      if (revenueError) throw revenueError;
+      // تطبيق الفلاتر
+      let filtered = mockEntries;
+      
+      if (filters.status) {
+        filtered = filtered.filter(entry => entry.status === filters.status);
+      }
+      
+      if (filters.entryType) {
+        filtered = filtered.filter(entry => entry.type === filters.entryType);
+      }
 
-      // جلب المصروفات لليوم المحدد
-      const { data: expenses, error: expenseError } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('expense_date', selectedDate)
-        .order('created_at', { ascending: false });
+      setEntries(filtered);
 
-      if (expenseError) throw expenseError;
-
-      // تحويل البيانات إلى تنسيق موحد
-      const revenueEntries: DailyEntry[] = (revenues || []).map(rev => ({
-        id: rev.id,
-        date: rev.revenue_date,
-        type: 'revenue' as const,
-        title: rev.title,
-        amount: rev.amount,
-        category: rev.source,
-        description: rev.description,
-        recorded_by: rev.recorded_by,
-        created_at: rev.created_at
-      }));
-
-      const expenseEntries: DailyEntry[] = (expenses || []).map(exp => ({
-        id: exp.id,
-        date: exp.expense_date,
-        type: 'expense' as const,
-        title: exp.title,
-        amount: exp.amount,
-        category: exp.category,
-        description: exp.description,
-        recorded_by: exp.recorded_by,
-        created_at: exp.created_at
-      }));
-
-      // دمج البيانات وترتيبها
-      const allEntries = [...revenueEntries, ...expenseEntries]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      setEntries(allEntries);
-
-      // حساب الملخص اليومي
-      const totalRevenues = revenueEntries.reduce((sum, entry) => sum + entry.amount, 0);
-      const totalExpenses = expenseEntries.reduce((sum, entry) => sum + entry.amount, 0);
+      // حساب الملخص
+      const totalDebit = filtered.reduce((sum, entry) => sum + entry.total_amount, 0);
+      const totalCredit = filtered.reduce((sum, entry) => sum + entry.paid_amount, 0);
+      const draftCount = filtered.filter(entry => entry.status === 'draft').length;
+      const postedCount = filtered.filter(entry => entry.status === 'posted').length;
       
       setSummary({
-        date: selectedDate,
-        totalRevenues,
-        totalExpenses,
-        netIncome: totalRevenues - totalExpenses,
-        revenuesCount: revenueEntries.length,
-        expensesCount: expenseEntries.length
+        date: filters.startDate,
+        totalDebit,
+        totalCredit,
+        entriesCount: filtered.length,
+        draftCount,
+        postedCount
       });
 
     } catch (error) {
-      console.error('Error fetching daily data:', error);
+      console.error('Error fetching journal data:', error);
       toast({
         title: "خطأ",
         description: "فشل في تحميل البيانات",
@@ -157,10 +257,31 @@ export default function DailyJournal() {
     }
   };
 
+  const fetchMonthlyData = () => {
+    // محاكاة بيانات شهرية
+    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'];
+    const data = months.map(month => ({
+      month,
+      entries: Math.floor(Math.random() * 50) + 10
+    }));
+    setMonthlyData(data);
+  };
+
+  const fetchTypeData = () => {
+    // محاكاة بيانات أنواع القيود
+    const data = [
+      { name: 'مبيعات', value: 40, color: '#22C55E' },
+      { name: 'إيجارات', value: 25, color: '#3B82F6' },
+      { name: 'عمولات', value: 20, color: '#F59E0B' },
+      { name: 'مصروفات', value: 15, color: '#EF4444' }
+    ];
+    setTypeData(data);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.amount || !formData.category) {
+    if (!formData.title || !formData.totalAmount || !formData.debitAccount || !formData.creditAccount) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -170,53 +291,49 @@ export default function DailyJournal() {
     }
 
     try {
-      const amount = parseFloat(formData.amount);
+      const totalAmount = parseFloat(formData.totalAmount);
+      const paidAmount = parseFloat(formData.paidAmount) || 0;
       
-      if (formData.type === 'revenue') {
-        const { error } = await supabase
-          .from('revenues')
-          .insert({
-            title: formData.title,
-            description: formData.description || null,
-            amount,
-            source: formData.category,
-            revenue_date: selectedDate,
-            recorded_by: profile?.user_id
-          });
+      const newEntry: JournalEntry = {
+        id: Date.now().toString(),
+        entry_number: `JE-${Date.now().toString().slice(-6)}`,
+        date: filters.startDate,
+        type: formData.type,
+        title: formData.title,
+        description: formData.description,
+        debit_account: formData.debitAccount,
+        credit_account: formData.creditAccount,
+        total_amount: totalAmount,
+        paid_amount: paidAmount,
+        remaining_amount: totalAmount - paidAmount,
+        status: formData.saveAsDraft ? 'draft' : 'posted',
+        recorded_by: user?.id || '',
+        created_at: new Date().toISOString(),
+        is_transferred: formData.transferToLedger
+      };
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('expenses')
-          .insert({
-            title: formData.title,
-            description: formData.description || null,
-            amount,
-            category: formData.category,
-            expense_date: selectedDate,
-            recorded_by: user?.id,
-            is_approved: true,
-            approved_by: user?.id,
-            approved_at: new Date().toISOString()
-          });
-
-        if (error) throw error;
-      }
+      // إضافة القيد الجديد
+      setEntries(prev => [newEntry, ...prev]);
 
       toast({
         title: "تم بنجاح",
-        description: `تم إضافة ${formData.type === 'revenue' ? 'الإيراد' : 'المصروف'} بنجاح`,
+        description: `تم إضافة القيد ${formData.saveAsDraft ? 'كمسودة' : 'وترحيله'} بنجاح`,
       });
 
       setIsDialogOpen(false);
       setFormData({
         type: 'revenue',
         title: "",
-        amount: "",
-        category: "",
-        description: ""
+        description: "",
+        debitAccount: "",
+        creditAccount: "",
+        totalAmount: "",
+        paidAmount: "",
+        attachments: [],
+        transferToLedger: false,
+        saveAsDraft: false
       });
-      fetchDailyData();
+      
     } catch (error: any) {
       console.error('Error saving entry:', error);
       toast({
@@ -227,13 +344,65 @@ export default function DailyJournal() {
     }
   };
 
+  const handleEdit = (entryId: string) => {
+    console.log('Edit entry:', entryId);
+    toast({
+      title: "قيد التطوير",
+      description: "ميزة التعديل ستتوفر قريباً",
+    });
+  };
+
+  const handleDelete = (entryId: string) => {
+    setEntries(prev => prev.filter(entry => entry.id !== entryId));
+    toast({
+      title: "تم الحذف",
+      description: "تم حذف القيد بنجاح",
+    });
+  };
+
+  const handleView = (entryId: string) => {
+    console.log('View entry:', entryId);
+    toast({
+      title: "قيد التطوير",
+      description: "ميزة العرض التفصيلي ستتوفر قريباً",
+    });
+  };
+
   const exportToPDF = () => {
-    // منطق التصدير إلى PDF
     console.log('Exporting to PDF...');
     toast({
-      title: "قريباً",
+      title: "قيد التطوير",
       description: "ميزة التصدير إلى PDF ستتوفر قريباً",
     });
+  };
+
+  const exportToExcel = () => {
+    console.log('Exporting to Excel...');
+    toast({
+      title: "قيد التطوير", 
+      description: "ميزة التصدير إلى Excel ستتوفر قريباً",
+    });
+  };
+
+  const applyFilters = () => {
+    setShowFilters(false);
+    fetchJournalData();
+    toast({
+      title: "تم التطبيق",
+      description: "تم تطبيق الفلاتر بنجاح",
+    });
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      employee: '',
+      status: '',
+      entryType: ''
+    });
+    setSearchTerm('');
+    fetchJournalData();
   };
 
   if (loading) {
@@ -241,250 +410,538 @@ export default function DailyJournal() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6" dir="rtl">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">اليومية</h1>
-          <p className="text-gray-600 mt-2">سجل يومي لجميع المعاملات المالية</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={exportToPDF} variant="outline">
-            <Download className="h-4 w-4 ml-2" />
-            تصدير PDF
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة معاملة
+    <div className="flex min-h-screen bg-muted/30" dir="rtl">
+      {/* المحتوى الرئيسي */}
+      <div className="flex-1 p-6 space-y-6">
+        {/* الهيدر العلوي */}
+        <div className="bg-card rounded-lg p-6 shadow-sm">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+                <FileText className="h-8 w-8 text-primary" />
+                دفتر اليومية
+                <span className="text-muted-foreground text-lg">Journal Entries</span>
+              </h1>
+              <p className="text-muted-foreground mt-2">إدارة وتتبع جميع القيود المحاسبية اليومية</p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={exportToExcel} variant="outline" size="sm">
+                <Download className="h-4 w-4 ml-2" />
+                Excel
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md" dir="rtl">
-              <DialogHeader>
-                <DialogTitle>إضافة معاملة جديدة</DialogTitle>
-                <DialogDescription>
-                  أدخل تفاصيل المعاملة المالية
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="type">نوع المعاملة</Label>
-                  <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense') => setFormData(prev => ({ ...prev, type: value, category: "" }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع المعاملة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="revenue">إيراد</SelectItem>
-                      <SelectItem value="expense">مصروف</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="title">العنوان</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="category">الفئة</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الفئة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(formData.type === 'revenue' ? revenueCategories : expenseCategories).map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="amount">المبلغ</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="description">الوصف (اختياري)</Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  حفظ المعاملة
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              <Button onClick={exportToPDF} variant="outline" size="sm">
+                <Download className="h-4 w-4 ml-2" />
+                PDF
+              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة قيد جديد
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl" dir="rtl">
+                  <DialogHeader>
+                    <DialogTitle>إضافة قيد محاسبي جديد</DialogTitle>
+                    <DialogDescription>
+                      أدخل تفاصيل القيد المحاسبي بدقة
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="date">📅 التاريخ</Label>
+                        <Input
+                          id="date"
+                          type="date"
+                          value={filters.startDate}
+                          onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="type">نوع القيد</Label>
+                        <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense') => setFormData(prev => ({ ...prev, type: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر نوع القيد" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="revenue">إيراد</SelectItem>
+                            <SelectItem value="expense">مصروف</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="title">📝 العنوان</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="أدخل عنوان القيد"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="description">الوصف التفصيلي</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="أدخل وصف مفصل للقيد"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="debitAccount">الحساب المدين</Label>
+                        <Select value={formData.debitAccount} onValueChange={(value) => setFormData(prev => ({ ...prev, debitAccount: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر الحساب المدين" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {debitAccounts.map((account) => (
+                              <SelectItem key={account} value={account}>
+                                {account}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="creditAccount">الحساب الدائن</Label>
+                        <Select value={formData.creditAccount} onValueChange={(value) => setFormData(prev => ({ ...prev, creditAccount: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر الحساب الدائن" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {creditAccounts.map((account) => (
+                              <SelectItem key={account} value={account}>
+                                {account}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="totalAmount">💰 المبلغ الإجمالي</Label>
+                        <Input
+                          id="totalAmount"
+                          type="number"
+                          step="0.01"
+                          value={formData.totalAmount}
+                          onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: e.target.value }))}
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="paidAmount">المبلغ المدفوع</Label>
+                        <Input
+                          id="paidAmount"
+                          type="number"
+                          step="0.01"
+                          value={formData.paidAmount}
+                          onChange={(e) => setFormData(prev => ({ ...prev, paidAmount: e.target.value }))}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>المرفقات</Label>
+                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                        <FileUp className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">اسحب وأفلت الملفات هنا أو</p>
+                        <Button variant="outline" size="sm" className="mt-2">
+                          اختر ملفات
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Checkbox 
+                          id="transferToLedger"
+                          checked={formData.transferToLedger}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, transferToLedger: checked as boolean }))}
+                        />
+                        <Label htmlFor="transferToLedger" className="flex items-center gap-2">
+                          <RefreshCw className="h-4 w-4" />
+                          ترحيل مباشرة إلى دفتر الأستاذ
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Checkbox 
+                          id="saveAsDraft"
+                          checked={formData.saveAsDraft}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, saveAsDraft: checked as boolean }))}
+                        />
+                        <Label htmlFor="saveAsDraft" className="flex items-center gap-2">
+                          <Save className="h-4 w-4" />
+                          حفظ كمسودة
+                        </Label>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t">
+                      <Button type="submit" className="flex-1">
+                        <Save className="h-4 w-4 ml-2" />
+                        حفظ القيد
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        <X className="h-4 w-4 ml-2" />
+                        إلغاء
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
         </div>
+
+        {/* شريط الفلترة والبحث */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="🔎 بحث في القيود..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pr-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant={showFilters ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter className="h-4 w-4 ml-2" />
+                  فلترة
+                  <ChevronDown className={`h-4 w-4 mr-2 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                </Button>
+                
+                {(searchTerm || filters.status || filters.entryType) && (
+                  <Button variant="ghost" size="sm" onClick={resetFilters}>
+                    <X className="h-4 w-4 ml-2" />
+                    مسح الفلاتر
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {showFilters && (
+              <div className="border-t mt-4 pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div>
+                    <Label className="text-xs">من تاريخ</Label>
+                    <Input
+                      type="date"
+                      value={filters.startDate}
+                      onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">إلى تاريخ</Label>
+                    <Input
+                      type="date"
+                      value={filters.endDate}
+                      onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">الموظف / العميل</Label>
+                    <Select value={filters.employee} onValueChange={(value) => setFilters(prev => ({ ...prev, employee: value }))}>
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="الكل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">جميع الموظفين</SelectItem>
+                        <SelectItem value="emp1">أحمد محمد</SelectItem>
+                        <SelectItem value="emp2">فاطمة علي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">حالة القيد</Label>
+                    <Select value={filters.status} onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}>
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="الكل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={applyFilters} className="flex-1">
+                      تطبيق
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* جدول القيود */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>قيود اليومية</CardTitle>
+                <CardDescription>
+                  عرض القيود من {new Date(filters.startDate).toLocaleDateString('ar-AE')} إلى {new Date(filters.endDate).toLocaleDateString('ar-AE')}
+                </CardDescription>
+              </div>
+              {summary && (
+                <div className="text-left">
+                  <div className="text-sm text-muted-foreground">إجمالي القيود</div>
+                  <div className="text-2xl font-bold">{summary.entriesCount}</div>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredEntries.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">نوع القيد</TableHead>
+                      <TableHead>التاريخ</TableHead>
+                      <TableHead>رقم القيد</TableHead>
+                      <TableHead>الوصف</TableHead>
+                      <TableHead>المبلغ الإجمالي</TableHead>
+                      <TableHead>المبلغ المدفوع</TableHead>
+                      <TableHead>المبلغ الباقي</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead className="w-[120px]">خيارات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEntries.map((entry) => (
+                      <TableRow key={entry.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <Select defaultValue={entry.type}>
+                            <SelectTrigger className="w-[90px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="revenue">إيراد</SelectItem>
+                              <SelectItem value="expense">صرف</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {new Date(entry.date).toLocaleDateString('ar-AE')}
+                        </TableCell>
+                        <TableCell className="font-mono font-medium">
+                          {entry.entry_number}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{entry.title}</div>
+                            <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                              {entry.description}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-primary">
+                            {entry.total_amount.toLocaleString('ar-AE')} د.إ
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-green-600">
+                            {entry.paid_amount.toLocaleString('ar-AE')} د.إ
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-semibold ${entry.remaining_amount > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                            {entry.remaining_amount.toLocaleString('ar-AE')} د.إ
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              entry.status === 'posted' ? 'default' : 
+                              entry.status === 'draft' ? 'secondary' : 'outline'
+                            }
+                          >
+                            {entry.status === 'posted' ? 'مرحّل' : 
+                             entry.status === 'draft' ? 'مسودة' : 'معتمد'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(entry.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleView(entry.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(entry.id)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <div className="text-lg font-medium text-muted-foreground">لا توجد قيود</div>
+                <div className="text-sm text-muted-foreground">لم يتم العثور على أي قيود محاسبية للفترة المحددة</div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* اختيار التاريخ */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            اختيار التاريخ
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 items-center">
-            <Label htmlFor="date">التاريخ:</Label>
-            <Input
-              id="date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-auto"
-            />
-            <Button 
-              variant="outline" 
-              onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-            >
-              اليوم
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* الملخص اليومي */}
-      {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* الشريط الجانبي للإحصائيات */}
+      <div className="w-80 p-6 space-y-6 bg-card border-l">
+        {/* الإحصائيات */}
+        {summary && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                الإحصائيات
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {summary.totalRevenues.toLocaleString('ar-AE')} د.إ
+            <CardContent className="space-y-4">
+              <div className="bg-green-50 p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-green-700">إجمالي المدين اليومي</span>
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="text-xl font-bold text-green-600">
+                  {summary.totalDebit.toLocaleString('ar-AE')} د.إ
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {summary.revenuesCount} معاملة
-              </p>
+              
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-blue-700">إجمالي الدائن اليومي</span>
+                  <TrendingDown className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="text-xl font-bold text-blue-600">
+                  {summary.totalCredit.toLocaleString('ar-AE')} د.إ
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-700">عدد القيود</span>
+                  <FileText className="h-4 w-4 text-gray-600" />
+                </div>
+                <div className="text-xl font-bold text-gray-600">
+                  {summary.entriesCount}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {summary.draftCount} مسودة • {summary.postedCount} مرحّل
+                </div>
+              </div>
             </CardContent>
           </Card>
+        )}
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي المصروفات</CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {summary.totalExpenses.toLocaleString('ar-AE')} د.إ
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {summary.expensesCount} معاملة
-              </p>
-            </CardContent>
-          </Card>
+        {/* الرسم البياني الشريطي */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">القيود الشهرية</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" fontSize={12} />
+                <YAxis fontSize={12} />
+                <Tooltip />
+                <Bar dataKey="entries" fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">صافي الدخل</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${summary.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {summary.netIncome.toLocaleString('ar-AE')} د.إ
-              </div>
-              <p className="text-xs text-muted-foreground">
-                الإيرادات - المصروفات
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي المعاملات</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {summary.revenuesCount + summary.expensesCount}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                معاملة مالية
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* جدول المعاملات */}
-      <Card>
-        <CardHeader>
-          <CardTitle>المعاملات المالية</CardTitle>
-          <CardDescription>
-            جميع المعاملات المالية لتاريخ {new Date(selectedDate).toLocaleDateString('ar-AE')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {entries.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>النوع</TableHead>
-                  <TableHead>العنوان</TableHead>
-                  <TableHead>الفئة</TableHead>
-                  <TableHead>المبلغ</TableHead>
-                  <TableHead>الوقت</TableHead>
-                  <TableHead>الوصف</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.map((entry) => (
-                  <TableRow key={`${entry.type}-${entry.id}`}>
-                    <TableCell>
-                      <Badge 
-                        variant={entry.type === 'revenue' ? 'default' : 'destructive'}
-                        className={entry.type === 'revenue' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
-                      >
-                        {entry.type === 'revenue' ? 'إيراد' : 'مصروف'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{entry.title}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{entry.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`font-semibold ${entry.type === 'revenue' ? 'text-green-600' : 'text-red-600'}`}>
-                        {entry.type === 'revenue' ? '+' : '-'}{entry.amount.toLocaleString('ar-AE')} د.إ
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(entry.created_at).toLocaleTimeString('ar-AE', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {entry.description || '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              لا توجد معاملات مالية لهذا التاريخ
+        {/* الرسم البياني الدائري */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">توزيع أنواع القيود</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={typeData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={80}
+                  dataKey="value"
+                >
+                  {typeData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-4 space-y-2">
+              {typeData.map((item, index) => (
+                <div key={index} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span>{item.name}</span>
+                  </div>
+                  <span className="font-medium">{item.value}%</span>
+                </div>
+              ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
