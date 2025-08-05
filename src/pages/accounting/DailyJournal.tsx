@@ -163,63 +163,71 @@ export default function DailyJournal() {
   const fetchJournalData = async () => {
     setLoading(true);
     try {
-      // محاكاة بيانات القيود المحاسبية
-      const mockEntries: JournalEntry[] = [
-        {
-          id: '1',
-          entry_number: 'JE-001',
-          date: filters.startDate,
+      // جلب الإيرادات والمصروفات من قاعدة البيانات
+      const [revenuesResult, expensesResult] = await Promise.all([
+        supabase
+          .from('revenues')
+          .select('*')
+          .order('revenue_date', { ascending: false }),
+        supabase
+          .from('expenses')
+          .select('*')
+          .order('expense_date', { ascending: false })
+      ]);
+
+      if (revenuesResult.error) throw revenuesResult.error;
+      if (expensesResult.error) throw expensesResult.error;
+
+      // دمج البيانات وتحويلها لصيغة JournalEntry
+      const journalEntries: JournalEntry[] = [];
+
+      // إضافة الإيرادات
+      revenuesResult.data?.forEach((revenue, index) => {
+        journalEntries.push({
+          id: revenue.id,
+          entry_number: `REV-${revenue.id.slice(-6)}`,
+          date: revenue.revenue_date,
           type: 'revenue',
-          title: 'بيع عقار في دبي',
-          description: 'بيع فيلا 4 غرف في المرابع العربية',
-          debit_account: 'حساب البنك',
-          credit_account: 'حساب الإيرادات',
-          total_amount: 2500000,
-          paid_amount: 2500000,
+          title: revenue.title,
+          description: revenue.description || '',
+          debit_account: revenue.source,
+          credit_account: revenue.source,
+          total_amount: revenue.amount,
+          paid_amount: revenue.amount,
           remaining_amount: 0,
           status: 'posted',
-          recorded_by: user?.id || '',
-          created_at: new Date().toISOString(),
+          recorded_by: revenue.recorded_by,
+          created_at: revenue.created_at,
           is_transferred: true
-        },
-        {
-          id: '2',
-          entry_number: 'JE-002',
-          date: filters.startDate,
+        });
+      });
+
+      // إضافة المصروفات
+      expensesResult.data?.forEach((expense, index) => {
+        journalEntries.push({
+          id: expense.id,
+          entry_number: `EXP-${expense.id.slice(-6)}`,
+          date: expense.expense_date,
           type: 'expense',
-          title: 'دفع عمولة',
-          description: 'عمولة وسطاء العقار',
-          debit_account: 'حساب المصروفات',
-          credit_account: 'حساب البنك',
-          total_amount: 75000,
-          paid_amount: 50000,
-          remaining_amount: 25000,
+          title: expense.title,
+          description: expense.description || '',
+          debit_account: expense.category,
+          credit_account: expense.category,
+          total_amount: expense.amount,
+          paid_amount: expense.amount,
+          remaining_amount: 0,
           status: 'posted',
-          recorded_by: user?.id || '',
-          created_at: new Date().toISOString(),
+          recorded_by: expense.recorded_by,
+          created_at: expense.created_at,
           is_transferred: true
-        },
-        {
-          id: '3',
-          entry_number: 'JE-003',
-          date: filters.startDate,
-          type: 'revenue',
-          title: 'إيجار شهري',
-          description: 'إيجار شقق الاستثمار',
-          debit_account: 'حساب المدينين',
-          credit_account: 'حساب الإيرادات',
-          total_amount: 45000,
-          paid_amount: 0,
-          remaining_amount: 45000,
-          status: 'draft',
-          recorded_by: user?.id || '',
-          created_at: new Date().toISOString(),
-          is_transferred: false
-        }
-      ];
+        });
+      });
+
+      // ترتيب حسب التاريخ
+      journalEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       // تطبيق الفلاتر
-      let filtered = mockEntries;
+      let filtered = journalEntries;
       
       if (filters.status) {
         filtered = filtered.filter(entry => entry.status === filters.status);
@@ -315,31 +323,49 @@ export default function DailyJournal() {
       const totalAmount = parseFloat(formData.totalAmount);
       const paidAmount = parseFloat(formData.paidAmount) || 0;
       
-      const newEntry: JournalEntry = {
-        id: Date.now().toString(),
-        entry_number: `JE-${Date.now().toString().slice(-6)}`,
-        date: filters.startDate,
-        type: formData.type,
-        title: formData.title,
-        description: formData.description,
-        debit_account: formData.subType,
-        credit_account: formData.subType,
-        total_amount: totalAmount,
-        paid_amount: paidAmount,
-        remaining_amount: totalAmount - paidAmount,
-        status: formData.saveAsDraft ? 'draft' : 'posted',
-        recorded_by: user?.id || '',
-        created_at: new Date().toISOString(),
-        is_transferred: false
-      };
+      if (formData.type === 'revenue') {
+        // حفظ في جدول الإيرادات
+        const { error: revenueError } = await supabase
+          .from('revenues')
+          .insert({
+            title: formData.title,
+            description: formData.description,
+            source: formData.subType,
+            amount: totalAmount,
+            revenue_date: filters.startDate,
+            recorded_by: user?.id
+          });
 
-      // إضافة القيد الجديد
-      setEntries(prev => [newEntry, ...prev]);
+        if (revenueError) throw revenueError;
 
-      toast({
-        title: "تم بنجاح",
-        description: `تم إضافة القيد ${formData.saveAsDraft ? 'كمسودة' : 'وترحيله'} بنجاح`,
-      });
+        toast({
+          title: "تم بنجاح",
+          description: "تم إضافة قيد الإيراد بنجاح",
+        });
+
+      } else {
+        // حفظ في جدول المصروفات
+        const { error: expenseError } = await supabase
+          .from('expenses')
+          .insert({
+            title: formData.title,
+            description: formData.description,
+            category: formData.subType,
+            amount: totalAmount,
+            expense_date: filters.startDate,
+            recorded_by: user?.id
+          });
+
+        if (expenseError) throw expenseError;
+
+        toast({
+          title: "تم بنجاح",
+          description: "تم إضافة قيد المصروف بنجاح",
+        });
+      }
+
+      // إعادة تحميل البيانات
+      await fetchJournalData();
 
       setIsDialogOpen(false);
       setFormData({
@@ -358,7 +384,7 @@ export default function DailyJournal() {
       console.error('Error saving entry:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حفظ البيانات",
+        description: "فشل في حفظ البيانات: " + (error.message || 'خطأ غير معروف'),
         variant: "destructive",
       });
     }
