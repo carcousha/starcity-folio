@@ -37,7 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { usePermissions } from "@/hooks/usePermissions";
+
 
 interface Setting {
   id: string;
@@ -84,7 +84,7 @@ export default function Settings() {
   const { toast } = useToast();
   const { profile } = useAuth();
   const { isAdmin } = useRoleAccess();
-  const { permissions: modulePermissions, updatePermission, loading: permissionsLoading } = usePermissions();
+  
 
   // Form states for different categories
   const [generalSettings, setGeneralSettings] = useState({
@@ -714,126 +714,9 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {permissionsLoading ? (
-                <div className="flex justify-center py-8">
-                  <RefreshCw className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* عرض الصلاحيات حسب الوحدة */}
-                  {modulePermissions
-                    .reduce((acc, permission) => {
-                      if (!acc.find(p => p.module_name === permission.module_name)) {
-                        acc.push(permission);
-                      }
-                      return acc;
-                    }, [] as typeof modulePermissions)
-                    .map((module) => (
-                      <div key={module.module_name} className="border rounded-lg p-4">
-                        <h3 className="font-semibold text-lg mb-4 capitalize">
-                          {module.module_name === 'debts' && 'المديونيات'}
-                          {module.module_name === 'clients' && 'العملاء'}
-                          {module.module_name === 'expenses' && 'المصروفات'}
-                          {module.module_name === 'deals' && 'الصفقات'}
-                          {module.module_name === 'properties' && 'العقارات'}
-                          {module.module_name === 'commissions' && 'العمولات'}
-                          {module.module_name === 'revenues' && 'الإيرادات'}
-                          {!['debts', 'clients', 'expenses', 'deals', 'properties', 'commissions', 'revenues'].includes(module.module_name) && module.module_name}
-                        </h3>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* صلاحيات التعديل */}
-                          {modulePermissions
-                            .filter(p => p.module_name === module.module_name && p.action_type === 'edit')
-                            .map((permission) => (
-                              <div key={permission.id} className="space-y-3 p-3 border rounded">
-                                <div className="flex items-center gap-2">
-                                  <Shield className="h-4 w-4 text-blue-500" />
-                                  <span className="font-medium">صلاحية التعديل</span>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <Label className="text-sm">الأدوار المسموحة:</Label>
-                                  <div className="flex flex-wrap gap-2">
-                                    {['admin', 'accountant', 'employee'].map((role) => (
-                                      <div key={role} className="flex items-center gap-2">
-                                        <input
-                                          type="checkbox"
-                                          id={`${permission.id}_edit_${role}`}
-                                          checked={permission.allowed_roles.includes(role)}
-                                          onChange={async (e) => {
-                                            const newRoles = e.target.checked
-                                              ? [...permission.allowed_roles, role]
-                                              : permission.allowed_roles.filter(r => r !== role);
-                                            await updatePermission(permission.id, newRoles, permission.allowed_users);
-                                          }}
-                                          className="rounded"
-                                        />
-                                        <Label htmlFor={`${permission.id}_edit_${role}`} className="text-sm">
-                                          {role === 'admin' && 'مدير'}
-                                          {role === 'accountant' && 'محاسب'}
-                                          {role === 'employee' && 'موظف'}
-                                        </Label>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-
-                          {/* صلاحيات الحذف */}
-                          {modulePermissions
-                            .filter(p => p.module_name === module.module_name && p.action_type === 'delete')
-                            .map((permission) => (
-                              <div key={permission.id} className="space-y-3 p-3 border rounded">
-                                <div className="flex items-center gap-2">
-                                  <Shield className="h-4 w-4 text-red-500" />
-                                  <span className="font-medium">صلاحية الحذف</span>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <Label className="text-sm">الأدوار المسموحة:</Label>
-                                  <div className="flex flex-wrap gap-2">
-                                    {['admin', 'accountant', 'employee'].map((role) => (
-                                      <div key={role} className="flex items-center gap-2">
-                                        <input
-                                          type="checkbox"
-                                          id={`${permission.id}_delete_${role}`}
-                                          checked={permission.allowed_roles.includes(role)}
-                                          onChange={async (e) => {
-                                            const newRoles = e.target.checked
-                                              ? [...permission.allowed_roles, role]
-                                              : permission.allowed_roles.filter(r => r !== role);
-                                            await updatePermission(permission.id, newRoles, permission.allowed_users);
-                                          }}
-                                          className="rounded"
-                                        />
-                                        <Label htmlFor={`${permission.id}_delete_${role}`} className="text-sm">
-                                          {role === 'admin' && 'مدير'}
-                                          {role === 'accountant' && 'محاسب'}
-                                          {role === 'employee' && 'موظف'}
-                                        </Label>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    ))}
-
-                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-2">ملاحظات مهمة:</h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• هذه الإعدادات تطبق على جميع صفحات النظام</li>
-                      <li>• المدير لديه صلاحيات كاملة دائماً</li>
-                      <li>• يمكن تخصيص صلاحيات لمستخدمين محددين لاحقاً</li>
-                      <li>• التغييرات تطبق فوراً على جميع المستخدمين</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
+              <div className="text-center py-8 text-gray-500">
+                نظام الصلاحيات قيد التطوير - سيتم تفعيله قريباً
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

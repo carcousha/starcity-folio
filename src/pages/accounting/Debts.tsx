@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { useModulePermission } from "@/hooks/usePermissions";
+
 
 interface Debt {
   id: string;
@@ -51,8 +51,9 @@ export default function Debts() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const { checkPermission, isAdmin, isAccountant } = useRoleAccess();
-  const { hasPermission: canEdit } = useModulePermission('debts', 'edit');
-  const { hasPermission: canDelete } = useModulePermission('debts', 'delete');
+  // استخدام نظام الصلاحيات المبسط الجديد
+  const canEdit = checkPermission('canManageDebts');
+  const canDelete = checkPermission('canManageDebts');
 
   const [formData, setFormData] = useState({
     debtor_name: "",
