@@ -89,38 +89,38 @@ export default function DailyJournal() {
 
   const [formData, setFormData] = useState({
     type: 'revenue' as 'revenue' | 'expense',
+    subType: "",
     title: "",
     description: "",
-    debitAccount: "",
-    creditAccount: "",
     totalAmount: "",
     paidAmount: "",
     attachments: [] as File[],
-    transferToLedger: false,
-    saveAsDraft: false
+    saveAsDraft: false,
+    employeeId: ""
   });
 
-  const debitAccounts = [
-    "حساب العملاء",
-    "حساب البنك",
-    "حساب الصندوق",
-    "حساب المدينين",
-    "حساب الأصول الثابتة",
-    "حساب المصروفات",
-    "حساب المخزون",
-    "حساب الاستثمارات"
+  const revenueTypes = [
+    "بيع فيلا",
+    "بيع أرض", 
+    "إيجار",
+    "عمولة",
+    "خدمات استشارية",
+    "رسوم إدارية"
   ];
 
-  const creditAccounts = [
-    "حساب الإيرادات",
-    "حساب العمولات",
-    "حساب الدائنين",
-    "حساب رأس المال",
-    "حساب القروض",
-    "حساب الأرباح المحتجزة",
-    "حساب المبيعات",
-    "حساب الخدمات"
+  const expenseTypes = [
+    "رواتب",
+    "مصروفات مكتبية",
+    "مصروفات السيارات",
+    "مصروفات التسويق",
+    "إيجار المكتب",
+    "فواتير المرافق",
+    "مصروفات الصيانة",
+    "رسوم قانونية",
+    "مصروفات أخرى"
   ];
+
+  const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
 
   const statusOptions = [
     { value: '', label: 'جميع الحالات' },
@@ -139,6 +139,7 @@ export default function DailyJournal() {
     fetchJournalData();
     fetchMonthlyData();
     fetchTypeData();
+    fetchEmployees();
   }, [filters]);
 
   useEffect(() => {
@@ -278,10 +279,30 @@ export default function DailyJournal() {
     setTypeData(data);
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, last_name')
+        .eq('is_active', true);
+        
+      if (error) throw error;
+      
+      const employeeList = data?.map(emp => ({
+        id: emp.user_id,
+        name: `${emp.first_name} ${emp.last_name}`
+      })) || [];
+      
+      setEmployees(employeeList);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.totalAmount || !formData.debitAccount || !formData.creditAccount) {
+    if (!formData.title || !formData.totalAmount || !formData.subType || !formData.employeeId) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -301,15 +322,15 @@ export default function DailyJournal() {
         type: formData.type,
         title: formData.title,
         description: formData.description,
-        debit_account: formData.debitAccount,
-        credit_account: formData.creditAccount,
+        debit_account: formData.subType,
+        credit_account: formData.subType,
         total_amount: totalAmount,
         paid_amount: paidAmount,
         remaining_amount: totalAmount - paidAmount,
         status: formData.saveAsDraft ? 'draft' : 'posted',
         recorded_by: user?.id || '',
         created_at: new Date().toISOString(),
-        is_transferred: formData.transferToLedger
+        is_transferred: false
       };
 
       // إضافة القيد الجديد
@@ -323,15 +344,14 @@ export default function DailyJournal() {
       setIsDialogOpen(false);
       setFormData({
         type: 'revenue',
+        subType: "",
         title: "",
         description: "",
-        debitAccount: "",
-        creditAccount: "",
         totalAmount: "",
         paidAmount: "",
         attachments: [],
-        transferToLedger: false,
-        saveAsDraft: false
+        saveAsDraft: false,
+        employeeId: ""
       });
       
     } catch (error: any) {
@@ -495,38 +515,38 @@ export default function DailyJournal() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="debitAccount">الحساب المدين</Label>
-                        <Select value={formData.debitAccount} onValueChange={(value) => setFormData(prev => ({ ...prev, debitAccount: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الحساب المدين" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {debitAccounts.map((account) => (
-                              <SelectItem key={account} value={account}>
-                                {account}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="creditAccount">الحساب الدائن</Label>
-                        <Select value={formData.creditAccount} onValueChange={(value) => setFormData(prev => ({ ...prev, creditAccount: value }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الحساب الدائن" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {creditAccounts.map((account) => (
-                              <SelectItem key={account} value={account}>
-                                {account}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                       <div>
+                         <Label htmlFor="subType">فئة العملية</Label>
+                         <Select value={formData.subType} onValueChange={(value) => setFormData(prev => ({ ...prev, subType: value }))}>
+                           <SelectTrigger>
+                             <SelectValue placeholder={`اختر ${formData.type === 'revenue' ? 'نوع الإيراد' : 'نوع المصروف'}`} />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {(formData.type === 'revenue' ? revenueTypes : expenseTypes).map((type) => (
+                               <SelectItem key={type} value={type}>
+                                 {type}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       <div>
+                         <Label htmlFor="employee">الموظف/الوسيط المرتبط</Label>
+                         <Select value={formData.employeeId} onValueChange={(value) => setFormData(prev => ({ ...prev, employeeId: value }))}>
+                           <SelectTrigger>
+                             <SelectValue placeholder="اختر الموظف" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {employees.map((employee) => (
+                               <SelectItem key={employee.id} value={employee.id}>
+                                 {employee.name}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -565,30 +585,19 @@ export default function DailyJournal() {
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <Checkbox 
-                          id="transferToLedger"
-                          checked={formData.transferToLedger}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, transferToLedger: checked as boolean }))}
-                        />
-                        <Label htmlFor="transferToLedger" className="flex items-center gap-2">
-                          <RefreshCw className="h-4 w-4" />
-                          ترحيل مباشرة إلى دفتر الأستاذ
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <Checkbox 
-                          id="saveAsDraft"
-                          checked={formData.saveAsDraft}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, saveAsDraft: checked as boolean }))}
-                        />
-                        <Label htmlFor="saveAsDraft" className="flex items-center gap-2">
-                          <Save className="h-4 w-4" />
-                          حفظ كمسودة
-                        </Label>
-                      </div>
-                    </div>
+                     <div className="space-y-3">
+                       <div className="flex items-center space-x-2 space-x-reverse">
+                         <Checkbox 
+                           id="saveAsDraft"
+                           checked={formData.saveAsDraft}
+                           onCheckedChange={(checked) => setFormData(prev => ({ ...prev, saveAsDraft: checked as boolean }))}
+                         />
+                         <Label htmlFor="saveAsDraft" className="flex items-center gap-2">
+                           <Save className="h-4 w-4" />
+                           حفظ كمسودة
+                         </Label>
+                       </div>
+                     </div>
 
                     <div className="flex gap-3 pt-4 border-t">
                       <Button type="submit" className="flex-1">
