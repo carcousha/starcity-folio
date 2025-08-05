@@ -27,7 +27,7 @@ export default function AvatarUpload({
   onOpenUploadDialog
 }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(canEdit); // افتح dialog مباشرة إذا كان canEdit=true
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
