@@ -74,48 +74,112 @@ serve(async (req: Request) => {
       throw new Error("Missing required fields");
     }
 
-    console.log(`Creating user with email: ${email}`);
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-
-    if (userError) {
-      console.error("User creation error:", userError);
-      throw userError;
-    }
-
-    if (!userData.user) {
-      console.error("No user data returned");
-      throw new Error("Failed to create user - no user data returned");
-    }
-
-    const user = userData.user;
-    console.log(`User created successfully with ID: ${user.id}`);
-
-    console.log("Creating profile...");
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert({
-        user_id: user.id,
+    // التحقق من وجود المستخدم مسبقاً
+    console.log(`Checking if user exists with email: ${email}`);
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers.users.find(user => user.email === email);
+    
+    let user;
+    
+    if (existingUser) {
+      console.log(`User already exists with ID: ${existingUser.id}`);
+      user = existingUser;
+      
+      // تحديث كلمة المرور للمستخدم الموجود
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingUser.id,
+        { password }
+      );
+      
+      if (updateError) {
+        console.error("Error updating user password:", updateError);
+        throw updateError;
+      }
+      
+      console.log("Password updated successfully for existing user");
+    } else {
+      console.log(`Creating new user with email: ${email}`);
+      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        first_name,
-        last_name,
-        phone: phone || null,
-        role,
-      })
-      .select()
-      .single();
+        password,
+        email_confirm: true,
+      });
 
-    if (profileError) {
-      console.error("Profile creation error:", profileError);
-      console.log("Attempting to delete user due to profile creation failure...");
-      await supabaseAdmin.auth.admin.deleteUser(user.id);
-      throw profileError;
+      if (userError) {
+        console.error("User creation error:", userError);
+        throw userError;
+      }
+
+      if (!userData.user) {
+        console.error("No user data returned");
+        throw new Error("Failed to create user - no user data returned");
+      }
+
+      user = userData.user;
+      console.log(`User created successfully with ID: ${user.id}`);
     }
 
-    console.log("Profile created successfully:", profile.id);
+    console.log("Creating or updating profile...");
+    
+    // التحقق من وجود الملف الشخصي
+    const { data: existingProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    
+    let profile;
+    
+    if (existingProfile) {
+      console.log("Updating existing profile...");
+      const { data: updatedProfile, error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          email,
+          first_name,
+          last_name,
+          phone: phone || null,
+          role,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", user.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        throw updateError;
+      }
+      
+      profile = updatedProfile;
+      console.log("Profile updated successfully:", profile.id);
+    } else {
+      console.log("Creating new profile...");
+      const { data: newProfile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .insert({
+          user_id: user.id,
+          email,
+          first_name,
+          last_name,
+          phone: phone || null,
+          role,
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError);
+        if (!existingUser) {
+          console.log("Attempting to delete user due to profile creation failure...");
+          await supabaseAdmin.auth.admin.deleteUser(user.id);
+        }
+        throw profileError;
+      }
+      
+      profile = newProfile;
+      console.log("Profile created successfully:", profile.id);
+    }
 
     return new Response(
       JSON.stringify({ 
