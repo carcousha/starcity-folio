@@ -110,6 +110,8 @@ export default function Staff() {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState<string>('');
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; employee: Staff | null }>({
     open: false,
     employee: null
@@ -189,7 +191,7 @@ export default function Staff() {
       const { data, error } = await supabase.functions.invoke('create-employee-user', {
         body: {
           email: employee.email.trim(),
-          password: generateRandomPassword(), // Generate a temporary password
+          // لا نرسل كلمة المرور، سيتم توليدها تلقائياً
           first_name: employee.firstName.trim(),
           last_name: employee.lastName.trim(),
           phone: employee.phone?.trim() || null,
@@ -211,13 +213,10 @@ export default function Staff() {
         description: `تم إضافة الموظف ${data.first_name} ${data.last_name} بنجاح`,
       });
       
-      // عرض كلمة المرور المؤقتة للمدير
+      // عرض كلمة المرور في dialog منفصل
       if (data.temporary_password) {
-        toast({
-          title: "كلمة المرور المؤقتة",
-          description: `كلمة المرور: ${data.temporary_password} - يرجى إعطاؤها للموظف`,
-          duration: 10000, // عرض لـ 10 ثوان
-        });
+        setGeneratedPassword(data.temporary_password);
+        setPasswordDialogOpen(true);
       }
       
       // تحديث البيانات وإغلاق النموذج
@@ -907,6 +906,55 @@ export default function Staff() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Password Display Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>كلمة المرور المؤقتة</DialogTitle>
+            <DialogDescription>
+              هذه هي كلمة المرور المؤقتة للموظف الجديد. يرجى إعطاؤها للموظف لتسجيل الدخول.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-muted rounded-lg">
+              <Label className="text-sm font-medium">كلمة المرور:</Label>
+              <div className="flex items-center gap-2 mt-2">
+                <Input
+                  value={generatedPassword}
+                  readOnly
+                  className="font-mono text-lg text-center bg-background"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPassword);
+                    toast({
+                      title: "تم النسخ",
+                      description: "تم نسخ كلمة المرور إلى الحافظة",
+                    });
+                  }}
+                >
+                  نسخ
+                </Button>
+              </div>
+            </div>
+            
+            <div className="text-sm text-muted-foreground">
+              <p>⚠️ تأكد من إعطاء كلمة المرور للموظف بشكل آمن</p>
+              <p>• ينصح بتغيير كلمة المرور عند أول تسجيل دخول</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setPasswordDialogOpen(false)}>
+              تم
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
