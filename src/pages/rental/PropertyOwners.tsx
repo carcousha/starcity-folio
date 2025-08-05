@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { User, Phone, Mail, Globe, Calendar as CalendarIcon, IdCard, MapPin, MessageSquare, Languages, FileText, CheckCircle, X, Plus, Edit, Download, Search, MessageCircle } from 'lucide-react';
+import { User, Phone, Mail, Globe, Calendar as CalendarIcon, IdCard, MapPin, MessageSquare, Languages, FileText, CheckCircle, X, Plus, Edit, Download, Search, MessageCircle, Trash2 } from 'lucide-react';
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,8 @@ const PropertyOwners = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<PropertyOwner | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ownerToDelete, setOwnerToDelete] = useState<PropertyOwner | null>(null);
 
   const [formData, setFormData] = useState<PropertyOwnerForm>({
     full_name: '',
@@ -201,6 +204,37 @@ const PropertyOwners = () => {
       status: owner.status
     });
     setDialogOpen(true);
+  };
+
+  // Delete owner
+  const handleDelete = async () => {
+    if (!ownerToDelete) return;
+    
+    setLoading(true);
+    try {
+      // Here you would typically delete from Supabase
+      // await supabase.from('property_owners').delete().eq('id', ownerToDelete.id);
+      
+      // For now, remove from local state
+      setOwners(owners.filter(owner => owner.id !== ownerToDelete.id));
+      
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف المالك بنجاح",
+      });
+      
+      setDeleteDialogOpen(false);
+      setOwnerToDelete(null);
+    } catch (error) {
+      console.error('Error deleting owner:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف المالك",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // WhatsApp message
@@ -677,28 +711,40 @@ const PropertyOwners = () => {
                       <TableCell>{owner.email}</TableCell>
                       <TableCell>{owner.nationality}</TableCell>
                       <TableCell>{getStatusBadge(owner.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(owner)}
-                            className="flex items-center gap-1"
-                          >
-                            <Edit className="h-3 w-3" />
-                            تعديل
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleWhatsApp(owner.phone)}
-                            className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                          >
-                            <MessageCircle className="h-3 w-3" />
-                            واتساب
-                          </Button>
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <div className="flex gap-2">
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => handleEdit(owner)}
+                             className="flex items-center gap-1"
+                           >
+                             <Edit className="h-3 w-3" />
+                             تعديل
+                           </Button>
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => {
+                               setOwnerToDelete(owner);
+                               setDeleteDialogOpen(true);
+                             }}
+                             className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                           >
+                             <Trash2 className="h-3 w-3" />
+                             حذف
+                           </Button>
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => handleWhatsApp(owner.phone)}
+                             className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
+                           >
+                             <MessageCircle className="h-3 w-3" />
+                             واتساب
+                           </Button>
+                         </div>
+                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -706,6 +752,19 @@ const PropertyOwners = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="تأكيد الحذف"
+          description={`هل أنت متأكد من حذف المالك "${ownerToDelete?.full_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+          confirmText="حذف"
+          cancelText="إلغاء"
+          variant="destructive"
+          onConfirm={handleDelete}
+          loading={loading}
+        />
       </div>
     </div>
   );

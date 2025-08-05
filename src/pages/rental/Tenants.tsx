@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet } from 'lucide-react';
+import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -42,6 +43,8 @@ const RentalTenants = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<RentalTenant | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tenantToDelete, setTenantToDelete] = useState<RentalTenant | null>(null);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -172,6 +175,35 @@ const RentalTenants = () => {
       notes: tenant.notes || ''
     });
     setIsDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!tenantToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('rental_tenants')
+        .delete()
+        .eq('id', tenantToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف المستأجر بنجاح",
+      });
+
+      setDeleteDialogOpen(false);
+      setTenantToDelete(null);
+      fetchTenants();
+    } catch (error) {
+      console.error('Error deleting tenant:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف المستأجر",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleWhatsApp = (phone: string) => {
@@ -600,24 +632,36 @@ const RentalTenants = () => {
                   </TableCell>
                    <TableCell>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleWhatsApp(tenant.phone)}
-                        title="إرسال رسالة واتس آب"
-                        className="bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(tenant)}
-                      >
-                        <Edit className="h-4 w-4 ml-2" />
-                        تعديل
-                      </Button>
-                    </div>
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => handleWhatsApp(tenant.phone)}
+                         title="إرسال رسالة واتس آب"
+                         className="bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
+                       >
+                         <MessageCircle className="h-4 w-4" />
+                       </Button>
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => handleEdit(tenant)}
+                       >
+                         <Edit className="h-4 w-4 ml-2" />
+                         تعديل
+                       </Button>
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           setTenantToDelete(tenant);
+                           setDeleteDialogOpen(true);
+                         }}
+                         className="text-red-600 border-red-200 hover:bg-red-50"
+                       >
+                         <Trash2 className="h-4 w-4 ml-2" />
+                         حذف
+                       </Button>
+                     </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -631,6 +675,19 @@ const RentalTenants = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="تأكيد الحذف"
+        description={`هل أنت متأكد من حذف المستأجر "${tenantToDelete?.full_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+        confirmText="حذف"
+        cancelText="إلغاء"
+        variant="destructive"
+        onConfirm={handleDelete}
+        loading={loading}
+      />
     </div>
   );
 };
