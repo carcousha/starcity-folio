@@ -3229,11 +3229,11 @@ export type Database = {
       }
       log_auth_attempt: {
         Args: {
-          attempt_type: string
-          user_identifier: string
-          success: boolean
-          error_message?: string
-          metadata?: Json
+          attempt_type_param: string
+          user_identifier_param: string
+          success_param: boolean
+          error_message_param?: string
+          metadata_param?: Json
         }
         Returns: string
       }
@@ -3325,12 +3325,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_input_security: {
+        Args: { input_text: string; input_type?: string }
+        Returns: boolean
+      }
       validate_password_strength: {
+        Args: { password: string }
+        Returns: Json
+      }
+      validate_password_strength_enhanced: {
         Args: { password: string }
         Returns: Json
       }
       validate_role_access: {
         Args: { required_role: Database["public"]["Enums"]["app_role"] }
+        Returns: boolean
+      }
+      validate_session_security: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
