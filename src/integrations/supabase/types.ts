@@ -3290,11 +3290,17 @@ export type Database = {
         Returns: undefined
       }
       secure_role_change: {
-        Args: {
-          target_user_id: string
-          new_role: Database["public"]["Enums"]["app_role"]
-        }
-        Returns: boolean
+        Args:
+          | {
+              target_user_id: string
+              new_role: Database["public"]["Enums"]["app_role"]
+            }
+          | {
+              target_user_id: string
+              new_role: Database["public"]["Enums"]["app_role"]
+              reason?: string
+            }
+        Returns: Json
       }
       security_audit_summary: {
         Args: Record<PropertyKey, never>

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Eye, EyeOff, Building, Shield, Lock } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Building, Shield, Lock, CheckCircle, XCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -104,10 +105,10 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
       if (error) {
         // Log failed attempt server-side
         await supabase.rpc('log_auth_attempt', {
-          attempt_type: 'sign_in',
-          user_identifier: email,
-          success: false,
-          error_message: error.message
+          attempt_type_param: 'sign_in',
+          user_identifier_param: email,
+          success_param: false,
+          error_message_param: error.message
         });
         
         // Generic error message for security
@@ -117,9 +118,9 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
       // Log successful attempt server-side
       await supabase.rpc('log_auth_attempt', {
-        attempt_type: 'sign_in',
-        user_identifier: email,
-        success: true
+        attempt_type_param: 'sign_in',
+        user_identifier_param: email,
+        success_param: true
       });
       
       toast({
@@ -172,10 +173,10 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
       if (error) {
         // Log failed attempt server-side
         await supabase.rpc('log_auth_attempt', {
-          attempt_type: 'sign_up',
-          user_identifier: signUpForm.email.trim().toLowerCase(),
-          success: false,
-          error_message: error.message
+          attempt_type_param: 'sign_up',
+          user_identifier_param: signUpForm.email.trim().toLowerCase(),
+          success_param: false,
+          error_message_param: error.message
         });
         
         // Generic error message for security
@@ -185,9 +186,9 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
       // Log successful attempt server-side
       await supabase.rpc('log_auth_attempt', {
-        attempt_type: 'sign_up',
-        user_identifier: signUpForm.email.trim().toLowerCase(),
-        success: true
+        attempt_type_param: 'sign_up',
+        user_identifier_param: signUpForm.email.trim().toLowerCase(),
+        success_param: true
       });
 
       toast({
