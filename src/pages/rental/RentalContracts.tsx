@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface ContractFormData {
   contract_number: string;
@@ -513,15 +514,24 @@ const CreateContractForm = () => {
 
 const ContractsList = () => {
   const queryClient = useQueryClient();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contractToDelete, setContractToDelete] = useState<any>(null);
 
   const deleteContractMutation = useMutation({
     mutationFn: async (contractId: string) => {
+      console.log('Attempting to delete contract with ID:', contractId);
+      
       const { error } = await supabase
         .from('rental_contracts')
         .delete()
         .eq('id', contractId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+      
+      console.log('Contract deleted successfully');
     },
     onSuccess: () => {
       toast({
@@ -529,8 +539,11 @@ const ContractsList = () => {
         description: "تم حذف العقد من النظام"
       });
       queryClient.invalidateQueries({ queryKey: ['rental-contracts'] });
+      setDeleteDialogOpen(false);
+      setContractToDelete(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Delete mutation error:', error);
       toast({
         title: "خطأ في حذف العقد",
         description: error.message || "حدث خطأ أثناء حذف العقد",
@@ -538,6 +551,17 @@ const ContractsList = () => {
       });
     }
   });
+
+  const handleDeleteClick = (contract: any) => {
+    setContractToDelete(contract);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (contractToDelete) {
+      deleteContractMutation.mutate(contractToDelete.id);
+    }
+  };
 
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ['rental-contracts'],
@@ -642,8 +666,9 @@ const ContractsList = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => deleteContractMutation.mutate(contract.id)}
+                    onClick={() => handleDeleteClick(contract)}
                     disabled={deleteContractMutation.isPending}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     حذف
@@ -653,6 +678,19 @@ const ContractsList = () => {
             ))}
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="تأكيد الحذف"
+          description={`هل أنت متأكد من حذف العقد رقم "${contractToDelete?.contract_number}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+          confirmText="حذف"
+          cancelText="إلغاء"
+          variant="destructive"
+          onConfirm={handleConfirmDelete}
+          loading={deleteContractMutation.isPending}
+        />
       </CardContent>
     </Card>
   );
