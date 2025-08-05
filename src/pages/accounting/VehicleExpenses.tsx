@@ -220,16 +220,20 @@ export default function VehicleExpenses() {
       const vehicle = vehicles.find(v => v.id === formData.vehicle_id);
       const expenseTypeLabel = expenseTypes.find(t => t.value === formData.expense_type)?.label;
       
+      const expenseData = {
+        title: `مصروف سيارة - ${expenseTypeLabel}`,
+        description: `${vehicle?.make} ${vehicle?.model} (${vehicle?.license_plate}) - ${formData.description || ''}`,
+        amount: parseFloat(formData.amount),
+        category: "مواصلات",
+        expense_date: formData.expense_date,
+        recorded_by: profile.user_id
+      };
+      
+      console.log('Expense data to insert:', expenseData);
+      
       await supabase
         .from('expenses')
-        .insert([{
-          title: `مصروف سيارة - ${expenseTypeLabel}`,
-          description: `${vehicle?.make} ${vehicle?.model} (${vehicle?.license_plate}) - ${formData.description || ''}`,
-          amount: parseFloat(formData.amount),
-          category: "مواصلات",
-          expense_date: formData.expense_date,
-          recorded_by: profile.user_id
-        }]);
+        .insert([expenseData]);
 
       // If assigned to employee, add to debts
       if (formData.debt_assignment === 'employee' && formData.assigned_employee) {
