@@ -319,6 +319,7 @@ export default function Staff() {
       return data.temporary_password;
     },
     onSuccess: (newPassword) => {
+      console.log('🔑 Reset password success:', newPassword);
       setGeneratedPassword(newPassword);
       setPasswordDialogOpen(true);
       toast({
@@ -336,6 +337,7 @@ export default function Staff() {
   });
 
   const resetEmployeePassword = (employee: Staff) => {
+    console.log('🔄 Reset password clicked for:', employee);
     resetPasswordMutation.mutate(employee);
   };
 
@@ -960,7 +962,10 @@ export default function Staff() {
       )}
 
       {/* Password Display Dialog */}
-      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+      <Dialog open={passwordDialogOpen} onOpenChange={(open) => {
+        console.log('🔓 Password dialog state changed:', open);
+        setPasswordDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle>كلمة المرور المؤقتة</DialogTitle>
@@ -970,6 +975,14 @@ export default function Staff() {
           </DialogHeader>
           
           <div className="space-y-4">
+            {(() => {
+              console.log('🔓 Dialog content rendering with:', {
+                passwordDialogOpen,
+                generatedPassword,
+                generatedPasswordLength: generatedPassword?.length
+              });
+              return null;
+            })()}
             <div className="p-4 bg-muted rounded-lg">
               <Label className="text-sm font-medium">كلمة المرور:</Label>
               <div className="flex items-center gap-2 mt-2">
