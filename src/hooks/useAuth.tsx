@@ -78,9 +78,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
+    console.log('useAuth: Setting up auth state listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -90,16 +93,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const profileData = await fetchProfile(session.user.id);
             setProfile(profileData);
             setLoading(false);
+            console.log('useAuth: Profile loaded from auth state change', profileData);
           }, 0);
         } else {
           setProfile(null);
           setLoading(false);
+          console.log('useAuth: No session, clearing profile');
         }
       }
     );
 
     // Check for existing session
+    console.log('useAuth: Checking for existing session');
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('useAuth: Existing session check', { userId: session?.user?.id });
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -108,9 +115,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           const profileData = await fetchProfile(session.user.id);
           setProfile(profileData);
           setLoading(false);
+          console.log('useAuth: Profile loaded from existing session', profileData);
         }, 0);
       } else {
         setLoading(false);
+        console.log('useAuth: No existing session found');
       }
     });
 
