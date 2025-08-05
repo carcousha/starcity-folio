@@ -102,8 +102,12 @@ const CreateContractForm = () => {
       const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
       const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
 
-      // توليد رقم عقد تلقائي
-      const contractNumber = `CON-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+      // توليد رقم عقد تلقائي بتسلسل أفضل
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+      const contractNumber = `CON-${year}${month}-${randomNum}`;
 
       const { data, error } = await supabase
         .from('rental_contracts')
@@ -613,7 +617,7 @@ const ContractsList = () => {
               <div key={contract.id} className="border rounded-lg p-4 bg-card">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-lg">عقد الإيجار</h3>
+                    <h3 className="font-medium text-lg">عقد رقم: {contract.contract_number}</h3>
                     <p className="text-sm text-muted-foreground">
                       الوحدة: {contract.unit_number} ({contract.unit_type})
                     </p>
@@ -676,7 +680,7 @@ const ContractsList = () => {
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
           title="تأكيد الحذف"
-          description={`هل أنت متأكد من حذف العقد؟ هذا الإجراء لا يمكن التراجع عنه.`}
+          description={`هل أنت متأكد من حذف العقد رقم "${contractToDelete?.contract_number}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
           confirmText="حذف"
           cancelText="إلغاء"
           variant="destructive"
