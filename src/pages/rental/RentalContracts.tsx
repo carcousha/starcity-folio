@@ -25,7 +25,6 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface ContractFormData {
-  contract_number: string;
   property_title: string;
   location: string;
   tenant_name: string;
@@ -44,7 +43,6 @@ interface ContractFormData {
 
 const CreateContractForm = () => {
   const [formData, setFormData] = useState<ContractFormData>({
-    contract_number: '',
     property_title: '',
     location: '',
     tenant_name: '',
@@ -104,10 +102,13 @@ const CreateContractForm = () => {
       const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
       const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
 
+      // توليد رقم عقد تلقائي
+      const contractNumber = `CON-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+
       const { data, error } = await supabase
         .from('rental_contracts')
         .insert({
-          contract_number: contractData.contract_number,
+          contract_number: contractNumber,
           property_id: contractData.property_id,
           tenant_id: contractData.tenant_id,
           property_title: contractData.property_title,
@@ -140,7 +141,6 @@ const CreateContractForm = () => {
       
       // إعادة تعيين النموذج
       setFormData({
-        contract_number: '',
         property_title: '',
         location: '',
         tenant_name: '',
@@ -169,7 +169,7 @@ const CreateContractForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.contract_number || !formData.property_title || !formData.tenant_name || !formData.rent_amount) {
+    if (!formData.property_title || !formData.tenant_name || !formData.rent_amount) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -235,18 +235,7 @@ const CreateContractForm = () => {
               معلومات العقد الأساسية
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contract_number">رقم العقد*</Label>
-                <Input
-                  id="contract_number"
-                  value={formData.contract_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contract_number: e.target.value }))}
-                  placeholder="مثال: CON-2024-001"
-                  required
-                />
-              </div>
-              
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="unit_number">رقم الوحدة*</Label>
                 <Input
@@ -624,7 +613,10 @@ const ContractsList = () => {
               <div key={contract.id} className="border rounded-lg p-4 bg-card">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-lg">عقد رقم: {contract.contract_number}</h3>
+                    <h3 className="font-medium text-lg">عقد الإيجار</h3>
+                    <p className="text-sm text-muted-foreground">
+                      الوحدة: {contract.unit_number} ({contract.unit_type})
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       العقار: {contract.rental_properties?.property_title} - {contract.rental_properties?.property_address}
                     </p>
@@ -684,7 +676,7 @@ const ContractsList = () => {
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
           title="تأكيد الحذف"
-          description={`هل أنت متأكد من حذف العقد رقم "${contractToDelete?.contract_number}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+          description={`هل أنت متأكد من حذف العقد؟ هذا الإجراء لا يمكن التراجع عنه.`}
           confirmText="حذف"
           cancelText="إلغاء"
           variant="destructive"
