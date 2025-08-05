@@ -38,6 +38,8 @@ const CommissionManagementNew = () => {
   
   // Form states
   const [clientName, setClientName] = useState("");
+  const [transactionName, setTransactionName] = useState("");
+  const [transactionDescription, setTransactionDescription] = useState("");
   const [transactionType, setTransactionType] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [amount, setAmount] = useState("");
@@ -94,6 +96,8 @@ const CommissionManagementNew = () => {
       
       // Reset form
       setClientName("");
+      setTransactionName("");
+      setTransactionDescription("");
       setTransactionType("");
       setPropertyType("");
       setAmount("");
@@ -130,7 +134,7 @@ const CommissionManagementNew = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!clientName || !transactionType || !propertyType || !amount) {
+    if (!clientName || !transactionName || !transactionType || !propertyType || !amount) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -230,6 +234,27 @@ const CommissionManagementNew = () => {
                       onChange={(e) => setClientName(e.target.value)}
                       placeholder="أدخل اسم العميل"
                       required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="transactionName">اسم المعاملة</Label>
+                    <Input
+                      id="transactionName"
+                      value={transactionName}
+                      onChange={(e) => setTransactionName(e.target.value)}
+                      placeholder="أدخل اسم المعاملة"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="transactionDescription">وصف المعاملة</Label>
+                    <Input
+                      id="transactionDescription"
+                      value={transactionDescription}
+                      onChange={(e) => setTransactionDescription(e.target.value)}
+                      placeholder="أدخل وصف تفصيلي للمعاملة"
                     />
                   </div>
                   
