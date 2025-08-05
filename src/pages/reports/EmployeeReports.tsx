@@ -120,19 +120,19 @@ export default function EmployeeReports() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">تقارير الموظفين</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">تقارير الموظفين</h1>
           <p className="text-muted-foreground">
             العمولات والمديونيات وأداء الموظفين التفصيلي
           </p>
         </div>
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <Button variant="outline" onClick={handleExportPDF}>
+        <div className="flex items-center gap-2 w-full lg:w-auto">
+          <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none">
             <Download className="h-4 w-4 ml-2" />
             PDF
           </Button>
-          <Button variant="outline" onClick={handleExportExcel}>
+          <Button variant="outline" onClick={handleExportExcel} className="flex-1 lg:flex-none">
             <Download className="h-4 w-4 ml-2" />
             Excel
           </Button>
@@ -140,7 +140,7 @@ export default function EmployeeReports() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center space-x-4 space-x-reverse">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -150,18 +150,20 @@ export default function EmployeeReports() {
             className="pr-10"
           />
         </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 ml-2" />
-          فلتر
-        </Button>
-        <Button variant="outline">
-          <Calendar className="h-4 w-4 ml-2" />
-          الفترة
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1 sm:flex-none">
+            <Filter className="h-4 w-4 ml-2" />
+            فلتر
+          </Button>
+          <Button variant="outline" className="flex-1 sm:flex-none">
+            <Calendar className="h-4 w-4 ml-2" />
+            الفترة
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -173,8 +175,8 @@ export default function EmployeeReports() {
                   {filteredReports.length}
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-blue-50">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="p-3 rounded-full bg-primary/10">
+                <Users className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -191,8 +193,8 @@ export default function EmployeeReports() {
                   {filteredReports.reduce((sum, report) => sum + (report.total_commissions || 0), 0).toLocaleString()} د.إ
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-green-50">
-                <HandCoins className="h-6 w-6 text-green-600" />
+              <div className="p-3 rounded-full bg-green-500/10">
+                <HandCoins className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
@@ -209,8 +211,8 @@ export default function EmployeeReports() {
                   {filteredReports.reduce((sum, report) => sum + (report.total_debts || 0), 0).toLocaleString()} د.إ
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-red-50">
-                <FileText className="h-6 w-6 text-red-600" />
+              <div className="p-3 rounded-full bg-red-500/10">
+                <FileText className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
             </div>
           </CardContent>
@@ -227,8 +229,8 @@ export default function EmployeeReports() {
                   {filteredReports.reduce((sum, report) => sum + (report.net_commissions || 0), 0).toLocaleString()} د.إ
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-yellow-50">
-                <TrendingUp className="h-6 w-6 text-yellow-600" />
+              <div className="p-3 rounded-full bg-yellow-500/10">
+                <TrendingUp className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
               </div>
             </div>
           </CardContent>
@@ -246,8 +248,8 @@ export default function EmployeeReports() {
         <CardContent>
           <div className="space-y-4">
             {filteredReports.map((report) => (
-              <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4 space-x-reverse">
+              <div key={report.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 border rounded-lg hover-glow transition-all">
+                <div className="flex items-center space-x-4 space-x-reverse mb-4 lg:mb-0">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="text-sm font-bold text-primary">
                       {report.first_name[0]}{report.last_name[0]}
@@ -265,7 +267,7 @@ export default function EmployeeReports() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-4 gap-8 text-sm">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8 text-sm">
                   <div className="text-center">
                     <p className="text-muted-foreground">العمولات</p>
                     <p className="font-bold text-green-600">
