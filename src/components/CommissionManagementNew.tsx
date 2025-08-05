@@ -189,25 +189,28 @@ const CommissionManagementNew = () => {
         </p>
       </div>
 
-      {/* System Info */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Target className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-semibold text-blue-800">النظام الجديد 50/50</h3>
-              <div className="space-y-1 text-sm text-blue-700">
-                <p>• 50% للمكتب (نسبة ثابتة غير قابلة للتغيير)</p>
-                <p>• 50% للموظفين (يمكن توزيعها بالتساوي أو بنسب مخصصة)</p>
-                <p>• أي نسبة غير مستخدمة من نصيب الموظفين تعود تلقائياً للمكتب</p>
-                <p>• ربط تلقائي مع نظام الرواتب وخصم الديون</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Real-time Visualization */}
+      {amount && selectedEmployees.length > 0 && (
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <Target className="h-5 w-5" />
+              محاكاة توزيع العمولة
+            </CardTitle>
+            <CardDescription className="text-blue-600">
+              معاينة توزيع العمولة في الوقت الحقيقي قبل الحفظ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CommissionDistributionForm
+              totalCommission={parseFloat(amount || "0")}
+              selectedEmployees={selectedEmployees}
+              onDistributionChange={handleDistributionChange}
+              showVisualization={true}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Commission Form */}
       <Card>
@@ -338,14 +341,6 @@ const CommissionManagementNew = () => {
               )}
             </div>
 
-            {/* Distribution Preview */}
-            {selectedEmployees.length > 0 && amount && (
-              <CommissionDistributionForm
-                totalCommission={parseFloat(amount || "0")}
-                selectedEmployees={selectedEmployees}
-                onDistributionChange={handleDistributionChange}
-              />
-            )}
 
             {/* Quick Summary */}
             {amount && (
