@@ -189,30 +189,7 @@ const CommissionManagementNew = () => {
         </p>
       </div>
 
-      {/* Real-time Visualization */}
-      {amount && selectedEmployees.length > 0 && (
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <Target className="h-5 w-5" />
-              محاكاة توزيع العمولة
-            </CardTitle>
-            <CardDescription className="text-blue-600">
-              معاينة توزيع العمولة في الوقت الحقيقي قبل الحفظ
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CommissionDistributionForm
-              totalCommission={parseFloat(amount || "0")}
-              selectedEmployees={selectedEmployees}
-              onDistributionChange={handleDistributionChange}
-              showVisualization={true}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Commission Form */}
+      {/* 1. Commission Form - إضافة عمولة جديدة */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -387,6 +364,116 @@ const CommissionManagementNew = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* 2. Real-time Visualization - محاكاة التوزيع */}
+      {amount && selectedEmployees.length > 0 && (
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <Target className="h-5 w-5" />
+              محاكاة توزيع العمولة
+            </CardTitle>
+            <CardDescription className="text-blue-600">
+              معاينة توزيع العمولة في الوقت الحقيقي قبل الحفظ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CommissionDistributionForm
+              totalCommission={parseFloat(amount || "0")}
+              selectedEmployees={selectedEmployees}
+              onDistributionChange={handleDistributionChange}
+              showVisualization={true}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 3. Custom Percentages Section - تخصيص النسب */}
+      {amount && selectedEmployees.length > 1 && distributionMode === 'custom' && (
+        <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <Settings className="h-5 w-5" />
+              تخصيص النسب للموظفين
+            </CardTitle>
+            <CardDescription className="text-orange-600">
+              قم بتحديد النسبة المطلوبة لكل موظف من إجمالي نصيب الموظفين (50%)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {selectedEmployees.map((employee) => (
+                <div key={employee.employee_id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <span className="text-orange-800 font-medium">
+                        {employee.first_name.charAt(0)}{employee.last_name.charAt(0)}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {employee.first_name} {employee.last_name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        المبلغ: {((customPercentages[employee.employee_id] || 0) * parseFloat(amount || "0") * 0.5 / 100).toFixed(2)} د.إ
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={customPercentages[employee.employee_id] || ""}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0;
+                        setCustomPercentages(prev => ({
+                          ...prev,
+                          [employee.employee_id]: value
+                        }));
+                      }}
+                      placeholder="0"
+                      className="w-20 text-center"
+                    />
+                    <span className="text-sm text-gray-500">%</span>
+                  </div>
+                </div>
+              ))}
+              
+              {/* التحقق من مجموع النسب */}
+              <div className="mt-4 p-4 rounded-lg bg-gray-50">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">إجمالي النسب المخصصة:</span>
+                  <span className={`font-bold ${
+                    Object.values(customPercentages).reduce((sum, p) => sum + p, 0) > 100 
+                      ? 'text-red-600' 
+                      : 'text-green-600'
+                  }`}>
+                    {Object.values(customPercentages).reduce((sum, p) => sum + p, 0).toFixed(1)}%
+                  </span>
+                </div>
+                
+                {Object.values(customPercentages).reduce((sum, p) => sum + p, 0) > 100 && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-800 text-sm">
+                      ⚠️ تحذير: إجمالي النسب يتجاوز 100%. يرجى تعديل النسب.
+                    </p>
+                  </div>
+                )}
+                
+                {Object.values(customPercentages).reduce((sum, p) => sum + p, 0) < 100 && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-800 text-sm">
+                      ℹ️ النسبة المتبقية ({(100 - Object.values(customPercentages).reduce((sum, p) => sum + p, 0)).toFixed(1)}%) ستعود للمكتب
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
