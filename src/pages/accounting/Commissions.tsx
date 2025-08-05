@@ -7,10 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, CheckCircle, DollarSign, TrendingUp, Users, Wrench, AlertTriangle, Plus, X, UserPlus } from "lucide-react";
+import { Calculator, CheckCircle, DollarSign, TrendingUp, Users, Wrench, AlertTriangle, Plus, X, UserPlus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import CommissionManagementNew from "@/components/CommissionManagementNew";
 
 // مكون إضافة عمولة جديدة
 const AddCommissionForm = () => {
@@ -599,17 +600,25 @@ export default function Commissions() {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="add-commission" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="new-system" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="new-system" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            النظام الجديد 50/50
+          </TabsTrigger>
           <TabsTrigger value="add-commission" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            إضافة عمولة
+            النظام القديم
           </TabsTrigger>
           <TabsTrigger value="commission-history" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             العمولات السابقة
           </TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="new-system">
+          <CommissionManagementNew />
+        </TabsContent>
         
         <TabsContent value="add-commission">
           <AddCommissionForm />
