@@ -116,16 +116,44 @@ serve(async (req: Request) => {
 
       if (userError) {
         console.error("User creation error:", userError);
-        throw userError;
-      }
+        
+        // إذا كان الخطأ بسبب وجود المستخدم مسبقاً، حاول العثور عليه مرة أخرى
+        if (userError.message.includes("already been registered")) {
+          console.log("User exists, trying to find user again...");
+          const { data: retryUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const retryUser = retryUsers.users.find(u => u.email === email);
+          
+          if (retryUser) {
+            console.log(`Found existing user on retry: ${retryUser.id}`);
+            user = retryUser;
+            
+            // تحديث كلمة المرور
+            const { error: retryUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
+              retryUser.id,
+              { password: finalPassword }
+            );
+            
+            if (retryUpdateError) {
+              console.error("Error updating password on retry:", retryUpdateError);
+              throw retryUpdateError;
+            }
+            
+            console.log("Password updated successfully on retry");
+          } else {
+            throw userError;
+          }
+        } else {
+          throw userError;
+        }
+      } else {
+        if (!userData.user) {
+          console.error("No user data returned");
+          throw new Error("Failed to create user - no user data returned");
+        }
 
-      if (!userData.user) {
-        console.error("No user data returned");
-        throw new Error("Failed to create user - no user data returned");
+        user = userData.user;
+        console.log(`User created successfully with ID: ${user.id}`);
       }
-
-      user = userData.user;
-      console.log(`User created successfully with ID: ${user.id}`);
     }
 
     console.log("Creating or updating profile...");

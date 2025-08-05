@@ -981,12 +981,37 @@ export default function Staff() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(generatedPassword);
-                    toast({
-                      title: "تم النسخ",
-                      description: "تم نسخ كلمة المرور إلى الحافظة",
-                    });
+                  onClick={async () => {
+                    try {
+                      // Try using the modern clipboard API first
+                      if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(generatedPassword);
+                      } else {
+                        // Fallback for older browsers or non-secure contexts
+                        const textArea = document.createElement('textarea');
+                        textArea.value = generatedPassword;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-999999px';
+                        textArea.style.top = '-999999px';
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        document.execCommand('copy');
+                        textArea.remove();
+                      }
+                      
+                      toast({
+                        title: "تم النسخ",
+                        description: "تم نسخ كلمة المرور إلى الحافظة",
+                      });
+                    } catch (error) {
+                      console.error('Copy failed:', error);
+                      toast({
+                        title: "فشل النسخ",
+                        description: "لم يتم نسخ كلمة المرور. يرجى نسخها يدوياً",
+                        variant: "destructive",
+                      });
+                    }
                   }}
                 >
                   نسخ
