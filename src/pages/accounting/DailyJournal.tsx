@@ -82,9 +82,9 @@ export default function DailyJournal() {
   const [filters, setFilters] = useState<FilterState>({
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
-    employee: '',
-    status: '',
-    entryType: ''
+    employee: 'all',
+    status: 'all',
+    entryType: 'all'
   });
 
   const [formData, setFormData] = useState({
@@ -124,14 +124,14 @@ export default function DailyJournal() {
   const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
 
   const statusOptions = [
-    { value: '', label: 'جميع الحالات' },
+    { value: 'all', label: 'جميع الحالات' },
     { value: 'draft', label: 'مسودة' },
     { value: 'posted', label: 'مرحّل' },
     { value: 'approved', label: 'معتمد' }
   ];
 
   const entryTypes = [
-    { value: '', label: 'جميع الأنواع' },
+    { value: 'all', label: 'جميع الأنواع' },
     { value: 'revenue', label: 'إيراد' },
     { value: 'expense', label: 'مصروف' }
   ];
@@ -230,11 +230,11 @@ export default function DailyJournal() {
       // تطبيق الفلاتر
       let filtered = journalEntries;
       
-      if (filters.status) {
+      if (filters.status && filters.status !== 'all') {
         filtered = filtered.filter(entry => entry.status === filters.status);
       }
       
-      if (filters.entryType) {
+      if (filters.entryType && filters.entryType !== 'all') {
         filtered = filtered.filter(entry => entry.type === filters.entryType);
       }
 
@@ -516,9 +516,9 @@ export default function DailyJournal() {
     setFilters({
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0],
-      employee: '',
-      status: '',
-      entryType: ''
+      employee: 'all',
+      status: 'all',
+      entryType: 'all'
     });
     setSearchTerm('');
     fetchJournalData();
@@ -766,7 +766,7 @@ export default function DailyJournal() {
                   <ChevronDown className={`h-4 w-4 mr-2 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                 </Button>
                 
-                {(searchTerm || filters.status || filters.entryType) && (
+                {(searchTerm || (filters.status !== 'all') || (filters.entryType !== 'all')) && (
                   <Button variant="ghost" size="sm" onClick={resetFilters}>
                     <X className="h-4 w-4 ml-2" />
                     مسح الفلاتر
@@ -802,11 +802,11 @@ export default function DailyJournal() {
                       <SelectTrigger className="h-8">
                         <SelectValue placeholder="الكل" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">جميع الموظفين</SelectItem>
-                        <SelectItem value="emp1">أحمد محمد</SelectItem>
-                        <SelectItem value="emp2">فاطمة علي</SelectItem>
-                      </SelectContent>
+                       <SelectContent>
+                         <SelectItem value="all">جميع الموظفين</SelectItem>
+                         <SelectItem value="emp1">أحمد محمد</SelectItem>
+                         <SelectItem value="emp2">فاطمة علي</SelectItem>
+                       </SelectContent>
                     </Select>
                   </div>
                   <div>
