@@ -72,6 +72,75 @@ export const StarcityHomeMockup = () => {
     }
   });
 
+  // جلب أفضل الموظفين من البيانات الحقيقية
+  const { data: topEmployees } = useQuery({
+    queryKey: ['top-employees'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('commission_employees')
+        .select(`
+          *,
+          commissions!inner (
+            client_name,
+            total_commission
+          ),
+          employee_id
+        `)
+        .order('calculated_share', { ascending: false })
+        .limit(5);
+      
+      return data || [];
+    }
+  });
+
+  // جلب المهام الحقيقية للمستخدم الحالي
+  const { data: userTasks } = useQuery({
+    queryKey: ['user-tasks', profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return [];
+      
+      const { data } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          task_assignments!inner (
+            assigned_to
+          )
+        `)
+        .eq('task_assignments.assigned_to', profile.user_id)
+        .eq('due_date', new Date().toISOString().split('T')[0])
+        .order('created_at', { ascending: false })
+        .limit(6);
+      
+      return data || [];
+    },
+    enabled: !!profile?.user_id
+  });
+
+  // جلب إحصائيات المبيعات للشهور الستة الأخيرة
+  const { data: salesData } = useQuery({
+    queryKey: ['sales-chart'],
+    queryFn: async () => {
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const { data } = await supabase
+        .from('revenues')
+        .select('amount, created_at')
+        .gte('created_at', sixMonthsAgo.toISOString())
+        .order('created_at', { ascending: true });
+      
+      // تجميع البيانات بالشهر
+      const monthlyData = {};
+      data?.forEach(revenue => {
+        const month = new Date(revenue.created_at).getMonth();
+        monthlyData[month] = (monthlyData[month] || 0) + revenue.amount;
+      });
+      
+      return Object.values(monthlyData);
+    }
+  });
+
   const isLoading = financialLoading || statsLoading;
 
   // بطاقات KPI مع البيانات الحقيقية
@@ -132,105 +201,7 @@ export const StarcityHomeMockup = () => {
     }
   ];
 
-  // آخر النشاطات
-  const recentActivities = [
-    {
-      id: 1,
-      action: "إضافة مستأجر جديد",
-      user: "أحمد محمد السالم",
-      time: "منذ 5 دقائق",
-      type: "tenant"
-    },
-    {
-      id: 2,
-      action: "توقيع صفقة بيع",
-      user: "فاطمة علي الزهراني",
-      time: "منذ 12 دقيقة",
-      type: "deal"
-    },
-    {
-      id: 3,
-      action: "دفعة إيجار شهرية",
-      user: "محمد حسن القحطاني",
-      time: "منذ 18 دقيقة",
-      type: "payment"
-    },
-    {
-      id: 4,
-      action: "تحديث بيانات عقار",
-      user: "سارة أحمد الغامدي",
-      time: "منذ 25 دقيقة",
-      type: "property"
-    },
-    {
-      id: 5,
-      action: "معاملة حكومية مكتملة",
-      user: "خالد عبدالله النعيمي",
-      time: "منذ 32 دقيقة",
-      type: "government"
-    },
-    {
-      id: 6,
-      action: "إضافة عميل محتمل",
-      user: "نورا محمد الشهري",
-      time: "منذ 45 دقيقة",
-      type: "lead"
-    },
-    {
-      id: 7,
-      action: "تجديد عقد إيجار",
-      user: "علي أحمد الدوسري",
-      time: "منذ ساعة",
-      type: "contract"
-    },
-    {
-      id: 8,
-      action: "إضافة صيانة عقار",
-      user: "ريم عبدالرحمن",
-      time: "منذ ساعتين",
-      type: "maintenance"
-    }
-  ];
-
-  // مهام اليوم
-  const todayTasks = [
-    {
-      id: 1,
-      task: "تجديد عقد إيجار شقة الملك فهد",
-      completed: false,
-      priority: "high"
-    },
-    {
-      id: 2,
-      task: "متابعة معاملة الإفراغ مع كتابة العدل",
-      completed: false,
-      priority: "high"
-    },
-    {
-      id: 3,
-      task: "تحصيل دفعة متأخرة من المستأجر أحمد سالم",
-      completed: true,
-      priority: "medium"
-    },
-    {
-      id: 4,
-      task: "موعد معاينة فيلا حي الورود",
-      completed: false,
-      priority: "medium"
-    },
-    {
-      id: 5,
-      task: "إرسال تقرير شهري للمالك",
-      completed: false,
-      priority: "low"
-    },
-    {
-      id: 6,
-      task: "مراجعة طلبات الصيانة الجديدة",
-      completed: true,
-      priority: "medium"
-    }
-  ];
+  // إزالة البيانات الوهمية - لن نستخدمها بعد الآن
 
   // روابط سريعة
   const quickActions = [
@@ -386,13 +357,18 @@ export const StarcityHomeMockup = () => {
             <CardContent>
               <div className="h-32 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg flex items-end justify-center p-4">
                 <div className="flex items-end gap-2 h-full w-full justify-around">
-                  {[65, 45, 78, 52, 82, 95].map((height, i) => (
-                    <div
-                      key={i}
-                      className="bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md transition-all duration-300 hover:from-blue-700 hover:to-blue-500"
-                      style={{ height: `${height}%`, width: '20px' }}
-                    />
-                  ))}
+                  {(salesData && salesData.length > 0 ? salesData : [65, 45, 78, 52, 82, 95]).map((value, i) => {
+                    const numericValue = typeof value === 'number' ? value : Number(value) || 0;
+                    const maxValue = Math.max(...(salesData || [100]).map(v => typeof v === 'number' ? v : Number(v) || 0));
+                    const height = maxValue > 0 ? (numericValue / maxValue * 100) : 50;
+                    return (
+                      <div
+                        key={i}
+                        className="bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md transition-all duration-300 hover:from-blue-700 hover:to-blue-500"
+                        style={{ height: `${Math.max(height, 10)}%`, width: '20px' }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
               <div className="flex justify-between mt-3 text-xs text-gray-500">
@@ -451,20 +427,34 @@ export const StarcityHomeMockup = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {['أحمد السالم', 'فاطمة الغامدي', 'محمد القحطاني', 'سارة الزهراني', 'خالد النعيمي'].map((name, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">{name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-500"
-                          style={{ width: `${[95, 87, 75, 68, 52][i]}%` }}
-                        />
+                {topEmployees && topEmployees.length > 0 ? (
+                  topEmployees.map((employee, i) => {
+                    const maxShare = Math.max(...topEmployees.map(e => e.calculated_share));
+                    const percentage = maxShare > 0 ? Math.round((employee.calculated_share / maxShare) * 100) : 0;
+                    
+                    return (
+                      <div key={employee.id} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">
+                          موظف #{employee.employee_id?.slice(-4) || i + 1}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-500"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500 font-medium w-8 text-left">{percentage}%</span>
+                        </div>
                       </div>
-                      <span className="text-xs text-gray-500 font-medium w-8 text-left">{[95, 87, 75, 68, 52][i]}%</span>
-                    </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>لا توجد بيانات عمولات</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -523,30 +513,37 @@ export const StarcityHomeMockup = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {todayTasks.map((task) => (
-                  <div key={task.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <Checkbox 
-                      checked={task.completed}
-                      className="mt-1 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
-                    />
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium mb-2 ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
-                        {task.task}
-                      </p>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${
-                          task.priority === 'high' ? 'border-red-300 text-red-700 bg-red-50' :
-                          task.priority === 'medium' ? 'border-orange-300 text-orange-700 bg-orange-50' :
-                          'border-gray-300 text-gray-700 bg-gray-50'
-                        }`}
-                      >
-                        {task.priority === 'high' ? 'أولوية عالية' : 
-                         task.priority === 'medium' ? 'أولوية متوسطة' : 'أولوية منخفضة'}
-                      </Badge>
+                {userTasks && userTasks.length > 0 ? (
+                  userTasks.map((task) => (
+                    <div key={task.id} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                      <Checkbox 
+                        checked={task.status === 'completed'}
+                        className="mt-1 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                      />
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium mb-2 ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                          {task.title}
+                        </p>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${
+                            task.priority === 'high' ? 'border-red-300 text-red-700 bg-red-50' :
+                            task.priority === 'medium' ? 'border-orange-300 text-orange-700 bg-orange-50' :
+                            'border-gray-300 text-gray-700 bg-gray-50'
+                          }`}
+                        >
+                          {task.priority === 'high' ? 'أولوية عالية' : 
+                           task.priority === 'medium' ? 'أولوية متوسطة' : 'أولوية منخفضة'}
+                        </Badge>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>لا توجد مهام لهذا اليوم</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
