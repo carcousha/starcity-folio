@@ -23,6 +23,7 @@ import VehicleExpenses from "./pages/accounting/VehicleExpenses";
 import Staff from "./pages/accounting/Staff";
 import Treasury from "./pages/accounting/Treasury";
 import ActivityLogPage from "./pages/accounting/ActivityLog";
+import AdminLogs from "./pages/accounting/AdminLogs";
 import AdvancedDebts from "./pages/accounting/AdvancedDebts";
 import DailyJournal from "./pages/accounting/DailyJournal";
 import ReportsIndex from "./pages/reports/index";
@@ -157,6 +158,11 @@ const App = () => (
               <Route path="/accounting/activity-log" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <ActivityLogPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/accounting/admin-logs" element={
+                <ProtectedRoute requiredPermission="canViewActivityLogs">
+                  <AdminLogs />
                 </ProtectedRoute>
               } />
               

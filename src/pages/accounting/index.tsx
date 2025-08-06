@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HandCoins, TrendingUp, Calculator, FileText, Car, UserCheck, Plus, Wallet } from "lucide-react";
+import { HandCoins, TrendingUp, Calculator, FileText, Car, UserCheck, Plus, Wallet, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import AccountantDashboard from "./AccountantDashboard";
@@ -84,7 +84,14 @@ export default function AccountingOverview() {
       icon: TrendingUp,
       path: "/accounting/activity-log",
       color: "bg-orange-500"
-    }
+    },
+    ...(isAdmin ? [{
+      title: "سجل عمليات المدير",
+      description: "عرض جميع العمليات مع إمكانية استعادة البيانات المحذوفة",
+      icon: Shield,
+      path: "/accounting/admin-logs",
+      color: "bg-red-600"
+    }] : [])
   ];
 
   return (

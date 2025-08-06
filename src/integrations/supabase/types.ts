@@ -3324,6 +3324,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      restore_deleted_record: {
+        Args: { p_audit_log_id: string }
+        Returns: Json
+      }
       schedule_debt_notifications: {
         Args: Record<PropertyKey, never>
         Returns: undefined
