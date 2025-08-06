@@ -35,6 +35,7 @@ import GeneratedContracts from "./pages/rental/GeneratedContracts";
 import Installments from "./pages/rental/Installments";
 import GovernmentServices from "./pages/rental/GovernmentServices";
 import EmployeeReports from "./pages/reports/EmployeeReports";
+import EmployeeDetails from "./pages/reports/EmployeeDetails";
 import VehicleReports from "./pages/reports/VehicleReports";
 import CommissionsReports from "./pages/reports/CommissionsReports";
 import DebtsReports from "./pages/reports/DebtsReports";
@@ -211,6 +212,11 @@ const App = () => (
               <Route path="/reports/employees" element={
                 <ProtectedRoute requiredPermission="canViewAllStaff">
                   <EmployeeReports />
+                </ProtectedRoute>
+              } />
+              <Route path="/reports/employee/:employeeId" element={
+                <ProtectedRoute requiredPermission="canViewAllStaff">
+                  <EmployeeDetails />
                 </ProtectedRoute>
               } />
               <Route path="/reports/vehicles" element={

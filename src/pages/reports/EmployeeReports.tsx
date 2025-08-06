@@ -13,17 +13,17 @@ import {
   Download,
   Search,
   Filter,
-  Calendar
+  Calendar,
+  Eye
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface EmployeeReport {
-  id: string;
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  role: string;
+  employee_id: string;
+  employee_name: string;
+  employee_email: string;
+  employee_role: string;
   total_commissions: number;
   total_debts: number;
   net_commissions: number;
@@ -33,6 +33,7 @@ interface EmployeeReport {
 
 export default function EmployeeReports() {
   const { userRole } = useRoleAccess();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: employeeReports, isLoading } = useQuery({
@@ -260,10 +261,20 @@ export default function EmployeeReports() {
                       {report.first_name} {report.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">{report.email}</p>
-                    <Badge variant="secondary" className="mt-1">
-                      {report.role === 'admin' ? 'مدير' : 
-                       report.role === 'accountant' ? 'محاسب' : 'موظف'}
-                    </Badge>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary">
+                        {report.role === 'admin' ? 'مدير' : 
+                         report.role === 'accountant' ? 'محاسب' : 'موظف'}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/reports/employee/${report.user_id}`)}
+                      >
+                        <Eye className="h-4 w-4 ml-1" />
+                        تفاصيل
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
