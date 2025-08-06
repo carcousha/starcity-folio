@@ -48,6 +48,7 @@ export default function Debts() {
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [employeeFilter, setEmployeeFilter] = useState("");
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const { checkPermission, isAdmin, isAccountant } = useRoleAccess();
@@ -85,7 +86,7 @@ export default function Debts() {
 
   useEffect(() => {
     filterDebts();
-  }, [debts, searchTerm, statusFilter, typeFilter, dateFilter]);
+  }, [debts, searchTerm, statusFilter, typeFilter, dateFilter, employeeFilter, profiles]);
 
   const fetchProfiles = async () => {
     try {
@@ -155,6 +156,15 @@ export default function Debts() {
       filtered = filtered.filter(debt => {
         const debtDate = new Date(debt.created_at);
         return debtDate.getMonth() === filterMonth && debtDate.getFullYear() === filterYear;
+      });
+    }
+
+    if (employeeFilter) {
+      filtered = filtered.filter(debt => {
+        const employeeName = profiles.find(p => p.user_id === debt.debtor_id);
+        const fullName = employeeName ? `${employeeName.first_name} ${employeeName.last_name}` : '';
+        return fullName.toLowerCase().includes(employeeFilter.toLowerCase()) ||
+               debt.debtor_name.toLowerCase().includes(employeeFilter.toLowerCase());
       });
     }
 
@@ -861,6 +871,24 @@ export default function Debts() {
               className="w-[200px]"
               placeholder="تصفية حسب الشهر"
             />
+            <Input
+              placeholder="البحث بالموظف..."
+              value={employeeFilter}
+              onChange={(e) => setEmployeeFilter(e.target.value)}
+              className="w-[200px]"
+            />
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("");
+                setTypeFilter("");
+                setDateFilter("");
+                setEmployeeFilter("");
+              }}
+            >
+              مسح الفلاتر
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -877,6 +905,7 @@ export default function Debts() {
             <TableHeader>
               <TableRow>
                 <TableHead>المدين</TableHead>
+                <TableHead>الموظف المرتبط</TableHead>
                 <TableHead>النوع</TableHead>
                 <TableHead>المبلغ</TableHead>
                 <TableHead>تاريخ الاستحقاق</TableHead>
@@ -899,6 +928,9 @@ export default function Debts() {
                         )}
                         {debt.debtor_name}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {employee ? `${employee.first_name} ${employee.last_name}` : '-'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{debt.debtor_type}</Badge>
@@ -981,7 +1013,7 @@ export default function Debts() {
               })}
               {filteredDebts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                     لا توجد مديونيات لعرضها
                   </TableCell>
                 </TableRow>
