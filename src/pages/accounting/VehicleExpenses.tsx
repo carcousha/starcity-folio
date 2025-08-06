@@ -213,11 +213,18 @@ export default function VehicleExpenses() {
         recorded_by: profile.user_id
       };
 
-      const { error } = await supabase
+      console.log('Inserting vehicle expense with data:', insertData);
+
+      const { error: vehicleExpenseError } = await supabase
         .from('vehicle_expenses')
         .insert([insertData]);
 
-      if (error) throw error;
+      if (vehicleExpenseError) {
+        console.error('Vehicle expense insert error:', vehicleExpenseError);
+        throw vehicleExpenseError;
+      }
+
+      console.log('Vehicle expense inserted successfully');
 
       // Also add to general expenses
       const vehicle = vehicles.find(v => v.id === formData.vehicle_id);
@@ -234,9 +241,16 @@ export default function VehicleExpenses() {
       
       console.log('Expense data to insert:', expenseData);
       
-      await supabase
+      const { error: generalExpenseError } = await supabase
         .from('expenses')
         .insert([expenseData]);
+
+      if (generalExpenseError) {
+        console.error('General expense insert error:', generalExpenseError);
+        throw generalExpenseError;
+      }
+
+      console.log('General expense inserted successfully');
 
       // If assigned to employee, add to debts
       if (formData.debt_assignment === 'employee' && formData.assigned_employee) {
