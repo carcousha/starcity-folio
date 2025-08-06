@@ -289,14 +289,14 @@ export default function EmployeeDetails() {
                   {debts.map((debt) => (
                     <TableRow key={debt.id}>
                       <TableCell>
-                        {format(new Date(debt.created_at), 'YYYY/M/D', 'ar-SA-islamic')}
+                        {format(new Date(debt.created_at), 'YYYY/M/D')}
                       </TableCell>
                       <TableCell>{debt.description}</TableCell>
                       <TableCell className="font-mono">
                         {formatCurrency(debt.amount)}
                       </TableCell>
                       <TableCell>
-                        {debt.due_date ? format(new Date(debt.due_date), 'YYYY/M/D', 'ar-SA-islamic') : '-'}
+                        {debt.due_date ? format(new Date(debt.due_date), 'YYYY/M/D') : '-'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={debt.status === 'paid' ? 'default' : debt.status === 'pending' ? 'secondary' : 'destructive'}>
@@ -338,7 +338,7 @@ export default function EmployeeDetails() {
                   {expenses.map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell>
-                        {format(new Date(expense.expense_date), 'YYYY/M/D', 'ar-SA-islamic')}
+                        {format(new Date(expense.expense_date), 'YYYY/M/D')}
                       </TableCell>
                       <TableCell>{expense.title}</TableCell>
                       <TableCell>{expense.description}</TableCell>
@@ -381,7 +381,7 @@ export default function EmployeeDetails() {
                   {commissions.map((commission) => (
                     <TableRow key={commission.id}>
                       <TableCell>
-                        {format(new Date(commission.commissions.created_at), 'YYYY/M/D', 'ar-SA-islamic')}
+                        {format(new Date(commission.commissions.created_at), 'YYYY/M/D')}
                       </TableCell>
                       <TableCell>{commission.commissions.client_name}</TableCell>
                       <TableCell>{commission.percentage}%</TableCell>
