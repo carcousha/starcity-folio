@@ -3133,6 +3133,10 @@ export type Database = {
         }
         Returns: string
       }
+      delete_vehicle_with_expenses: {
+        Args: { vehicle_id_param: string }
+        Returns: Json
+      }
       fix_data_integrity: {
         Args: Record<PropertyKey, never>
         Returns: string
