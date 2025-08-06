@@ -47,6 +47,7 @@ interface AuditLog {
 }
 
 const AdminLogs = () => {
+  console.log('AdminLogs component mounting/re-rendering');
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,25 +60,29 @@ const AdminLogs = () => {
   const { requirePermission, checkPermission } = useRoleAccess();
 
   useEffect(() => {
-    const checkPermissions = async () => {
-      console.log('Checking permissions for admin logs...');
-      // استخدام checkPermission بدلاً من requirePermission لتجنب إعادة التوجيه
+    console.log('useEffect triggered, checkPermission function:', typeof checkPermission);
+    const initializeComponent = () => {
+      console.log('Initializing AdminLogs component...');
+      // استخدام checkPermission مباشرة بدون async
       const hasPermission = checkPermission('canViewActivityLogs');
-      console.log('Has permission:', hasPermission);
+      console.log('Permission check result:', hasPermission);
+      
       if (hasPermission) {
+        console.log('Permission granted, fetching logs...');
         fetchLogs();
       } else {
-        console.log('No permission, user will see unauthorized message');
+        console.log('No permission, setting loading to false');
         setLoading(false);
       }
     };
 
-    checkPermissions();
-  }, [checkPermission]); // تغيير dependency
+    initializeComponent();
+  }, []); // إزالة أي dependencies
 
   const fetchLogs = async () => {
+    console.log('fetchLogs called, current loading state:', loading);
     try {
-      console.log('Fetching audit logs...');
+      console.log('Setting loading to true...');
       setLoading(true);
       
       // جلب audit logs
@@ -114,8 +119,9 @@ const AdminLogs = () => {
         };
       }) || [];
 
-      console.log('Fetched logs:', logsWithUserNames);
+      console.log('Fetched logs successfully:', logsWithUserNames.length, 'entries');
       setLogs(logsWithUserNames);
+      console.log('State updated with logs');
     } catch (error: any) {
       console.error('Error fetching logs:', error);
       toast({
@@ -124,7 +130,9 @@ const AdminLogs = () => {
         variant: "destructive",
       });
     } finally {
+      console.log('Setting loading to false...');
       setLoading(false);
+      console.log('Loading state updated to false');
     }
   };
 
