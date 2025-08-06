@@ -15,25 +15,48 @@ interface CreateEmployeeRequest {
   role: string;
 }
 
-// وظيفة لإنشاء كلمة مرور قوية تلبي متطلبات Supabase
+// وظيفة لإنشاء كلمة مرور قوية جداً تلبي جميع متطلبات Supabase الأمنية
 function generateStrongPassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-  const length = 12;
+  const upperCase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lowerCase = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const symbols = '!@#$%^&*';
+  const length = 16; // طول أكبر للأمان
+  
   let password = '';
   
-  // ضمان وجود حرف كبير وصغير ورقم ورمز خاص
-  password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // حرف كبير
-  password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // حرف صغير
-  password += '0123456789'[Math.floor(Math.random() * 10)]; // رقم
-  password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // رمز خاص
-  
-  // إكمال باقي الأحرف
-  for (let i = 4; i < length; i++) {
-    password += chars[Math.floor(Math.random() * chars.length)];
+  // ضمان وجود 3 أحرف كبيرة على الأقل
+  for (let i = 0; i < 3; i++) {
+    password += upperCase[Math.floor(Math.random() * upperCase.length)];
   }
   
-  // خلط الأحرف
-  return password.split('').sort(() => Math.random() - 0.5).join('');
+  // ضمان وجود 3 أحرف صغيرة على الأقل
+  for (let i = 0; i < 3; i++) {
+    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
+  }
+  
+  // ضمان وجود 3 أرقام على الأقل
+  for (let i = 0; i < 3; i++) {
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+  }
+  
+  // ضمان وجود 2 رموز خاصة على الأقل
+  for (let i = 0; i < 2; i++) {
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+  }
+  
+  // إكمال باقي الأحرف بشكل عشوائي
+  const allChars = upperCase + lowerCase + numbers + symbols;
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // خلط الأحرف عدة مرات لضمان العشوائية
+  for (let i = 0; i < 5; i++) {
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+  
+  return password;
 }
 
 serve(async (req: Request) => {
@@ -142,162 +165,248 @@ serve(async (req: Request) => {
       console.log("Password and metadata updated successfully for existing user");
     } else {
       console.log(`Creating new user with email: ${email}`);
-      console.log(`Generated password length: ${finalPassword.length}, contains: uppercase=${/[A-Z]/.test(finalPassword)}, lowercase=${/[a-z]/.test(finalPassword)}, number=${/[0-9]/.test(finalPassword)}, special=${/[!@#$%^&*]/.test(finalPassword)}`);
+      console.log(`Generated password specs: length=${finalPassword.length}, uppercase=${/[A-Z]/.test(finalPassword)}, lowercase=${/[a-z]/.test(finalPassword)}, numbers=${/[0-9]/.test(finalPassword)}, symbols=${/[!@#$%^&*]/.test(finalPassword)}`);
       
-      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: finalPassword,
-        email_confirm: true,
-        user_metadata: {
-          first_name,
-          last_name,
-          phone: phone || null,
-          skip_activity_log: true // لتجنب مشكلة activity logs في triggers
-        }
-      });
+      // محاولة إنشاء المستخدم مع معالجة شاملة للأخطاء
+      try {
+        const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: finalPassword,
+          email_confirm: true,
+          user_metadata: {
+            first_name,
+            last_name,
+            phone: phone || null,
+            created_via: 'admin_function'
+          }
+        });
 
-      if (userError) {
-        console.error("User creation error:", userError);
-        console.error("Error code:", userError.code);
-        console.error("Error status:", userError.status);
+        if (userError) {
+          console.error("Initial user creation error:", userError);
+          throw userError;
+        }
+
+        if (!userData.user) {
+          throw new Error("No user data returned from creation");
+        }
+
+        user = userData.user;
+        console.log(`User created successfully with ID: ${user.id}`);
         
-        // معالجة أخطاء محددة
-        if (userError.message.includes("already been registered") || 
-            userError.message.includes("already exists") ||
-            userError.code === "user_already_exists") {
-          console.log("User exists, trying to find user again...");
-          const { data: retryUsers } = await supabaseAdmin.auth.admin.listUsers();
-          const retryUser = retryUsers.users.find(u => u.email === email);
+      } catch (createError: any) {
+        console.error("User creation failed:", createError);
+        
+        // معالجة أخطاء محددة بدقة أكبر
+        if (createError.message?.includes("already been registered") || 
+            createError.message?.includes("already exists") ||
+            createError.status === 422 ||
+            createError.code === "user_already_exists") {
           
-          if (retryUser) {
-            console.log(`Found existing user on retry: ${retryUser.id}`);
-            user = retryUser;
+          console.log("User exists, attempting to find and update...");
+          
+          // محاولة العثور على المستخدم الموجود
+          const { data: retryUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const existingUser = retryUsers.users.find(u => u.email === email);
+          
+          if (existingUser) {
+            console.log(`Found existing user: ${existingUser.id}`);
+            user = existingUser;
             
-            // تحديث كلمة المرور
-            const { error: retryUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
-              retryUser.id,
+            // تحديث كلمة المرور والبيانات
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+              existingUser.id,
               { 
                 password: finalPassword,
                 user_metadata: {
                   first_name,
                   last_name,
-                  phone: phone || null
+                  phone: phone || null,
+                  updated_via: 'admin_function',
+                  last_password_update: new Date().toISOString()
                 }
               }
             );
             
-            if (retryUpdateError) {
-              console.error("Error updating password on retry:", retryUpdateError);
-              throw new Error(`فشل في تحديث كلمة المرور: ${retryUpdateError.message}`);
+            if (updateError) {
+              console.error("Error updating existing user:", updateError);
+              throw new Error(`فشل في تحديث بيانات المستخدم الموجود: ${updateError.message}`);
             }
             
-            console.log("Password updated successfully on retry");
+            console.log("Existing user updated successfully");
           } else {
             throw new Error(`المستخدم موجود بالفعل ولكن لا يمكن العثور عليه: ${email}`);
           }
-        } else if (userError.message.includes("Password") || userError.message.includes("password")) {
-          throw new Error(`كلمة المرور لا تلبي المتطلبات الأمنية. يرجى المحاولة مرة أخرى.`);
-        } else if (userError.message.includes("Email") || userError.message.includes("email")) {
-          throw new Error(`صيغة البريد الإلكتروني غير صحيحة: ${email}`);
-        } else if (userError.message.includes("rate limit") || userError.message.includes("too many")) {
+        } else if (createError.message?.includes("Password") || 
+                   createError.message?.includes("password") ||
+                   createError.message?.includes("weak")) {
+          // إنشاء كلمة مرور أقوى في حالة رفض كلمة المرور
+          const strongerPassword = generateStrongPassword();
+          console.log(`Trying with stronger password: length=${strongerPassword.length}`);
+          
+          const { data: retryUserData, error: retryError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password: strongerPassword,
+            email_confirm: true,
+            user_metadata: {
+              first_name,
+              last_name,
+              phone: phone || null,
+              created_via: 'admin_function_retry'
+            }
+          });
+          
+          if (retryError) {
+            throw new Error(`فشل في إنشاء المستخدم حتى مع كلمة مرور أقوى: ${retryError.message}`);
+          }
+          
+          user = retryUserData.user;
+          finalPassword = strongerPassword;
+          console.log(`User created with stronger password: ${user.id}`);
+          
+        } else if (createError.message?.includes("rate limit") || 
+                   createError.message?.includes("too many")) {
           throw new Error(`تم تجاوز الحد المسموح من المحاولات. يرجى المحاولة بعد دقائق قليلة.`);
         } else {
-          throw new Error(`خطأ في إنشاء المستخدم: ${userError.message}`);
+          throw new Error(`خطأ في إنشاء المستخدم: ${createError.message}`);
         }
-      } else {
-        if (!userData.user) {
-          console.error("No user data returned");
-          throw new Error("Failed to create user - no user data returned");
-        }
-
-        user = userData.user;
-        console.log(`User created successfully with ID: ${user.id}`);
       }
     }
 
     console.log("Creating or updating profile...");
     
-    // التحقق من وجود الملف الشخصي
-    const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
-      .from("profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    
-    if (profileCheckError) {
-      console.error("Error checking existing profile:", profileCheckError);
-      throw new Error(`خطأ في فحص الملف الشخصي الموجود: ${profileCheckError.message}`);
-    }
-    
-    let profile;
-    
-    if (existingProfile) {
-      console.log("Updating existing profile...");
-      const { data: updatedProfile, error: updateError } = await supabaseAdmin
+    // التحقق من وجود الملف الشخصي مع معالجة أفضل للأخطاء
+    try {
+      const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
         .from("profiles")
-        .update({
-          email,
-          first_name,
-          last_name,
-          phone: phone || null,
-          role,
-          updated_at: new Date().toISOString()
-        })
+        .select("*")
         .eq("user_id", user.id)
-        .select()
-        .single();
+        .maybeSingle();
       
-      if (updateError) {
-        console.error("Profile update error:", updateError);
-        throw new Error(`خطأ في تحديث الملف الشخصي: ${updateError.message}`);
+      if (profileCheckError && profileCheckError.code !== 'PGRST116') {
+        console.error("Error checking existing profile:", profileCheckError);
+        throw new Error(`خطأ في فحص الملف الشخصي الموجود: ${profileCheckError.message}`);
       }
       
-      profile = updatedProfile;
-      console.log("Profile updated successfully:", profile.id);
-    } else {
-      console.log("Creating new profile...");
-      const { data: newProfile, error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .insert({
-          user_id: user.id,
-          email,
-          first_name,
-          last_name,
-          phone: phone || null,
-          role,
-        })
-        .select()
-        .single();
-
-      if (profileError) {
-        console.error("Profile creation error:", profileError);
+      let profile;
+      
+      if (existingProfile) {
+        console.log("Updating existing profile...");
+        const { data: updatedProfile, error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            email,
+            first_name,
+            last_name,
+            phone: phone || null,
+            role,
+            updated_at: new Date().toISOString()
+          })
+          .eq("user_id", user.id)
+          .select()
+          .single();
         
-        // إذا فشل إنشاء الملف الشخصي ولم يكن المستخدم موجوداً من قبل، احذف المستخدم
-        if (!existingUser) {
-          console.log("Attempting to delete user due to profile creation failure...");
-          try {
-            await supabaseAdmin.auth.admin.deleteUser(user.id);
-            console.log("User deleted successfully after profile creation failure");
-          } catch (deleteError) {
-            console.error("Error deleting user after profile failure:", deleteError);
-          }
+        if (updateError) {
+          console.error("Profile update error:", updateError);
+          throw new Error(`خطأ في تحديث الملف الشخصي: ${updateError.message}`);
         }
         
-        throw new Error(`خطأ في إنشاء الملف الشخصي: ${profileError.message}`);
+        profile = updatedProfile;
+        console.log("Profile updated successfully:", profile.id);
+      } else {
+        console.log("Creating new profile...");
+        
+        // التأكد من عدم وجود ملف شخصي آخر بنفس user_id (منع التكرار)
+        const { data: duplicateCheck } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("user_id", user.id);
+        
+        if (duplicateCheck && duplicateCheck.length > 0) {
+          console.log("Profile already exists, updating instead...");
+          const { data: updatedProfile, error: updateError } = await supabaseAdmin
+            .from("profiles")
+            .update({
+              email,
+              first_name,
+              last_name,
+              phone: phone || null,
+              role,
+              updated_at: new Date().toISOString()
+            })
+            .eq("user_id", user.id)
+            .select()
+            .single();
+          
+          if (updateError) {
+            throw new Error(`خطأ في تحديث الملف الشخصي المكرر: ${updateError.message}`);
+          }
+          
+          profile = updatedProfile;
+        } else {
+          const { data: newProfile, error: profileError } = await supabaseAdmin
+            .from("profiles")
+            .insert({
+              user_id: user.id,
+              email,
+              first_name,
+              last_name,
+              phone: phone || null,
+              role,
+            })
+            .select()
+            .single();
+
+          if (profileError) {
+            console.error("Profile creation error:", profileError);
+            
+            // إذا فشل إنشاء الملف الشخصي ولم يكن المستخدم موجوداً من قبل، احذف المستخدم
+            if (!existingUser) {
+              console.log("Attempting to delete user due to profile creation failure...");
+              try {
+                await supabaseAdmin.auth.admin.deleteUser(user.id);
+                console.log("User deleted successfully after profile creation failure");
+              } catch (deleteError) {
+                console.error("Error deleting user after profile failure:", deleteError);
+              }
+            }
+            
+            throw new Error(`خطأ في إنشاء الملف الشخصي: ${profileError.message}`);
+          }
+          
+          profile = newProfile;
+          console.log("Profile created successfully:", profile.id);
+        }
       }
       
-      profile = newProfile;
-      console.log("Profile created successfully:", profile.id);
+      // رسالة النجاح النهائية
+      const response = {
+        success: true,
+        profile, 
+        temporary_password: finalPassword,
+        message: existingProfile ? "تم تحديث بيانات الموظف بنجاح" : "تم إنشاء الموظف بنجاح",
+        password_strength: {
+          length: finalPassword.length,
+          has_uppercase: /[A-Z]/.test(finalPassword),
+          has_lowercase: /[a-z]/.test(finalPassword),
+          has_numbers: /[0-9]/.test(finalPassword),
+          has_symbols: /[!@#$%^&*]/.test(finalPassword)
+        }
+      };
+
+      console.log("Operation completed successfully");
+
+      return new Response(
+        JSON.stringify(response),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, 
+          status: 200 
+        }
+      );
+      
+    } catch (profileError) {
+      console.error("Profile operation failed:", profileError);
+      throw profileError;
     }
-
-    const response = {
-      success: true,
-      profile, 
-      temporary_password: finalPassword,
-      message: existingProfile ? "تم تحديث بيانات الموظف بنجاح" : "تم إنشاء الموظف بنجاح"
-    };
-
-    console.log("Operation completed successfully");
 
     return new Response(
       JSON.stringify(response),
