@@ -3348,6 +3348,10 @@ export type Database = {
         Args: { p_audit_log_id: string }
         Returns: Json
       }
+      safe_delete_expense: {
+        Args: { expense_id_param: string }
+        Returns: Json
+      }
       schedule_debt_notifications: {
         Args: Record<PropertyKey, never>
         Returns: undefined
