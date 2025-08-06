@@ -24,6 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { CommissionDistributionForm } from "./CommissionDistributionForm";
 import CommissionsTable from "./CommissionsTable";
+import CommissionDebtDeductionDialog from "./CommissionDebtDeductionDialog";
 
 interface Employee {
   id: string;
@@ -46,6 +47,10 @@ const CommissionManagementNew = () => {
   const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [customPercentages, setCustomPercentages] = useState<{ [key: string]: number }>({});
   const [distributionMode, setDistributionMode] = useState<'equal' | 'custom'>('equal');
+
+  // Debt deduction dialog state
+  const [showDebtDialog, setShowDebtDialog] = useState(false);
+  const [lastCreatedCommission, setLastCreatedCommission] = useState<any>(null);
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
@@ -88,22 +93,34 @@ const CommissionManagementNew = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       toast({
         title: "تم إنشاء العمولة بنجاح",
         description: `تم توزيع ${data.total_amount || parseFloat(amount)} د.إ بنظام 50/50 الجديد`,
       });
       
-      // Reset form
-      setClientName("");
-      setTransactionName("");
-      setTransactionDescription("");
-      setTransactionType("");
-      setPropertyType("");
-      setAmount("");
-      setSelectedEmployees([]);
-      setCustomPercentages({});
-      setDistributionMode('equal');
+      // Store commission data for debt dialog
+      setLastCreatedCommission(data);
+      
+      // Check if any employees have pending debts
+      if (selectedEmployees.length > 0) {
+        const employeeIds = selectedEmployees.map(emp => emp.employee_id);
+        const { data: debts, error: debtsError } = await supabase
+          .from('debts')
+          .select('debtor_id')
+          .in('debtor_id', employeeIds)
+          .eq('status', 'pending')
+          .eq('auto_deduct_from_commission', true);
+        
+        if (!debtsError && debts && debts.length > 0) {
+          // Show debt deduction dialog
+          setShowDebtDialog(true);
+          return; // Don't reset form yet
+        }
+      }
+      
+      // Reset form if no debts to handle
+      resetForm();
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['commissions'] });
@@ -117,6 +134,31 @@ const CommissionManagementNew = () => {
       });
     }
   });
+
+  // Reset form function
+  const resetForm = () => {
+    setClientName("");
+    setTransactionName("");
+    setTransactionDescription("");
+    setTransactionType("");
+    setPropertyType("");
+    setAmount("");
+    setSelectedEmployees([]);
+    setCustomPercentages({});
+    setDistributionMode('equal');
+  };
+
+  // Handle debt dialog close
+  const handleDebtDialogClose = () => {
+    setShowDebtDialog(false);
+    setLastCreatedCommission(null);
+    resetForm();
+    
+    // Invalidate queries
+    queryClient.invalidateQueries({ queryKey: ['commissions'] });
+    queryClient.invalidateQueries({ queryKey: ['commission-history'] });
+    queryClient.invalidateQueries({ queryKey: ['debts'] });
+  };
 
   // Handle employee selection
   const toggleEmployeeSelection = (employee: Employee) => {
@@ -523,6 +565,14 @@ const CommissionManagementNew = () => {
           <CommissionsTable />
         </TabsContent>
       </Tabs>
+
+      {/* Debt Deduction Dialog */}
+      <CommissionDebtDeductionDialog
+        open={showDebtDialog}
+        onOpenChange={handleDebtDialogClose}
+        employees={selectedEmployees}
+        commissionData={lastCreatedCommission}
+      />
     </div>
   );
 };
