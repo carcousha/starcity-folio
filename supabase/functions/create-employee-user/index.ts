@@ -15,11 +15,25 @@ interface CreateEmployeeRequest {
   role: string;
 }
 
-// وظيفة لإنشاء كلمة مرور بسيطة
-function generateSimplePassword(): string {
-  const prefix = "Star";
-  const randomNumber = Math.floor(Math.random() * 9999) + 1000; // رقم من 1000 إلى 9999
-  return `${prefix}${randomNumber}`;
+// وظيفة لإنشاء كلمة مرور قوية تلبي متطلبات Supabase
+function generateStrongPassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  const length = 12;
+  let password = '';
+  
+  // ضمان وجود حرف كبير وصغير ورقم ورمز خاص
+  password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)]; // حرف كبير
+  password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)]; // حرف صغير
+  password += '0123456789'[Math.floor(Math.random() * 10)]; // رقم
+  password += '!@#$%^&*'[Math.floor(Math.random() * 8)]; // رمز خاص
+  
+  // إكمال باقي الأحرف
+  for (let i = 4; i < length; i++) {
+    password += chars[Math.floor(Math.random() * chars.length)];
+  }
+  
+  // خلط الأحرف
+  return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
 serve(async (req: Request) => {
@@ -65,13 +79,14 @@ serve(async (req: Request) => {
       hasFirstName: !!body.first_name,
       hasLastName: !!body.last_name,
       hasRole: !!body.role,
-      role: body.role
+      role: body.role,
+      email: body.email // إضافة الإيميل للتأكد
     });
 
     const { email, first_name, last_name, phone, role } = body;
     
-    // إنشاء كلمة مرور بسيطة أو استخدام المرسلة
-    const finalPassword = body.password || generateSimplePassword();
+    // إنشاء كلمة مرور قوية أو استخدام المرسلة
+    const finalPassword = body.password || generateStrongPassword();
 
     if (!email || !first_name || !last_name || !role) {
       console.error("Missing required fields:", {
@@ -83,9 +98,21 @@ serve(async (req: Request) => {
       throw new Error("Missing required fields");
     }
 
+    // التحقق من صحة البريد الإلكتروني
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error(`صيغة البريد الإلكتروني غير صحيحة: ${email}`);
+    }
+
     // التحقق من وجود المستخدم مسبقاً
     console.log(`Checking if user exists with email: ${email}`);
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error("Error listing users:", listError);
+      throw new Error(`خطأ في فحص المستخدمين الموجودين: ${listError.message}`);
+    }
+    
     const existingUser = existingUsers.users.find(user => user.email === email);
     
     let user;
@@ -97,28 +124,46 @@ serve(async (req: Request) => {
       // تحديث كلمة المرور للمستخدم الموجود
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         existingUser.id,
-        { password: finalPassword }
+        { 
+          password: finalPassword,
+          user_metadata: {
+            first_name,
+            last_name,
+            phone: phone || null
+          }
+        }
       );
       
       if (updateError) {
         console.error("Error updating user password:", updateError);
-        throw updateError;
+        throw new Error(`فشل في تحديث بيانات المستخدم: ${updateError.message}`);
       }
       
-      console.log("Password updated successfully for existing user");
+      console.log("Password and metadata updated successfully for existing user");
     } else {
       console.log(`Creating new user with email: ${email}`);
+      console.log(`Generated password length: ${finalPassword.length}, contains: uppercase=${/[A-Z]/.test(finalPassword)}, lowercase=${/[a-z]/.test(finalPassword)}, number=${/[0-9]/.test(finalPassword)}, special=${/[!@#$%^&*]/.test(finalPassword)}`);
+      
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password: finalPassword,
         email_confirm: true,
+        user_metadata: {
+          first_name,
+          last_name,
+          phone: phone || null
+        }
       });
 
       if (userError) {
         console.error("User creation error:", userError);
+        console.error("Error code:", userError.code);
+        console.error("Error status:", userError.status);
         
-        // إذا كان الخطأ بسبب وجود المستخدم مسبقاً، حاول العثور عليه مرة أخرى
-        if (userError.message.includes("already been registered")) {
+        // معالجة أخطاء محددة
+        if (userError.message.includes("already been registered") || 
+            userError.message.includes("already exists") ||
+            userError.code === "user_already_exists") {
           console.log("User exists, trying to find user again...");
           const { data: retryUsers } = await supabaseAdmin.auth.admin.listUsers();
           const retryUser = retryUsers.users.find(u => u.email === email);
@@ -130,20 +175,33 @@ serve(async (req: Request) => {
             // تحديث كلمة المرور
             const { error: retryUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
               retryUser.id,
-              { password: finalPassword }
+              { 
+                password: finalPassword,
+                user_metadata: {
+                  first_name,
+                  last_name,
+                  phone: phone || null
+                }
+              }
             );
             
             if (retryUpdateError) {
               console.error("Error updating password on retry:", retryUpdateError);
-              throw retryUpdateError;
+              throw new Error(`فشل في تحديث كلمة المرور: ${retryUpdateError.message}`);
             }
             
             console.log("Password updated successfully on retry");
           } else {
-            throw userError;
+            throw new Error(`المستخدم موجود بالفعل ولكن لا يمكن العثور عليه: ${email}`);
           }
+        } else if (userError.message.includes("Password") || userError.message.includes("password")) {
+          throw new Error(`كلمة المرور لا تلبي المتطلبات الأمنية. يرجى المحاولة مرة أخرى.`);
+        } else if (userError.message.includes("Email") || userError.message.includes("email")) {
+          throw new Error(`صيغة البريد الإلكتروني غير صحيحة: ${email}`);
+        } else if (userError.message.includes("rate limit") || userError.message.includes("too many")) {
+          throw new Error(`تم تجاوز الحد المسموح من المحاولات. يرجى المحاولة بعد دقائق قليلة.`);
         } else {
-          throw userError;
+          throw new Error(`خطأ في إنشاء المستخدم: ${userError.message}`);
         }
       } else {
         if (!userData.user) {
@@ -159,11 +217,16 @@ serve(async (req: Request) => {
     console.log("Creating or updating profile...");
     
     // التحقق من وجود الملف الشخصي
-    const { data: existingProfile } = await supabaseAdmin
+    const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
       .from("profiles")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
+    
+    if (profileCheckError) {
+      console.error("Error checking existing profile:", profileCheckError);
+      throw new Error(`خطأ في فحص الملف الشخصي الموجود: ${profileCheckError.message}`);
+    }
     
     let profile;
     
@@ -185,7 +248,7 @@ serve(async (req: Request) => {
       
       if (updateError) {
         console.error("Profile update error:", updateError);
-        throw updateError;
+        throw new Error(`خطأ في تحديث الملف الشخصي: ${updateError.message}`);
       }
       
       profile = updatedProfile;
@@ -207,23 +270,36 @@ serve(async (req: Request) => {
 
       if (profileError) {
         console.error("Profile creation error:", profileError);
+        
+        // إذا فشل إنشاء الملف الشخصي ولم يكن المستخدم موجوداً من قبل، احذف المستخدم
         if (!existingUser) {
           console.log("Attempting to delete user due to profile creation failure...");
-          await supabaseAdmin.auth.admin.deleteUser(user.id);
+          try {
+            await supabaseAdmin.auth.admin.deleteUser(user.id);
+            console.log("User deleted successfully after profile creation failure");
+          } catch (deleteError) {
+            console.error("Error deleting user after profile failure:", deleteError);
+          }
         }
-        throw profileError;
+        
+        throw new Error(`خطأ في إنشاء الملف الشخصي: ${profileError.message}`);
       }
       
       profile = newProfile;
       console.log("Profile created successfully:", profile.id);
     }
 
+    const response = {
+      success: true,
+      profile, 
+      temporary_password: finalPassword,
+      message: existingProfile ? "تم تحديث بيانات الموظف بنجاح" : "تم إنشاء الموظف بنجاح"
+    };
+
+    console.log("Operation completed successfully");
+
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        profile, 
-        temporary_password: finalPassword 
-      }),
+      JSON.stringify(response),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" }, 
         status: 200 
@@ -232,7 +308,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Error creating employee user:", error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
     console.error("Error details:", {
       message: errorMessage,
       stack: error instanceof Error ? error.stack : 'No stack trace'
@@ -252,4 +328,3 @@ serve(async (req: Request) => {
     );
   }
 });
-
