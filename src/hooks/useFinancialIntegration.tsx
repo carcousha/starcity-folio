@@ -132,6 +132,17 @@ export function useFinancialIntegration() {
     }
   };
 
+  const syncDebtsWithJournal = async (): Promise<number> => {
+    try {
+      const { data, error } = await supabase.rpc('sync_debts_with_journal');
+      if (error) throw error;
+      return data || 0;
+    } catch (error) {
+      console.error('Error syncing debts with journal:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchFinancialSummary();
   }, []);
@@ -141,7 +152,8 @@ export function useFinancialIntegration() {
     loading,
     fetchFinancialSummary,
     fetchEmployeeFinancialData,
-    logActivity
+    logActivity,
+    syncDebtsWithJournal
   };
 }
 
