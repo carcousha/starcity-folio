@@ -12,6 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { BulkActionsToolbar, createBulkActions } from "@/components/ui/bulk-actions-toolbar";
+import { SelectableTable, SelectableTableHeader, SelectableTableBody, SelectableTableRow, SelectableTableCell } from "@/components/ui/selectable-table";
+import { BulkActionDialog } from "@/components/ui/bulk-action-dialog";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { 
   Plus, 
   Search, 
@@ -105,8 +109,33 @@ export default function Expenses() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
   
+  // Bulk actions state
+  const [bulkActionDialog, setBulkActionDialog] = useState<{
+    open: boolean;
+    type: "delete" | "changeCategory" | "export";
+    loading: boolean;
+  }>({
+    open: false,
+    type: "delete",
+    loading: false
+  });
+  
   const { toast } = useToast();
   const { user, profile } = useAuth();
+
+  // Bulk selection hook
+  const {
+    selectedIds,
+    selectedItems,
+    selectedCount,
+    isSelected,
+    toggleItem,
+    toggleAll,
+    clearSelection
+  } = useBulkSelection({
+    items: filteredExpenses,
+    getItemId: (expense) => expense.id
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -618,6 +647,128 @@ export default function Expenses() {
     return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   };
 
+  // Bulk actions handlers
+  const handleBulkDelete = async () => {
+    setBulkActionDialog({ open: true, type: "delete", loading: false });
+  };
+
+  const handleBulkChangeCategory = async () => {
+    setBulkActionDialog({ open: true, type: "changeCategory", loading: false });
+  };
+
+  const handleBulkExport = async () => {
+    const csvContent = [
+      ['العنوان', 'الوصف', 'المبلغ', 'الفئة', 'التاريخ', 'رقم الفاتورة', 'الحالة'],
+      ...selectedItems.map(expense => [
+        expense.title,
+        expense.description || '',
+        expense.amount.toFixed(2),
+        expense.category,
+        new Date(expense.expense_date).toLocaleDateString('ar-EG'),
+        expense.receipt_reference || '',
+        expense.is_approved ? 'معتمد' : 'في الانتظار'
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `selected_expenses_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    toast({
+      title: "تم التصدير",
+      description: `تم تصدير ${selectedCount} مصروف بنجاح`,
+    });
+    clearSelection();
+  };
+
+  const handleBulkAction = async (data?: any) => {
+    setBulkActionDialog(prev => ({ ...prev, loading: true }));
+    
+    try {
+      switch (bulkActionDialog.type) {
+        case "delete":
+          // Delete selected expenses and their attachments
+          for (const expense of selectedItems) {
+            // Delete attachments first
+            const { data: attachments } = await supabase
+              .from('expense_attachments')
+              .select('file_path')
+              .eq('expense_id', expense.id);
+
+            if (attachments && attachments.length > 0) {
+              for (const attachment of attachments) {
+                await supabase.storage
+                  .from('expense-receipts')
+                  .remove([attachment.file_path]);
+              }
+              
+              await supabase
+                .from('expense_attachments')
+                .delete()
+                .eq('expense_id', expense.id);
+            }
+          }
+          
+          // Delete expenses
+          const { error } = await supabase
+            .from('expenses')
+            .delete()
+            .in('id', Array.from(selectedIds));
+
+          if (error) throw error;
+
+          toast({
+            title: "تم الحذف",
+            description: `تم حذف ${selectedCount} مصروف بنجاح`,
+          });
+          break;
+
+        case "changeCategory":
+          if (!data?.newCategory) {
+            throw new Error("يرجى اختيار الفئة الجديدة");
+          }
+
+          const { error: updateError } = await supabase
+            .from('expenses')
+            .update({ 
+              category: data.newCategory,
+              budget_category: data.newCategory
+            })
+            .in('id', Array.from(selectedIds));
+
+          if (updateError) throw updateError;
+
+          toast({
+            title: "تم التحديث",
+            description: `تم تحديث فئة ${selectedCount} مصروف إلى "${data.newCategory}"`,
+          });
+          break;
+      }
+
+      clearSelection();
+      fetchData();
+      setBulkActionDialog({ open: false, type: "delete", loading: false });
+    } catch (error) {
+      console.error('خطأ في العملية الجماعية:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في تنفيذ العملية الجماعية",
+        variant: "destructive",
+      });
+      setBulkActionDialog(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const bulkActions = [
+    createBulkActions.export(handleBulkExport),
+    ...(canManageExpenses ? [
+      createBulkActions.changeCategory(handleBulkChangeCategory),
+      createBulkActions.delete(handleBulkDelete)
+    ] : [])
+  ];
+
   if (loading) {
     return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
   }
@@ -963,32 +1114,47 @@ export default function Expenses() {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions Toolbar */}
+      <BulkActionsToolbar
+        selectedCount={selectedCount}
+        totalCount={filteredExpenses.length}
+        onClearSelection={clearSelection}
+        actions={bulkActions}
+      />
+
       {/* جدول المصروفات */}
       <Card>
         <CardHeader>
           <CardTitle>قائمة المصروفات ({filteredExpenses.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>العنوان</TableHead>
-                <TableHead>المبلغ</TableHead>
-                <TableHead>الفئة</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead>رقم الفاتورة</TableHead>
-                <TableHead>المرفقات</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>الميزانية</TableHead>
-                {profile?.role === 'admin' && <TableHead>الإجراءات</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <SelectableTable>
+            <SelectableTableHeader
+              selectedCount={selectedCount}
+              totalCount={filteredExpenses.length}
+              onSelectAll={toggleAll}
+            >
+              <TableHead>العنوان</TableHead>
+              <TableHead>المبلغ</TableHead>
+              <TableHead>الفئة</TableHead>
+              <TableHead>التاريخ</TableHead>
+              <TableHead>رقم الفاتورة</TableHead>
+              <TableHead>المرفقات</TableHead>
+              <TableHead>الحالة</TableHead>
+              <TableHead>الميزانية</TableHead>
+              {profile?.role === 'admin' && <TableHead>الإجراءات</TableHead>}
+            </SelectableTableHeader>
+            <SelectableTableBody>
               {filteredExpenses.map((expense) => {
                 const budgetStatus = getBudgetStatus(expense.category);
                 return (
-                  <TableRow key={expense.id} className={expense.is_debt_related ? 'bg-orange-50 hover:bg-orange-100' : ''}>
-                    <TableCell>
+                  <SelectableTableRow
+                    key={expense.id}
+                    selected={isSelected(expense.id)}
+                    onSelect={(checked) => toggleItem(expense.id)}
+                    className={expense.is_debt_related ? 'bg-orange-50 hover:bg-orange-100' : ''}
+                  >
+                    <SelectableTableCell>
                       <div className="flex items-center gap-2">
                         {expense.is_debt_related && (
                           <CreditCard className="h-4 w-4 text-orange-600" />
@@ -1009,22 +1175,22 @@ export default function Expenses() {
                           )}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
                       <span className="font-medium text-red-600">
                         {expense.amount.toFixed(2)} د.إ
                       </span>
-                    </TableCell>
-                    <TableCell>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
                       <Badge variant="outline">{expense.category}</Badge>
-                    </TableCell>
-                    <TableCell>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
                       {new Date(expense.expense_date).toLocaleDateString('ar-EG')}
-                    </TableCell>
-                    <TableCell>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
                       {expense.receipt_reference || '-'}
-                    </TableCell>
-                    <TableCell>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
                       {expense.attachments && expense.attachments.length > 0 ? (
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4" />
@@ -1043,13 +1209,13 @@ export default function Expenses() {
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
-                    </TableCell>
-                    <TableCell>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
                       <Badge className={expense.is_approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                         {expense.is_approved ? 'معتمد' : 'في الانتظار'}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
                       {budgetStatus && (
                         <div className="text-xs">
                           <Badge className={getStatusColor(budgetStatus.status)} variant="outline">
@@ -1057,9 +1223,9 @@ export default function Expenses() {
                           </Badge>
                         </div>
                       )}
-                    </TableCell>
+                    </SelectableTableCell>
                     {profile?.role === 'admin' && (
-                      <TableCell>
+                      <SelectableTableCell>
                         <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
@@ -1093,15 +1259,38 @@ export default function Expenses() {
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
-                      </TableCell>
+                      </SelectableTableCell>
                     )}
-                  </TableRow>
+                  </SelectableTableRow>
                 );
               })}
-            </TableBody>
-          </Table>
+            </SelectableTableBody>
+          </SelectableTable>
         </CardContent>
       </Card>
+
+      {/* Bulk Action Dialog */}
+      <BulkActionDialog
+        open={bulkActionDialog.open}
+        onOpenChange={(open) => setBulkActionDialog(prev => ({ ...prev, open }))}
+        title={
+          bulkActionDialog.type === "delete" ? "حذف المصروفات المحددة" :
+          bulkActionDialog.type === "changeCategory" ? "تغيير فئة المصروفات المحددة" :
+          "تصدير المصروفات المحددة"
+        }
+        description={
+          bulkActionDialog.type === "delete" ? "سيتم حذف جميع المصروفات المحددة والمرفقات المرتبطة بها." :
+          bulkActionDialog.type === "changeCategory" ? "سيتم تغيير فئة جميع المصروفات المحددة." :
+          "سيتم تصدير جميع المصروفات المحددة إلى ملف CSV."
+        }
+        selectedCount={selectedCount}
+        actionType={bulkActionDialog.type}
+        onConfirm={handleBulkAction}
+        options={bulkActionDialog.type === "changeCategory" ? 
+          categories.map(cat => ({ value: cat, label: cat })) : []
+        }
+        loading={bulkActionDialog.loading}
+      />
 
       {/* Dialog التعديل */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
