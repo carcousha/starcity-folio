@@ -29,6 +29,7 @@ interface Debt {
   due_date: string;
   created_at: string;
   paid_at?: string;
+  debt_category?: string;
 }
 
 interface Expense {
@@ -262,12 +263,60 @@ export default function EmployeeDetails() {
       </div>
 
       {/* Detailed Tables */}
-      <Tabs defaultValue="debts" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="debts">المديونيات ({debts.length})</TabsTrigger>
+      <Tabs defaultValue="advances" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="advances">السلف ({debts.filter(d => d.debt_category === 'advance').length})</TabsTrigger>
+          <TabsTrigger value="debts">المديونيات ({debts.filter(d => d.debt_category !== 'advance').length})</TabsTrigger>
           <TabsTrigger value="expenses">المصروفات ({expenses.length})</TabsTrigger>
           <TabsTrigger value="commissions">العمولات ({commissions.length})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="advances">
+          <Card>
+            <CardHeader>
+              <CardTitle>سلف الموظف</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>التاريخ</TableHead>
+                    <TableHead>الوصف</TableHead>
+                    <TableHead>المبلغ</TableHead>
+                    <TableHead>طريقة السداد</TableHead>
+                    <TableHead>الحالة</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {debts.filter(d => d.debt_category === 'advance').map((debt) => (
+                    <TableRow key={debt.id}>
+                      <TableCell>
+                        {format(new Date(debt.created_at), 'YYYY/M/D')}
+                      </TableCell>
+                      <TableCell>{debt.description}</TableCell>
+                      <TableCell className="font-mono">
+                        {formatCurrency(debt.amount)}
+                      </TableCell>
+                      <TableCell>خصم من العمولة</TableCell>
+                      <TableCell>
+                        <Badge variant={debt.status === 'paid' ? 'default' : 'secondary'} className="bg-green-100 text-green-800">
+                          {debt.status === 'paid' ? 'تم الخصم' : 'في الانتظار'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {debts.filter(d => d.debt_category === 'advance').length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        لا توجد سلف
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="debts">
           <Card>
@@ -286,7 +335,7 @@ export default function EmployeeDetails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {debts.map((debt) => (
+                  {debts.filter(d => d.debt_category !== 'advance').map((debt) => (
                     <TableRow key={debt.id}>
                       <TableCell>
                         {format(new Date(debt.created_at), 'YYYY/M/D')}
@@ -305,7 +354,7 @@ export default function EmployeeDetails() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {debts.length === 0 && (
+                  {debts.filter(d => d.debt_category !== 'advance').length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground">
                         لا توجد مديونيات

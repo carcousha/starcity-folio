@@ -25,7 +25,7 @@ interface JournalEntry {
   id: string;
   entry_number: string;
   date: string;
-  type: 'revenue' | 'expense' | 'debt';
+  type: 'revenue' | 'expense' | 'debt' | 'advance';
   title: string;
   description: string;
   debit_account: string;
@@ -40,6 +40,7 @@ interface JournalEntry {
   is_transferred: boolean;
   debt_id?: string;
   debtor_name?: string;
+  debt_category?: string;
 }
 
 interface DailySummary {
@@ -93,7 +94,7 @@ export default function DailyJournal() {
   });
 
   const [formData, setFormData] = useState({
-    type: 'revenue' as 'revenue' | 'expense' | 'debt' | 'vehicle',
+    type: 'revenue' as 'revenue' | 'expense' | 'debt' | 'advance' | 'vehicle',
     expenseType: 'company' as 'personal' | 'company', // نوع المصروف
     subType: "",
     title: "",
@@ -152,6 +153,7 @@ export default function DailyJournal() {
     { value: 'all', label: 'جميع الأنواع' },
     { value: 'revenue', label: 'إيراد' },
     { value: 'expense', label: 'مصروف' },
+    { value: 'advance', label: '💰 سلفة' },
     { value: 'debt', label: 'مديونية' },
     { value: 'vehicle', label: '🚗 السيارة' }
   ];
@@ -253,16 +255,21 @@ export default function DailyJournal() {
         }
       });
 
-      // إضافة الديون كمصروفات في دفتر اليومية
+      // إضافة الديون والسلف بتصنيف صحيح
       debtsResult.data?.forEach((debt, index) => {
+        const isAdvance = debt.debt_category === 'advance';
+        const entryType = isAdvance ? 'advance' : 'debt';
+        
         journalEntries.push({
           id: debt.id,
-          entry_number: `DEBT-${debt.id.slice(-6)}`,
+          entry_number: `${isAdvance ? 'ADV' : 'DEBT'}-${debt.id.slice(-6)}`,
           date: debt.created_at.split('T')[0],
-          type: 'expense', // تسجيل المديونية كمصروف محاسبياً
-          title: `مديونية: ${debt.debtor_name}`,
-          description: `مديونية من ${debt.debtor_name} - ${debt.description || ''}`,
-          debit_account: 'مديونيات',
+          type: entryType,
+          title: isAdvance ? `سلفة: ${debt.debtor_name}` : `مديونية: ${debt.debtor_name}`,
+          description: isAdvance 
+            ? `سلفة موظف: ${debt.debtor_name} - ${debt.description || ''}` 
+            : `مديونية من ${debt.debtor_name} - ${debt.description || ''}`,
+          debit_account: isAdvance ? 'سلف الموظفين' : 'مديونيات',
           credit_account: 'النقدية',
           total_amount: debt.amount,
           paid_amount: debt.status === 'paid' ? debt.amount : 0,
@@ -272,7 +279,8 @@ export default function DailyJournal() {
           created_at: debt.created_at,
           is_transferred: true,
           debt_id: debt.id,
-          debtor_name: debt.debtor_name
+          debtor_name: debt.debtor_name,
+          debt_category: debt.debt_category
         });
       });
 
@@ -388,11 +396,11 @@ export default function DailyJournal() {
       return;
     }
 
-    // التحقق من الموظف للمصروفات الشخصية والمديونيات
-    if (((formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt') && !formData.employeeId) {
+    // التحقق من الموظف للمصروفات الشخصية والسلف والمديونيات
+    if (((formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt' || formData.type === 'advance') && !formData.employeeId) {
       toast({
         title: "خطأ",
-        description: `يرجى اختيار موظف لـ${formData.type === 'debt' ? 'المديونية' : 'المصروف الشخصي'}`,
+        description: `يرجى اختيار موظف لـ${formData.type === 'debt' ? 'المديونية' : formData.type === 'advance' ? 'السلفة' : 'المصروف الشخصي'}`,
         variant: "destructive",
       });
       return;
@@ -571,6 +579,34 @@ export default function DailyJournal() {
         // إعادة تحميل البيانات بعد الإضافة
         await fetchJournalData();
 
+      } else if (formData.type === 'advance') {
+        // حفظ السلفة في جدول الديون مع تصنيف صحيح
+        const debtData: any = {
+          debtor_name: employees.find(emp => emp.id === formData.employeeId)?.name || 'غير محدد',
+          debtor_type: 'employee',
+          debtor_id: formData.employeeId,
+          amount: totalAmount,
+          description: formData.description,
+          status: 'pending',
+          recorded_by: formData.employeeId,
+          auto_deduct_from_commission: true,
+          debt_category: 'advance'
+        };
+
+        const { error: advanceError } = await supabase
+          .from('debts')
+          .insert(debtData);
+
+        if (advanceError) throw advanceError;
+
+        toast({
+          title: "تم بنجاح",
+          description: "تم إضافة السلفة بنجاح",
+        });
+
+        // إعادة تحميل البيانات بعد الإضافة
+        await fetchJournalData();
+
       } else if (formData.type === 'debt') {
         // تحديد حالة المديونية بناء على المبلغ المدفوع
         const debtStatus = paidAmount >= totalAmount ? 'paid' : (paidAmount > 0 ? 'partial' : 'pending');
@@ -584,7 +620,8 @@ export default function DailyJournal() {
           description: formData.description,
           status: debtStatus,
           recorded_by: formData.employeeId,
-          auto_deduct_from_commission: true
+          auto_deduct_from_commission: false,
+          debt_category: 'debt'
         };
 
         // إضافة تاريخ الدفع إذا كانت مدفوعة
@@ -910,13 +947,14 @@ export default function DailyJournal() {
                       </div>
                       <div>
                         <Label htmlFor="type">نوع القيد <span className="text-red-500">*</span></Label>
-                        <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense' | 'debt' | 'vehicle') => setFormData(prev => ({ ...prev, type: value }))}>
+                        <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense' | 'debt' | 'advance' | 'vehicle') => setFormData(prev => ({ ...prev, type: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="اختر نوع القيد" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="revenue">إيراد</SelectItem>
                             <SelectItem value="expense">مصروف</SelectItem>
+                            <SelectItem value="advance">💰 سلفة موظف</SelectItem>
                             <SelectItem value="debt">مديونية</SelectItem>
                             <SelectItem value="vehicle">🚗 السيارة</SelectItem>
                           </SelectContent>
@@ -962,6 +1000,18 @@ export default function DailyJournal() {
                       </div>
                     )}
 
+                    {/* خيارات خاصة بالسلفة */}
+                    {formData.type === 'advance' && (
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-green-600 font-medium">💰 ملاحظة:</span>
+                        </div>
+                        <p className="text-sm text-green-700">
+                          سيتم إنشاء سلفة على الموظف المحدد مع الخصم التلقائي من العمولة القادمة
+                        </p>
+                      </div>
+                    )}
+
                     {/* خيارات خاصة بالمديونية */}
                     {formData.type === 'debt' && (
                       <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
@@ -969,7 +1019,7 @@ export default function DailyJournal() {
                           <span className="text-amber-600 font-medium">📝 ملاحظة:</span>
                         </div>
                         <p className="text-sm text-amber-700">
-                          سيتم إنشاء مديونية على الموظف المحدد مع إمكانية الخصم التلقائي من العمولة
+                          سيتم إنشاء مديونية على الموظف المحدد (بدون خصم تلقائي من العمولة)
                         </p>
                       </div>
                     )}
@@ -991,20 +1041,27 @@ export default function DailyJournal() {
                           <Label htmlFor="subType">فئة العملية</Label>
                            <Select value={formData.subType} onValueChange={(value) => setFormData(prev => ({ ...prev, subType: value }))}>
                              <SelectTrigger>
-                               <SelectValue placeholder={
-                                 formData.type === 'revenue' ? 'اختر نوع الإيراد' : 
-                                 formData.type === 'debt' ? 'اختر سبب المديونية' : 
-                                 formData.type === 'vehicle' ? 'اختر نوع مصروف السيارة' : 'اختر نوع المصروف'
-                               } />
+                                <SelectValue placeholder={
+                                  formData.type === 'revenue' ? 'اختر نوع الإيراد' : 
+                                  formData.type === 'advance' ? 'اختر سبب السلفة' :
+                                  formData.type === 'debt' ? 'اختر سبب المديونية' : 
+                                  formData.type === 'vehicle' ? 'اختر نوع مصروف السيارة' : 'اختر نوع المصروف'
+                                } />
                             </SelectTrigger>
-                            <SelectContent>
-                               {formData.type === 'debt' ? (
-                                 ['سلفة', 'مصروف شخصي', 'قرض', 'متأخرات', 'أخرى'].map((type) => (
-                                   <SelectItem key={type} value={type}>
-                                     {type}
-                                   </SelectItem>
-                                 ))
-                                ) : formData.type === 'vehicle' ? (
+                             <SelectContent>
+                                {formData.type === 'advance' ? (
+                                  ['سلفة راتب', 'مصروف طوارئ', 'سلفة مشروع', 'سلفة سفر', 'أخرى'].map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                      {type}
+                                    </SelectItem>
+                                  ))
+                                ) : formData.type === 'debt' ? (
+                                  ['مخالفة', 'ضرر', 'قرض شخصي', 'متأخرات', 'أخرى'].map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                      {type}
+                                    </SelectItem>
+                                  ))
+                                 ) : formData.type === 'vehicle' ? (
                                   vehicleExpenseTypes.map((type) => (
                                     <SelectItem key={type} value={type}>
                                       {type}
@@ -1021,11 +1078,11 @@ export default function DailyJournal() {
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="employee">
-                            {(formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt'
-                              ? '👤 الموظف (مطلوب)' 
-                              : '👥 الموظف/الوسيط المرتبط (اختياري)'}
-                          </Label>
+                           <Label htmlFor="employee">
+                             {(formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt' || formData.type === 'advance'
+                               ? '👤 الموظف (مطلوب)' 
+                               : '👥 الموظف/الوسيط المرتبط (اختياري)'}
+                           </Label>
                          <Select 
                            value={formData.employeeId} 
                            onValueChange={(value) => setFormData(prev => ({ ...prev, employeeId: value }))}
@@ -1269,20 +1326,23 @@ export default function DailyJournal() {
                   <TableBody>
                     {filteredEntries.map((entry) => (
                       <TableRow key={entry.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              entry.type === 'revenue' ? 'default' : 
-                              entry.debt_id ? 'destructive' : 'secondary'
-                            }
-                            className={
-                              entry.debt_id ? 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200' : ''
-                            }
-                          >
-                            {entry.type === 'revenue' ? 'إيراد' : 
-                             entry.debt_id ? 'مصروف (مديونية)' : 'مصروف'}
-                          </Badge>
-                        </TableCell>
+                         <TableCell>
+                           <Badge 
+                             variant={
+                               entry.type === 'revenue' ? 'default' : 
+                               entry.type === 'advance' ? 'outline' :
+                               entry.type === 'debt' ? 'destructive' : 'secondary'
+                             }
+                             className={
+                               entry.type === 'advance' ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' :
+                               entry.type === 'debt' ? 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200' : ''
+                             }
+                           >
+                             {entry.type === 'revenue' ? 'إيراد' : 
+                              entry.type === 'advance' ? '💰 سلفة' :
+                              entry.type === 'debt' ? '📋 مديونية' : 'مصروف'}
+                           </Badge>
+                         </TableCell>
                         <TableCell className="font-mono text-sm">
                           {new Date(entry.date).toLocaleDateString('ar-AE')}
                         </TableCell>
