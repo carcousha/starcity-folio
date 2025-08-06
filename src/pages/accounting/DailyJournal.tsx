@@ -253,21 +253,21 @@ export default function DailyJournal() {
         }
       });
 
-      // إضافة الديون
+      // إضافة الديون كمصروفات في دفتر اليومية
       debtsResult.data?.forEach((debt, index) => {
         journalEntries.push({
           id: debt.id,
           entry_number: `DEBT-${debt.id.slice(-6)}`,
           date: debt.created_at.split('T')[0],
-          type: 'debt',
+          type: 'expense', // تسجيل المديونية كمصروف محاسبياً
           title: `مديونية: ${debt.debtor_name}`,
-          description: debt.description || '',
+          description: `مديونية من ${debt.debtor_name} - ${debt.description || ''}`,
           debit_account: 'مديونيات',
-          credit_account: debt.debtor_type === 'employee' ? 'مديونيات موظفين' : 'مديونيات عملاء',
+          credit_account: 'النقدية',
           total_amount: debt.amount,
           paid_amount: debt.status === 'paid' ? debt.amount : 0,
           remaining_amount: debt.status === 'paid' ? 0 : debt.amount,
-          status: debt.status === 'paid' ? 'posted' : 'posted',
+          status: 'posted',
           recorded_by: debt.recorded_by,
           created_at: debt.created_at,
           is_transferred: true,
@@ -474,7 +474,7 @@ export default function DailyJournal() {
             throw error;
           }
           console.log('✅ Expense updated successfully');
-        } else if (entry.type === 'debt') {
+        } else if (entry.debt_id) {
           console.log('💳 Updating debt entry:', {
             id: editingEntry,
             employeeId: formData.employeeId,
@@ -672,7 +672,7 @@ export default function DailyJournal() {
 
     // تحديد employeeId الصحيح حسب نوع القيد
     let correctEmployeeId = '';
-    if (entry.type === 'debt') {
+    if (entry.debt_id) {
       // للمديونيات، نحتاج إلى جلب debtor_id من جدول الديون
       correctEmployeeId = entry.recorded_by || '';
       console.log('💳 Debt entry - using recorded_by:', correctEmployeeId);
@@ -748,7 +748,7 @@ export default function DailyJournal() {
           throw error;
         }
         console.log('✅ Expense deleted successfully');
-      } else if (entry.type === 'debt') {
+      } else if (entry.debt_id) {
         console.log('🏦 Deleting debt entry from database');
         const { error } = await supabase
           .from('debts')
@@ -1265,14 +1265,14 @@ export default function DailyJournal() {
                           <Badge 
                             variant={
                               entry.type === 'revenue' ? 'default' : 
-                              entry.type === 'debt' ? 'destructive' : 'secondary'
+                              entry.debt_id ? 'destructive' : 'secondary'
                             }
                             className={
-                              entry.type === 'debt' ? 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200' : ''
+                              entry.debt_id ? 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200' : ''
                             }
                           >
                             {entry.type === 'revenue' ? 'إيراد' : 
-                             entry.type === 'debt' ? 'مديونية' : 'مصروف'}
+                             entry.debt_id ? 'مصروف (مديونية)' : 'مصروف'}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">
