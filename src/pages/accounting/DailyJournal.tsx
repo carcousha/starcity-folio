@@ -18,12 +18,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import ConvertExpensesToDebts from "@/components/ConvertExpensesToDebts";
 
 interface JournalEntry {
   id: string;
   entry_number: string;
   date: string;
-  type: 'revenue' | 'expense';
+  type: 'revenue' | 'expense' | 'debt';
   title: string;
   description: string;
   debit_account: string;
@@ -36,6 +37,8 @@ interface JournalEntry {
   created_at: string;
   attachments?: string[];
   is_transferred: boolean;
+  debt_id?: string;
+  debtor_name?: string;
 }
 
 interface DailySummary {
@@ -88,7 +91,7 @@ export default function DailyJournal() {
   });
 
   const [formData, setFormData] = useState({
-    type: 'revenue' as 'revenue' | 'expense',
+    type: 'revenue' as 'revenue' | 'expense' | 'debt',
     expenseType: 'company' as 'personal' | 'company', // نوع المصروف
     subType: "",
     title: "",
@@ -133,7 +136,8 @@ export default function DailyJournal() {
   const entryTypes = [
     { value: 'all', label: 'جميع الأنواع' },
     { value: 'revenue', label: 'إيراد' },
-    { value: 'expense', label: 'مصروف' }
+    { value: 'expense', label: 'مصروف' },
+    { value: 'debt', label: 'مديونية' }
   ];
 
   useEffect(() => {
@@ -164,8 +168,8 @@ export default function DailyJournal() {
   const fetchJournalData = async () => {
     setLoading(true);
     try {
-      // جلب الإيرادات والمصروفات من قاعدة البيانات
-      const [revenuesResult, expensesResult] = await Promise.all([
+      // جلب الإيرادات والمصروفات والديون من قاعدة البيانات
+      const [revenuesResult, expensesResult, debtsResult] = await Promise.all([
         supabase
           .from('revenues')
           .select('*')
@@ -173,11 +177,16 @@ export default function DailyJournal() {
         supabase
           .from('expenses')
           .select('*')
-          .order('expense_date', { ascending: false })
+          .order('expense_date', { ascending: false }),
+        supabase
+          .from('debts')
+          .select('*')
+          .order('created_at', { ascending: false })
       ]);
 
       if (revenuesResult.error) throw revenuesResult.error;
       if (expensesResult.error) throw expensesResult.error;
+      if (debtsResult.error) throw debtsResult.error;
 
       // دمج البيانات وتحويلها لصيغة JournalEntry
       const journalEntries: JournalEntry[] = [];
@@ -203,24 +212,50 @@ export default function DailyJournal() {
         });
       });
 
-      // إضافة المصروفات
+      // إضافة المصروفات (فقط مصروفات الشركة)
       expensesResult.data?.forEach((expense, index) => {
+        // عرض فقط مصروفات الشركة في دفتر اليومية
+        if (expense.expense_type !== 'personal') {
+          journalEntries.push({
+            id: expense.id,
+            entry_number: `EXP-${expense.id.slice(-6)}`,
+            date: expense.expense_date,
+            type: 'expense',
+            title: expense.title,
+            description: expense.description || '',
+            debit_account: expense.category,
+            credit_account: expense.category,
+            total_amount: expense.amount,
+            paid_amount: expense.amount,
+            remaining_amount: 0,
+            status: 'posted',
+            recorded_by: expense.recorded_by,
+            created_at: expense.created_at,
+            is_transferred: true
+          });
+        }
+      });
+
+      // إضافة الديون
+      debtsResult.data?.forEach((debt, index) => {
         journalEntries.push({
-          id: expense.id,
-          entry_number: `EXP-${expense.id.slice(-6)}`,
-          date: expense.expense_date,
-          type: 'expense',
-          title: expense.title,
-          description: expense.description || '',
-          debit_account: expense.category,
-          credit_account: expense.category,
-          total_amount: expense.amount,
-          paid_amount: expense.amount,
-          remaining_amount: 0,
-          status: 'posted',
-          recorded_by: expense.recorded_by,
-          created_at: expense.created_at,
-          is_transferred: true
+          id: debt.id,
+          entry_number: `DEBT-${debt.id.slice(-6)}`,
+          date: debt.created_at.split('T')[0],
+          type: 'debt',
+          title: `مديونية: ${debt.debtor_name}`,
+          description: debt.description || '',
+          debit_account: 'مديونيات',
+          credit_account: debt.debtor_type === 'employee' ? 'مديونيات موظفين' : 'مديونيات عملاء',
+          total_amount: debt.amount,
+          paid_amount: debt.status === 'paid' ? debt.amount : 0,
+          remaining_amount: debt.status === 'paid' ? 0 : debt.amount,
+          status: debt.status === 'paid' ? 'posted' : 'posted',
+          recorded_by: debt.recorded_by,
+          created_at: debt.created_at,
+          is_transferred: true,
+          debt_id: debt.id,
+          debtor_name: debt.debtor_name
         });
       });
 
@@ -321,11 +356,11 @@ export default function DailyJournal() {
       return;
     }
 
-    // التحقق من الموظف للمصروفات الشخصية
-    if (formData.type === 'expense' && formData.expenseType === 'personal' && !formData.employeeId) {
+    // التحقق من الموظف للمصروفات الشخصية والمديونيات
+    if (((formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt') && !formData.employeeId) {
       toast({
         title: "خطأ",
-        description: "يرجى اختيار موظف للمصروف الشخصي",
+        description: `يرجى اختيار موظف لـ${formData.type === 'debt' ? 'المديونية' : 'المصروف الشخصي'}`,
         variant: "destructive",
       });
       return;
@@ -355,7 +390,7 @@ export default function DailyJournal() {
           description: "تم إضافة قيد الإيراد بنجاح",
         });
 
-      } else {
+      } else if (formData.type === 'expense') {
         // حفظ في جدول المصروفات مع دعم النوع الجديد
         const expenseData: any = {
           title: formData.title,
@@ -382,7 +417,31 @@ export default function DailyJournal() {
 
         toast({
           title: "تم بنجاح",
-          description: `تم إضافة ${formData.expenseType === 'personal' ? 'المصروف الشخصي' : 'مصروف الشركة'} بنجاح`,
+          description: `تم إضافة ${formData.expenseType === 'personal' ? 'المديونية' : 'مصروف الشركة'} بنجاح`,
+        });
+
+      } else if (formData.type === 'debt') {
+        // حفظ في جدول الديون مباشرة
+        const debtData: any = {
+          debtor_name: employees.find(emp => emp.id === formData.employeeId)?.name || 'غير محدد',
+          debtor_type: 'employee',
+          debtor_id: formData.employeeId,
+          amount: totalAmount,
+          description: formData.description,
+          status: 'pending',
+          recorded_by: formData.employeeId,
+          auto_deduct_from_commission: true
+        };
+
+        const { error: debtError } = await supabase
+          .from('debts')
+          .insert(debtData);
+
+        if (debtError) throw debtError;
+
+        toast({
+          title: "تم بنجاح",
+          description: "تم إضافة المديونية بنجاح",
         });
       }
 
@@ -445,7 +504,7 @@ export default function DailyJournal() {
           throw error;
         }
         console.log('✅ Revenue deleted successfully');
-      } else {
+      } else if (entry.type === 'expense') {
         console.log('💸 Deleting expense entry from database');
         const { error } = await supabase
           .from('expenses')
@@ -457,6 +516,18 @@ export default function DailyJournal() {
           throw error;
         }
         console.log('✅ Expense deleted successfully');
+      } else if (entry.type === 'debt') {
+        console.log('🏦 Deleting debt entry from database');
+        const { error } = await supabase
+          .from('debts')
+          .delete()
+          .eq('id', entryId);
+        
+        if (error) {
+          console.error('❌ Debt deletion error:', error);
+          throw error;
+        }
+        console.log('✅ Debt deleted successfully');
       }
 
       // إعادة تحميل البيانات من قاعدة البيانات
@@ -580,13 +651,14 @@ export default function DailyJournal() {
                       </div>
                       <div>
                         <Label htmlFor="type">نوع القيد</Label>
-                        <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense') => setFormData(prev => ({ ...prev, type: value }))}>
+                        <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense' | 'debt') => setFormData(prev => ({ ...prev, type: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="اختر نوع القيد" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="revenue">إيراد</SelectItem>
                             <SelectItem value="expense">مصروف</SelectItem>
+                            <SelectItem value="debt">مديونية</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -624,34 +696,57 @@ export default function DailyJournal() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="company">🏢 مصروف الشركة</SelectItem>
-                            <SelectItem value="personal">👤 مصروف شخصي</SelectItem>
+                            <SelectItem value="personal">👤 مصروف شخصي (سيتم تحويله إلى مديونية)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     )}
 
+                    {/* خيارات خاصة بالمديونية */}
+                    {formData.type === 'debt' && (
+                      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-amber-600 font-medium">📝 ملاحظة:</span>
+                        </div>
+                        <p className="text-sm text-amber-700">
+                          سيتم إنشاء مديونية على الموظف المحدد مع إمكانية الخصم التلقائي من العمولة
+                        </p>
+                      </div>
+                    )}
+
                      <div className="grid grid-cols-2 gap-4">
-                       <div>
-                         <Label htmlFor="subType">فئة العملية</Label>
-                         <Select value={formData.subType} onValueChange={(value) => setFormData(prev => ({ ...prev, subType: value }))}>
-                           <SelectTrigger>
-                             <SelectValue placeholder={`اختر ${formData.type === 'revenue' ? 'نوع الإيراد' : 'نوع المصروف'}`} />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {(formData.type === 'revenue' ? revenueTypes : expenseTypes).map((type) => (
-                               <SelectItem key={type} value={type}>
-                                 {type}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                       <div>
-                         <Label htmlFor="employee">
-                           {formData.type === 'expense' && formData.expenseType === 'personal' 
-                             ? '👤 الموظف (مطلوب)' 
-                             : '👥 الموظف/الوسيط المرتبط (اختياري)'}
-                         </Label>
+                        <div>
+                          <Label htmlFor="subType">فئة العملية</Label>
+                          <Select value={formData.subType} onValueChange={(value) => setFormData(prev => ({ ...prev, subType: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={
+                                formData.type === 'revenue' ? 'اختر نوع الإيراد' : 
+                                formData.type === 'debt' ? 'اختر سبب المديونية' : 'اختر نوع المصروف'
+                              } />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {formData.type === 'debt' ? (
+                                ['سلفة', 'مصروف شخصي', 'قرض', 'متأخرات', 'أخرى'].map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                (formData.type === 'revenue' ? revenueTypes : expenseTypes).map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="employee">
+                            {(formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt'
+                              ? '👤 الموظف (مطلوب)' 
+                              : '👥 الموظف/الوسيط المرتبط (اختياري)'}
+                          </Label>
                          <Select 
                            value={formData.employeeId} 
                            onValueChange={(value) => setFormData(prev => ({ ...prev, employeeId: value }))}
@@ -874,8 +969,12 @@ export default function DailyJournal() {
                     {filteredEntries.map((entry) => (
                       <TableRow key={entry.id} className="hover:bg-muted/50">
                         <TableCell>
-                          <Badge variant={entry.type === 'revenue' ? 'default' : 'destructive'}>
-                            {entry.type === 'revenue' ? 'إيراد' : 'مصروف'}
+                          <Badge variant={
+                            entry.type === 'revenue' ? 'default' : 
+                            entry.type === 'debt' ? 'secondary' : 'destructive'
+                          }>
+                            {entry.type === 'revenue' ? 'إيراد' : 
+                             entry.type === 'debt' ? 'مديونية' : 'مصروف'}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-sm">
@@ -1067,6 +1166,9 @@ export default function DailyJournal() {
             </div>
           </CardContent>
         </Card>
+
+        {/* أداة تحويل المصروفات الشخصية */}
+        <ConvertExpensesToDebts />
       </div>
     </div>
   );
