@@ -151,7 +151,8 @@ serve(async (req: Request) => {
         user_metadata: {
           first_name,
           last_name,
-          phone: phone || null
+          phone: phone || null,
+          skip_activity_log: true // لتجنب مشكلة activity logs في triggers
         }
       });
 
