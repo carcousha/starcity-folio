@@ -26,7 +26,7 @@ export type Database = {
           related_table: string | null
           source_id: string
           source_table: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           amount?: number | null
@@ -39,7 +39,7 @@ export type Database = {
           related_table?: string | null
           source_id: string
           source_table: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           amount?: number | null
@@ -52,7 +52,7 @@ export type Database = {
           related_table?: string | null
           source_id?: string
           source_table?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

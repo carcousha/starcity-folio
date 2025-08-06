@@ -188,11 +188,10 @@ export default function Staff() {
 
       console.log('🔄 Starting employee creation process...');
       
-      // Call the Edge Function using the Supabase client
-      const { data, error } = await supabase.functions.invoke('create-employee-user', {
+      // Call the new simplified Edge Function
+      const { data, error } = await supabase.functions.invoke('create-employee-simple', {
         body: {
           email: employee.email.trim(),
-          // لا نرسل كلمة المرور، سيتم توليدها تلقائياً
           first_name: employee.firstName.trim(),
           last_name: employee.lastName.trim(),
           phone: employee.phone?.trim() || null,
@@ -203,6 +202,11 @@ export default function Staff() {
       if (error) {
         console.error("❌ Edge Function error:", error);
         throw new Error(error.message || "فشل في إضافة الموظف عبر Edge Function");
+      }
+
+      if (!data?.success) {
+        console.error("❌ Function returned error:", data);
+        throw new Error(data?.message || "Unknown error occurred");
       }
 
       console.log("✅ Employee created via Edge Function:", data);
@@ -299,10 +303,10 @@ export default function Staff() {
     return password;
   };
 
-  // دالة إعادة تعيين كلمة المرور
+  // دالة إعادة تعيين كلمة المرور - محدّثة للـ Edge Function الجديدة
   const resetPasswordMutation = useMutation({
     mutationFn: async (employee: Staff) => {
-      const { data, error } = await supabase.functions.invoke('create-employee-user', {
+      const { data, error } = await supabase.functions.invoke('create-employee-simple', {
         body: {
           email: employee.email,
           first_name: employee.first_name,
@@ -314,6 +318,10 @@ export default function Staff() {
 
       if (error) {
         throw new Error(error.message || "فشل في إعادة تعيين كلمة المرور");
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Unknown error occurred");
       }
 
       return data.temporary_password;
