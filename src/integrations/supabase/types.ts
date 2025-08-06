@@ -26,6 +26,7 @@ export type Database = {
           related_table: string | null
           source_id: string
           source_table: string
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -39,6 +40,7 @@ export type Database = {
           related_table?: string | null
           source_id: string
           source_table: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -52,6 +54,7 @@ export type Database = {
           related_table?: string | null
           source_id?: string
           source_table?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
