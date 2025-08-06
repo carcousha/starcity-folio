@@ -483,7 +483,6 @@ export default function DailyJournal() {
           amount: totalAmount,
           description: formData.description || formData.title,
           expense_date: formData.date,
-          notes: formData.title,
           recorded_by: user?.id
         };
 
