@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { format } from '@formkit/tempo';
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -288,14 +289,14 @@ export default function EmployeeDetails() {
                   {debts.map((debt) => (
                     <TableRow key={debt.id}>
                       <TableCell>
-                        {new Date(debt.created_at).toLocaleDateString('ar-SA')}
+                        {format(new Date(debt.created_at), 'YYYY/M/D', 'ar-SA-islamic')}
                       </TableCell>
                       <TableCell>{debt.description}</TableCell>
                       <TableCell className="font-mono">
                         {formatCurrency(debt.amount)}
                       </TableCell>
                       <TableCell>
-                        {debt.due_date ? new Date(debt.due_date).toLocaleDateString('ar-SA') : '-'}
+                        {debt.due_date ? format(new Date(debt.due_date), 'YYYY/M/D', 'ar-SA-islamic') : '-'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={debt.status === 'paid' ? 'default' : debt.status === 'pending' ? 'secondary' : 'destructive'}>
@@ -337,7 +338,7 @@ export default function EmployeeDetails() {
                   {expenses.map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell>
-                        {new Date(expense.expense_date).toLocaleDateString('ar-SA')}
+                        {format(new Date(expense.expense_date), 'YYYY/M/D', 'ar-SA-islamic')}
                       </TableCell>
                       <TableCell>{expense.title}</TableCell>
                       <TableCell>{expense.description}</TableCell>
@@ -380,7 +381,7 @@ export default function EmployeeDetails() {
                   {commissions.map((commission) => (
                     <TableRow key={commission.id}>
                       <TableCell>
-                        {new Date(commission.commissions.created_at).toLocaleDateString('ar-SA')}
+                        {format(new Date(commission.commissions.created_at), 'YYYY/M/D', 'ar-SA-islamic')}
                       </TableCell>
                       <TableCell>{commission.commissions.client_name}</TableCell>
                       <TableCell>{commission.percentage}%</TableCell>
