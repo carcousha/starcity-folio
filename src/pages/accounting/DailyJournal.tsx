@@ -101,7 +101,8 @@ export default function DailyJournal() {
     paidAmount: "",
     attachments: [] as File[],
     saveAsDraft: false,
-    employeeId: ""
+    employeeId: "",
+    date: new Date().toISOString().split('T')[0] // إضافة حقل التاريخ
   });
 
   const revenueTypes = [
@@ -380,7 +381,7 @@ export default function DailyJournal() {
             description: formData.description,
             source: formData.subType,
             amount: totalAmount,
-            revenue_date: filters.startDate,
+            revenue_date: formData.date, // استخدام التاريخ من النموذج
             recorded_by: user?.id
           });
 
@@ -398,7 +399,7 @@ export default function DailyJournal() {
           description: formData.description,
           category: formData.subType,
           amount: totalAmount,
-          expense_date: filters.startDate,
+          expense_date: formData.date, // استخدام التاريخ من النموذج
           expense_type: formData.expenseType,
         };
 
@@ -460,7 +461,8 @@ export default function DailyJournal() {
         paidAmount: "",
         attachments: [],
         saveAsDraft: false,
-        employeeId: ""
+        employeeId: "",
+        date: new Date().toISOString().split('T')[0] // إعادة تعيين التاريخ
       });
       
     } catch (error: any) {
@@ -641,17 +643,17 @@ export default function DailyJournal() {
                   <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="date">📅 التاريخ</Label>
+                        <Label htmlFor="date">📅 التاريخ <span className="text-red-500">*</span></Label>
                         <Input
                           id="date"
                           type="date"
-                          value={filters.startDate}
-                          onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                          value={formData.date}
+                          onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="type">نوع القيد</Label>
+                        <Label htmlFor="type">نوع القيد <span className="text-red-500">*</span></Label>
                         <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense' | 'debt') => setFormData(prev => ({ ...prev, type: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="اختر نوع القيد" />
@@ -666,7 +668,7 @@ export default function DailyJournal() {
                     </div>
 
                     <div>
-                      <Label htmlFor="title">📝 العنوان</Label>
+                      <Label htmlFor="title">📝 العنوان <span className="text-red-500">*</span></Label>
                       <Input
                         id="title"
                         value={formData.title}
@@ -769,7 +771,7 @@ export default function DailyJournal() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="totalAmount">💰 المبلغ الإجمالي</Label>
+                        <Label htmlFor="totalAmount">💰 المبلغ الإجمالي <span className="text-red-500">*</span></Label>
                         <Input
                           id="totalAmount"
                           type="number"
