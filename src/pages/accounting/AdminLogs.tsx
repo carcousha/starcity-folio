@@ -56,20 +56,24 @@ const AdminLogs = () => {
   const [restoringId, setRestoringId] = useState<string | null>(null);
   
   const { toast } = useToast();
-  const { requirePermission } = useRoleAccess();
+  const { requirePermission, checkPermission } = useRoleAccess();
 
   useEffect(() => {
     const checkPermissions = async () => {
       console.log('Checking permissions for admin logs...');
-      const hasPermission = await requirePermission('canViewActivityLogs');
+      // استخدام checkPermission بدلاً من requirePermission لتجنب إعادة التوجيه
+      const hasPermission = checkPermission('canViewActivityLogs');
       console.log('Has permission:', hasPermission);
       if (hasPermission) {
         fetchLogs();
+      } else {
+        console.log('No permission, user will see unauthorized message');
+        setLoading(false);
       }
     };
 
     checkPermissions();
-  }, [requirePermission]);
+  }, [checkPermission]); // تغيير dependency
 
   const fetchLogs = async () => {
     try {
@@ -219,6 +223,19 @@ const AdminLogs = () => {
 
   const uniqueTables = [...new Set(logs.map(log => log.table_name))];
   const uniqueActions = [...new Set(logs.map(log => log.action))];
+
+  // التحقق من الصلاحيات قبل عرض المحتوى
+  if (!checkPermission('canViewActivityLogs')) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center space-y-4">
+          <div className="text-6xl">🚫</div>
+          <h1 className="text-2xl font-bold text-foreground">غير مصرح</h1>
+          <p className="text-muted-foreground">لا تملك الصلاحية للوصول لهذه الصفحة</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
