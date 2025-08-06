@@ -1184,10 +1184,15 @@ export default function DailyJournal() {
                     {filteredEntries.map((entry) => (
                       <TableRow key={entry.id} className="hover:bg-muted/50">
                         <TableCell>
-                          <Badge variant={
-                            entry.type === 'revenue' ? 'default' : 
-                            entry.type === 'debt' ? 'secondary' : 'destructive'
-                          }>
+                          <Badge 
+                            variant={
+                              entry.type === 'revenue' ? 'default' : 
+                              entry.type === 'debt' ? 'destructive' : 'secondary'
+                            }
+                            className={
+                              entry.type === 'debt' ? 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200' : ''
+                            }
+                          >
                             {entry.type === 'revenue' ? 'إيراد' : 
                              entry.type === 'debt' ? 'مديونية' : 'مصروف'}
                           </Badge>
