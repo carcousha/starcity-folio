@@ -92,7 +92,7 @@ export default function DailyJournal() {
   });
 
   const [formData, setFormData] = useState({
-    type: 'revenue' as 'revenue' | 'expense' | 'debt',
+    type: 'revenue' as 'revenue' | 'expense' | 'debt' | 'vehicle',
     expenseType: 'company' as 'personal' | 'company', // نوع المصروف
     subType: "",
     title: "",
@@ -102,6 +102,7 @@ export default function DailyJournal() {
     attachments: [] as File[],
     saveAsDraft: false,
     employeeId: "",
+    vehicleId: "", // إضافة معرف السيارة
     date: new Date().toISOString().split('T')[0] // إضافة حقل التاريخ
   });
 
@@ -127,6 +128,7 @@ export default function DailyJournal() {
   ];
 
   const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
+  const [vehicles, setVehicles] = useState<Array<{id: string, license_plate: string, model: string, make: string}>>([]);
 
   const statusOptions = [
     { value: 'all', label: 'جميع الحالات' },
@@ -139,7 +141,8 @@ export default function DailyJournal() {
     { value: 'all', label: 'جميع الأنواع' },
     { value: 'revenue', label: 'إيراد' },
     { value: 'expense', label: 'مصروف' },
-    { value: 'debt', label: 'مديونية' }
+    { value: 'debt', label: 'مديونية' },
+    { value: 'vehicle', label: '🚗 السيارة' }
   ];
 
   useEffect(() => {
@@ -147,6 +150,7 @@ export default function DailyJournal() {
     fetchMonthlyData();
     fetchTypeData();
     fetchEmployees();
+    fetchVehicles();
   }, [filters]);
 
   useEffect(() => {
@@ -345,6 +349,21 @@ export default function DailyJournal() {
     }
   };
 
+  const fetchVehicles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('id, license_plate, model, make')
+        .eq('status', 'active');
+        
+      if (error) throw error;
+      
+      setVehicles(data || []);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -363,6 +382,16 @@ export default function DailyJournal() {
       toast({
         title: "خطأ",
         description: `يرجى اختيار موظف لـ${formData.type === 'debt' ? 'المديونية' : 'المصروف الشخصي'}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // التحقق من السيارة عند اختيار نوع السيارة
+    if (formData.type === 'vehicle' && !formData.vehicleId) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار السيارة المرتبطة بهذا المصروف",
         variant: "destructive",
       });
       return;
@@ -445,6 +474,29 @@ export default function DailyJournal() {
           title: "تم بنجاح",
           description: "تم إضافة المديونية بنجاح",
         });
+
+      } else if (formData.type === 'vehicle') {
+        // حفظ في جدول مصروفات السيارات
+        const vehicleExpenseData: any = {
+          vehicle_id: formData.vehicleId,
+          expense_type: formData.subType,
+          amount: totalAmount,
+          description: formData.description || formData.title,
+          date: formData.date,
+          notes: formData.title,
+          recorded_by: user?.id
+        };
+
+        const { error: vehicleExpenseError } = await supabase
+          .from('vehicle_expenses')
+          .insert(vehicleExpenseData);
+
+        if (vehicleExpenseError) throw vehicleExpenseError;
+
+        toast({
+          title: "تم بنجاح",
+          description: "تم إضافة مصروف السيارة بنجاح",
+        });
       }
 
       // إعادة تحميل البيانات
@@ -462,6 +514,7 @@ export default function DailyJournal() {
         attachments: [],
         saveAsDraft: false,
         employeeId: "",
+        vehicleId: "", // إعادة تعيين معرف السيارة
         date: new Date().toISOString().split('T')[0] // إعادة تعيين التاريخ
       });
       
@@ -654,7 +707,7 @@ export default function DailyJournal() {
                       </div>
                       <div>
                         <Label htmlFor="type">نوع القيد <span className="text-red-500">*</span></Label>
-                        <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense' | 'debt') => setFormData(prev => ({ ...prev, type: value }))}>
+                        <Select value={formData.type} onValueChange={(value: 'revenue' | 'expense' | 'debt' | 'vehicle') => setFormData(prev => ({ ...prev, type: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="اختر نوع القيد" />
                           </SelectTrigger>
@@ -662,6 +715,7 @@ export default function DailyJournal() {
                             <SelectItem value="revenue">إيراد</SelectItem>
                             <SelectItem value="expense">مصروف</SelectItem>
                             <SelectItem value="debt">مديونية</SelectItem>
+                            <SelectItem value="vehicle">🚗 السيارة</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -717,30 +771,49 @@ export default function DailyJournal() {
                       </div>
                     )}
 
+                    {/* خيارات خاصة بالسيارة */}
+                    {formData.type === 'vehicle' && (
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-blue-600 font-medium">🚗 ملاحظة:</span>
+                        </div>
+                        <p className="text-sm text-blue-700">
+                          سيتم تسجيل هذا القيد كمصروف متعلق بالسيارة المحددة
+                        </p>
+                      </div>
+                    )}
+
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="subType">فئة العملية</Label>
-                          <Select value={formData.subType} onValueChange={(value) => setFormData(prev => ({ ...prev, subType: value }))}>
-                            <SelectTrigger>
-                              <SelectValue placeholder={
-                                formData.type === 'revenue' ? 'اختر نوع الإيراد' : 
-                                formData.type === 'debt' ? 'اختر سبب المديونية' : 'اختر نوع المصروف'
-                              } />
+                           <Select value={formData.subType} onValueChange={(value) => setFormData(prev => ({ ...prev, subType: value }))}>
+                             <SelectTrigger>
+                               <SelectValue placeholder={
+                                 formData.type === 'revenue' ? 'اختر نوع الإيراد' : 
+                                 formData.type === 'debt' ? 'اختر سبب المديونية' : 
+                                 formData.type === 'vehicle' ? 'اختر نوع مصروف السيارة' : 'اختر نوع المصروف'
+                               } />
                             </SelectTrigger>
                             <SelectContent>
-                              {formData.type === 'debt' ? (
-                                ['سلفة', 'مصروف شخصي', 'قرض', 'متأخرات', 'أخرى'].map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {type}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                (formData.type === 'revenue' ? revenueTypes : expenseTypes).map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {type}
-                                  </SelectItem>
-                                ))
-                              )}
+                               {formData.type === 'debt' ? (
+                                 ['سلفة', 'مصروف شخصي', 'قرض', 'متأخرات', 'أخرى'].map((type) => (
+                                   <SelectItem key={type} value={type}>
+                                     {type}
+                                   </SelectItem>
+                                 ))
+                               ) : formData.type === 'vehicle' ? (
+                                 ['وقود', 'صيانة', 'إطارات', 'تأمين', 'رسوم ترخيص', 'غسيل', 'إصلاحات', 'أخرى'].map((type) => (
+                                   <SelectItem key={type} value={type}>
+                                     {type}
+                                   </SelectItem>
+                                 ))
+                               ) : (
+                                 (formData.type === 'revenue' ? revenueTypes : expenseTypes).map((type) => (
+                                   <SelectItem key={type} value={type}>
+                                     {type}
+                                   </SelectItem>
+                                 ))
+                               )}
                             </SelectContent>
                           </Select>
                         </div>
@@ -766,8 +839,30 @@ export default function DailyJournal() {
                              ))}
                            </SelectContent>
                          </Select>
-                       </div>
-                     </div>
+                        </div>
+                      </div>
+
+                    {/* مربع اختيار السيارة - يظهر فقط عند اختيار نوع "السيارة" */}
+                    {formData.type === 'vehicle' && (
+                      <div>
+                        <Label htmlFor="vehicle">🚗 السيارة <span className="text-red-500">*</span></Label>
+                        <Select 
+                          value={formData.vehicleId} 
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, vehicleId: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر السيارة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vehicles.map((vehicle) => (
+                              <SelectItem key={vehicle.id} value={vehicle.id}>
+                                {vehicle.license_plate} - {vehicle.make} {vehicle.model}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
