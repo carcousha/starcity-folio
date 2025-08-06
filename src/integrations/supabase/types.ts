@@ -818,6 +818,7 @@ export type Database = {
           debtor_type: string
           description: string | null
           due_date: string | null
+          expense_id: string | null
           grace_period_days: number | null
           guarantor_name: string | null
           guarantor_phone: string | null
@@ -842,6 +843,7 @@ export type Database = {
           debtor_type: string
           description?: string | null
           due_date?: string | null
+          expense_id?: string | null
           grace_period_days?: number | null
           guarantor_name?: string | null
           guarantor_phone?: string | null
@@ -866,6 +868,7 @@ export type Database = {
           debtor_type?: string
           description?: string | null
           due_date?: string | null
+          expense_id?: string | null
           grace_period_days?: number | null
           guarantor_name?: string | null
           guarantor_phone?: string | null
@@ -880,7 +883,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "debts_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_targets: {
         Row: {
@@ -983,6 +994,7 @@ export type Database = {
           expense_type: string | null
           id: string
           is_approved: boolean | null
+          is_debt_related: boolean | null
           receipt_reference: string | null
           receipt_url: string | null
           recorded_by: string | null
@@ -1002,6 +1014,7 @@ export type Database = {
           expense_type?: string | null
           id?: string
           is_approved?: boolean | null
+          is_debt_related?: boolean | null
           receipt_reference?: string | null
           receipt_url?: string | null
           recorded_by?: string | null
@@ -1021,6 +1034,7 @@ export type Database = {
           expense_type?: string | null
           id?: string
           is_approved?: boolean | null
+          is_debt_related?: boolean | null
           receipt_reference?: string | null
           receipt_url?: string | null
           recorded_by?: string | null
