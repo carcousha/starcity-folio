@@ -60,7 +60,9 @@ const AdminLogs = () => {
 
   useEffect(() => {
     const checkPermissions = async () => {
+      console.log('Checking permissions for admin logs...');
       const hasPermission = await requirePermission('canViewActivityLogs');
+      console.log('Has permission:', hasPermission);
       if (hasPermission) {
         fetchLogs();
       }
@@ -71,6 +73,7 @@ const AdminLogs = () => {
 
   const fetchLogs = async () => {
     try {
+      console.log('Fetching audit logs...');
       setLoading(true);
       
       // جلب audit logs
@@ -80,7 +83,10 @@ const AdminLogs = () => {
         .order('timestamp', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       // جلب أسماء المستخدمين بشكل منفصل
       const userIds = [...new Set(auditLogs?.map(log => log.user_id).filter(Boolean))];
@@ -104,6 +110,7 @@ const AdminLogs = () => {
         };
       }) || [];
 
+      console.log('Fetched logs:', logsWithUserNames);
       setLogs(logsWithUserNames);
     } catch (error: any) {
       console.error('Error fetching logs:', error);
@@ -252,7 +259,7 @@ const AdminLogs = () => {
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="اختر الجدول" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border shadow-md z-50">
                 <SelectItem value="all">جميع الجداول</SelectItem>
                 {uniqueTables.map(table => (
                   <SelectItem key={table} value={table}>
@@ -266,7 +273,7 @@ const AdminLogs = () => {
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="اختر العملية" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border shadow-md z-50">
                 <SelectItem value="all">جميع العمليات</SelectItem>
                 {uniqueActions.map(action => (
                   <SelectItem key={action} value={action}>
