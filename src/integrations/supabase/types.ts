@@ -3120,6 +3120,16 @@ export type Database = {
         Args: { lead_id_param: string }
         Returns: string
       }
+      create_commission_simple: {
+        Args: {
+          p_client_name: string
+          p_amount: number
+          p_employee_ids: string[]
+          p_transaction_name?: string
+          p_custom_percentages?: Json
+        }
+        Returns: Json
+      }
       create_debt_installments: {
         Args: {
           p_debt_id: string

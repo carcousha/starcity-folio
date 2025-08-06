@@ -72,22 +72,23 @@ const CommissionManagementNew = () => {
     }
   });
 
-  // Create commission mutation using new system
+  // Create commission mutation using simplified system
   const createCommissionMutation = useMutation({
     mutationFn: async () => {
       const totalAmount = parseFloat(amount);
       const employeeIds = selectedEmployees.map(emp => emp.employee_id);
       
       // Prepare custom percentages if in custom mode
-      const percentages = distributionMode === 'custom' ? customPercentages : null;
+      const percentages = distributionMode === 'custom' && Object.keys(customPercentages).length > 0 
+        ? customPercentages 
+        : null;
       
-      const { data, error } = await supabase.rpc('calculate_commission_new_system', {
+      const { data, error } = await supabase.rpc('create_commission_simple', {
         p_client_name: clientName,
-        p_transaction_type: transactionType,
-        p_property_type: propertyType,
-        p_total_amount: totalAmount,
-        p_employee_ids: employeeIds.length > 0 ? employeeIds : null,
-        p_custom_percentages: percentages ? JSON.stringify(percentages) : null
+        p_amount: totalAmount,
+        p_employee_ids: employeeIds,
+        p_transaction_name: transactionName,
+        p_custom_percentages: percentages
       });
 
       if (error) throw error;
@@ -96,7 +97,7 @@ const CommissionManagementNew = () => {
     onSuccess: async (data: any) => {
       toast({
         title: "تم إنشاء العمولة بنجاح",
-        description: `تم توزيع ${data.total_amount || parseFloat(amount)} د.إ بنظام 50/50 الجديد`,
+        description: `تم توزيع ${data.total_commission || parseFloat(amount)} د.إ بنظام 50/50`,
       });
       
       // Store commission data for debt dialog
@@ -176,10 +177,19 @@ const CommissionManagementNew = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!clientName || !transactionName || !transactionType || !propertyType || !amount) {
+    if (!clientName || !amount) {
       toast({
         title: "بيانات ناقصة",
-        description: "يرجى ملء جميع الحقول المطلوبة",
+        description: "يرجى ملء اسم العميل ومبلغ العمولة",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (selectedEmployees.length === 0) {
+      toast({
+        title: "لا يوجد موظفين",
+        description: "يرجى اختيار موظف واحد على الأقل",
         variant: "destructive"
       });
       return;
