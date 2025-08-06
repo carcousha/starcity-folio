@@ -572,6 +572,9 @@ export default function DailyJournal() {
         await fetchJournalData();
 
       } else if (formData.type === 'debt') {
+        // تحديد حالة المديونية بناء على المبلغ المدفوع
+        const debtStatus = paidAmount >= totalAmount ? 'paid' : (paidAmount > 0 ? 'partial' : 'pending');
+        
         // حفظ في جدول الديون مباشرة
         const debtData: any = {
           debtor_name: employees.find(emp => emp.id === formData.employeeId)?.name || 'غير محدد',
@@ -579,10 +582,15 @@ export default function DailyJournal() {
           debtor_id: formData.employeeId,
           amount: totalAmount,
           description: formData.description,
-          status: 'pending',
+          status: debtStatus,
           recorded_by: formData.employeeId,
           auto_deduct_from_commission: true
         };
+
+        // إضافة تاريخ الدفع إذا كانت مدفوعة
+        if (debtStatus === 'paid') {
+          debtData.paid_at = new Date().toISOString();
+        }
 
         const { error: debtError } = await supabase
           .from('debts')
