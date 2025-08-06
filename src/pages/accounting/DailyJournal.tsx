@@ -418,6 +418,12 @@ export default function DailyJournal() {
         if (!entry) throw new Error('القيد غير موجود');
 
         if (entry.type === 'revenue') {
+          console.log('💰 Updating revenue entry:', {
+            id: editingEntry,
+            amount: totalAmount,
+            title: formData.title
+          });
+
           const { error } = await supabase
             .from('revenues')
             .update({
@@ -429,8 +435,20 @@ export default function DailyJournal() {
             })
             .eq('id', editingEntry);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error updating revenue:', error);
+            throw error;
+          }
+          console.log('✅ Revenue updated successfully');
+
         } else if (entry.type === 'expense') {
+          console.log('💸 Updating expense entry:', {
+            id: editingEntry,
+            amount: totalAmount,
+            title: formData.title,
+            expenseType: formData.expenseType
+          });
+
           const expenseData: any = {
             title: formData.title,
             description: formData.description,
@@ -451,20 +469,38 @@ export default function DailyJournal() {
             .update(expenseData)
             .eq('id', editingEntry);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error updating expense:', error);
+            throw error;
+          }
+          console.log('✅ Expense updated successfully');
         } else if (entry.type === 'debt') {
+          console.log('💳 Updating debt entry:', {
+            id: editingEntry,
+            employeeId: formData.employeeId,
+            amount: totalAmount
+          });
+
+          // العثور على اسم الموظف الصحيح
+          const employee = employees.find(emp => emp.id === formData.employeeId);
+          const debtorName = employee ? employee.name : 'غير محدد';
+
           const { error } = await supabase
             .from('debts')
             .update({
-              debtor_name: employees.find(emp => emp.id === formData.employeeId)?.name || 'غير محدد',
+              debtor_name: debtorName,
               debtor_id: formData.employeeId,
               amount: totalAmount,
               description: formData.description,
-              recorded_by: formData.employeeId
+              // لا نحدث recorded_by في التعديل لأنه يجب أن يبقى كما هو
             })
             .eq('id', editingEntry);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error updating debt:', error);
+            throw error;
+          }
+          console.log('✅ Debt updated successfully');
         }
 
         toast({
@@ -472,7 +508,12 @@ export default function DailyJournal() {
           description: "تم تعديل القيد بنجاح",
         });
         
+        // إعادة تحميل البيانات بعد التعديل
+        console.log('🔄 Refreshing data after edit...');
+        await fetchJournalData();
+        
         setEditingEntry(null);
+        setIsDialogOpen(false);
 
       } else if (formData.type === 'revenue') {
         // حفظ في جدول الإيرادات
@@ -493,6 +534,9 @@ export default function DailyJournal() {
           title: "تم بنجاح",
           description: "تم إضافة قيد الإيراد بنجاح",
         });
+
+        // إعادة تحميل البيانات بعد الإضافة
+        await fetchJournalData();
 
       } else if (formData.type === 'expense') {
         // حفظ في جدول المصروفات مع دعم النوع الجديد
@@ -524,6 +568,9 @@ export default function DailyJournal() {
           description: `تم إضافة ${formData.expenseType === 'personal' ? 'المديونية' : 'مصروف الشركة'} بنجاح`,
         });
 
+        // إعادة تحميل البيانات بعد الإضافة
+        await fetchJournalData();
+
       } else if (formData.type === 'debt') {
         // حفظ في جدول الديون مباشرة
         const debtData: any = {
@@ -547,6 +594,9 @@ export default function DailyJournal() {
           title: "تم بنجاح",
           description: "تم إضافة المديونية بنجاح",
         });
+
+        // إعادة تحميل البيانات بعد الإضافة
+        await fetchJournalData();
 
       } else if (formData.type === 'vehicle') {
         // تحويل نوع المصروف العربي إلى الإنجليزي
@@ -611,8 +661,30 @@ export default function DailyJournal() {
   };
 
   const handleEdit = (entryId: string) => {
+    console.log('🔧 Starting edit for entry:', entryId);
     const entry = filteredEntries.find(e => e.id === entryId);
-    if (!entry) return;
+    if (!entry) {
+      console.error('❌ Entry not found for editing:', entryId);
+      return;
+    }
+
+    console.log('📝 Found entry for editing:', entry);
+
+    // تحديد employeeId الصحيح حسب نوع القيد
+    let correctEmployeeId = '';
+    if (entry.type === 'debt') {
+      // للمديونيات، نحتاج إلى جلب debtor_id من جدول الديون
+      correctEmployeeId = entry.recorded_by || '';
+      console.log('💳 Debt entry - using recorded_by:', correctEmployeeId);
+    } else if (entry.type === 'expense') {
+      // للمصروفات، استخدم recorded_by
+      correctEmployeeId = entry.recorded_by || '';
+      console.log('💰 Expense - using recorded_by:', correctEmployeeId);
+    } else {
+      // للإيرادات، استخدم recorded_by أو المستخدم الحالي
+      correctEmployeeId = entry.recorded_by || user?.id || '';
+      console.log('🏢 Revenue - using recorded_by or current user:', correctEmployeeId);
+    }
 
     // Set the form data based on the entry
     setFormData({
@@ -623,11 +695,17 @@ export default function DailyJournal() {
       subType: entry.debit_account || '',
       date: new Date(entry.date).toISOString().split('T')[0],
       description: entry.description,
-      employeeId: user?.id || '',
+      employeeId: correctEmployeeId,
       vehicleId: '',
       expenseType: 'company',
       attachments: [],
       saveAsDraft: entry.status === 'draft'
+    });
+
+    console.log('✅ Form data set for editing:', {
+      type: entry.type,
+      employeeId: correctEmployeeId,
+      title: entry.title
     });
 
     setEditingEntry(entryId);
