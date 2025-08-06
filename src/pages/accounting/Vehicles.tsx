@@ -317,28 +317,44 @@ export default function Vehicles() {
   };
 
   const handleDelete = async (vehicle: Vehicle) => {
-    if (!window.confirm(`هل أنت متأكد من حذف السيارة ${vehicle.make} ${vehicle.model}؟`)) {
+    // Check if there are associated expenses
+    const expenseCount = vehicleExpenses.filter(exp => exp.vehicle_id === vehicle.id).length;
+    
+    let confirmMessage = `هل أنت متأكد من حذف السيارة ${vehicle.make} ${vehicle.model}؟`;
+    if (expenseCount > 0) {
+      confirmMessage += `\n\nملاحظة: سيتم حذف ${expenseCount} مصروف مرتبط بهذه السيارة أيضاً.`;
+    }
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('vehicles')
-        .delete()
-        .eq('id', vehicle.id);
+      // Use the safe delete function
+      const { data, error } = await supabase.rpc('delete_vehicle_with_expenses', {
+        vehicle_id_param: vehicle.id
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete vehicle error:', error);
+        throw error;
+      }
+
+      const result = data as any; // Type assertion for the response
 
       toast({
         title: "تم الحذف",
-        description: "تم حذف السيارة بنجاح",
+        description: result.message + (result.deleted_expenses_count > 0 ? ` (تم حذف ${result.deleted_expenses_count} مصروف)` : ''),
       });
 
+      // Refresh both vehicles and expenses
       await fetchVehicles();
+      await fetchVehicleExpenses();
     } catch (error: any) {
+      console.error('Error deleting vehicle:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حذف السيارة",
+        description: error.message || "فشل في حذف السيارة",
         variant: "destructive",
       });
     }
