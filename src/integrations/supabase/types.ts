@@ -816,6 +816,7 @@ export type Database = {
           auto_deduct_from_commission: boolean | null
           contract_reference: string | null
           created_at: string
+          debt_category: string | null
           debtor_id: string | null
           debtor_name: string
           debtor_type: string
@@ -841,6 +842,7 @@ export type Database = {
           auto_deduct_from_commission?: boolean | null
           contract_reference?: string | null
           created_at?: string
+          debt_category?: string | null
           debtor_id?: string | null
           debtor_name: string
           debtor_type: string
@@ -866,6 +868,7 @@ export type Database = {
           auto_deduct_from_commission?: boolean | null
           contract_reference?: string | null
           created_at?: string
+          debt_category?: string | null
           debtor_id?: string | null
           debtor_name?: string
           debtor_type?: string
