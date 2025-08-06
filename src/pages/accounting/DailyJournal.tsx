@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,6 +78,9 @@ export default function DailyJournal() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
@@ -386,37 +390,44 @@ export default function DailyJournal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // التحقق من الحقول الأساسية
-    if (!formData.title || !formData.totalAmount || !formData.subType) {
-      toast({
-        title: "خطأ",
-        description: "يرجى ملء جميع الحقول المطلوبة",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // التحقق من الموظف للمصروفات الشخصية والسلف والمديونيات
-    if (((formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt' || formData.type === 'advance') && !formData.employeeId) {
-      toast({
-        title: "خطأ",
-        description: `يرجى اختيار موظف لـ${formData.type === 'debt' ? 'المديونية' : formData.type === 'advance' ? 'السلفة' : 'المصروف الشخصي'}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // التحقق من السيارة عند اختيار نوع السيارة
-    if (formData.type === 'vehicle' && !formData.vehicleId) {
-      toast({
-        title: "خطأ",
-        description: "يرجى اختيار السيارة المرتبطة بهذا المصروف",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    if (isSubmitting) return; // منع التنفيذ المتكرر
+    
+    setIsSubmitting(true);
+    
     try {
+      // التحقق من الحقول الأساسية
+      if (!formData.title || !formData.totalAmount || !formData.subType) {
+        toast({
+          title: "خطأ",
+          description: "يرجى ملء جميع الحقول المطلوبة",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // التحقق من الموظف للمصروفات الشخصية والسلف والمديونيات
+      if (((formData.type === 'expense' && formData.expenseType === 'personal') || formData.type === 'debt' || formData.type === 'advance') && !formData.employeeId) {
+        toast({
+          title: "خطأ",
+          description: `يرجى اختيار موظف لـ${formData.type === 'debt' ? 'المديونية' : formData.type === 'advance' ? 'السلفة' : 'المصروف الشخصي'}`,
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // التحقق من السيارة عند اختيار نوع السيارة
+      if (formData.type === 'vehicle' && !formData.vehicleId) {
+        toast({
+          title: "خطأ",
+          description: "يرجى اختيار السيارة المرتبطة بهذا المصروف",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const totalAmount = parseFloat(formData.totalAmount);
       const paidAmount = parseFloat(formData.paidAmount) || 0;
       
@@ -702,6 +713,8 @@ export default function DailyJournal() {
         description: "فشل في حفظ البيانات: " + (error.message || 'خطأ غير معروف'),
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -758,6 +771,11 @@ export default function DailyJournal() {
   };
 
   const handleDelete = async (entryId: string) => {
+    if (isDeleting && deletingId === entryId) return; // منع التنفيذ المتكرر
+    
+    setIsDeleting(true);
+    setDeletingId(entryId);
+    
     try {
       console.log('🗑️ Attempting to delete entry:', entryId);
       const entry = entries.find(e => e.id === entryId);
@@ -824,6 +842,9 @@ export default function DailyJournal() {
         description: "فشل في حذف القيد: " + (error.message || 'خطأ غير معروف'),
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
+      setDeletingId(null);
     }
   };
 
@@ -1175,16 +1196,27 @@ export default function DailyJournal() {
                        </div>
                      </div>
 
-                    <div className="flex gap-3 pt-4 border-t">
-                      <Button type="submit" className="flex-1">
-                        <Save className="h-4 w-4 ml-2" />
-                        {editingEntry ? 'تعديل القيد' : 'حفظ القيد'}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                        <X className="h-4 w-4 ml-2" />
-                        إلغاء
-                      </Button>
-                    </div>
+                     <div className="flex gap-3 pt-4 border-t">
+                       <LoadingButton 
+                         type="submit" 
+                         className="flex-1"
+                         loading={isSubmitting}
+                         loadingText={editingEntry ? "جاري التعديل..." : "جاري الحفظ..."}
+                         disabled={isSubmitting}
+                       >
+                         <Save className="h-4 w-4 ml-2" />
+                         {editingEntry ? 'تعديل القيد' : 'حفظ القيد'}
+                       </LoadingButton>
+                       <Button 
+                         type="button" 
+                         variant="outline" 
+                         onClick={() => setIsDialogOpen(false)}
+                         disabled={isSubmitting}
+                       >
+                         <X className="h-4 w-4 ml-2" />
+                         إلغاء
+                       </Button>
+                     </div>
                   </form>
                 </DialogContent>
               </Dialog>
@@ -1401,14 +1433,17 @@ export default function DailyJournal() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
+                            <LoadingButton
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(entry.id)}
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              loading={isDeleting && deletingId === entry.id}
+                              loadingText=""
+                              disabled={isDeleting}
                             >
                               <Trash2 className="h-4 w-4" />
-                            </Button>
+                            </LoadingButton>
                           </div>
                         </TableCell>
                       </TableRow>
