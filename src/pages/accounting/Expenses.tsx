@@ -31,7 +31,9 @@ import {
   XCircle,
   Edit,
   Save,
-  X
+  X,
+  CreditCard,
+  ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +49,8 @@ interface Expense {
   receipt_url?: string;
   receipt_reference?: string;
   budget_category?: string;
+  expense_type?: string;
+  is_debt_related?: boolean;
   is_approved: boolean;
   approved_by?: string;
   approved_at?: string;
@@ -983,15 +987,27 @@ export default function Expenses() {
               {filteredExpenses.map((expense) => {
                 const budgetStatus = getBudgetStatus(expense.category);
                 return (
-                  <TableRow key={expense.id}>
+                  <TableRow key={expense.id} className={expense.is_debt_related ? 'bg-orange-50 hover:bg-orange-100' : ''}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{expense.title}</div>
-                        {expense.description && (
-                          <div className="text-sm text-gray-500 max-w-xs truncate">
-                            {expense.description}
-                          </div>
+                      <div className="flex items-center gap-2">
+                        {expense.is_debt_related && (
+                          <CreditCard className="h-4 w-4 text-orange-600" />
                         )}
+                        <div>
+                          <div className="font-medium flex items-center gap-2">
+                            {expense.title}
+                            {expense.is_debt_related && (
+                              <Badge variant="outline" className="text-orange-600 border-orange-300">
+                                مديونية
+                              </Badge>
+                            )}
+                          </div>
+                          {expense.description && (
+                            <div className="text-sm text-gray-500 max-w-xs truncate">
+                              {expense.description}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
