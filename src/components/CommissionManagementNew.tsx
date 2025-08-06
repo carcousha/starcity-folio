@@ -570,8 +570,13 @@ const CommissionManagementNew = () => {
       <CommissionDebtDeductionDialog
         open={showDebtDialog}
         onOpenChange={handleDebtDialogClose}
-        employees={selectedEmployees}
-        commissionData={lastCreatedCommission}
+        employees={selectedEmployees.map(emp => ({
+          employee_id: emp.employee_id,
+          first_name: emp.first_name,
+          last_name: emp.last_name,
+          calculated_share: lastCreatedCommission?.employees?.find((ce: any) => ce.employee_id === emp.employee_id)?.calculated_share || 0
+        }))}
+        onDeductionDecision={() => {}}
       />
     </div>
   );
