@@ -482,7 +482,7 @@ export default function DailyJournal() {
           expense_type: formData.subType,
           amount: totalAmount,
           description: formData.description || formData.title,
-          date: formData.date,
+          expense_date: formData.date,
           notes: formData.title,
           recorded_by: user?.id
         };
