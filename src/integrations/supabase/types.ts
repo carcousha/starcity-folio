@@ -1343,6 +1343,41 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_debt_links: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          debt_id: string
+          entry_type: string
+          id: string
+          journal_entry_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          debt_id: string
+          entry_type: string
+          id?: string
+          journal_entry_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          debt_id?: string
+          entry_type?: string
+          id?: string
+          journal_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_debt_links_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_activities: {
         Row: {
           activity_date: string | null
@@ -3056,6 +3091,10 @@ export type Database = {
           time_window_minutes?: number
         }
         Returns: boolean
+      }
+      convert_existing_personal_expenses_to_debts: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       convert_lead_to_client: {
         Args: { lead_id_param: string }
