@@ -80,6 +80,7 @@ export default function DailyJournal() {
   const [showFilters, setShowFilters] = useState(false);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [typeData, setTypeData] = useState<TypeData[]>([]);
+  const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, profile } = useAuth();
 
@@ -411,7 +412,69 @@ export default function DailyJournal() {
       const totalAmount = parseFloat(formData.totalAmount);
       const paidAmount = parseFloat(formData.paidAmount) || 0;
       
-      if (formData.type === 'revenue') {
+      if (editingEntry) {
+        // تعديل القيد الموجود
+        const entry = filteredEntries.find(e => e.id === editingEntry);
+        if (!entry) throw new Error('القيد غير موجود');
+
+        if (entry.type === 'revenue') {
+          const { error } = await supabase
+            .from('revenues')
+            .update({
+              title: formData.title,
+              description: formData.description,
+              source: formData.subType,
+              amount: totalAmount,
+              revenue_date: formData.date
+            })
+            .eq('id', editingEntry);
+
+          if (error) throw error;
+        } else if (entry.type === 'expense') {
+          const expenseData: any = {
+            title: formData.title,
+            description: formData.description,
+            category: formData.subType,
+            amount: totalAmount,
+            expense_date: formData.date,
+            expense_type: formData.expenseType,
+          };
+
+          if (formData.expenseType === 'personal') {
+            expenseData.recorded_by = formData.employeeId;
+          } else if (formData.employeeId) {
+            expenseData.recorded_by = formData.employeeId;
+          }
+
+          const { error } = await supabase
+            .from('expenses')
+            .update(expenseData)
+            .eq('id', editingEntry);
+
+          if (error) throw error;
+        } else if (entry.type === 'debt') {
+          const { error } = await supabase
+            .from('debts')
+            .update({
+              debtor_name: employees.find(emp => emp.id === formData.employeeId)?.name || 'غير محدد',
+              debtor_id: formData.employeeId,
+              amount: totalAmount,
+              description: formData.description,
+              recorded_by: formData.employeeId
+            })
+            .eq('id', editingEntry);
+
+          if (error) throw error;
+        }
+
+        toast({
+          title: "تم بنجاح",
+          description: "تم تعديل القيد بنجاح",
+        });
+        
+        setEditingEntry(null);
+
+      } else if (formData.type === 'revenue') {
         // حفظ في جدول الإيرادات
         const { error: revenueError } = await supabase
           .from('revenues')
@@ -548,11 +611,27 @@ export default function DailyJournal() {
   };
 
   const handleEdit = (entryId: string) => {
-    console.log('Edit entry:', entryId);
-    toast({
-      title: "قيد التطوير",
-      description: "ميزة التعديل ستتوفر قريباً",
+    const entry = filteredEntries.find(e => e.id === entryId);
+    if (!entry) return;
+
+    // Set the form data based on the entry
+    setFormData({
+      type: entry.type,
+      title: entry.title,
+      totalAmount: entry.total_amount.toString(),
+      paidAmount: entry.paid_amount.toString(),
+      subType: entry.debit_account || '',
+      date: new Date(entry.date).toISOString().split('T')[0],
+      description: entry.description,
+      employeeId: user?.id || '',
+      vehicleId: '',
+      expenseType: 'company',
+      attachments: [],
+      saveAsDraft: entry.status === 'draft'
     });
+
+    setEditingEntry(entryId);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (entryId: string) => {
@@ -698,7 +777,26 @@ export default function DailyJournal() {
                 <Download className="h-4 w-4 ml-2" />
                 PDF
               </Button>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                  setIsDialogOpen(open);
+                  if (!open) {
+                    setEditingEntry(null);
+                    setFormData({
+                      type: 'revenue',
+                      expenseType: 'company',
+                      subType: "",
+                      title: "",
+                      description: "",
+                      totalAmount: "",
+                      paidAmount: "",
+                      attachments: [],
+                      saveAsDraft: false,
+                      employeeId: "",
+                      vehicleId: "",
+                      date: new Date().toISOString().split('T')[0]
+                    });
+                  }
+                }}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 ml-2" />
@@ -707,9 +805,9 @@ export default function DailyJournal() {
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl" dir="rtl">
                   <DialogHeader>
-                    <DialogTitle>إضافة قيد محاسبي جديد</DialogTitle>
+                    <DialogTitle>{editingEntry ? 'تعديل قيد محاسبي' : 'إضافة قيد محاسبي جديد'}</DialogTitle>
                     <DialogDescription>
-                      أدخل تفاصيل القيد المحاسبي بدقة
+                      {editingEntry ? 'تعديل تفاصيل القيد المحاسبي' : 'أدخل تفاصيل القيد المحاسبي بدقة'}
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
@@ -937,7 +1035,7 @@ export default function DailyJournal() {
                     <div className="flex gap-3 pt-4 border-t">
                       <Button type="submit" className="flex-1">
                         <Save className="h-4 w-4 ml-2" />
-                        حفظ القيد
+                        {editingEntry ? 'تعديل القيد' : 'حفظ القيد'}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                         <X className="h-4 w-4 ml-2" />
