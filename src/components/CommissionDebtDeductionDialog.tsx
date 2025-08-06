@@ -87,12 +87,43 @@ const CommissionDebtDeductionDialog: React.FC<CommissionDebtDeductionDialogProps
   // Process deduction decisions
   const processDeductionsMutation = useMutation({
     mutationFn: async (decisions: DeductionDecision[]) => {
-      const { data, error } = await supabase.rpc('process_commission_debt_deduction_decisions', {
-        p_decisions: JSON.stringify(decisions)
-      });
+      // Process each decision
+      for (const decision of decisions) {
+        if (decision.action === 'deduct') {
+          // Update debt status to paid/partially paid
+          const { data: debt } = await supabase
+            .from('debts')
+            .select('amount')
+            .eq('id', decision.debt_id)
+            .single();
 
-      if (error) throw error;
-      return data;
+          if (debt) {
+            const deductionAmount = decision.deduction_amount || 0;
+            const newAmount = debt.amount - deductionAmount;
+            
+            await supabase
+              .from('debts')
+              .update({
+                amount: newAmount,
+                status: newAmount <= 0 ? 'paid' : 'partially_paid',
+                paid_at: newAmount <= 0 ? new Date().toISOString() : undefined,
+                description: `خصم من العمولة: ${deductionAmount} د.إ`
+              })
+              .eq('id', decision.debt_id);
+          }
+        } else if (decision.action === 'defer') {
+          // Update debt with defer reason
+          await supabase
+            .from('debts')
+            .update({
+              description: decision.defer_reason ? 
+                `تأجيل: ${decision.defer_reason}` : 'تم التأجيل للشهر القادم'
+            })
+            .eq('id', decision.debt_id);
+        }
+      }
+      
+      return { success: true };
     },
     onSuccess: () => {
       toast({
