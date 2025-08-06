@@ -3353,6 +3353,10 @@ export type Database = {
         }
         Returns: string
       }
+      sync_debts_with_journal: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       update_commission_employee_percentages: {
         Args: { p_commission_id: string; p_employee_percentages: Json }
         Returns: Json

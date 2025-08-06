@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import ConvertExpensesToDebts from "@/components/ConvertExpensesToDebts";
+import { SyncDebtsWithJournal } from "@/components/SyncDebtsWithJournal";
 
 interface JournalEntry {
   id: string;
@@ -1167,8 +1168,9 @@ export default function DailyJournal() {
           </CardContent>
         </Card>
 
-        {/* أداة تحويل المصروفات الشخصية */}
+        {/* أدوات التكامل */}
         <ConvertExpensesToDebts />
+        <SyncDebtsWithJournal />
       </div>
     </div>
   );
