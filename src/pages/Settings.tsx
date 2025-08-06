@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import AdminLogs from "./accounting/AdminLogs";
 
 
 interface Setting {
@@ -504,7 +505,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 lg:grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8 lg:grid-cols-8">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">عام</span>
@@ -532,6 +533,10 @@ export default function Settings() {
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">الأمان</span>
+          </TabsTrigger>
+          <TabsTrigger value="admin-logs" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">سجل العمليات</span>
           </TabsTrigger>
         </TabsList>
 
@@ -992,6 +997,11 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Admin Logs */}
+        <TabsContent value="admin-logs" className="space-y-6">
+          <AdminLogs />
         </TabsContent>
       </Tabs>
     </div>
