@@ -1313,7 +1313,7 @@ export default function DailyJournal() {
                 </div>
               </div>
               
-              <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-700">عدد القيود</span>
                   <FileText className="h-4 w-4 text-gray-600" />
