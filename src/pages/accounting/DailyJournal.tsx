@@ -995,7 +995,7 @@ export default function DailyJournal() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="paidAmount">المبلغ المدفوع</Label>
+                        <Label htmlFor="paidAmount">المبلغ المدفوع <span className="text-red-500">*</span></Label>
                         <Input
                           id="paidAmount"
                           type="number"
