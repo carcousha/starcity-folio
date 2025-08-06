@@ -263,7 +263,7 @@ export default function DailyJournal() {
         journalEntries.push({
           id: debt.id,
           entry_number: `${isAdvance ? 'ADV' : 'DEBT'}-${debt.id.slice(-6)}`,
-          date: debt.created_at.split('T')[0],
+          date: debt.due_date || debt.created_at.split('T')[0],
           type: entryType,
           title: isAdvance ? `سلفة: ${debt.debtor_name}` : `مديونية: ${debt.debtor_name}`,
           description: isAdvance 
