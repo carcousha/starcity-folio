@@ -127,6 +127,15 @@ export default function DailyJournal() {
     "مصروفات أخرى"
   ];
 
+  const vehicleExpenseTypes = [
+    "وقود",
+    "صيانة", 
+    "تأمين",
+    "مخالفات",
+    "إصلاحات",
+    "أخرى"
+  ];
+
   const [employees, setEmployees] = useState<Array<{id: string, name: string}>>([]);
   const [vehicles, setVehicles] = useState<Array<{id: string, license_plate: string, model: string, make: string}>>([]);
 
@@ -476,10 +485,20 @@ export default function DailyJournal() {
         });
 
       } else if (formData.type === 'vehicle') {
+        // تحويل نوع المصروف العربي إلى الإنجليزي
+        const expenseTypeMapping: Record<string, string> = {
+          "وقود": "fuel",
+          "صيانة": "maintenance", 
+          "تأمين": "insurance",
+          "مخالفات": "fines",
+          "إصلاحات": "repairs",
+          "أخرى": "other"
+        };
+
         // حفظ في جدول مصروفات السيارات
         const vehicleExpenseData: any = {
           vehicle_id: formData.vehicleId,
-          expense_type: formData.subType,
+          expense_type: expenseTypeMapping[formData.subType] || "other",
           amount: totalAmount,
           description: formData.description || formData.title,
           expense_date: formData.date,
@@ -800,12 +819,12 @@ export default function DailyJournal() {
                                      {type}
                                    </SelectItem>
                                  ))
-                               ) : formData.type === 'vehicle' ? (
-                                 ['وقود', 'صيانة', 'إطارات', 'تأمين', 'رسوم ترخيص', 'غسيل', 'إصلاحات', 'أخرى'].map((type) => (
-                                   <SelectItem key={type} value={type}>
-                                     {type}
-                                   </SelectItem>
-                                 ))
+                                ) : formData.type === 'vehicle' ? (
+                                  vehicleExpenseTypes.map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                      {type}
+                                    </SelectItem>
+                                  ))
                                ) : (
                                  (formData.type === 'revenue' ? revenueTypes : expenseTypes).map((type) => (
                                    <SelectItem key={type} value={type}>
