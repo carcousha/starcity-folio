@@ -231,10 +231,10 @@ export default function DailyJournal() {
         });
       });
 
-      // إضافة المصروفات (فقط مصروفات الشركة)
+      // إضافة المصروفات (فقط مصروفات الشركة وليس المرتبطة بالديون)
       expensesResult.data?.forEach((expense, index) => {
-        // عرض فقط مصروفات الشركة في دفتر اليومية
-        if (expense.expense_type !== 'personal') {
+        // عرض فقط مصروفات الشركة غير المرتبطة بالديون لتجنب التكرار
+        if (expense.expense_type !== 'personal' && !expense.is_debt_related) {
           journalEntries.push({
             id: expense.id,
             entry_number: `EXP-${expense.id.slice(-6)}`,
