@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, AlertTriangle, CheckCircle, Search, Filter, Download, Calendar, Users, Bell, BarChart3, Edit, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, AlertTriangle, CheckCircle, Search, Filter, Download, Calendar, Users, Bell, BarChart3, Edit, Trash2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import EmployeeDebtReports from "@/components/accounting/EmployeeDebtReports";
 
 
 interface Debt {
@@ -711,19 +713,32 @@ export default function Debts() {
         </div>
       </div>
 
-      {overdueDebts.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-800">
-              <Bell className="h-5 w-5" />
-              تنبيه: مديونيات متأخرة
-            </CardTitle>
-            <CardDescription className="text-red-600">
-              يوجد {overdueDebts.length} مديونية متأخرة عن موعد الاستحقاق بإجمالي {overdueDebts.reduce((sum, debt) => sum + debt.amount, 0).toLocaleString('ar-AE')} درهم
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
+      <Tabs defaultValue="debts" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="debts" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            إدارة المديونيات
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            تقارير مديونيات الموظفين
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="debts" className="space-y-6">
+          {overdueDebts.length > 0 && (
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-800">
+                  <Bell className="h-5 w-5" />
+                  تنبيه: مديونيات متأخرة
+                </CardTitle>
+                <CardDescription className="text-red-600">
+                  يوجد {overdueDebts.length} مديونية متأخرة عن موعد الاستحقاق بإجمالي {overdueDebts.reduce((sum, debt) => sum + debt.amount, 0).toLocaleString('ar-AE')} درهم
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
@@ -1022,6 +1037,12 @@ export default function Debts() {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <EmployeeDebtReports />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
