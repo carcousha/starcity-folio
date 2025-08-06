@@ -23,11 +23,14 @@ import {
   CreditCard,
   History,
   Filter,
-  Search
+  Search,
+  Trash2,
+  MoreHorizontal
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface TreasuryAccount {
   id: string;
@@ -89,6 +92,7 @@ export default function Treasury() {
   const [loading, setLoading] = useState(true);
   const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [showTransactionDialog, setShowTransactionDialog] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<TreasuryAccount | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [accountFilter, setAccountFilter] = useState("");
@@ -312,6 +316,135 @@ export default function Treasury() {
     }
   };
 
+  const handleEditAccount = (account: TreasuryAccount) => {
+    setEditingAccount(account);
+    setNewAccount({
+      name: account.name,
+      account_type: account.account_type,
+      currency: account.currency,
+      opening_balance: account.opening_balance.toString(),
+      bank_name: account.bank_name || '',
+      account_number: account.account_number || '',
+      iban: account.iban || ''
+    });
+    setShowAccountDialog(true);
+  };
+
+  const handleUpdateAccount = async () => {
+    if (!editingAccount) return;
+
+    try {
+      const { error } = await supabase
+        .from('treasury_accounts')
+        .update({
+          name: newAccount.name,
+          account_type: newAccount.account_type,
+          currency: newAccount.currency,
+          opening_balance: parseFloat(newAccount.opening_balance) || 0,
+          bank_name: newAccount.bank_name || null,
+          account_number: newAccount.account_number || null,
+          iban: newAccount.iban || null,
+        })
+        .eq('id', editingAccount.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث الحساب بنجاح",
+      });
+
+      setShowAccountDialog(false);
+      setEditingAccount(null);
+      setNewAccount({
+        name: '',
+        account_type: 'cash',
+        currency: 'AED',
+        opening_balance: '',
+        bank_name: '',
+        account_number: '',
+        iban: ''
+      });
+      fetchAccounts();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في تحديث الحساب",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الحساب؟')) return;
+
+    try {
+      // التحقق من وجود معاملات مرتبطة بالحساب
+      const { data: relatedTransactions, error: checkError } = await supabase
+        .from('treasury_transactions')
+        .select('id')
+        .or(`from_account_id.eq.${accountId},to_account_id.eq.${accountId}`)
+        .limit(1);
+
+      if (checkError) throw checkError;
+
+      if (relatedTransactions && relatedTransactions.length > 0) {
+        toast({
+          title: "لا يمكن الحذف",
+          description: "لا يمكن حذف الحساب لوجود معاملات مرتبطة به",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('treasury_accounts')
+        .delete()
+        .eq('id', accountId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم حذف الحساب بنجاح",
+      });
+
+      fetchAccounts();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف الحساب",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذه المعاملة؟')) return;
+
+    try {
+      const { error } = await supabase
+        .from('treasury_transactions')
+        .delete()
+        .eq('id', transactionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم حذف المعاملة بنجاح",
+      });
+
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف المعاملة",
+        variant: "destructive",
+      });
+    }
+  };
+
   const exportReport = () => {
     const csvContent = [
       ['نوع العملية', 'المبلغ', 'من الحساب', 'إلى الحساب', 'الوصف', 'التاريخ', 'المعالج'],
@@ -498,7 +631,21 @@ export default function Treasury() {
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={showAccountDialog} onOpenChange={setShowAccountDialog}>
+              <Dialog open={showAccountDialog} onOpenChange={(open) => {
+                setShowAccountDialog(open);
+                if (!open) {
+                  setEditingAccount(null);
+                  setNewAccount({
+                    name: '',
+                    account_type: 'cash',
+                    currency: 'AED',
+                    opening_balance: '',
+                    bank_name: '',
+                    account_number: '',
+                    iban: ''
+                  });
+                }
+              }}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 ml-2" />
@@ -507,7 +654,7 @@ export default function Treasury() {
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>إضافة حساب جديد</DialogTitle>
+                    <DialogTitle>{editingAccount ? 'تعديل الحساب' : 'إضافة حساب جديد'}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
@@ -588,8 +735,11 @@ export default function Treasury() {
                       </>
                     )}
                     
-                    <Button onClick={handleAddAccount} className="w-full">
-                      إضافة الحساب
+                    <Button 
+                      onClick={editingAccount ? handleUpdateAccount : handleAddAccount} 
+                      className="w-full"
+                    >
+                      {editingAccount ? 'تحديث الحساب' : 'إضافة الحساب'}
                     </Button>
                   </div>
                 </DialogContent>
@@ -671,18 +821,42 @@ export default function Treasury() {
                 {accounts.map((account) => (
                   <Card key={account.id} className="border-2">
                     <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          {account.account_type === 'cash' ? 
-                            <Wallet className="h-5 w-5 text-blue-600" /> : 
-                            <Building2 className="h-5 w-5 text-purple-600" />
-                          }
-                          <CardTitle className="text-lg">{account.name}</CardTitle>
-                        </div>
-                        <Badge variant={account.is_active ? 'default' : 'secondary'}>
-                          {account.is_active ? 'نشط' : 'معطل'}
-                        </Badge>
-                      </div>
+                       <div className="flex items-center justify-between">
+                         <div className="flex items-center space-x-2 space-x-reverse">
+                           {account.account_type === 'cash' ? 
+                             <Wallet className="h-5 w-5 text-blue-600" /> : 
+                             <Building2 className="h-5 w-5 text-purple-600" />
+                           }
+                           <CardTitle className="text-lg">{account.name}</CardTitle>
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <Badge variant={account.is_active ? 'default' : 'secondary'}>
+                             {account.is_active ? 'نشط' : 'معطل'}
+                           </Badge>
+                           {canManageTreasury && (
+                             <DropdownMenu>
+                               <DropdownMenuTrigger asChild>
+                                 <Button variant="ghost" size="sm">
+                                   <MoreHorizontal className="h-4 w-4" />
+                                 </Button>
+                               </DropdownMenuTrigger>
+                               <DropdownMenuContent align="end">
+                                 <DropdownMenuItem onClick={() => handleEditAccount(account)}>
+                                   <Edit className="h-4 w-4 ml-2" />
+                                   تعديل
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem 
+                                   onClick={() => handleDeleteAccount(account.id)}
+                                   className="text-red-600"
+                                 >
+                                   <Trash2 className="h-4 w-4 ml-2" />
+                                   حذف
+                                 </DropdownMenuItem>
+                               </DropdownMenuContent>
+                             </DropdownMenu>
+                           )}
+                         </div>
+                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
@@ -784,6 +958,7 @@ export default function Treasury() {
                     <TableHead>الوصف</TableHead>
                     <TableHead>التاريخ</TableHead>
                     <TableHead>المعالج</TableHead>
+                    {canManageTreasury && <TableHead>الإجراءات</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -808,6 +983,18 @@ export default function Treasury() {
                           : 'غير محدد'
                         }
                       </TableCell>
+                      {canManageTreasury && (
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
