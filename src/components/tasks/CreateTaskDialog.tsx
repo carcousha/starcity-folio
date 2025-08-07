@@ -34,6 +34,9 @@ interface TaskFormData {
   priority: 'low' | 'normal' | 'high' | 'urgent';
   start_date: Date | null;
   due_date: Date | null;
+  start_time: string;
+  due_time: string;
+  reminder_minutes_before: number;
   client_id: string;
   property_id: string;
   contract_id: string;
@@ -47,6 +50,9 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
     priority: 'normal',
     start_date: null,
     due_date: null,
+    start_time: '09:00',
+    due_time: '17:00',
+    reminder_minutes_before: 30,
     client_id: 'none',
     property_id: 'none',
     contract_id: 'none',
@@ -123,6 +129,9 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
         priority: taskData.priority,
         start_date: taskData.start_date?.toISOString().split('T')[0] || null,
         due_date: taskData.due_date?.toISOString().split('T')[0] || null,
+        start_time: taskData.start_time || null,
+        due_time: taskData.due_time || null,
+        reminder_minutes_before: taskData.reminder_minutes_before,
         created_by: user.id,
       };
 
@@ -170,6 +179,9 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
         priority: 'normal',
         start_date: null,
         due_date: null,
+        start_time: '09:00',
+        due_time: '17:00',
+        reminder_minutes_before: 30,
         client_id: 'none',
         property_id: 'none',
         contract_id: 'none',
@@ -278,60 +290,107 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
             </div>
           </div>
 
-          {/* التواريخ */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>تاريخ البداية</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.start_date ? (
-                      format(formData.start_date, "PPP", { locale: ar })
-                    ) : (
-                      <span>اختر تاريخ البداية</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.start_date || undefined}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, start_date: date || null }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+          {/* التواريخ والأوقات */}
+          <div className="space-y-4">
+            <h4 className="font-medium">التواريخ والأوقات</h4>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>تاريخ البداية</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.start_date ? (
+                        format(formData.start_date, "PPP", { locale: ar })
+                      ) : (
+                        <span>اختر تاريخ البداية</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.start_date || undefined}
+                      onSelect={(date) => setFormData(prev => ({ ...prev, start_date: date || null }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>تاريخ الاستحقاق</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.due_date ? (
+                        format(formData.due_date, "PPP", { locale: ar })
+                      ) : (
+                        <span>اختر تاريخ الاستحقاق</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.due_date || undefined}
+                      onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date || null }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start_time">وقت البداية</Label>
+                <Input
+                  id="start_time"
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="due_time">وقت الاستحقاق</Label>
+                <Input
+                  id="due_time"
+                  type="time"
+                  value={formData.due_time}
+                  onChange={(e) => setFormData(prev => ({ ...prev, due_time: e.target.value }))}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>تاريخ الاستحقاق</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.due_date ? (
-                      format(formData.due_date, "PPP", { locale: ar })
-                    ) : (
-                      <span>اختر تاريخ الاستحقاق</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.due_date || undefined}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date || null }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="reminder_minutes">التذكير قبل الموعد بـ (دقيقة)</Label>
+              <Select 
+                value={formData.reminder_minutes_before.toString()} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, reminder_minutes_before: parseInt(value) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر وقت التذكير" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 دقائق</SelectItem>
+                  <SelectItem value="10">10 دقائق</SelectItem>
+                  <SelectItem value="15">15 دقيقة</SelectItem>
+                  <SelectItem value="30">30 دقيقة</SelectItem>
+                  <SelectItem value="60">ساعة واحدة</SelectItem>
+                  <SelectItem value="120">ساعتان</SelectItem>
+                  <SelectItem value="1440">يوم واحد</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
