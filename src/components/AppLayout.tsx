@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -15,10 +15,18 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { profile, signOut, loading, user } = useAuth();
+  const { profile, signOut, loading, user, session } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // حماية صارمة: فحص الجلسة في كل مرة
+  useEffect(() => {
+    if (!loading && location.pathname !== "/" && (!session || !user || !profile)) {
+      console.log('AppLayout: Unauthorized access attempt, redirecting to login');
+      window.location.href = '/';
+    }
+  }, [loading, session, user, profile, location.pathname]);
 
   const handleSignOut = async () => {
     try {
@@ -37,30 +45,29 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-  if (loading) {
+  // حماية مطلقة: إذا كان التحميل جاري ولم تكن صفحة تسجيل الدخول
+  if (loading && location.pathname !== "/") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">جارٍ التحميل...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // Don't show layout for auth page
+  // إذا كانت صفحة تسجيل الدخول، اعرضها بدون layout
   if (location.pathname === "/") {
     return <>{children}</>;
   }
 
-  // إذا لم يكن هناك مستخدم مصادق عليه، توجه لصفحة تسجيل الدخول
-  if (!user) {
+  // حماية صارمة: لا session أو user أو profile = إعادة توجيه فورية
+  if (!session || !user || !profile) {
     window.location.href = '/';
     return null;
   }
 
-  // إذا لم يتم تحميل profile بعد، لا تظهر أي محتوى
-  if (!profile) {
+  // فحص إضافي: التأكد من أن المستخدم نشط
+  if (!profile.is_active) {
+    window.location.href = '/';
     return null;
   }
 
