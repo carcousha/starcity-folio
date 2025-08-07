@@ -25,7 +25,9 @@ import {
   Building2,
   Calendar,
   CheckCircle,
-  CreditCard
+  CreditCard,
+  AlertTriangle,
+  MessageSquare
 } from "lucide-react";
 
 import {
@@ -117,16 +119,64 @@ export function AppSidebar() {
     }
   ];
 
+  // Employee-specific navigation structure
+  const getEmployeeNavigation = () => {
+    return [
+      { 
+        title: "🏠 الصفحة الرئيسية", 
+        url: "/employee/dashboard", 
+        icon: Home 
+      },
+      { 
+        title: "💼 العمليات", 
+        icon: Brain,
+        hasSubmenu: true,
+        submenu: [
+          { title: "العملاء", url: "/crm/clients", icon: Users },
+          { title: "الليدز", url: "/crm/leads", icon: Target },
+          { title: "العقارات", url: "/crm/properties", icon: Building },
+          { title: "المهام", url: "/tasks", icon: CheckSquare },
+        ]
+      },
+      { 
+        title: "💵 المالية", 
+        icon: Calculator,
+        hasSubmenu: true,
+        submenu: [
+          { title: "العمولات", url: "/my-commissions", icon: HandCoins },
+          { title: "المديونيات", url: "/employee/debts", icon: AlertTriangle },
+          { title: "الأداء الشخصي", url: "/my-evaluation", icon: TrendingUp },
+        ]
+      },
+      { 
+        title: "🚗 الخدمات الإدارية", 
+        icon: Car,
+        hasSubmenu: true,
+        submenu: [
+          { title: "السيارة", url: "/employee/vehicle", icon: Car },
+          { title: "طلباتي", url: "/employee/requests", icon: FileText },
+          { title: "الشكاوى", url: "/employee/complaints", icon: MessageSquare },
+        ]
+      },
+      { 
+        title: "🔔 الإشعارات", 
+        icon: Megaphone,
+        hasSubmenu: true,
+        submenu: [
+          { title: "التنبيهات", url: "/employee/notifications", icon: BarChart3 },
+          { title: "سجل النشاطات", url: "/employee/notifications", icon: BarChart3 },
+        ]
+      }
+    ];
+  };
+
   // Current modules based on user role  
   const getCurrentModules = () => {
     if (!profile) return [];
 
     switch (profile.role) {
       case 'employee':
-        return [
-          { title: "صفقاتي", url: "/my-deals", icon: FileText },
-          { title: "عمولاتي", url: "/my-commissions", icon: HandCoins },
-        ];
+        return getEmployeeNavigation();
       case 'accountant':
         return [
           { title: "الإعدادات", url: "/settings", icon: Settings },
@@ -169,7 +219,8 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {mainItems.map((item) => (
+                {/* Show employee navigation if employee, otherwise show admin navigation */}
+                {(profile?.role === 'employee' ? getCurrentModules() : mainItems).map((item) => (
                   <div key={item.title}>
                     <SidebarMenuItem>
                       <SidebarMenuButton 
@@ -299,8 +350,8 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {/* Additional Modules */}
-          {getCurrentModules().length > 0 && (
+          {/* Additional Modules for non-employees */}
+          {profile?.role !== 'employee' && getCurrentModules().length > 0 && (
             <SidebarGroup>
               <SidebarGroupLabel className="px-6 py-2 text-gray-500 text-sm font-medium">
               </SidebarGroupLabel>

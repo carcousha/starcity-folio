@@ -42,7 +42,13 @@ import DebtsReports from "./pages/reports/DebtsReports";
 import ExpensesReports from "./pages/reports/ExpensesReports";
 import RevenuesReports from "./pages/reports/RevenuesReports";
 import TreasuryReports from "./pages/reports/TreasuryReports";
+import EmployeeDashboard from "./pages/employee/Dashboard";
 import MyCommissions from "./pages/employee/MyCommissions";
+import MyDebts from "./pages/employee/MyDebts";
+import Vehicle from "./pages/employee/Vehicle";
+import MyRequests from "./pages/employee/MyRequests";
+import Complaints from "./pages/employee/Complaints";
+import Notifications from "./pages/employee/Notifications";
 import MyGoals from "./pages/employee/MyGoals";
 import MyEvaluation from "./pages/employee/MyEvaluation";
 import NotFound from "./pages/NotFound";
@@ -251,9 +257,44 @@ const App = () => (
               } />
                
                {/* Employee Routes */}
+               <Route path="/employee/dashboard" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <EmployeeDashboard />
+                 </ProtectedRoute>
+               } />
                <Route path="/my-commissions" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <MyCommissions />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/debts" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyDebts />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/vehicle" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Vehicle />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/requests" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyRequests />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/complaints" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Complaints />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/notifications" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Notifications />
+                 </ProtectedRoute>
+               } />
+               <Route path="/tasks" element={
+                 <ProtectedRoute requiredPermission="canViewActivityLogs">
+                   <TasksIndex />
                  </ProtectedRoute>
                } />
               <Route path="/my-goals" element={
