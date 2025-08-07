@@ -81,15 +81,13 @@ const App = () => (
             <AudioNotificationProvider>
               <AppLayout>
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute requiredPermission="canManageStaff">
-                    <DashboardHome />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<Auth />} />
+              <Route path="/admin-dashboard" element={
+                <ProtectedRoute requiredPermission="canManageStaff">
+                  <DashboardHome />
+                </ProtectedRoute>
+              } />
+              
               
               {/* CRM Routes - Admin and some for employees */}
                <Route path="/crm" element={
@@ -356,11 +354,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route
                 path="*"
-                element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <NotFound />
-                  </ProtectedRoute>
-                }
+                element={<NotFound />}
               />
             </Routes>
               </AppLayout>
