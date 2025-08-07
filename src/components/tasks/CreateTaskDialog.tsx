@@ -152,12 +152,12 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
       if (taskData.assigned_to.length > 0) {
         const assignments = taskData.assigned_to.map(assigneeId => ({
           task_id: task.id,
-          employee_id: assigneeId,
+          assigned_to: assigneeId,
           assigned_by: user.id,
         }));
 
         const { error: assignmentError } = await (supabase as any)
-          .from('daily_task_assignments')
+          .from('task_assignments')
           .insert(assignments);
 
         if (assignmentError) throw assignmentError;
