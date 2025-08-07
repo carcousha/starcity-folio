@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   HandCoins, 
   DollarSign, 
@@ -9,10 +10,12 @@ import {
   AlertTriangle,
   CheckCircle,
   TrendingUp,
-  Clock
+  Clock,
+  BarChart3
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line } from 'recharts';
 
 export default function MyCommissions() {
   const { profile } = useAuth();
@@ -47,9 +50,61 @@ export default function MyCommissions() {
       if (commissionsResult.error) throw commissionsResult.error;
       if (debtsResult.error) throw debtsResult.error;
 
+      const commissions = commissionsResult.data || [];
+      const debts = debtsResult.data || [];
+
+      // إعداد بيانات الرسوم البيانية للعمولات
+      const now = new Date();
+      const monthlyCommissions = [];
+      const yearlyCommissions = [];
+
+      // آخر 6 شهور
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const monthCommissions = commissions.filter(commission => {
+          const commissionDate = new Date(commission.created_at);
+          return commissionDate >= monthStart && commissionDate <= monthEnd;
+        });
+
+        monthlyCommissions.push({
+          month: date.toLocaleDateString('ar-AE', { month: 'short', year: 'numeric' }),
+          calculatedShare: monthCommissions.reduce((sum, c) => sum + Number(c.calculated_share), 0),
+          netShare: monthCommissions.reduce((sum, c) => sum + Number(c.net_share), 0),
+          deductedDebt: monthCommissions.reduce((sum, c) => sum + Number(c.deducted_debt), 0),
+          count: monthCommissions.length
+        });
+      }
+
+      // آخر سنة (شهرياً)
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const monthCommissions = commissions.filter(commission => {
+          const commissionDate = new Date(commission.created_at);
+          return commissionDate >= monthStart && commissionDate <= monthEnd;
+        });
+
+        yearlyCommissions.push({
+          month: date.toLocaleDateString('ar-AE', { month: 'short', year: 'numeric' }),
+          calculatedShare: monthCommissions.reduce((sum, c) => sum + Number(c.calculated_share), 0),
+          netShare: monthCommissions.reduce((sum, c) => sum + Number(c.net_share), 0),
+          deductedDebt: monthCommissions.reduce((sum, c) => sum + Number(c.deducted_debt), 0),
+          count: monthCommissions.length
+        });
+      }
+
       return {
-        commissions: commissionsResult.data || [],
-        debts: debtsResult.data || []
+        commissions,
+        debts,
+        chartData: { 
+          monthly: monthlyCommissions, 
+          yearly: yearlyCommissions 
+        }
       };
     },
     enabled: !!profile
@@ -151,69 +206,162 @@ export default function MyCommissions() {
         </Card>
       </div>
 
-      {/* Commissions List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <HandCoins className="h-5 w-5" />
-            <span>تفاصيل العمولات</span>
-          </CardTitle>
-          <CardDescription>
-            عرض جميع العمولات المستحقة والمدفوعة
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-4">جارٍ التحميل...</p>
-            </div>
-          ) : !commissionsData?.commissions.length ? (
-            <div className="text-center py-8">
-              <HandCoins className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">لا توجد عمولات مسجلة حتى الآن</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {commissionsData.commissions.map((commission: any) => (
-                <div key={commission.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-foreground">
-                        {commission.commissions?.client_name || 'عميل غير محدد'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground flex items-center">
-                        <Calendar className="h-4 w-4 ml-1" />
-                        {new Date(commission.created_at).toLocaleDateString('ar-AE')}
-                      </p>
-                    </div>
-                    {getStatusBadge(commission.commissions?.status || 'pending')}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">نسبتي</p>
-                      <p className="font-semibold">{commission.percentage}%</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">المبلغ المحسوب</p>
-                      <p className="font-semibold">{Number(commission.calculated_share).toLocaleString()} د.إ</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">المخصوم</p>
-                      <p className="font-semibold text-red-600">{Number(commission.deducted_debt).toLocaleString()} د.إ</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">الصافي</p>
-                      <p className="font-semibold text-green-600">{Number(commission.net_share).toLocaleString()} د.إ</p>
-                    </div>
-                  </div>
+      {/* Charts and Commissions */}
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="details">تفاصيل العمولات</TabsTrigger>
+          <TabsTrigger value="monthly">آخر 6 شهور</TabsTrigger>
+          <TabsTrigger value="yearly">آخر سنة</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 space-x-reverse">
+                <HandCoins className="h-5 w-5" />
+                <span>تفاصيل العمولات</span>
+              </CardTitle>
+              <CardDescription>
+                عرض جميع العمولات المستحقة والمدفوعة
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground mt-4">جارٍ التحميل...</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              ) : !commissionsData?.commissions.length ? (
+                <div className="text-center py-8">
+                  <HandCoins className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">لا توجد عمولات مسجلة حتى الآن</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {commissionsData.commissions.map((commission: any) => (
+                    <div key={commission.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-foreground">
+                            {commission.commissions?.client_name || 'عميل غير محدد'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground flex items-center">
+                            <Calendar className="h-4 w-4 ml-1" />
+                            {new Date(commission.created_at).toLocaleDateString('ar-AE')}
+                          </p>
+                        </div>
+                        {getStatusBadge(commission.commissions?.status || 'pending')}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">نسبتي</p>
+                          <p className="font-semibold">{commission.percentage}%</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">المبلغ المحسوب</p>
+                          <p className="font-semibold">{Number(commission.calculated_share).toLocaleString()} د.إ</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">المخصوم</p>
+                          <p className="font-semibold text-red-600">{Number(commission.deducted_debt).toLocaleString()} د.إ</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">الصافي</p>
+                          <p className="font-semibold text-green-600">{Number(commission.net_share).toLocaleString()} د.إ</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="monthly" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 space-x-reverse">
+                <BarChart3 className="h-5 w-5" />
+                <span>تحليل العمولات - آخر 6 شهور</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">العمولات الشهرية</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={commissionsData?.chartData?.monthly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Line type="monotone" dataKey="calculatedShare" stroke="hsl(var(--primary))" name="المبلغ المحسوب" />
+                      <Line type="monotone" dataKey="netShare" stroke="hsl(var(--chart-2))" name="الصافي" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">الخصومات من العمولات</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={commissionsData?.chartData?.monthly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Area type="monotone" dataKey="deductedDebt" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="yearly" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 space-x-reverse">
+                <BarChart3 className="h-5 w-5" />
+                <span>تحليل العمولات - آخر سنة</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">العمولات السنوية</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={commissionsData?.chartData?.yearly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Area type="monotone" dataKey="calculatedShare" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="المبلغ المحسوب" />
+                      <Area type="monotone" dataKey="netShare" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} name="الصافي" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">مقارنة العمولات (محسوب مقابل صافي)</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={commissionsData?.chartData?.yearly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Bar dataKey="calculatedShare" fill="hsl(var(--primary))" name="المبلغ المحسوب" />
+                      <Bar dataKey="netShare" fill="hsl(var(--chart-2))" name="الصافي" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Debts List */}
       {commissionsData?.debts && commissionsData.debts.length > 0 && (
