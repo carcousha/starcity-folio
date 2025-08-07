@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AudioNotificationProvider } from "@/components/AudioNotificationProvider";
 import { AppLayout } from "@/components/AppLayout";
 import { DashboardHome } from "@/components/DashboardHome";
 import Auth from "./pages/Auth";
@@ -72,7 +73,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <AppLayout>
+            <AudioNotificationProvider>
+              <AppLayout>
             <Routes>
               <Route
                 path="/"
@@ -331,7 +333,8 @@ const App = () => (
                 }
               />
             </Routes>
-            </AppLayout>
+              </AppLayout>
+            </AudioNotificationProvider>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
