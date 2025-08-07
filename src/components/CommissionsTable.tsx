@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   BarChart, 
   Bar, 
@@ -32,11 +33,14 @@ import {
   Users as UsersIcon,
   CheckCircle,
   CreditCard,
-  Clock
+  Clock,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import CommissionEditDialog from "./CommissionEditDialog";
 
 interface Commission {
   id: string;
@@ -50,6 +54,8 @@ interface Commission {
   paid_at?: string;
   distribution_type: string;
   notes: string;
+  amount: number;
+  percentage: number;
   commission_employees: {
     employee_id: string;
     percentage: number;
@@ -69,6 +75,8 @@ const CommissionsTable = () => {
   const [timeFilter, setTimeFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [editingCommission, setEditingCommission] = useState<Commission | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -211,6 +219,81 @@ const CommissionsTable = () => {
       });
     }
   });
+
+  // Update commission mutation
+  const updateCommissionMutation = useMutation({
+    mutationFn: async ({ id, updatedData }: { id: string; updatedData: Partial<Commission> }) => {
+      const { data, error } = await supabase
+        .from('commissions')
+        .update(updatedData)
+        .eq('id', id);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['commissions-table'] });
+      setIsEditDialogOpen(false);
+      setEditingCommission(null);
+      toast({
+        title: "تم بنجاح",
+        description: "تم تحديث العمولة بنجاح",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء تحديث العمولة",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete commission mutation
+  const deleteCommissionMutation = useMutation({
+    mutationFn: async (commissionId: string) => {
+      const { data, error } = await supabase
+        .from('commissions')
+        .delete()
+        .eq('id', commissionId);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['commissions-table'] });
+      toast({
+        title: "تم بنجاح",
+        description: "تم حذف العمولة بنجاح",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء حذف العمولة",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle edit commission
+  const handleEditCommission = (commission: Commission) => {
+    setEditingCommission(commission);
+    setIsEditDialogOpen(true);
+  };
+
+  // Handle save edited commission
+  const handleSaveCommission = (updatedData: Partial<Commission>) => {
+    if (editingCommission) {
+      updateCommissionMutation.mutate({
+        id: editingCommission.id,
+        updatedData
+      });
+    }
+  };
+
+  // Handle delete commission
+  const handleDeleteCommission = (commissionId: string) => {
+    deleteCommissionMutation.mutate(commissionId);
+  };
 
   const getStatusBadge = (status: string, commission: Commission) => {
     const statusMap = {
@@ -578,7 +661,55 @@ const CommissionsTable = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {getStatusActions(commission)}
+                        <div className="flex items-center gap-2">
+                          {getStatusActions(commission)}
+                          
+                          {/* Edit Button */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditCommission(commission)}
+                            disabled={updateCommissionMutation.isPending}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          
+                          {/* Delete Button */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={deleteCommissionMutation.isPending}
+                                className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  هل أنت متأكد من حذف هذه العمولة؟ لا يمكن التراجع عن هذا الإجراء.
+                                  <br />
+                                  <strong>العميل:</strong> {commission.client_name}
+                                  <br />
+                                  <strong>المبلغ:</strong> {commission.total_commission?.toFixed(2)} د.إ
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteCommission(commission.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  حذف
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -588,6 +719,17 @@ const CommissionsTable = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Commission Dialog */}
+      <CommissionEditDialog
+        commission={editingCommission}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setEditingCommission(null);
+        }}
+        onSave={handleSaveCommission}
+      />
     </div>
   );
 };
