@@ -32,7 +32,7 @@ export default function MyProperties() {
       const { data, error } = await supabase
         .from('properties')
         .select('*')
-        .or(`assigned_to.eq.${profile.user_id},created_by.eq.${profile.user_id}`)
+        .or(`listed_by.eq.${profile.user_id},created_by.eq.${profile.user_id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
