@@ -80,26 +80,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     console.log('useAuth: Setting up auth state listener');
     
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
-        setSession(session);
-        setUser(session?.user ?? null);
         
-        if (session?.user) {
-          // Defer profile fetching to avoid deadlock
-          setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
-            setProfile(profileData);
-            setLoading(false);
-            console.log('useAuth: Profile loaded from auth state change', profileData);
-          }, 0);
-        } else {
+        // Clear state immediately if no session
+        if (!session) {
+          setSession(null);
+          setUser(null);
           setProfile(null);
           setLoading(false);
-          console.log('useAuth: No session, clearing profile');
+          console.log('useAuth: No session, clearing all state');
+          return;
         }
+        
+        // Set session and user
+        setSession(session);
+        setUser(session.user);
+        
+        // Fetch profile asynchronously
+        setTimeout(async () => {
+          try {
+            const profileData = await fetchProfile(session.user.id);
+            if (profileData) {
+              setProfile(profileData);
+              console.log('useAuth: Profile loaded successfully', profileData);
+            } else {
+              console.error('useAuth: Failed to load profile, clearing session');
+              await supabase.auth.signOut();
+            }
+          } catch (error) {
+            console.error('useAuth: Error loading profile, clearing session', error);
+            await supabase.auth.signOut();
+          } finally {
+            setLoading(false);
+          }
+        }, 0);
       }
     );
 
@@ -107,27 +124,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('useAuth: Checking for existing session');
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('useAuth: Existing session check', { userId: session?.user?.id });
-      setSession(session);
-      setUser(session?.user ?? null);
       
-      if (session?.user) {
-        setTimeout(async () => {
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
-          setLoading(false);
-          console.log('useAuth: Profile loaded from existing session', profileData);
-        }, 0);
-      } else {
+      if (!session) {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
         setLoading(false);
         console.log('useAuth: No existing session found');
+        return;
       }
+      
+      setSession(session);
+      setUser(session.user);
+      
+      setTimeout(async () => {
+        try {
+          const profileData = await fetchProfile(session.user.id);
+          if (profileData) {
+            setProfile(profileData);
+            console.log('useAuth: Profile loaded from existing session', profileData);
+          } else {
+            console.error('useAuth: Failed to load profile from existing session');
+            await supabase.auth.signOut();
+          }
+        } catch (error) {
+          console.error('useAuth: Error loading profile from existing session', error);
+          await supabase.auth.signOut();
+        } finally {
+          setLoading(false);
+        }
+      }, 0);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
+    console.log('useAuth: Signing out user');
+    setLoading(true);
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setLoading(false);
+    window.location.href = '/';
   };
 
   const value = {
