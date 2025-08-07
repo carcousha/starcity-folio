@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
 import { 
   BarChart, 
   Bar, 
@@ -28,7 +29,10 @@ import {
   Calendar,
   User,
   Building2,
-  Users as UsersIcon
+  Users as UsersIcon,
+  CheckCircle,
+  CreditCard,
+  Clock
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -42,6 +46,8 @@ interface Commission {
   remaining_for_employees: number;
   status: string;
   created_at: string;
+  approved_at?: string;
+  paid_at?: string;
   distribution_type: string;
   notes: string;
   commission_employees: {
@@ -63,6 +69,8 @@ const CommissionsTable = () => {
   const [timeFilter, setTimeFilter] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
@@ -154,15 +162,139 @@ const CommissionsTable = () => {
 
   const COLORS = ['#3b82f6', '#10b981'];
 
-  const getStatusBadge = (status: string) => {
+  // Approve commission mutation
+  const approveCommissionMutation = useMutation({
+    mutationFn: async (commissionId: string) => {
+      const { data, error } = await supabase.rpc('approve_commission', {
+        commission_id_param: commissionId
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['commissions-table'] });
+      toast({
+        title: "تم بنجاح",
+        description: "تم اعتماد العمولة بنجاح",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء اعتماد العمولة",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Pay commission mutation
+  const payCommissionMutation = useMutation({
+    mutationFn: async (commissionId: string) => {
+      const { data, error } = await supabase.rpc('pay_commission', {
+        commission_id_param: commissionId
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['commissions-table'] });
+      toast({
+        title: "تم بنجاح",
+        description: "تم دفع العمولة بنجاح",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء دفع العمولة",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const getStatusBadge = (status: string, commission: Commission) => {
     const statusMap = {
-      pending: { label: 'معلق', variant: 'secondary' as const },
-      paid: { label: 'مدفوع', variant: 'default' as const },
-      approved: { label: 'معتمد', variant: 'default' as const }
+      pending: { 
+        label: 'معلق', 
+        variant: 'secondary' as const,
+        color: 'bg-yellow-100 text-yellow-800',
+        icon: <Clock className="h-3 w-3" />
+      },
+      approved: { 
+        label: 'معتمد', 
+        variant: 'outline' as const,
+        color: 'bg-blue-100 text-blue-800',
+        icon: <CheckCircle className="h-3 w-3" />
+      },
+      paid: { 
+        label: 'مدفوع', 
+        variant: 'default' as const,
+        color: 'bg-green-100 text-green-800',
+        icon: <CreditCard className="h-3 w-3" />
+      }
     };
     
-    const statusInfo = statusMap[status as keyof typeof statusMap] || { label: status, variant: 'secondary' as const };
-    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+    const statusInfo = statusMap[status as keyof typeof statusMap] || { 
+      label: status, 
+      variant: 'secondary' as const,
+      color: 'bg-gray-100 text-gray-800',
+      icon: <Clock className="h-3 w-3" />
+    };
+    
+    return (
+      <div className="space-y-1">
+        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${statusInfo.color}`}>
+          {statusInfo.icon}
+          {statusInfo.label}
+        </div>
+        {commission.approved_at && (
+          <div className="text-xs text-muted-foreground">
+            اعتمد: {format(new Date(commission.approved_at), 'dd/MM/yyyy', { locale: ar })}
+          </div>
+        )}
+        {commission.paid_at && (
+          <div className="text-xs text-muted-foreground">
+            دفع: {format(new Date(commission.paid_at), 'dd/MM/yyyy', { locale: ar })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getStatusActions = (commission: Commission) => {
+    if (commission.status === 'pending') {
+      return (
+        <Button
+          size="sm"
+          onClick={() => approveCommissionMutation.mutate(commission.id)}
+          disabled={approveCommissionMutation.isPending}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <CheckCircle className="h-3 w-3 mr-1" />
+          اعتماد
+        </Button>
+      );
+    }
+    
+    if (commission.status === 'approved') {
+      return (
+        <Button
+          size="sm"
+          onClick={() => payCommissionMutation.mutate(commission.id)}
+          disabled={payCommissionMutation.isPending}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <CreditCard className="h-3 w-3 mr-1" />
+          دفع
+        </Button>
+      );
+    }
+    
+    return (
+      <Badge variant="outline" className="text-green-600">
+        مكتملة
+      </Badge>
+    );
   };
 
   return (
@@ -396,6 +528,7 @@ const CommissionsTable = () => {
                     <TableHead>الحالة</TableHead>
                     <TableHead>التاريخ</TableHead>
                     <TableHead>نوع التوزيع</TableHead>
+                    <TableHead>الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -434,7 +567,7 @@ const CommissionsTable = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(commission.status)}
+                        {getStatusBadge(commission.status, commission)}
                       </TableCell>
                       <TableCell className="text-sm">
                         {format(new Date(commission.created_at), 'dd/MM/yyyy HH:mm', { locale: ar })}
@@ -443,6 +576,9 @@ const CommissionsTable = () => {
                         <Badge variant={commission.distribution_type === 'custom' ? 'secondary' : 'outline'}>
                           {commission.distribution_type === 'custom' ? 'نسب مخصصة' : 'توزيع متساوي'}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusActions(commission)}
                       </TableCell>
                     </TableRow>
                   ))}

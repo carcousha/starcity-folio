@@ -384,6 +384,8 @@ export type Database = {
       commissions: {
         Row: {
           amount: number
+          approved_at: string | null
+          approved_by: string | null
           client_name: string | null
           created_at: string
           deal_id: string | null
@@ -394,6 +396,7 @@ export type Database = {
           notes: string | null
           office_share: number | null
           paid_at: string | null
+          paid_by: string | null
           percentage: number
           remaining_for_employees: number | null
           status: string
@@ -403,6 +406,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approved_at?: string | null
+          approved_by?: string | null
           client_name?: string | null
           created_at?: string
           deal_id?: string | null
@@ -413,6 +418,7 @@ export type Database = {
           notes?: string | null
           office_share?: number | null
           paid_at?: string | null
+          paid_by?: string | null
           percentage: number
           remaining_for_employees?: number | null
           status?: string
@@ -422,6 +428,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
           client_name?: string | null
           created_at?: string
           deal_id?: string | null
@@ -432,6 +440,7 @@ export type Database = {
           notes?: string | null
           office_share?: number | null
           paid_at?: string | null
+          paid_by?: string | null
           percentage?: number
           remaining_for_employees?: number | null
           status?: string
@@ -3031,7 +3040,7 @@ export type Database = {
       }
       approve_commission: {
         Args: { commission_id_param: string }
-        Returns: boolean
+        Returns: Json
       }
       approve_commission_multi: {
         Args: { commission_id_param: string }
@@ -3333,6 +3342,10 @@ export type Database = {
           metadata?: Json
         }
         Returns: string
+      }
+      pay_commission: {
+        Args: { commission_id_param: string }
+        Returns: Json
       }
       process_installment_payment: {
         Args: {
