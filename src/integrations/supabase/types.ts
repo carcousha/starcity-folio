@@ -992,6 +992,60 @@ export type Database = {
           },
         ]
       }
+      employee_complaints: {
+        Row: {
+          attachments: Json | null
+          complaint_category: string
+          created_at: string
+          department: string | null
+          description: string
+          employee_id: string
+          id: string
+          incident_date: string | null
+          manager_response: string | null
+          priority: string
+          responded_at: string | null
+          responded_by: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          complaint_category: string
+          created_at?: string
+          department?: string | null
+          description: string
+          employee_id: string
+          id?: string
+          incident_date?: string | null
+          manager_response?: string | null
+          priority?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          complaint_category?: string
+          created_at?: string
+          department?: string | null
+          description?: string
+          employee_id?: string
+          id?: string
+          incident_date?: string | null
+          manager_response?: string | null
+          priority?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_evaluations: {
         Row: {
           achievements: string[] | null
@@ -1037,6 +1091,57 @@ export type Database = {
           performance_categories?: Json | null
           self_assessment?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      employee_requests: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          description: string | null
+          employee_id: string
+          id: string
+          manager_response: string | null
+          priority: string
+          request_type: string
+          requested_date: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          manager_response?: string | null
+          priority?: string
+          request_type: string
+          requested_date?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          manager_response?: string | null
+          priority?: string
+          request_type?: string
+          requested_date?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3317,17 +3422,28 @@ export type Database = {
         Returns: undefined
       }
       create_system_notification: {
-        Args: {
-          p_user_id: string
-          p_title: string
-          p_message: string
-          p_type: string
-          p_priority?: string
-          p_related_table?: string
-          p_related_id?: string
-          p_scheduled_for?: string
-          p_metadata?: Json
-        }
+        Args:
+          | {
+              p_title: string
+              p_message: string
+              p_type?: string
+              p_priority?: string
+              p_related_table?: string
+              p_related_id?: string
+              p_scheduled_for?: string
+              p_metadata?: Json
+            }
+          | {
+              p_user_id: string
+              p_title: string
+              p_message: string
+              p_type: string
+              p_priority?: string
+              p_related_table?: string
+              p_related_id?: string
+              p_scheduled_for?: string
+              p_metadata?: Json
+            }
         Returns: string
       }
       create_task_notification: {
