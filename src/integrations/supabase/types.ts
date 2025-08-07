@@ -2871,7 +2871,7 @@ export type Database = {
             foreignKeyName: "task_notifications_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
-            referencedRelation: "tasks"
+            referencedRelation: "daily_tasks"
             referencedColumns: ["id"]
           },
         ]
