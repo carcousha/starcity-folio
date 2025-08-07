@@ -60,7 +60,7 @@ export function AppSidebar() {
     setExpandedSections(prev => 
       prev.includes(section) 
         ? prev.filter(s => s !== section)
-        : [...prev, section]
+        : [section] // Only open the clicked section, close all others
     );
   };
 
@@ -236,7 +236,11 @@ export function AppSidebar() {
                         onClick={item.hasSubmenu ? () => toggleSection(
                           item.title === 'إدارة العلاقات العامة' ? 'crm' : 
                           item.title === 'إدارة الحسابات' ? 'accounting' : 
-                          item.title === 'وحدة الإيجارات' ? 'rental' : 
+                          item.title === 'وحدة الإيجارات' ? 'rental' :
+                          item.title === '💼 العمليات' ? 'operations' :
+                          item.title === '💵 المالية' ? 'finance' :
+                          item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
+                          item.title === '🔔 الإشعارات' ? 'notifications' :
                           'other'
                         ) : undefined}
                       >
@@ -250,9 +254,13 @@ export function AppSidebar() {
                               expandedSections.includes(
                                 item.title === 'إدارة العلاقات العامة' ? 'crm' : 
                                 item.title === 'إدارة الحسابات' ? 'accounting' : 
-                                item.title === 'وحدة الإيجارات' ? 'rental' : 
+                                item.title === 'وحدة الإيجارات' ? 'rental' :
+                                item.title === '💼 العمليات' ? 'operations' :
+                                item.title === '💵 المالية' ? 'finance' :
+                                item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
+                                item.title === '🔔 الإشعارات' ? 'notifications' :
                                 'other'
-                              ) 
+                              )
                                 ? <ChevronDown className="h-4 w-4" />
                                 : <ChevronRight className="h-4 w-4" />
                             )}
@@ -270,7 +278,11 @@ export function AppSidebar() {
                     {item.hasSubmenu && expandedSections.includes(
                       item.title === 'إدارة العلاقات العامة' ? 'crm' : 
                       item.title === 'إدارة الحسابات' ? 'accounting' : 
-                      item.title === 'وحدة الإيجارات' ? 'rental' : 
+                      item.title === 'وحدة الإيجارات' ? 'rental' :
+                      item.title === '💼 العمليات' ? 'operations' :
+                      item.title === '💵 المالية' ? 'finance' :
+                      item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
+                      item.title === '🔔 الإشعارات' ? 'notifications' :
                       'other'
                     ) && !collapsed && (
                       <div className="mr-4 space-y-1">
