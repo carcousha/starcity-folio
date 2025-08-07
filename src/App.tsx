@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AuthGuard } from "@/components/AuthGuard";
 import { AudioNotificationProvider } from "@/components/AudioNotificationProvider";
 import { AppLayout } from "@/components/AppLayout";
 import { DashboardHome } from "@/components/DashboardHome";
@@ -79,15 +80,19 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AudioNotificationProvider>
-              <AppLayout>
-            <Routes>
-              <Route path="/" element={<Auth />} />
-              <Route path="/admin-dashboard" element={
-                <ProtectedRoute requiredPermission="canManageStaff">
-                  <DashboardHome />
-                </ProtectedRoute>
-              } />
-              
+              <Routes>
+                <Route path="/" element={<Auth />} />
+                
+                {/* جميع الروتس الأخرى محمية بـ AuthGuard */}
+                <Route path="/*" element={
+                  <AuthGuard>
+                    <AppLayout>
+                      <Routes>
+                        <Route path="/admin-dashboard" element={
+                          <ProtectedRoute requiredPermission="canManageStaff">
+                            <DashboardHome />
+                          </ProtectedRoute>
+                        } />
               
               {/* CRM Routes - Admin and some for employees */}
                <Route path="/crm" element={
@@ -360,8 +365,11 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-            </Routes>
-              </AppLayout>
+                      </Routes>
+                    </AppLayout>
+                  </AuthGuard>
+                } />
+              </Routes>
             </AudioNotificationProvider>
           </BrowserRouter>
         </TooltipProvider>
