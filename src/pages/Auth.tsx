@@ -1,53 +1,45 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthForm } from "@/components/AuthForm";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { AuthForm } from "@/components/AuthForm";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user, profile, loading, session } = useAuth();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && profile) {
-        // Redirect based on user role
-        if (profile.role === 'admin') {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/employee/dashboard");
-        }
+    // إذا كان المستخدم مسجل دخول بالفعل، وجهه للوحة التحكم
+    if (!loading && session && user && profile && profile.is_active) {
+      console.log('Auth: User already logged in, redirecting to dashboard');
+      if (profile.role === 'admin') {
+        navigate("/admin-dashboard");
+      } else if (profile.role === 'accountant') {
+        navigate("/accounting");
+      } else {
+        navigate("/employee/dashboard");
       }
-    };
-
-    if (profile) {
-      checkAuth();
     }
-  }, [navigate, profile]);
+  }, [user, profile, loading, session, navigate]);
 
-  useEffect(() => {
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && profile) {
-        // Redirect based on user role
-        if (profile.role === 'admin') {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/employee/dashboard");
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, profile]);
+  // إذا كان المستخدم مسجل دخول، لا تظهر صفحة تسجيل الدخول
+  if (!loading && session && user && profile && profile.is_active) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   const handleAuthSuccess = () => {
-    // Let the auth state change handler redirect
+    // سيتم التوجيه تلقائياً عند تغيير حالة المصادقة
+    console.log('Auth: Authentication successful');
   };
 
-  return <AuthForm onSuccess={handleAuthSuccess} />;
+  return (
+    <div className="min-h-screen">
+      <AuthForm onSuccess={handleAuthSuccess} />
+    </div>
+  );
 };
 
 export default Auth;
