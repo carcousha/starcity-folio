@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import AdminLogs from "./accounting/AdminLogs";
+import { AudioNotificationSettings } from "@/components/AudioNotificationSettings";
 
 
 interface Setting {
@@ -856,71 +857,77 @@ export default function Settings() {
 
         {/* Notifications */}
         <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                إعدادات الإشعارات
-              </CardTitle>
-              <CardDescription>
-                إدارة قنوات الإشعارات ورسائل التنبيه
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-5 w-5 text-blue-500" />
-                    <div>
-                      <Label>إشعارات البريد الإلكتروني</Label>
-                      <p className="text-sm text-gray-600">إرسال الإشعارات عبر البريد الإلكتروني</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* إعدادات الإشعارات العامة */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  إعدادات الإشعارات العامة
+                </CardTitle>
+                <CardDescription>
+                  إدارة قنوات الإشعارات ورسائل التنبيه
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-5 w-5 text-blue-500" />
+                      <div>
+                        <Label>إشعارات البريد الإلكتروني</Label>
+                        <p className="text-sm text-gray-600">إرسال الإشعارات عبر البريد الإلكتروني</p>
+                      </div>
                     </div>
+                    <Switch
+                      checked={notificationSettings.email_enabled}
+                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, email_enabled: checked }))}
+                    />
                   </div>
-                  <Switch
-                    checked={notificationSettings.email_enabled}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, email_enabled: checked }))}
-                  />
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-5 w-5 text-green-500" />
+                      <div>
+                        <Label>إشعارات الرسائل النصية</Label>
+                        <p className="text-sm text-gray-600">إرسال الإشعارات عبر SMS</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notificationSettings.sms_enabled}
+                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, sms_enabled: checked }))}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Bell className="h-5 w-5 text-orange-500" />
+                      <div>
+                        <Label>الإشعارات الداخلية</Label>
+                        <p className="text-sm text-gray-600">إشعارات داخل التطبيق</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={notificationSettings.push_enabled}
+                      onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, push_enabled: checked }))}
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-5 w-5 text-green-500" />
-                    <div>
-                      <Label>إشعارات الرسائل النصية</Label>
-                      <p className="text-sm text-gray-600">إرسال الإشعارات عبر SMS</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={notificationSettings.sms_enabled}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, sms_enabled: checked }))}
-                  />
+                <Separator />
+                
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveNotificationSettings} disabled={saving}>
+                    {saving ? <RefreshCw className="h-4 w-4 ml-2 animate-spin" /> : <Save className="h-4 w-4 ml-2" />}
+                    حفظ إعدادات الإشعارات
+                  </Button>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Bell className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <Label>الإشعارات الداخلية</Label>
-                      <p className="text-sm text-gray-600">إشعارات داخل التطبيق</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={notificationSettings.push_enabled}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, push_enabled: checked }))}
-                  />
-                </div>
-              </div>
-
-              <Separator />
-              
-              <div className="flex justify-end">
-                <Button onClick={handleSaveNotificationSettings} disabled={saving}>
-                  {saving ? <RefreshCw className="h-4 w-4 ml-2 animate-spin" /> : <Save className="h-4 w-4 ml-2" />}
-                  حفظ إعدادات الإشعارات
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            {/* إعدادات التنبيهات الصوتية */}
+            <AudioNotificationSettings />
+          </div>
         </TabsContent>
 
         {/* Security Settings */}
