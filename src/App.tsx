@@ -46,6 +46,7 @@ import TreasuryReports from "./pages/reports/TreasuryReports";
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import MyCommissions from "./pages/employee/MyCommissions";
 import MyDebts from "./pages/employee/MyDebts";
+import MyProfile from "./pages/employee/MyProfile";
 import Vehicle from "./pages/employee/Vehicle";
 import MyRequests from "./pages/employee/MyRequests";
 import Complaints from "./pages/employee/Complaints";
@@ -337,6 +338,11 @@ const App = () => (
                <Route path="/employee/my-properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <MyProperties />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/my-profile" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyProfile />
                  </ProtectedRoute>
                } />
               
