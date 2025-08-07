@@ -166,6 +166,11 @@ export function AppSidebar() {
           { title: "التنبيهات", url: "/employee/notifications", icon: BarChart3 },
           { title: "سجل النشاطات", url: "/employee/notifications", icon: BarChart3 },
         ]
+      },
+      { 
+        title: "👤 الملف الشخصي", 
+        url: "/employee/my-profile", 
+        icon: User 
       }
     ];
   };
