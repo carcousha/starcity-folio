@@ -53,6 +53,10 @@ import Notifications from "./pages/employee/Notifications";
 import MyGoals from "./pages/employee/MyGoals";
 import MyEvaluation from "./pages/employee/MyEvaluation";
 import MyPerformance from "./pages/employee/MyPerformance";
+import MyClients from "./pages/employee/MyClients";
+import MyLeads from "./pages/employee/MyLeads";
+import MyTasks from "./pages/employee/MyTasks";
+import MyProperties from "./pages/employee/MyProperties";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 
@@ -313,6 +317,26 @@ const App = () => (
                <Route path="/my-performance" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <MyPerformance />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/my-clients" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyClients />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/my-leads" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyLeads />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/my-tasks" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyTasks />
+                 </ProtectedRoute>
+               } />
+               <Route path="/employee/my-properties" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyProperties />
                  </ProtectedRoute>
                } />
               
