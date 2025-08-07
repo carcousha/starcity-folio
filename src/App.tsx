@@ -84,7 +84,7 @@ const App = () => (
               <Route
                 path="/"
                 element={
-                  <ProtectedRoute requiredPermission="crmAccess">
+                  <ProtectedRoute requiredPermission="canManageStaff">
                     <DashboardHome />
                   </ProtectedRoute>
                 }
