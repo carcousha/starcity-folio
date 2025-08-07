@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RouteGuard } from "@/components/RouteGuard";
 import { AudioNotificationProvider } from "@/components/AudioNotificationProvider";
 import { AppLayout } from "@/components/AppLayout";
 import { DashboardHome } from "@/components/DashboardHome";
@@ -80,14 +81,15 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AudioNotificationProvider>
-              <Routes>
-                <Route path="/" element={<Auth />} />
-                
-                {/* جميع الروتس الأخرى محمية بـ AuthGuard */}
-                <Route path="/*" element={
-                  <AuthGuard>
-                    <AppLayout>
-                      <Routes>
+              <RouteGuard>
+                <Routes>
+                  <Route path="/" element={<Auth />} />
+                  
+                  {/* جميع الروتس الأخرى محمية بطبقات حماية متعددة */}
+                  <Route path="/*" element={
+                    <AuthGuard>
+                      <AppLayout>
+                        <Routes>
                         <Route path="/admin-dashboard" element={
                           <ProtectedRoute requiredPermission="canManageStaff">
                             <DashboardHome />
@@ -365,11 +367,12 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-                      </Routes>
-                    </AppLayout>
-                  </AuthGuard>
-                } />
-              </Routes>
+                        </Routes>
+                      </AppLayout>
+                    </AuthGuard>
+                  } />
+                </Routes>
+              </RouteGuard>
             </AudioNotificationProvider>
           </BrowserRouter>
         </TooltipProvider>

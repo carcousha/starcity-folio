@@ -47,18 +47,23 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { profile, signOut, user, loading } = useAuth();
+  const { profile, signOut, user, loading, session } = useAuth();
   const { checkPermission } = useRoleAccess();
   const currentPath = location.pathname;
   const [expandedSections, setExpandedSections] = useState<string[]>(['crm']);
 
-  // إذا كان التحميل جاري، لا تظهر السايدبار
+  // حماية صارمة: إذا كان التحميل جاري، لا تظهر السايدبار
   if (loading) {
     return null;
   }
 
-  // إذا لم يكن هناك مستخدم أو profile، لا تظهر السايدبار
-  if (!user || !profile) {
+  // حماية مطلقة: إذا لم يكن هناك مستخدم أو session أو profile، لا تظهر السايدبار
+  if (!user || !session || !profile) {
+    return null;
+  }
+
+  // فحص إضافي: المستخدم غير نشط
+  if (!profile.is_active) {
     return null;
   }
 
