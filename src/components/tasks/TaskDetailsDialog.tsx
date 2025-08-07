@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,11 +36,11 @@ interface Task {
   created_at: string;
   task_assignments?: Array<{
     assigned_to: string;
-    profiles: {
+    profiles?: {
       first_name: string;
       last_name: string;
       avatar_url: string | null;
-    };
+    } | null;
   }>;
   task_comments?: Array<{ id: string }>;
   task_attachments?: Array<{ id: string }>;
@@ -210,19 +211,28 @@ const TaskDetailsDialog = ({ task, open, onClose }: TaskDetailsDialogProps) => {
               <div>
                 <h4 className="font-medium mb-3">الموظفين المعينين</h4>
                 <div className="flex flex-wrap gap-2">
-                  {task.task_assignments.map((assignment, index) => (
-                    <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={assignment.profiles.avatar_url || undefined} />
-                        <AvatarFallback className="text-xs">
-                          {assignment.profiles.first_name[0]}{assignment.profiles.last_name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">
-                        {assignment.profiles.first_name} {assignment.profiles.last_name}
-                      </span>
-                    </div>
-                  ))}
+                  {task.task_assignments.map((assignment, index) => {
+                    // Add defensive checks for profiles data
+                    const profile = assignment.profiles;
+                    const firstName = profile?.first_name || 'موظف';
+                    const lastName = profile?.last_name || 'غير محدد';
+                    const avatarUrl = profile?.avatar_url;
+                    const initials = `${firstName[0] || 'م'}${lastName[0] || 'غ'}`;
+
+                    return (
+                      <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={avatarUrl || undefined} />
+                          <AvatarFallback className="text-xs">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">
+                          {firstName} {lastName}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <Separator />
