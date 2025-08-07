@@ -18,37 +18,21 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import TaskDetailsDialog from './TaskDetailsDialog';
-
-interface Task {
+interface TaskKanban {
   id: string;
   title: string;
   description: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  status: 'new' | 'in_progress' | 'completed' | 'cancelled';
+  priority_level: number;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   due_date: string | null;
   due_time?: string | null;
   start_time?: string | null;
   reminder_minutes_before?: number;
   created_at: string;
-  task_assignments: Array<{
+  employee_id: string;
+  task_assignments?: Array<{
     assigned_to: string;
-    profiles: {
-      first_name: string;
-      last_name: string;
-      avatar_url: string | null;
-    };
   }>;
-  task_comments: Array<{ id: string }>;
-  task_attachments: Array<{ id: string }>;
-  clients?: {
-    name: string;
-  };
-  properties?: {
-    title: string;
-  };
-  rental_contracts?: {
-    contract_number: string;
-  };
 }
 
 interface TaskFilters {
@@ -63,7 +47,7 @@ interface TaskKanbanBoardProps {
 }
 
 const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskKanban | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -73,18 +57,10 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
     queryFn: async () => {
       try {
         let query = (supabase as any)
-          .from('tasks')
+          .from('daily_tasks')
           .select(`
             *,
-            task_assignments!inner(
-              assigned_to,
-              profiles!inner(first_name, last_name, avatar_url)
-            ),
-            task_comments(id),
-            task_attachments(id),
-            clients(name),
-            properties(title),
-            rental_contracts(contract_number)
+            task_assignments(assigned_to)
           `);
 
         // تطبيق الفلاتر
@@ -101,7 +77,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
         const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data as Task[] || [];
+        return data as TaskKanban[] || [];
       } catch (error) {
         console.error('Error fetching tasks:', error);
         return [];
@@ -119,7 +95,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
       }
 
       const { error } = await (supabase as any)
-        .from('tasks')
+        .from('daily_tasks')
         .update(updates)
         .eq('id', taskId);
 
@@ -142,22 +118,20 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
     }
   });
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'normal': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'low': return 'bg-gray-100 text-gray-800 border-gray-200';
+  const getPriorityColor = (priorityLevel: number) => {
+    switch (priorityLevel) {
+      case 3: return 'bg-red-100 text-red-800 border-red-200'; // urgent/high
+      case 2: return 'bg-blue-100 text-blue-800 border-blue-200'; // normal
+      case 1: return 'bg-gray-100 text-gray-800 border-gray-200'; // low
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'عاجل';
-      case 'high': return 'عالي';
-      case 'normal': return 'عادي';
-      case 'low': return 'منخفض';
+  const getPriorityLabel = (priorityLevel: number) => {
+    switch (priorityLevel) {
+      case 3: return 'عالي/عاجل';
+      case 2: return 'عادي';
+      case 1: return 'منخفض';
       default: return 'عادي';
     }
   };
@@ -167,7 +141,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
     return new Date(dueDate) < new Date() && new Date(dueDate).toDateString() !== new Date().toDateString();
   };
 
-  const TaskCard = ({ task }: { task: Task }) => (
+  const TaskCard = ({ task }: { task: TaskKanban }) => (
     <Card 
       className={`mb-3 cursor-pointer transition-all hover:shadow-md ${
         isOverdue(task.due_date) ? 'border-red-300 bg-red-50' : ''
@@ -181,9 +155,9 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
           </CardTitle>
           <Badge 
             variant="outline" 
-            className={`text-xs ${getPriorityColor(task.priority)} flex-shrink-0 ml-2`}
+            className={`text-xs ${getPriorityColor(task.priority_level)} flex-shrink-0 ml-2`}
           >
-            {getPriorityLabel(task.priority)}
+            {getPriorityLabel(task.priority_level)}
           </Badge>
         </div>
         {task.description && (
@@ -194,27 +168,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
       </CardHeader>
       
       <CardContent className="pt-0">
-        {/* معلومات إضافية */}
-        <div className="space-y-2 mb-3">
-          {task.clients && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <User className="h-3 w-3 mr-1" />
-              عميل: {task.clients.name}
-            </div>
-          )}
-          {task.properties && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3 mr-1" />
-              عقار: {task.properties.title}
-            </div>
-          )}
-          {task.rental_contracts && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3 mr-1" />
-              عقد: {task.rental_contracts.contract_number}
-            </div>
-          )}
-        </div>
+        {/* معلومات إضافية - تم إزالتها لأن الأعمدة غير موجودة */}
 
         {/* تاريخ الاستحقاق */}
         {task.due_date && (
@@ -233,41 +187,26 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
         {/* الموظفين المعينين */}
         <div className="flex items-center justify-between">
           <div className="flex -space-x-2">
-            {task.task_assignments.slice(0, 3).map((assignment, index) => (
+            {task.task_assignments?.slice(0, 3).map((assignment, index) => (
               <Avatar key={index} className="h-6 w-6 border-2 border-white">
-                <AvatarImage src={assignment.profiles.avatar_url || undefined} />
                 <AvatarFallback className="text-xs">
-                  {assignment.profiles.first_name[0]}{assignment.profiles.last_name[0]}
+                  {assignment.assigned_to.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             ))}
-            {task.task_assignments.length > 3 && (
+            {(task.task_assignments?.length || 0) > 3 && (
               <div className="h-6 w-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
-                <span className="text-xs font-medium">+{task.task_assignments.length - 3}</span>
+                <span className="text-xs font-medium">+{(task.task_assignments?.length || 0) - 3}</span>
               </div>
             )}
           </div>
 
-          {/* مؤشرات الأنشطة */}
-          <div className="flex items-center gap-2">
-            {task.task_comments.length > 0 && (
-              <div className="flex items-center text-xs text-muted-foreground">
-                <MessageSquare className="h-3 w-3 mr-1" />
-                {task.task_comments.length}
-              </div>
-            )}
-            {task.task_attachments.length > 0 && (
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Paperclip className="h-3 w-3 mr-1" />
-                {task.task_attachments.length}
-              </div>
-            )}
-          </div>
+          {/* مؤشرات الأنشطة - مخفية مؤقتاً */}
         </div>
 
         {/* أزرار سريعة لتغيير الحالة */}
         <div className="flex gap-1 mt-3">
-          {task.status === 'new' && (
+          {task.status === 'pending' && (
             <Button
               size="sm"
               variant="outline"
@@ -307,7 +246,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
   }: { 
     title: string; 
     status: string; 
-    tasks: Task[]; 
+    tasks: TaskKanban[]; 
     color: string;
   }) => (
     <div className="flex-1 min-w-[300px]">
@@ -352,7 +291,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
     );
   }
 
-  const newTasks = tasks.filter(task => task.status === 'new');
+  const newTasks = tasks.filter(task => task.status === 'pending');
   const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
   const completedTasks = tasks.filter(task => task.status === 'completed');
   const cancelledTasks = tasks.filter(task => task.status === 'cancelled');
@@ -362,7 +301,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
       <div className="flex gap-4 overflow-x-auto pb-4">
         <KanbanColumn
           title="مهام جديدة"
-          status="new"
+          status="pending"
           tasks={newTasks}
           color="bg-blue-100 text-blue-800"
         />
@@ -389,7 +328,14 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
       {/* نافذة تفاصيل المهمة */}
       {selectedTask && (
         <TaskDetailsDialog
-          task={selectedTask}
+          task={{
+            ...selectedTask,
+            priority: selectedTask.priority_level === 3 ? 'high' : selectedTask.priority_level === 2 ? 'normal' : 'low',
+            start_date: selectedTask.due_date,
+            client_id: '',
+            property_id: '',
+            contract_id: ''
+          } as any}
           open={!!selectedTask}
           onClose={() => setSelectedTask(null)}
         />
