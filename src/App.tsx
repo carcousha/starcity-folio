@@ -2,14 +2,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RouteGuard } from "@/components/RouteGuard";
 import { AudioNotificationProvider } from "@/components/AudioNotificationProvider";
 import { AppLayout } from "@/components/AppLayout";
+import { StrictAuthProtector } from "@/components/StrictAuthProtector";
 import { DashboardHome } from "@/components/DashboardHome";
 import Auth from "./pages/Auth";
 import CRMIndex from "./pages/crm/index";
@@ -72,24 +73,64 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <ThemeProvider defaultTheme="system" storageKey="starcity-theme">
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AudioNotificationProvider>
-              <RouteGuard>
-                <Routes>
-                  <Route path="/" element={<Auth />} />
-                  
-                  {/* جميع الروتس الأخرى محمية بطبقات حماية متعددة */}
-                  <Route path="/*" element={
-                    <AuthGuard>
-                      <AppLayout>
-                        <Routes>
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ThemeProvider defaultTheme="system" storageKey="starcity-theme">
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <StrictAuthProtector>
+                <AppProtector />
+              </StrictAuthProtector>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
+
+// مكون الحماية الرئيسي
+const AppProtector = () => {
+  const { user, session, profile, loading } = useAuth();
+  const location = useLocation();
+
+  // إذا كان المسار صفحة تسجيل الدخول، اعرضها فقط
+  if (location.pathname === "/") {
+    return <Auth />;
+  }
+
+  // إذا كان التحميل جاري، أظهر شاشة تحميل
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // إذا لم يكن هناك session أو user أو profile، إعادة توجيه فورية
+  if (!session || !user || !profile) {
+    window.location.href = '/';
+    return null;
+  }
+
+  // إذا كان المستخدم غير نشط
+  if (!profile.is_active) {
+    window.location.href = '/';
+    return null;
+  }
+
+  // إذا وصل هنا، يعني المستخدم مصادق عليه ونشط
+  return (
+    <AudioNotificationProvider>
+      <RouteGuard>
+        <AuthGuard>
+          <AppLayout>
+            <Routes>
                         <Route path="/admin-dashboard" element={
                           <ProtectedRoute requiredPermission="canManageStaff">
                             <DashboardHome />
@@ -367,18 +408,12 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-                        </Routes>
-                      </AppLayout>
-                    </AuthGuard>
-                  } />
-                </Routes>
-              </RouteGuard>
-            </AudioNotificationProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+            </Routes>
+          </AppLayout>
+        </AuthGuard>
+      </RouteGuard>
+    </AudioNotificationProvider>
+  );
+};
 
 export default App;
