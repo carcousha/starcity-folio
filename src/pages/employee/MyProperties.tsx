@@ -13,7 +13,9 @@ import {
   Filter,
   Eye,
   Camera,
-  Home
+  Home,
+  Plus,
+  Edit
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +110,10 @@ export default function MyProperties() {
             <p className="text-muted-foreground">العقارات المسؤول عنها والمخصصة لي</p>
           </div>
         </div>
+        <Button>
+          <Plus className="h-4 w-4 ml-2" />
+          إضافة عقار جديد
+        </Button>
       </div>
 
       {/* Filters */}
@@ -308,11 +314,16 @@ export default function MyProperties() {
                       )}
                     </div>
                     
-                    {/* Action Button */}
-                    <Button className="w-full" variant="outline">
-                      <Eye className="h-4 w-4 ml-2" />
-                      عرض التفاصيل
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex space-x-2 space-x-reverse">
+                      <Button className="flex-1" variant="outline">
+                        <Eye className="h-4 w-4 ml-2" />
+                        عرض التفاصيل
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

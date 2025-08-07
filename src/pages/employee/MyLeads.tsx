@@ -14,17 +14,21 @@ import {
   UserCheck,
   ArrowRight,
   Filter,
-  Star
+  Star,
+  Edit
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { AddLeadButton, LeadDialog } from "@/components/employee/LeadDialog";
 
 export default function MyLeads() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStage, setSelectedStage] = useState("all");
+  const [editingLead, setEditingLead] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: leadsData, isLoading } = useQuery({
     queryKey: ['my-leads', profile?.user_id],
@@ -172,6 +176,7 @@ export default function MyLeads() {
             <p className="text-muted-foreground">إدارة العملاء المحتملين وتحويلهم إلى عملاء فعليين</p>
           </div>
         </div>
+        <AddLeadButton />
       </div>
 
       {/* Filters */}
@@ -333,6 +338,12 @@ export default function MyLeads() {
                     <div className="flex items-center space-x-2 space-x-reverse">
                       {getSttageBadge(lead.stage)}
                       {getScoreBadge(lead.lead_score)}
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setEditingLead(lead);
+                        setEditDialogOpen(true);
+                      }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
@@ -409,6 +420,13 @@ export default function MyLeads() {
           )}
         </CardContent>
       </Card>
+      
+      <LeadDialog 
+        open={editDialogOpen} 
+        onOpenChange={setEditDialogOpen} 
+        lead={editingLead}
+        mode="edit"
+      />
     </div>
   );
 }

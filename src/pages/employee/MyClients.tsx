@@ -15,11 +15,13 @@ import {
   Plus,
   MessageSquare,
   User,
-  Filter
+  Filter,
+  Edit
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { AddClientButton, ClientDialog } from "@/components/employee/ClientDialog";
 
 export default function MyClients() {
   const { profile } = useAuth();
@@ -28,6 +30,8 @@ export default function MyClients() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [noteText, setNoteText] = useState("");
   const [activeClientId, setActiveClientId] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: clientsData, isLoading } = useQuery({
     queryKey: ['my-clients', profile?.user_id],
@@ -129,6 +133,7 @@ export default function MyClients() {
             <p className="text-muted-foreground">إدارة العملاء المخصصين لي</p>
           </div>
         </div>
+        <AddClientButton />
       </div>
 
       {/* Filters */}
@@ -284,6 +289,12 @@ export default function MyClients() {
                     </div>
                     <div className="flex items-center space-x-2 space-x-reverse">
                       {getStatusBadge(client.client_status)}
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setEditingClient(client);
+                        setEditDialogOpen(true);
+                      }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
@@ -378,6 +389,13 @@ export default function MyClients() {
           )}
         </CardContent>
       </Card>
+      
+      <ClientDialog 
+        open={editDialogOpen} 
+        onOpenChange={setEditDialogOpen} 
+        client={editingClient}
+        mode="edit"
+      />
     </div>
   );
 }

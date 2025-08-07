@@ -11,17 +11,21 @@ import {
   Calendar,
   Filter,
   Plus,
-  MoreVertical
+  MoreVertical,
+  Edit
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { AddTaskButton, TaskDialog } from "@/components/employee/TaskDialog";
 
 export default function MyTasks() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: tasksData, isLoading } = useQuery({
     queryKey: ['my-tasks', profile?.user_id],
@@ -139,6 +143,7 @@ export default function MyTasks() {
             <p className="text-muted-foreground">إدارة المهام اليومية ومتابعة الإنجاز</p>
           </div>
         </div>
+        <AddTaskButton />
       </div>
 
       {/* Filters */}
@@ -307,6 +312,12 @@ export default function MyTasks() {
                     <div className="flex items-center space-x-2 space-x-reverse">
                       {getPriorityBadge(task.priority_level)}
                       {getStatusBadge(task.status)}
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setEditingTask(task);
+                        setEditDialogOpen(true);
+                      }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
@@ -353,6 +364,13 @@ export default function MyTasks() {
           )}
         </CardContent>
       </Card>
+      
+      <TaskDialog 
+        open={editDialogOpen} 
+        onOpenChange={setEditDialogOpen} 
+        task={editingTask}
+        mode="edit"
+      />
     </div>
   );
 }
