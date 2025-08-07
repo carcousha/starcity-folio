@@ -135,10 +135,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
         created_by: user.id,
       };
 
-      // إضافة الروابط الاختيارية
-      if (taskData.client_id && taskData.client_id !== 'none') taskPayload.client_id = taskData.client_id;
-      if (taskData.property_id && taskData.property_id !== 'none') taskPayload.property_id = taskData.property_id;
-      if (taskData.contract_id && taskData.contract_id !== 'none') taskPayload.contract_id = taskData.contract_id;
+      // تم حذف الروابط الاختيارية لأن الأعمدة غير موجودة في daily_tasks
 
       const { data: task, error: taskError } = await (supabase as any)
         .from('daily_tasks')
