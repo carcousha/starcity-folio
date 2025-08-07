@@ -51,6 +51,7 @@ import Complaints from "./pages/employee/Complaints";
 import Notifications from "./pages/employee/Notifications";
 import MyGoals from "./pages/employee/MyGoals";
 import MyEvaluation from "./pages/employee/MyEvaluation";
+import MyPerformance from "./pages/employee/MyPerformance";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 
@@ -306,7 +307,12 @@ const App = () => (
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <MyEvaluation />
                 </ProtectedRoute>
-              } />
+               } />
+               <Route path="/my-performance" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <MyPerformance />
+                 </ProtectedRoute>
+               } />
               
               {/* Settings Route - Admin only */}
               <Route path="/settings" element={
