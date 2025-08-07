@@ -47,10 +47,20 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user, loading } = useAuth();
   const { checkPermission } = useRoleAccess();
   const currentPath = location.pathname;
   const [expandedSections, setExpandedSections] = useState<string[]>(['crm']);
+
+  // إذا كان التحميل جاري، لا تظهر السايدبار
+  if (loading) {
+    return null;
+  }
+
+  // إذا لم يكن هناك مستخدم أو profile، لا تظهر السايدبار
+  if (!user || !profile) {
+    return null;
+  }
 
   const collapsed = state === "collapsed";
 

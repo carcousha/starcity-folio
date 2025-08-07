@@ -15,7 +15,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { profile, signOut, loading } = useAuth();
+  const { profile, signOut, loading, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,9 +48,20 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  // Don't show layout for auth page or if not authenticated
-  if (location.pathname === "/" || !profile) {
+  // Don't show layout for auth page
+  if (location.pathname === "/") {
     return <>{children}</>;
+  }
+
+  // إذا لم يكن هناك مستخدم مصادق عليه، توجه لصفحة تسجيل الدخول
+  if (!user) {
+    window.location.href = '/';
+    return null;
+  }
+
+  // إذا لم يتم تحميل profile بعد، لا تظهر أي محتوى
+  if (!profile) {
+    return null;
   }
 
   return (
