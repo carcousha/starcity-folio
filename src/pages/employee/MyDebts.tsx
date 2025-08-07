@@ -2,16 +2,19 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   AlertTriangle, 
   Calendar,
   DollarSign,
   Clock,
   CheckCircle,
-  FileText
+  FileText,
+  BarChart3
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 export default function MyDebts() {
   const { profile } = useAuth();
@@ -30,7 +33,7 @@ export default function MyDebts() {
       if (clientsError) throw clientsError;
 
       if (!clients || clients.length === 0) {
-        return [];
+        return { debts: [], chartData: { monthly: [], yearly: [] } };
       }
 
       const clientIds = clients.map(c => c.id);
@@ -54,17 +57,65 @@ export default function MyDebts() {
         };
       });
 
-      return debtsWithClients;
+      // إعداد بيانات الرسوم البيانية
+      const now = new Date();
+      const monthlyData = [];
+      const yearlyData = [];
+
+      // آخر 6 شهور
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const monthDebts = debtsWithClients.filter(debt => {
+          const debtDate = new Date(debt.created_at);
+          return debtDate >= monthStart && debtDate <= monthEnd;
+        });
+
+        monthlyData.push({
+          month: date.toLocaleDateString('ar-AE', { month: 'short', year: 'numeric' }),
+          total: monthDebts.reduce((sum, debt) => sum + Number(debt.amount), 0),
+          pending: monthDebts.filter(d => d.status === 'pending').reduce((sum, debt) => sum + Number(debt.amount), 0),
+          paid: monthDebts.filter(d => d.status === 'paid').reduce((sum, debt) => sum + Number(debt.amount), 0),
+          count: monthDebts.length
+        });
+      }
+
+      // آخر سنة (شهرياً)
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const monthDebts = debtsWithClients.filter(debt => {
+          const debtDate = new Date(debt.created_at);
+          return debtDate >= monthStart && debtDate <= monthEnd;
+        });
+
+        yearlyData.push({
+          month: date.toLocaleDateString('ar-AE', { month: 'short', year: 'numeric' }),
+          total: monthDebts.reduce((sum, debt) => sum + Number(debt.amount), 0),
+          pending: monthDebts.filter(d => d.status === 'pending').reduce((sum, debt) => sum + Number(debt.amount), 0),
+          paid: monthDebts.filter(d => d.status === 'paid').reduce((sum, debt) => sum + Number(debt.amount), 0),
+          count: monthDebts.length
+        });
+      }
+
+      return { 
+        debts: debtsWithClients, 
+        chartData: { monthly: monthlyData, yearly: yearlyData } 
+      };
     },
     enabled: !!profile
   });
 
   if (!profile) return null;
 
-  const totalDebts = debtsData?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
-  const pendingDebts = debtsData?.filter(d => d.status === 'pending').reduce((sum, d) => sum + Number(d.amount), 0) || 0;
-  const paidDebts = debtsData?.filter(d => d.status === 'paid').reduce((sum, d) => sum + Number(d.amount), 0) || 0;
-  const overdueDebts = debtsData?.filter(d => d.status === 'pending' && d.due_date && new Date(d.due_date) < new Date()).length || 0;
+  const totalDebts = debtsData?.debts?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
+  const pendingDebts = debtsData?.debts?.filter(d => d.status === 'pending').reduce((sum, d) => sum + Number(d.amount), 0) || 0;
+  const paidDebts = debtsData?.debts?.filter(d => d.status === 'paid').reduce((sum, d) => sum + Number(d.amount), 0) || 0;
+  const overdueDebts = debtsData?.debts?.filter(d => d.status === 'pending' && d.due_date && new Date(d.due_date) < new Date()).length || 0;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -167,101 +218,193 @@ export default function MyDebts() {
         </Card>
       </div>
 
-      {/* Debts List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 space-x-reverse">
-            <FileText className="h-5 w-5" />
-            <span>تفاصيل المديونيات</span>
-          </CardTitle>
-          <CardDescription>
-            عرض جميع مديونيات العملاء المكلف بهم مع تفاصيل كل مديونية
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-4">جارٍ التحميل...</p>
-            </div>
-          ) : !debtsData?.length ? (
-            <div className="text-center py-8">
-              <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">لا توجد مديونيات مسجلة</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {debtsData.map((debt: any) => (
-                <div key={debt.id} className="border rounded-lg p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground text-lg mb-2">
-                        {debt.client_name} - {debt.description || 'مديونية'}
-                      </h3>
-                      <div className="flex items-center space-x-4 space-x-reverse text-sm text-muted-foreground">
-                        <span className="flex items-center">
-                          <Calendar className="h-4 w-4 ml-1" />
-                          تاريخ الإنشاء: {new Date(debt.created_at).toLocaleDateString('ar-AE')}
-                        </span>
-                        {debt.due_date && (
-                          <span className="flex items-center">
-                            <Clock className="h-4 w-4 ml-1" />
-                            تاريخ الاستحقاق: {new Date(debt.due_date).toLocaleDateString('ar-AE')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      {getStatusBadge(debt.status)}
-                      {getPriorityBadge(debt.priority_level)}
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">المبلغ</p>
-                      <p className="text-xl font-bold text-foreground">
-                        {Number(debt.amount).toLocaleString()} د.إ
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">نوع المديونية</p>
-                      <p className="font-medium">
-                        {debt.debt_category === 'debt' ? 'مديونية عامة' : debt.debt_category}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">الخصم التلقائي</p>
-                      <p className="font-medium">
-                        {debt.auto_deduct_from_commission ? 'مفعل' : 'غير مفعل'}
-                      </p>
-                    </div>
-                  </div>
+      {/* Charts and Debts */}
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="details">تفاصيل المديونيات</TabsTrigger>
+          <TabsTrigger value="monthly">آخر 6 شهور</TabsTrigger>
+          <TabsTrigger value="yearly">آخر سنة</TabsTrigger>
+        </TabsList>
 
-                  {debt.guarantor_name && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">بيانات الضامن</p>
-                      <p className="font-medium">{debt.guarantor_name}</p>
-                      {debt.guarantor_phone && (
-                        <p className="text-sm text-muted-foreground">{debt.guarantor_phone}</p>
+        <TabsContent value="details" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 space-x-reverse">
+                <FileText className="h-5 w-5" />
+                <span>تفاصيل المديونيات</span>
+              </CardTitle>
+              <CardDescription>
+                عرض جميع مديونيات العملاء المكلف بهم مع تفاصيل كل مديونية
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground mt-4">جارٍ التحميل...</p>
+                </div>
+              ) : !debtsData?.debts?.length ? (
+                <div className="text-center py-8">
+                  <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">لا توجد مديونيات مسجلة</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {debtsData.debts.map((debt: any) => (
+                    <div key={debt.id} className="border rounded-lg p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground text-lg mb-2">
+                            {debt.client_name} - {debt.description || 'مديونية'}
+                          </h3>
+                          <div className="flex items-center space-x-4 space-x-reverse text-sm text-muted-foreground">
+                            <span className="flex items-center">
+                              <Calendar className="h-4 w-4 ml-1" />
+                              تاريخ الإنشاء: {new Date(debt.created_at).toLocaleDateString('ar-AE')}
+                            </span>
+                            {debt.due_date && (
+                              <span className="flex items-center">
+                                <Clock className="h-4 w-4 ml-1" />
+                                تاريخ الاستحقاق: {new Date(debt.due_date).toLocaleDateString('ar-AE')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          {getStatusBadge(debt.status)}
+                          {getPriorityBadge(debt.priority_level)}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">المبلغ</p>
+                          <p className="text-xl font-bold text-foreground">
+                            {Number(debt.amount).toLocaleString()} د.إ
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">نوع المديونية</p>
+                          <p className="font-medium">
+                            {debt.debt_category === 'debt' ? 'مديونية عامة' : debt.debt_category}
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">الخصم التلقائي</p>
+                          <p className="font-medium">
+                            {debt.auto_deduct_from_commission ? 'مفعل' : 'غير مفعل'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {debt.guarantor_name && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-1">بيانات الضامن</p>
+                          <p className="font-medium">{debt.guarantor_name}</p>
+                          {debt.guarantor_phone && (
+                            <p className="text-sm text-muted-foreground">{debt.guarantor_phone}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {debt.contract_reference && (
+                        <div className="mt-4">
+                          <p className="text-sm text-muted-foreground">مرجع العقد</p>
+                          <p className="font-medium">{debt.contract_reference}</p>
+                        </div>
                       )}
                     </div>
-                  )}
-
-                  {debt.contract_reference && (
-                    <div className="mt-4">
-                      <p className="text-sm text-muted-foreground">مرجع العقد</p>
-                      <p className="font-medium">{debt.contract_reference}</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="monthly" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 space-x-reverse">
+                <BarChart3 className="h-5 w-5" />
+                <span>تحليل المديونيات - آخر 6 شهور</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">إجمالي المديونيات الشهرية</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={debtsData?.chartData?.monthly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">توزيع المديونيات (معلقة/مسددة)</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={debtsData?.chartData?.monthly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Bar dataKey="pending" fill="hsl(var(--destructive))" name="معلقة" />
+                      <Bar dataKey="paid" fill="hsl(var(--primary))" name="مسددة" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="yearly" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 space-x-reverse">
+                <BarChart3 className="h-5 w-5" />
+                <span>تحليل المديونيات - آخر سنة</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">إجمالي المديونيات السنوية</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={debtsData?.chartData?.yearly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">توزيع المديونيات (معلقة/مسددة)</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={debtsData?.chartData?.yearly || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString()} د.إ`, '']} />
+                      <Bar dataKey="pending" fill="hsl(var(--destructive))" name="معلقة" />
+                      <Bar dataKey="paid" fill="hsl(var(--primary))" name="مسددة" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
