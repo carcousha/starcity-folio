@@ -164,7 +164,10 @@ const TaskListView = ({ filters }: TaskListViewProps) => {
                     {task.due_date && (
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>{format(new Date(task.due_date), 'dd MMM yyyy', { locale: ar })}</span>
+                        <span>
+                          {format(new Date(task.due_date), 'dd MMM yyyy', { locale: ar })}
+                          {task.due_time && ` - ${task.due_time}`}
+                        </span>
                       </div>
                     )}
                   </div>

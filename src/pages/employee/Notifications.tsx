@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import TaskNotifications from "@/components/tasks/TaskNotifications";
 
 export default function Notifications() {
   const { profile } = useAuth();
@@ -175,7 +176,7 @@ export default function Notifications() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">المهام المعلقة</p>
+                <p className="text-sm font-medium text-muted-foreground">مهام بوقت محدد</p>
                 <p className="text-2xl font-bold text-foreground">{pendingTasksCount}</p>
               </div>
               <div className="p-3 rounded-full bg-orange-50">
@@ -188,12 +189,28 @@ export default function Notifications() {
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Notifications */}
+        {/* Task Notifications */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 space-x-reverse">
               <Bell className="h-5 w-5" />
-              <span>التنبيهات</span>
+              <span>تنبيهات المهام</span>
+            </CardTitle>
+            <CardDescription>
+              تنبيهات المهام المجدولة والمواعيد المستحقة
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TaskNotifications showAll={false} maxItems={5} />
+          </CardContent>
+        </Card>
+
+        {/* General Notifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 space-x-reverse">
+              <Bell className="h-5 w-5" />
+              <span>التنبيهات العامة</span>
             </CardTitle>
             <CardDescription>
               آخر التنبيهات والإشعارات الخاصة بي

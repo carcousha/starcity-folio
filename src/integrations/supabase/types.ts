@@ -605,9 +605,13 @@ export type Database = {
           created_by: string
           description: string | null
           due_date: string | null
+          due_time: string | null
           employee_id: string
           id: string
+          notification_sent: boolean | null
           priority_level: number | null
+          reminder_minutes_before: number | null
+          start_time: string | null
           status: string
           title: string
           updated_at: string | null
@@ -618,9 +622,13 @@ export type Database = {
           created_by: string
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           employee_id: string
           id?: string
+          notification_sent?: boolean | null
           priority_level?: number | null
+          reminder_minutes_before?: number | null
+          start_time?: string | null
           status?: string
           title: string
           updated_at?: string | null
@@ -631,9 +639,13 @@ export type Database = {
           created_by?: string
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           employee_id?: string
           id?: string
+          notification_sent?: boolean | null
           priority_level?: number | null
+          reminder_minutes_before?: number | null
+          start_time?: string | null
           status?: string
           title?: string
           updated_at?: string | null

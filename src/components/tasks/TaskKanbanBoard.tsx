@@ -26,6 +26,9 @@ interface Task {
   priority: 'low' | 'normal' | 'high' | 'urgent';
   status: 'new' | 'in_progress' | 'completed' | 'cancelled';
   due_date: string | null;
+  due_time?: string | null;
+  start_time?: string | null;
+  reminder_minutes_before?: number;
   created_at: string;
   task_assignments: Array<{
     assigned_to: string;
@@ -223,6 +226,7 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
             <Clock className="h-3 w-3 mr-1" />
             {isOverdue(task.due_date) && <AlertTriangle className="h-3 w-3 mr-1" />}
             {format(new Date(task.due_date), 'dd MMM yyyy', { locale: ar })}
+            {task.due_time && ` - ${task.due_time}`}
           </div>
         )}
 
