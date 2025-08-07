@@ -29,7 +29,8 @@ const rolePermissions: Record<UserRole, PermissionKey[]> = {
     'canViewAllReports', 'canExportReports'
   ],
   employee: [
-    'crmAccess', 'canViewAllClients', 'canManageClients', 'canViewAllDeals', 'canManageDeals'
+    'crmAccess', 'canViewAllClients', 'canManageClients', 'canViewAllDeals', 'canManageDeals',
+    'canViewActivityLogs'
   ]
 };
 
