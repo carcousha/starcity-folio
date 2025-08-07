@@ -27,7 +27,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         title: "تم تسجيل الخروج بنجاح",
         description: "نراك قريباً!",
       });
-      navigate("/auth");
+      navigate("/");
     } catch (error) {
       toast({
         title: "خطأ في تسجيل الخروج",
@@ -48,8 +48,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
-  // Don't show layout for auth page
-  if (location.pathname === "/auth") {
+  // Don't show layout for auth page or if not authenticated
+  if (location.pathname === "/" || !profile) {
     return <>{children}</>;
   }
 
