@@ -102,7 +102,7 @@ export default function Leads() {
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
 
   // التحقق من الصلاحيات
-  if (!checkPermission('crmAccess')) {
+  if (!checkPermission('canViewAllDeals')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
