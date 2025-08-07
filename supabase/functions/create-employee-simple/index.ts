@@ -225,37 +225,69 @@ serve(async (req: Request) => {
       console.log("✅ Profile updated successfully");
     } else {
       console.log("➕ Creating new profile...");
-      const { data: newProfile, error: profileError } = await supabaseAdmin
+      
+      // فحص إضافي للتأكد من عدم وجود ملف شخصي بنفس البريد الإلكتروني
+      const { data: profileByEmail } = await supabaseAdmin
         .from("profiles")
-        .insert({
-          user_id: user.id,
-          email,
-          first_name,
-          last_name,
-          phone: phone || null,
-          role,
-        })
-        .select()
-        .single();
-
-      if (profileError) {
-        console.error("❌ Profile creation error:", profileError);
+        .select("*")
+        .eq("email", email)
+        .maybeSingle();
+      
+      if (profileByEmail) {
+        console.log("📝 Found existing profile by email, updating instead...");
+        const { data: updatedProfile, error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            user_id: user.id,
+            first_name,
+            last_name,
+            phone: phone || null,
+            role,
+            updated_at: new Date().toISOString()
+          })
+          .eq("email", email)
+          .select()
+          .single();
         
-        // حذف المستخدم إذا فشل إنشاء الملف الشخصي للمستخدمين الجدد
-        if (isNewUser) {
-          try {
-            await supabaseAdmin.auth.admin.deleteUser(user.id);
-            console.log("🗑️ User deleted after profile creation failure");
-          } catch (deleteError) {
-            console.error("❌ Error deleting user:", deleteError);
-          }
+        if (updateError) {
+          throw new Error(`خطأ في تحديث الملف الشخصي بالبريد الإلكتروني: ${updateError.message}`);
         }
         
-        throw new Error(`خطأ في إنشاء الملف الشخصي: ${profileError.message}`);
+        profile = updatedProfile;
+        console.log("✅ Profile updated by email successfully");
+      } else {
+        const { data: newProfile, error: profileError } = await supabaseAdmin
+          .from("profiles")
+          .insert({
+            user_id: user.id,
+            email,
+            first_name,
+            last_name,
+            phone: phone || null,
+            role,
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error("❌ Profile creation error:", profileError);
+          
+          // حذف المستخدم إذا فشل إنشاء الملف الشخصي للمستخدمين الجدد
+          if (isNewUser) {
+            try {
+              await supabaseAdmin.auth.admin.deleteUser(user.id);
+              console.log("🗑️ User deleted after profile creation failure");
+            } catch (deleteError) {
+              console.error("❌ Error deleting user:", deleteError);
+            }
+          }
+          
+          throw new Error(`خطأ في إنشاء الملف الشخصي: ${profileError.message}`);
+        }
+        
+        profile = newProfile;
+        console.log("✅ Profile created successfully");
       }
-      
-      profile = newProfile;
-      console.log("✅ Profile created successfully");
     }
 
     // النتيجة النهائية
@@ -263,7 +295,8 @@ serve(async (req: Request) => {
       success: true,
       profile, 
       temporary_password: finalPassword,
-      message: existingProfile ? "تم تحديث بيانات الموظف بنجاح" : "تم إنشاء الموظف بنجاح",
+      message: existingUser && existingProfile ? "تم تحديث كلمة المرور وبيانات الموظف بنجاح" : 
+               existingProfile ? "تم تحديث بيانات الموظف بنجاح" : "تم إنشاء الموظف بنجاح",
       password_details: {
         length: finalPassword.length,
         strength: "فائقة القوة",
