@@ -141,7 +141,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
       if (taskData.contract_id && taskData.contract_id !== 'none') taskPayload.contract_id = taskData.contract_id;
 
       const { data: task, error: taskError } = await (supabase as any)
-        .from('tasks')
+        .from('daily_tasks')
         .insert(taskPayload)
         .select()
         .single();
@@ -157,7 +157,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
         }));
 
         const { error: assignmentError } = await (supabase as any)
-          .from('task_assignments')
+          .from('daily_task_assignments')
           .insert(assignments);
 
         if (assignmentError) throw assignmentError;
@@ -167,6 +167,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-stats'] });
       toast({
         title: "تم إنشاء المهمة",
