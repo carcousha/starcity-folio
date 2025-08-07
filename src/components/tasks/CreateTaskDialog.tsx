@@ -126,12 +126,13 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
       const taskPayload: any = {
         title: taskData.title,
         description: taskData.description,
-        priority: taskData.priority,
+        priority_level: taskData.priority === 'low' ? 1 : taskData.priority === 'normal' ? 2 : taskData.priority === 'high' ? 3 : 4,
         start_date: taskData.start_date?.toISOString().split('T')[0] || null,
         due_date: taskData.due_date?.toISOString().split('T')[0] || null,
         start_time: taskData.start_time || null,
         due_time: taskData.due_time || null,
         reminder_minutes_before: taskData.reminder_minutes_before,
+        employee_id: user.id,
         created_by: user.id,
       };
 
@@ -152,7 +153,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
       if (taskData.assigned_to.length > 0) {
         const assignments = taskData.assigned_to.map(assigneeId => ({
           task_id: task.id,
-          assigned_to: assigneeId,
+          employee_id: assigneeId,
           assigned_by: user.id,
         }));
 
