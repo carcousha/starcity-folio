@@ -66,7 +66,7 @@ export function AppSidebar() {
 
   // Main navigation items
   const mainItems = [
-    { title: "الرئيسية", url: "/", icon: Home },
+    { title: "الرئيسية", url: "/admin-dashboard", icon: Home },
     { 
       title: "إدارة العلاقات العامة", 
       url: "/crm", 
