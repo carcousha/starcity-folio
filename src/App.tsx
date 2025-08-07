@@ -354,7 +354,11 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route
                 path="*"
-                element={<NotFound />}
+                element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <NotFound />
+                  </ProtectedRoute>
+                }
               />
             </Routes>
               </AppLayout>
