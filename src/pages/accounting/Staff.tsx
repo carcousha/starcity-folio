@@ -62,7 +62,8 @@ import {
   FileText, 
   Activity,
   Camera,
-  Key
+  Key,
+  Lock
 } from 'lucide-react';
 
 interface Staff {
@@ -112,6 +113,8 @@ export default function Staff() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [changePasswordDialogOpen, setChangePasswordDialogOpen] = useState(false);
+  const [manualPassword, setManualPassword] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState<string>('');
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; employee: Staff | null }>({
     open: false,
@@ -303,7 +306,7 @@ export default function Staff() {
     return password;
   };
 
-  // دالة إعادة تعيين كلمة المرور - محدّثة للـ Edge Function الجديدة
+  // دالة إعادة تعيين كلمة المرور تلقائياً
   const resetPasswordMutation = useMutation({
     mutationFn: async (employee: Staff) => {
       const { data, error } = await supabase.functions.invoke('create-employee-simple', {
@@ -344,9 +347,75 @@ export default function Staff() {
     }
   });
 
+  // دالة تغيير كلمة المرور يدوياً
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ employee, password }: { employee: Staff; password: string }) => {
+      const { data, error } = await supabase.functions.invoke('create-employee-simple', {
+        body: {
+          email: employee.email,
+          password: password,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          phone: employee.phone || null,
+          role: employee.role,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || "فشل في تغيير كلمة المرور");
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Unknown error occurred");
+      }
+
+      return true;
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم تغيير كلمة المرور",
+        description: "تم تغيير كلمة المرور بنجاح",
+      });
+      setChangePasswordDialogOpen(false);
+      setManualPassword('');
+      setSelectedEmployee(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل في تغيير كلمة المرور",
+        variant: "destructive",
+      });
+    }
+  });
+
   const resetEmployeePassword = (employee: Staff) => {
     console.log('🔄 Reset password clicked for:', employee);
     resetPasswordMutation.mutate(employee);
+  };
+
+  const openChangePasswordDialog = (employee: Staff) => {
+    setSelectedEmployee(employee);
+    setChangePasswordDialogOpen(true);
+    setManualPassword('');
+  };
+
+  const handleChangePassword = () => {
+    if (!selectedEmployee) return;
+    
+    if (!manualPassword.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال كلمة المرور الجديدة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    changePasswordMutation.mutate({ 
+      employee: selectedEmployee, 
+      password: manualPassword 
+    });
   };
 
   const handleAddEmployee = () => {
@@ -557,15 +626,24 @@ export default function Staff() {
                            >
                               <Camera className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => resetEmployeePassword(employee)}
-                              title="إعادة تعيين كلمة المرور"
-                              className="h-8 w-8 p-0"
-                            >
-                              <Key className="h-4 w-4" />
-                            </Button>
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => resetEmployeePassword(employee)}
+                               title="إعادة تعيين كلمة المرور (تلقائي)"
+                               className="h-8 w-8 p-0"
+                             >
+                               <Key className="h-4 w-4" />
+                             </Button>
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => openChangePasswordDialog(employee)}
+                               title="تغيير كلمة المرور (يدوي)"
+                               className="h-8 w-8 p-0"
+                             >
+                               <Lock className="h-4 w-4" />
+                             </Button>
                            <Button 
                              size="sm" 
                              variant="outline"
@@ -1049,6 +1127,61 @@ export default function Staff() {
           <DialogFooter>
             <Button onClick={() => setPasswordDialogOpen(false)}>
               تم
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={changePasswordDialogOpen} onOpenChange={setChangePasswordDialogOpen}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تغيير كلمة المرور</DialogTitle>
+            <DialogDescription>
+              إدخال كلمة مرور جديدة لـ {selectedEmployee?.first_name} {selectedEmployee?.last_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="manualPassword">كلمة المرور الجديدة</Label>
+              <Input
+                id="manualPassword"
+                type="password"
+                value={manualPassword}
+                onChange={(e) => setManualPassword(e.target.value)}
+                placeholder="أدخل كلمة المرور الجديدة"
+                className="mt-2"
+              />
+            </div>
+            
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>متطلبات كلمة المرور:</p>
+              <ul className="list-disc list-inside text-xs space-y-1">
+                <li>8 أحرف على الأقل</li>
+                <li>حرف كبير وحرف صغير</li>
+                <li>رقم واحد على الأقل</li>
+                <li>رمز خاص واحد على الأقل</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setChangePasswordDialogOpen(false);
+                setManualPassword('');
+                setSelectedEmployee(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button 
+              onClick={handleChangePassword}
+              disabled={changePasswordMutation.isPending}
+            >
+              {changePasswordMutation.isPending ? 'جاري التغيير...' : 'تغيير كلمة المرور'}
             </Button>
           </DialogFooter>
         </DialogContent>
