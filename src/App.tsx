@@ -269,12 +269,12 @@ const App = () => (
                    <EmployeeDashboard />
                  </ProtectedRoute>
                } />
-               <Route path="/my-commissions" element={
+               <Route path="/employee/my-commissions" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <MyCommissions />
                  </ProtectedRoute>
                } />
-               <Route path="/employee/debts" element={
+               <Route path="/employee/my-debts" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <MyDebts />
                  </ProtectedRoute>
@@ -314,7 +314,7 @@ const App = () => (
                   <MyEvaluation />
                 </ProtectedRoute>
                } />
-               <Route path="/my-performance" element={
+               <Route path="/employee/my-performance" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <MyPerformance />
                  </ProtectedRoute>
