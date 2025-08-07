@@ -37,16 +37,27 @@ export default function EmployeeRequests() {
     if (!user || !isAdmin) return;
     
     try {
-      const { data, error } = await supabase
+      const { data: requestsData, error } = await supabase
         .from("employee_requests")
-        .select(`
-          *,
-          profiles:employee_id(first_name, last_name)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setRequests(data || []);
+
+      // Fetch employee profiles separately
+      const employeeIds = requestsData?.map(r => r.employee_id) || [];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name")
+        .in("user_id", employeeIds);
+
+      // Combine the data
+      const requestsWithProfiles = requestsData?.map(request => ({
+        ...request,
+        profiles: profilesData?.find(p => p.user_id === request.employee_id) || null
+      })) || [];
+
+      setRequests(requestsWithProfiles);
     } catch (error) {
       console.error("Error fetching requests:", error);
       toast({
