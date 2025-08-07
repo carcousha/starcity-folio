@@ -29,7 +29,7 @@ export const ProtectedRoute = ({
 
   // إذا لم يكن هناك مستخدم، توجه لصفحة الدخول
   if (!user) {
-    navigate('/');
+    window.location.href = '/';
     return null;
   }
 
@@ -44,15 +44,8 @@ export const ProtectedRoute = ({
 
   // تحقق من الصلاحية بعد تحميل كل شيء
   if (!checkPermission(requiredPermission)) {
-    return fallback || (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-6xl">🚫</div>
-          <h1 className="text-2xl font-bold text-foreground">غير مصرح</h1>
-          <p className="text-muted-foreground">لا تملك الصلاحية للوصول لهذه الصفحة</p>
-        </div>
-      </div>
-    );
+    window.location.href = '/';
+    return null;
   }
 
   return <>{children}</>;
