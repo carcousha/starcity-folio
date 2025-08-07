@@ -29,7 +29,7 @@ export const ProtectedRoute = ({
 
   // إذا لم يكن هناك مستخدم، توجه لصفحة الدخول
   if (!user) {
-    navigate('/auth');
+    navigate('/');
     return null;
   }
 
