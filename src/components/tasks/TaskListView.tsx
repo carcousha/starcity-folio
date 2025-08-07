@@ -43,13 +43,10 @@ const TaskListView = ({ filters }: TaskListViewProps) => {
       try {
         // استعلام مؤقت باستخدام التحويل النوعي
         const { data, error } = await (supabase as any)
-          .from('tasks')
+          .from('daily_tasks')
           .select(`
             *,
-            task_assignments(assigned_to),
-            clients(name),
-            properties(title),
-            rental_contracts(contract_number)
+            task_assignments(assigned_to)
           `);
 
         if (error) throw error;
