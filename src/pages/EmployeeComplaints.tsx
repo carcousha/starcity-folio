@@ -37,16 +37,27 @@ export default function EmployeeComplaints() {
     if (!user || !isAdmin) return;
     
     try {
-      const { data, error } = await supabase
+      const { data: complaintsData, error } = await supabase
         .from("employee_complaints")
-        .select(`
-          *,
-          profiles:employee_id(first_name, last_name)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setComplaints(data || []);
+
+      // Fetch employee profiles separately
+      const employeeIds = complaintsData?.map(c => c.employee_id) || [];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name")
+        .in("user_id", employeeIds);
+
+      // Combine the data
+      const complaintsWithProfiles = complaintsData?.map(complaint => ({
+        ...complaint,
+        profiles: profilesData?.find(p => p.user_id === complaint.employee_id) || null
+      })) || [];
+
+      setComplaints(complaintsWithProfiles);
     } catch (error) {
       console.error("Error fetching complaints:", error);
       toast({
