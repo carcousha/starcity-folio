@@ -127,7 +127,6 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
         title: taskData.title,
         description: taskData.description,
         priority_level: taskData.priority === 'low' ? 1 : taskData.priority === 'normal' ? 2 : taskData.priority === 'high' ? 3 : 4,
-        start_date: taskData.start_date?.toISOString().split('T')[0] || null,
         due_date: taskData.due_date?.toISOString().split('T')[0] || null,
         start_time: taskData.start_time || null,
         due_time: taskData.due_time || null,
