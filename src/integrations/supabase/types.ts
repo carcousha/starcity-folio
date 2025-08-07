@@ -508,6 +508,48 @@ export type Database = {
           },
         ]
       }
+      contract_renewal_alerts: {
+        Row: {
+          alert_sent: boolean | null
+          alert_sent_at: string | null
+          contract_id: string
+          contract_type: string
+          created_at: string | null
+          days_before_expiry: number | null
+          employee_id: string
+          expiry_date: string
+          id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          alert_sent?: boolean | null
+          alert_sent_at?: string | null
+          contract_id: string
+          contract_type: string
+          created_at?: string | null
+          days_before_expiry?: number | null
+          employee_id: string
+          expiry_date: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          alert_sent?: boolean | null
+          alert_sent_at?: string | null
+          contract_id?: string
+          contract_type?: string
+          created_at?: string | null
+          days_before_expiry?: number | null
+          employee_id?: string
+          expiry_date?: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contract_templates: {
         Row: {
           created_at: string
@@ -553,6 +595,48 @@ export type Database = {
           updated_at?: string
           uploaded_file_path?: string | null
           version?: string
+        }
+        Relationships: []
+      }
+      daily_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          due_date: string | null
+          employee_id: string
+          id: string
+          priority_level: number | null
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          employee_id: string
+          id?: string
+          priority_level?: number | null
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          employee_id?: string
+          id?: string
+          priority_level?: number | null
+          status?: string
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -908,6 +992,54 @@ export type Database = {
           },
         ]
       }
+      employee_evaluations: {
+        Row: {
+          achievements: string[] | null
+          created_at: string | null
+          created_by: string
+          employee_id: string
+          evaluation_period_end: string
+          evaluation_period_start: string
+          feedback: Json | null
+          id: string
+          manager_comments: string | null
+          overall_rating: number | null
+          performance_categories: Json | null
+          self_assessment: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          achievements?: string[] | null
+          created_at?: string | null
+          created_by: string
+          employee_id: string
+          evaluation_period_end: string
+          evaluation_period_start: string
+          feedback?: Json | null
+          id?: string
+          manager_comments?: string | null
+          overall_rating?: number | null
+          performance_categories?: Json | null
+          self_assessment?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          achievements?: string[] | null
+          created_at?: string | null
+          created_by?: string
+          employee_id?: string
+          evaluation_period_end?: string
+          evaluation_period_start?: string
+          feedback?: Json | null
+          id?: string
+          manager_comments?: string | null
+          overall_rating?: number | null
+          performance_categories?: Json | null
+          self_assessment?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       employee_targets: {
         Row: {
           achieved_at: string | null
@@ -959,6 +1091,42 @@ export type Database = {
           target_period?: string
           target_type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      employee_vehicles: {
+        Row: {
+          assigned_date: string
+          created_at: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          return_date: string | null
+          status: string
+          updated_at: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          assigned_date?: string
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          return_date?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          assigned_date?: string
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          return_date?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_id?: string
         }
         Relationships: []
       }
