@@ -126,7 +126,7 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
       const taskPayload: any = {
         title: taskData.title,
         description: taskData.description,
-        priority_level: taskData.priority === 'low' ? 1 : taskData.priority === 'normal' ? 2 : taskData.priority === 'high' ? 3 : 4,
+        priority_level: taskData.priority === 'low' ? 1 : taskData.priority === 'normal' ? 2 : 3, // urgent/high = 3
         due_date: taskData.due_date?.toISOString().split('T')[0] || null,
         start_time: taskData.start_time || null,
         due_time: taskData.due_time || null,
