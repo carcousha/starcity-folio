@@ -132,10 +132,10 @@ export function AppSidebar() {
         icon: Brain,
         hasSubmenu: true,
         submenu: [
-          { title: "العملاء", url: "/crm/clients", icon: Users },
-          { title: "الليدز", url: "/crm/leads", icon: Target },
-          { title: "العقارات", url: "/crm/properties", icon: Building },
-          { title: "المهام", url: "/tasks", icon: CheckSquare },
+          { title: "عملائي", url: "/employee/my-clients", icon: Users },
+          { title: "ليدزي", url: "/employee/my-leads", icon: Target },
+          { title: "عقاراتي", url: "/employee/my-properties", icon: Building },
+          { title: "مهامي", url: "/employee/my-tasks", icon: CheckSquare },
         ]
       },
       { 
@@ -143,9 +143,9 @@ export function AppSidebar() {
         icon: Calculator,
         hasSubmenu: true,
         submenu: [
-          { title: "العمولات", url: "/my-commissions", icon: HandCoins },
-          { title: "المديونيات", url: "/employee/debts", icon: AlertTriangle },
-          { title: "الأداء الشخصي", url: "/my-evaluation", icon: TrendingUp },
+          { title: "العمولات", url: "/employee/my-commissions", icon: HandCoins },
+          { title: "المديونيات", url: "/employee/my-debts", icon: AlertTriangle },
+          { title: "الأداء الشخصي", url: "/employee/my-performance", icon: TrendingUp },
         ]
       },
       { 

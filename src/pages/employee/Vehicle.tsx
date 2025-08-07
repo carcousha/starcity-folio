@@ -10,7 +10,8 @@ import {
   MapPin,
   FileText,
   Plus,
-  AlertTriangle
+  AlertTriangle,
+  DollarSign
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,49 +26,40 @@ export default function Vehicle() {
     queryFn: async () => {
       if (!profile) return null;
       
-      // للآن سنعرض معلومات وهمية - يمكن تطويرها لاحقاً مع جدول السيارات المخصصة للموظفين
+      // جلب السيارة المخصصة للموظف
+      const { data: assignment } = await supabase
+        .from('employee_vehicles')
+        .select(`
+          *,
+          vehicles (*)
+        `)
+        .eq('employee_id', profile.user_id)
+        .eq('status', 'active')
+        .single();
+
+      if (!assignment || !assignment.vehicles) {
+        return { assignedVehicle: null, recentExpenses: [], totalExpenses: 0 };
+      }
+
+      // جلب المصروفات الحديثة للسيارة
+      const { data: expenses } = await supabase
+        .from('vehicle_expenses')
+        .select('*')
+        .eq('vehicle_id', assignment.vehicle_id)
+        .order('expense_date', { ascending: false })
+        .limit(10);
+
+      const totalExpenses = expenses?.reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
+
+      const vehicle = assignment.vehicles as any;
       return {
-        assignedVehicle: {
-          id: '1',
-          make: 'تويوتا',
-          model: 'كامري',
-          year: 2022,
-          license_plate: 'ع ك ج 123',
-          fuel_level: 75,
-          last_service: '2024-01-15',
-          next_service: '2024-04-15',
-          status: 'active'
-        },
-        recentTrips: [
-          {
-            id: '1',
-            destination: 'عجمان - دبي',
-            date: '2024-01-20',
-            distance: 45,
-            purpose: 'زيارة عميل'
-          },
-          {
-            id: '2',
-            destination: 'عجمان - الشارقة',
-            date: '2024-01-18',
-            distance: 25,
-            purpose: 'معاينة عقار'
-          }
-        ],
-        fuelExpenses: [
-          {
-            id: '1',
-            amount: 120,
-            date: '2024-01-19',
-            station: 'أدنوك'
-          },
-          {
-            id: '2',
-            amount: 110,
-            date: '2024-01-15',
-            station: 'إيبكو'
-          }
-        ]
+        assignedVehicle: vehicle ? {
+          ...vehicle,
+          assigned_date: assignment.assigned_date,
+          assignment_notes: assignment.notes
+        } : null,
+        recentExpenses: expenses || [],
+        totalExpenses
       };
     },
     enabled: !!profile
@@ -126,84 +118,93 @@ export default function Vehicle() {
                 
                 <div className="text-center p-4 border rounded-lg">
                   <div className="flex items-center justify-center mb-2">
-                    <Fuel className="h-6 w-6 text-blue-600" />
+                    <Calendar className="h-6 w-6 text-blue-600" />
                   </div>
-                  <p className="text-2xl font-bold">{vehicle.fuel_level}%</p>
-                  <p className="text-muted-foreground text-sm">مستوى الوقود</p>
+                  <p className="text-sm font-medium">
+                    {new Date(vehicle.assigned_date).toLocaleDateString('ar-AE')}
+                  </p>
+                  <p className="text-muted-foreground text-sm">تاريخ التخصيص</p>
                 </div>
                 
                 <div className="text-center p-4 border rounded-lg">
                   <div className="flex items-center justify-center mb-2">
                     <Wrench className="h-6 w-6 text-orange-600" />
                   </div>
-                  <p className="text-sm font-medium">{new Date(vehicle.last_service).toLocaleDateString('ar-AE')}</p>
-                  <p className="text-muted-foreground text-sm">آخر صيانة</p>
+                  <p className="text-sm font-medium">{vehicle.mileage || 'غير محدد'}</p>
+                  <p className="text-muted-foreground text-sm">العداد (كم)</p>
                 </div>
                 
                 <div className="text-center p-4 border rounded-lg">
                   <div className="flex items-center justify-center mb-2">
-                    <Calendar className="h-6 w-6 text-green-600" />
+                    <Car className="h-6 w-6 text-green-600" />
                   </div>
-                  <p className="text-sm font-medium">{new Date(vehicle.next_service).toLocaleDateString('ar-AE')}</p>
-                  <p className="text-muted-foreground text-sm">الصيانة القادمة</p>
+                  <p className="text-sm font-medium">{vehicle.status === 'active' ? 'نشطة' : 'غير نشطة'}</p>
+                  <p className="text-muted-foreground text-sm">الحالة</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Recent Activities */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Trips */}
+          {/* Recent Expenses & Summary */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Total Expenses Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 space-x-reverse">
-                  <MapPin className="h-5 w-5" />
-                  <span>الرحلات الأخيرة</span>
+                  <DollarSign className="h-5 w-5" />
+                  <span>ملخص المصروفات</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {vehicleData?.recentTrips.map((trip: any) => (
-                    <div key={trip.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{trip.destination}</p>
-                        <p className="text-sm text-muted-foreground">{trip.purpose}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(trip.date).toLocaleDateString('ar-AE')}
-                        </p>
-                      </div>
-                      <div className="text-left">
-                        <p className="font-semibold">{trip.distance} كم</p>
-                      </div>
-                    </div>
-                  ))}
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-2xl font-bold text-foreground">
+                      {vehicleData?.totalExpenses.toLocaleString()} د.إ
+                    </p>
+                    <p className="text-sm text-muted-foreground">إجمالي المصروفات</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-lg font-semibold text-foreground">
+                      {vehicleData?.recentExpenses.length || 0}
+                    </p>
+                    <p className="text-sm text-muted-foreground">عدد المصروفات</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Fuel Expenses */}
-            <Card>
+            {/* Recent Expenses */}
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 space-x-reverse">
-                  <Fuel className="h-5 w-5" />
-                  <span>مصروفات الوقود</span>
+                  <FileText className="h-5 w-5" />
+                  <span>المصروفات الأخيرة</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {vehicleData?.fuelExpenses.map((expense: any) => (
-                    <div key={expense.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{expense.station}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(expense.date).toLocaleDateString('ar-AE')}
-                        </p>
-                      </div>
-                      <div className="text-left">
-                        <p className="font-semibold">{expense.amount} د.إ</p>
-                      </div>
+                  {!vehicleData?.recentExpenses.length ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">لا توجد مصروفات مسجلة</p>
                     </div>
-                  ))}
+                  ) : (
+                    vehicleData.recentExpenses.map((expense: any) => (
+                      <div key={expense.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{expense.title}</p>
+                          <p className="text-sm text-muted-foreground">{expense.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(expense.expense_date).toLocaleDateString('ar-AE')}
+                          </p>
+                        </div>
+                        <div className="text-left">
+                          <p className="font-semibold">{Number(expense.amount).toLocaleString()} د.إ</p>
+                          <p className="text-xs text-muted-foreground">{expense.category}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -219,16 +220,16 @@ export default function Vehicle() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 ml-3" />
+                <div className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Car className="h-5 w-5 text-blue-600 ml-3" />
                   <div className="flex-1">
-                    <p className="font-medium text-yellow-800">صيانة دورية مستحقة</p>
-                    <p className="text-sm text-yellow-600">
-                      موعد الصيانة القادمة في {new Date(vehicle.next_service).toLocaleDateString('ar-AE')}
+                    <p className="font-medium text-blue-800">السيارة مخصصة لك</p>
+                    <p className="text-sm text-blue-600">
+                      {vehicle.assignment_notes || 'تم تخصيص هذه السيارة لاستخدامك في العمل'}
                     </p>
                   </div>
                   <Button size="sm" variant="outline">
-                    حجز موعد
+                    تقرير حالة
                   </Button>
                 </div>
               </div>
