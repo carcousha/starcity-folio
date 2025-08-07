@@ -17,18 +17,44 @@ export default function MyDebts() {
   const { profile } = useAuth();
 
   const { data: debtsData, isLoading } = useQuery({
-    queryKey: ['my-debts', profile?.user_id],
+    queryKey: ['employee-client-debts', profile?.user_id],
     queryFn: async () => {
       if (!profile) return null;
       
-      const { data, error } = await supabase
+      // جلب العملاء التابعين للموظف
+      const { data: clients, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name')
+        .or(`assigned_to.eq.${profile.user_id},created_by.eq.${profile.user_id}`);
+
+      if (clientsError) throw clientsError;
+
+      if (!clients || clients.length === 0) {
+        return [];
+      }
+
+      const clientIds = clients.map(c => c.id);
+
+      // جلب مديونيات العملاء
+      const { data: debts, error: debtsError } = await supabase
         .from('debts')
         .select('*')
-        .eq('debtor_id', profile.user_id)
+        .in('debtor_id', clientIds)
+        .eq('debtor_type', 'client')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+      if (debtsError) throw debtsError;
+
+      // ربط أسماء العملاء بالمديونيات
+      const debtsWithClients = (debts || []).map(debt => {
+        const client = clients.find(c => c.id === debt.debtor_id);
+        return {
+          ...debt,
+          client_name: client?.name || debt.debtor_name
+        };
+      });
+
+      return debtsWithClients;
     },
     enabled: !!profile
   });
@@ -71,8 +97,8 @@ export default function MyDebts() {
       <div className="flex items-center space-x-4 space-x-reverse">
         <AlertTriangle className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold text-foreground">مديونياتي</h1>
-          <p className="text-muted-foreground">عرض وإدارة مديونياتي الشخصية</p>
+          <h1 className="text-3xl font-bold text-foreground">مديونيات العملاء</h1>
+          <p className="text-muted-foreground">عرض مديونيات العملاء المكلف بهم</p>
         </div>
       </div>
 
@@ -82,7 +108,7 @@ export default function MyDebts() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">إجمالي المديونيات</p>
+                <p className="text-sm font-medium text-muted-foreground">إجمالي مديونيات العملاء</p>
                 <p className="text-2xl font-bold text-foreground">
                   {totalDebts.toLocaleString()} د.إ
                 </p>
@@ -149,7 +175,7 @@ export default function MyDebts() {
             <span>تفاصيل المديونيات</span>
           </CardTitle>
           <CardDescription>
-            عرض جميع المديونيات الخاصة بي مع تفاصيل كل مديونية
+            عرض جميع مديونيات العملاء المكلف بهم مع تفاصيل كل مديونية
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -170,7 +196,7 @@ export default function MyDebts() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h3 className="font-semibold text-foreground text-lg mb-2">
-                        {debt.description || 'مديونية'}
+                        {debt.client_name} - {debt.description || 'مديونية'}
                       </h3>
                       <div className="flex items-center space-x-4 space-x-reverse text-sm text-muted-foreground">
                         <span className="flex items-center">

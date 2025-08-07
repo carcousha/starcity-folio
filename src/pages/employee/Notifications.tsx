@@ -24,11 +24,52 @@ export default function Notifications() {
     queryFn: async () => {
       if (!profile) return null;
       
+      const [notifications, contractRenewals, pendingTasks] = await Promise.all([
+        // جلب التنبيهات العامة
+        supabase
+          .from('notification_logs')
+          .select('*')
+          .eq('employee_id', profile.user_id)
+          .order('created_at', { ascending: false }),
+
+        // جلب تنبيهات تجديد العقود
+        supabase
+          .from('contract_renewal_alerts')
+          .select('*')
+          .eq('employee_id', profile.user_id)
+          .eq('status', 'pending')
+          .order('expiry_date', { ascending: true }),
+
+        // جلب المهام المعلقة
+        supabase
+          .from('daily_tasks')
+          .select('*')
+          .eq('employee_id', profile.user_id)
+          .eq('status', 'pending')
+          .order('due_date', { ascending: true })
+      ]);
+
+      return {
+        notifications: notifications.data || [],
+        contractRenewals: contractRenewals.data || [],
+        pendingTasks: pendingTasks.data || []
+      };
+    },
+    enabled: !!profile
+  });
+
+  // جلب سجل النشاطات من قاعدة البيانات
+  const { data: activityLogs } = useQuery({
+    queryKey: ['employee-activity-logs', profile?.user_id],
+    queryFn: async () => {
+      if (!profile) return [];
+      
       const { data, error } = await supabase
-        .from('notification_logs')
+        .from('activity_logs')
         .select('*')
-        .eq('employee_id', profile.user_id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', profile.user_id)
+        .order('created_at', { ascending: false })
+        .limit(10);
 
       if (error) throw error;
       return data || [];
@@ -36,35 +77,12 @@ export default function Notifications() {
     enabled: !!profile
   });
 
-  // بيانات وهمية لسجل النشاطات - يمكن استبدالها بـ API حقيقي لاحقاً
-  const activityLogs = [
-    {
-      id: '1',
-      action: 'تم إضافة عميل جديد',
-      description: 'تم إضافة العميل: أحمد محمد',
-      timestamp: '2024-01-20 10:30',
-      type: 'client'
-    },
-    {
-      id: '2',
-      action: 'تم إغلاق صفقة',
-      description: 'تم إغلاق صفقة بقيمة 500,000 د.إ',
-      timestamp: '2024-01-19 15:45',
-      type: 'deal'
-    },
-    {
-      id: '3',
-      action: 'تم تحديث ليد',
-      description: 'تم تحديث حالة العميل المحتمل: فاطمة أحمد',
-      timestamp: '2024-01-18 09:15',
-      type: 'lead'
-    }
-  ];
-
   if (!profile) return null;
 
-  const unreadNotifications = notificationsData?.filter(n => n.status === 'pending').length || 0;
-  const totalNotifications = notificationsData?.length || 0;
+  const unreadNotifications = notificationsData?.notifications?.filter(n => n.status === 'pending').length || 0;
+  const totalNotifications = notificationsData?.notifications?.length || 0;
+  const contractRenewals = notificationsData?.contractRenewals?.length || 0;
+  const pendingTasksCount = notificationsData?.pendingTasks?.length || 0;
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -143,8 +161,8 @@ export default function Notifications() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">نشاطات اليوم</p>
-                <p className="text-2xl font-bold text-foreground">{activityLogs.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">عقود للتجديد</p>
+                <p className="text-2xl font-bold text-foreground">{contractRenewals}</p>
               </div>
               <div className="p-3 rounded-full bg-green-50">
                 <CheckCircle className="h-6 w-6 text-green-600" />
@@ -158,7 +176,7 @@ export default function Notifications() {
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">المهام المعلقة</p>
-                <p className="text-2xl font-bold text-foreground">3</p>
+                <p className="text-2xl font-bold text-foreground">{pendingTasksCount}</p>
               </div>
               <div className="p-3 rounded-full bg-orange-50">
                 <FileText className="h-6 w-6 text-orange-600" />
@@ -187,14 +205,36 @@ export default function Notifications() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 <p className="text-muted-foreground mt-4">جارٍ التحميل...</p>
               </div>
-            ) : !notificationsData?.length ? (
+            ) : !notificationsData?.notifications?.length ? (
               <div className="text-center py-8">
                 <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">لا توجد تنبيهات</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {notificationsData.slice(0, 10).map((notification: any) => (
+                {/* Contract Renewals */}
+                {notificationsData.contractRenewals.map((renewal: any) => (
+                  <div key={`renewal-${renewal.id}`} className="flex items-start space-x-3 space-x-reverse p-3 border-2 border-orange-200 rounded-lg bg-orange-50">
+                    <div className="p-2 rounded-full bg-orange-100">
+                      <Calendar className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-foreground mb-1">
+                        تجديد عقد مطلوب
+                      </h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        عقد {renewal.contract_type} ينتهي في {new Date(renewal.expiry_date).toLocaleDateString('ar-AE')}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        باقي {Math.ceil((new Date(renewal.expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} أيام
+                      </span>
+                    </div>
+                    <Badge variant="destructive" className="text-xs">عاجل</Badge>
+                  </div>
+                ))}
+                
+                {/* Regular Notifications */}
+                {notificationsData.notifications.slice(0, 5).map((notification: any) => (
                   <div key={notification.id} className="flex items-start space-x-3 space-x-reverse p-3 border rounded-lg">
                     <div className="p-2 rounded-full bg-gray-50">
                       {getNotificationIcon(notification.notification_type)}
@@ -235,24 +275,31 @@ export default function Notifications() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {activityLogs.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3 space-x-reverse p-3 border rounded-lg">
-                  <div className="p-2 rounded-full bg-gray-50">
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-foreground mb-1">
-                      {activity.action}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {activity.description}
-                    </p>
-                    <span className="text-xs text-muted-foreground">
-                      {activity.timestamp}
-                    </span>
-                  </div>
+              {!activityLogs?.length ? (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">لا توجد نشاطات مسجلة</p>
                 </div>
-              ))}
+              ) : (
+                activityLogs.map((activity: any) => (
+                  <div key={activity.id} className="flex items-start space-x-3 space-x-reverse p-3 border rounded-lg">
+                    <div className="p-2 rounded-full bg-gray-50">
+                      {getActivityIcon(activity.operation_type)}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-foreground mb-1">
+                        {activity.operation_type}
+                      </h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {activity.description}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(activity.created_at).toLocaleString('ar-AE')}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
