@@ -2846,7 +2846,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_read?: boolean | null
-          message: string
+          message?: string
           notification_type: string
           sent_via_email?: boolean | null
           sent_via_whatsapp?: boolean | null
