@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Phone, Mail, MapPin, Calendar, Edit, Trash2, Users, Globe, DollarSign, Building, FileText } from "lucide-react";
+import { Plus, Search, Filter, Phone, Mail, MapPin, Calendar, Edit, Trash2, Users, Globe, DollarSign, Building, FileText, MessageSquare, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import ClientForm from "@/components/crm/ClientForm";
+import SendWhatsApp from "@/components/whatsapp/SendWhatsApp";
+import { renderBody } from "@/lib/whatsapp";
 
 interface Client {
   id: string;
@@ -344,7 +346,18 @@ export default function Clients() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      {/* زر إرسال واتساب */}
+                      <SendWhatsApp
+                        clientId={client.id}
+                        phone={client.phone}
+                        lang={(client.preferred_language || 'ar') as 'ar'|'en'}
+                        context={{
+                          client_name: client.name,
+                          phone: client.phone,
+                          stage: client.client_status || 'new'
+                        }}
+                      />
                       {canEditClient(client) && (
                         <Button
                           variant="outline"

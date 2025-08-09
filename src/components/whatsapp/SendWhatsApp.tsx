@@ -7,15 +7,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 
 interface Props {
-  leadId: string;
-  stage: string;
+  leadId?: string;
+  clientId?: string;
+  stage?: string;
   phone: string;
   lang: Lang;
   template?: { body_ar: string; body_en: string; id?: string };
   context: Record<string, string>;
 }
 
-export function SendWhatsApp({ leadId, stage, phone, lang, template, context }: Props) {
+export function SendWhatsApp({ leadId, clientId, stage, phone, lang, template, context }: Props) {
   const [open, setOpen] = useState(false);
   const [pickedTemplate, setPickedTemplate] = useState<any>(template);
   const defaultText = template ? renderTemplate(template.body_ar, template.body_en, lang, context) : renderBody('مرحباً {client_name}', context);
@@ -25,8 +26,9 @@ export function SendWhatsApp({ leadId, stage, phone, lang, template, context }: 
     const url = buildWhatsAppUrl(phone, message);
     window.open(url, '_blank');
     await supabase.from('whatsapp_message_logs' as any).insert({
-      lead_id: leadId,
-      stage,
+      client_id: clientId || null,
+      lead_id: leadId || null,
+      stage: stage || 'Lead',
       template_id: pickedTemplate?.id || null,
       phone_e164: phone,
       lang,
