@@ -43,6 +43,7 @@ const propertySchema = z.object({
   floor_plan_url: z.string().optional(),
   seo_description: z.string().min(10, 'الوصف يجب أن يكون 10 أحرف على الأقل'),
   internal_notes: z.string().optional(),
+  assigned_employee: z.string().optional(),
 });
 
 type PropertyFormData = z.infer<typeof propertySchema>;
@@ -186,7 +187,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
       } else {
         result = await supabase
           .from('crm_properties')
-          .insert([submitData]);
+          .insert(submitData as any);
       }
 
       if (result.error) {
