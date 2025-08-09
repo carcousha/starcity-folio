@@ -352,12 +352,54 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         return;
       }
 
-      const submitData = {
-        ...data,
-        photos: JSON.stringify(uploadedPhotos),
-        // Ensure visibility to the creating employee in MyProperties page
-        created_by: profile?.user_id ?? null,
+      // Map only valid DB columns for public.crm_properties and convert types
+      const submitData: any = {
+        // Basic info
+        title: data.title,
+        property_type: data.property_type,
+        property_status: data.property_status,
+        transaction_type: data.transaction_type,
+        developer: data.developer ?? null,
+
+        // Location
+        emirate: data.emirate,
+        area_community: data.area_community,
+        full_address: data.full_address,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
+
+        // Specs (store in square meters as per schema)
+        plot_area: data.plot_area ?? null,
+        built_up_area: data.built_up_area ?? null,
+        bedrooms: data.bedrooms ?? null,
+        bathrooms: data.bathrooms ?? null,
+        floor_number: data.floor_number ?? null,
+        unit_number: data.unit_number ?? null,
+        property_age: data.property_age ?? null,
+        finish_quality: data.finish_quality ?? null,
+
+        // Price & financials
+        total_price: data.total_price,
+        is_negotiable: data.is_negotiable ?? false,
+        down_payment: data.down_payment ?? null,
+        monthly_installments: data.monthly_installments ?? null,
+        commission_percentage: data.commission_percentage ?? null,
+
+        // Features & media
+        interior_features: Array.isArray(data.interior_features) ? data.interior_features : [],
+        exterior_features: Array.isArray(data.exterior_features) ? data.exterior_features : [],
+        photos: Array.isArray(uploadedPhotos) ? uploadedPhotos : [],
+        virtual_tour_video: data.virtual_tour_video ?? null,
+        floor_plan_url: data.floor_plan_url ?? null,
+
+        // SEO & notes
+        seo_description: data.seo_description,
+        internal_notes: data.internal_notes ?? null,
+
+        // Relations & ownership
+        owner_id: data.property_owner_id ?? null,
         assigned_employee: data.assigned_employee || profile?.user_id || null,
+        created_by: profile?.user_id ?? null,
       };
 
       let result;
