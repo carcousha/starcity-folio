@@ -75,6 +75,10 @@ export function TaskDialog({ open, onOpenChange, task, mode }: TaskDialogProps) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!profile?.user_id) {
+      toast({ title: 'خطأ', description: 'لا يمكن الحفظ بدون هوية مستخدم صالحة', variant: 'destructive' });
+      return;
+    }
     // Normalize empty strings to null for optional fields
     const payload = {
       ...formData,
