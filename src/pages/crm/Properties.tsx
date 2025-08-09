@@ -80,14 +80,15 @@ export default function Properties() {
         .from('crm_properties')
         .select(`
           *,
-          profiles:assigned_employee(first_name, last_name)
+          profiles!crm_properties_assigned_employee_fkey(first_name, last_name)
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data?.map(item => ({
         ...item,
-        photos: item.photos || []
+        photos: Array.isArray(item.photos) ? item.photos : [],
+        profiles: item.profiles || undefined
       })) as Property[] || [];
     }
   });
