@@ -63,6 +63,7 @@ import MyTasks from "./pages/employee/MyTasks";
 import MyProperties from "./pages/employee/MyProperties";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
+import SecurityAuditPage from "./pages/SecurityAudit";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -415,6 +416,13 @@ const AppProtector = () => {
               <Route path="/settings" element={
                 <ProtectedRoute requiredPermission="canManageStaff">
                   <Settings />
+                </ProtectedRoute>
+              } />
+              
+              {/* Security Audit Route - Admin only */}
+              <Route path="/security-audit" element={
+                <ProtectedRoute requiredPermission="canManageStaff">
+                  <SecurityAuditPage />
                 </ProtectedRoute>
               } />
               
