@@ -598,6 +598,141 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_properties: {
+        Row: {
+          area_community: string
+          assigned_employee: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          built_up_area: number | null
+          commission_percentage: number | null
+          created_at: string | null
+          created_by: string | null
+          developer: string | null
+          down_payment: number | null
+          emirate: string
+          exterior_features: Json | null
+          finish_quality: string | null
+          floor_number: number | null
+          floor_plan_url: string | null
+          full_address: string
+          id: string
+          interior_features: Json | null
+          internal_notes: string | null
+          is_negotiable: boolean | null
+          latitude: number | null
+          longitude: number | null
+          monthly_installments: number | null
+          owner_id: string | null
+          photos: Json | null
+          plot_area: number | null
+          property_age: number | null
+          property_status: string
+          property_type: string
+          search_vector: unknown | null
+          seo_description: string
+          title: string
+          total_price: number
+          transaction_type: string
+          unit_number: string | null
+          updated_at: string | null
+          virtual_tour_video: string | null
+        }
+        Insert: {
+          area_community: string
+          assigned_employee?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          built_up_area?: number | null
+          commission_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          developer?: string | null
+          down_payment?: number | null
+          emirate: string
+          exterior_features?: Json | null
+          finish_quality?: string | null
+          floor_number?: number | null
+          floor_plan_url?: string | null
+          full_address: string
+          id?: string
+          interior_features?: Json | null
+          internal_notes?: string | null
+          is_negotiable?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          monthly_installments?: number | null
+          owner_id?: string | null
+          photos?: Json | null
+          plot_area?: number | null
+          property_age?: number | null
+          property_status?: string
+          property_type: string
+          search_vector?: unknown | null
+          seo_description: string
+          title: string
+          total_price: number
+          transaction_type: string
+          unit_number?: string | null
+          updated_at?: string | null
+          virtual_tour_video?: string | null
+        }
+        Update: {
+          area_community?: string
+          assigned_employee?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          built_up_area?: number | null
+          commission_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          developer?: string | null
+          down_payment?: number | null
+          emirate?: string
+          exterior_features?: Json | null
+          finish_quality?: string | null
+          floor_number?: number | null
+          floor_plan_url?: string | null
+          full_address?: string
+          id?: string
+          interior_features?: Json | null
+          internal_notes?: string | null
+          is_negotiable?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          monthly_installments?: number | null
+          owner_id?: string | null
+          photos?: Json | null
+          plot_area?: number | null
+          property_age?: number | null
+          property_status?: string
+          property_type?: string
+          search_vector?: unknown | null
+          seo_description?: string
+          title?: string
+          total_price?: number
+          transaction_type?: string
+          unit_number?: string | null
+          updated_at?: string | null
+          virtual_tour_video?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_properties_assigned_employee_fkey"
+            columns: ["assigned_employee"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "crm_properties_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       daily_tasks: {
         Row: {
           completed_at: string | null
