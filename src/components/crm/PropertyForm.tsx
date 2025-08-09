@@ -25,13 +25,17 @@ const propertySchema = z.object({
   emirate: z.enum(['ajman', 'dubai', 'sharjah', 'abu_dhabi', 'ras_al_khaimah', 'fujairah', 'umm_al_quwain']),
   area_community: z.string().min(1, 'المنطقة/المجتمع مطلوب'),
   full_address: z.string().min(1, 'العنوان الكامل مطلوب'),
+  city: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
-  plot_area: z.number().optional(),
-  built_up_area: z.number().optional(),
+  plot_area_sqft: z.number().optional(),
+  built_up_area_sqft: z.number().optional(),
+  plot_area: z.number().optional(), // stored in square meters
+  built_up_area: z.number().optional(), // stored in square meters
   bedrooms: z.number().optional(),
   bathrooms: z.number().optional(),
   floor_number: z.number().optional(),
+  floors: z.number().optional(),
   unit_number: z.string().optional(),
   property_age: z.number().optional(),
   finish_quality: z.enum(['super_deluxe', 'standard', 'shell_core']).optional(),
@@ -51,18 +55,33 @@ const propertySchema = z.object({
   owner_phone: z.string().min(8, 'رقم هاتف المالك مطلوب'),
   property_owner_id: z.string().optional(),
   property_details: z.object({
+    // Location details
     neighborhood_type: z.string().optional(),
     in_compound: z.boolean().optional(),
     compound_name: z.string().optional(),
+    near_landmarks: z.array(z.string()).optional(),
+    
+    // Technical specifications
+    design_style: z.string().optional(),
+    air_conditioning: z.string().optional(),
+    construction_status: z.string().optional(),
+    
+    // Facilities & Services
     parking_count: z.number().optional(),
     parking_type: z.string().optional(),
     garden_area: z.number().optional(),
     pool_type: z.string().optional(),
+    security_system: z.string().optional(),
+    gym: z.boolean().optional(),
+    children_play_area: z.boolean().optional(),
+    maintenance_services: z.string().optional(),
     internet_provider: z.string().optional(),
     internet_speed: z.string().optional(),
     utilities_electricity: z.string().optional(),
     utilities_water: z.string().optional(),
     utilities_generator: z.boolean().optional(),
+    
+    // Additional features
     view_type: z.string().optional(),
     orientation: z.string().optional(),
     expansion_possible: z.boolean().optional(),
@@ -70,15 +89,23 @@ const propertySchema = z.object({
     flooring_type: z.string().optional(),
     smart_home_features: z.array(z.string()).optional(),
     suitability: z.array(z.string()).optional(),
+    
+    // Legal status
     legal_status: z.string().optional(),
     has_building_permits: z.boolean().optional(),
     official_valuation: z.number().optional(),
     taxes_fees: z.string().optional(),
+    
+    // Payment & Pricing
     payment_methods: z.array(z.string()).optional(),
     has_discounts: z.boolean().optional(),
     discount_details: z.string().optional(),
     monthly_costs: z.string().optional(),
-    nearby_pois: z.array(z.string()).optional(),
+    
+    // Media
+    images_urls: z.array(z.string()).optional(),
+    videos_urls: z.array(z.string()).optional(),
+    floor_plans_urls: z.array(z.string()).optional(),
   }).default({}),
 });
 
@@ -155,6 +182,16 @@ const exteriorFeaturesList = [
   { id: 'security_24_7', label: 'أمن 24/7' },
 ];
 
+// Conversion function: Square Feet to Square Meters
+const sqftToSqm = (sqft: number): number => {
+  return Number((sqft * 0.092903).toFixed(2));
+};
+
+// Conversion function: Square Meters to Square Feet
+const sqmToSqft = (sqm: number): number => {
+  return Number((sqm / 0.092903).toFixed(2));
+};
+
 export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -178,6 +215,10 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
       property_owner_id: '',
       property_code: '',
       listing_date: '',
+      city: '',
+      floors: undefined,
+      plot_area_sqft: undefined,
+      built_up_area_sqft: undefined,
       property_details: {},
     }
   });
@@ -235,6 +276,23 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   }, [watchOwnerPhone, watchCountryCode, owners, form, toast]);
 
   const watchPropertyType = form.watch('property_type');
+  const watchPlotAreaSqft = form.watch('plot_area_sqft');
+  const watchBuiltUpAreaSqft = form.watch('built_up_area_sqft');
+
+  // Auto-convert square feet to square meters
+  useEffect(() => {
+    if (watchPlotAreaSqft && watchPlotAreaSqft > 0) {
+      const sqmValue = sqftToSqm(watchPlotAreaSqft);
+      form.setValue('plot_area', sqmValue);
+    }
+  }, [watchPlotAreaSqft, form]);
+
+  useEffect(() => {
+    if (watchBuiltUpAreaSqft && watchBuiltUpAreaSqft > 0) {
+      const sqmValue = sqftToSqm(watchBuiltUpAreaSqft);
+      form.setValue('built_up_area', sqmValue);
+    }
+  }, [watchBuiltUpAreaSqft, form]);
 
   useEffect(() => {
     if (property) {
@@ -253,6 +311,8 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         longitude: property.longitude ? Number(property.longitude) : undefined,
         plot_area: property.plot_area ? Number(property.plot_area) : undefined,
         built_up_area: property.built_up_area ? Number(property.built_up_area) : undefined,
+        plot_area_sqft: property.plot_area ? sqmToSqft(Number(property.plot_area)) : undefined,
+        built_up_area_sqft: property.built_up_area ? sqmToSqft(Number(property.built_up_area)) : undefined,
         total_price: Number(property.total_price),
         down_payment: property.down_payment ? Number(property.down_payment) : undefined,
         monthly_installments: property.monthly_installments ? Number(property.monthly_installments) : undefined,
@@ -262,6 +322,8 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         property_owner_id: property.property_owner_id || '',
         property_code: property.property_code || '',
         listing_date: property.listing_date || '',
+        city: property.city || '',
+        floors: property.floors ? Number(property.floors) : undefined,
         property_details: property.property_details || {},
         owner_phone: '',
       });
@@ -697,21 +759,26 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
               <CardDescription>التفاصيل الفنية للعقار</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="plot_area"
+                  name="plot_area_sqft"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>مساحة الأرض (م²) {isLandProperty ? '*' : ''}</FormLabel>
+                      <FormLabel>مساحة الأرض (قدم²) {isLandProperty ? '*' : ''}</FormLabel>
                       <FormControl>
                         <Input 
                           type="number"
-                          placeholder="500"
+                          placeholder="5380"
                           value={field.value || ''}
                           onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                         />
                       </FormControl>
+                      {watchPlotAreaSqft && watchPlotAreaSqft > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          = {sqftToSqm(watchPlotAreaSqft)} متر مربع
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -720,24 +787,31 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                 {!isLandProperty && (
                   <FormField
                     control={form.control}
-                    name="built_up_area"
+                    name="built_up_area_sqft"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>المساحة المبنية (م²) *</FormLabel>
+                        <FormLabel>المساحة المبنية (قدم²) *</FormLabel>
                         <FormControl>
                           <Input 
                             type="number"
-                            placeholder="200"
+                            placeholder="2150"
                             value={field.value || ''}
                             onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                           />
                         </FormControl>
+                        {watchBuiltUpAreaSqft && watchBuiltUpAreaSqft > 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            = {sqftToSqm(watchBuiltUpAreaSqft)} متر مربع
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {needsBedroomsBathrooms && (
                   <>
                     <FormField
@@ -779,6 +853,86 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                     />
                   </>
                 )}
+
+                <FormField
+                  control={form.control}
+                  name="floors"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>عدد الطوابق</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          placeholder="2"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>عمر العقار (بالسنوات)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          placeholder="5"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.design_style"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع التصميم</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر نوع التصميم</option>
+                          <option value="modern">مودرن</option>
+                          <option value="classic">كلاسيكي</option>
+                          <option value="traditional">تقليدي</option>
+                          <option value="contemporary">معاصر</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.air_conditioning"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع التكييف</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر نوع التكييف</option>
+                          <option value="central">مركزي</option>
+                          <option value="split">سبليت</option>
+                          <option value="window">شباك</option>
+                          <option value="none">غير موجود</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </CardContent>
           </Card>
@@ -848,6 +1002,347 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                   )}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Facilities & Services */}
+          <Card>
+            <CardHeader>
+              <CardTitle>المرافق والخدمات</CardTitle>
+              <CardDescription>المرافق المتوفرة في العقار</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.parking_count"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>عدد مواقف السيارات</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          placeholder="2"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.parking_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع الموقف</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر نوع الموقف</option>
+                          <option value="covered">مغطى</option>
+                          <option value="open">مفتوح</option>
+                          <option value="garage">جراج</option>
+                          <option value="basement">تحت الأرض</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.pool_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع المسبح</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">لا يوجد مسبح</option>
+                          <option value="private">مسبح خاص</option>
+                          <option value="shared">مسبح مشترك</option>
+                          <option value="community">مسبح عام</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.security_system"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نظام الأمان</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر نظام الأمان</option>
+                          <option value="cameras">كاميرات مراقبة</option>
+                          <option value="guards">حراس أمن</option>
+                          <option value="electronic_gates">بوابات إلكترونية</option>
+                          <option value="complete_system">نظام متكامل</option>
+                          <option value="none">غير متوفر</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.garden_area"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>مساحة الحديقة (قدم²)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          placeholder="1000"
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.gym"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>نادي صحي</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.children_play_area"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>منطقة لعب أطفال</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.has_elevator"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>مصعد</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.utilities_generator"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>مولد كهرباء</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Additional Features */}
+          <Card>
+            <CardHeader>
+              <CardTitle>ميزات إضافية</CardTitle>
+              <CardDescription>الميزات والإطلالات الخاصة</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.view_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع الإطلالة</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر نوع الإطلالة</option>
+                          <option value="sea">إطلالة بحر</option>
+                          <option value="city">إطلالة مدينة</option>
+                          <option value="mountain">إطلالة جبال</option>
+                          <option value="garden">إطلالة حديقة</option>
+                          <option value="none">غير متوفر</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.orientation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>اتجاه العقار</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر الاتجاه</option>
+                          <option value="north">شمالي</option>
+                          <option value="south">جنوبي</option>
+                          <option value="east">شرقي</option>
+                          <option value="west">غربي</option>
+                          <option value="northeast">شمال شرقي</option>
+                          <option value="northwest">شمال غربي</option>
+                          <option value="southeast">جنوب شرقي</option>
+                          <option value="southwest">جنوب غربي</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.flooring_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع الأرضية</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر نوع الأرضية</option>
+                          <option value="marble">رخام</option>
+                          <option value="ceramic">سيراميك</option>
+                          <option value="parquet">باركيه</option>
+                          <option value="granite">جرانيت</option>
+                          <option value="tiles">بلاط</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.expansion_possible"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>إمكانية التوسعة</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>المدينة</FormLabel>
+                      <FormControl>
+                        <Input placeholder="مثال: الشارقة، دبي، عجمان" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Legal & Payment Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle>الوضع القانوني والدفع</CardTitle>
+              <CardDescription>معلومات قانونية ومالية</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.legal_status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>حالة الملكية</FormLabel>
+                      <FormControl>
+                        <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                          <option value="">اختر حالة الملكية</option>
+                          <option value="freehold">ملكية حرة</option>
+                          <option value="leasehold">مؤجرة</option>
+                          <option value="mortgage">رهن</option>
+                          <option value="under_construction">تحت الإنشاء</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="property_details.has_building_permits"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>تصاريح البناء والتشغيل</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="property_details.monthly_costs"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>التكاليف الشهرية (صيانة، خدمات)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="مثال: 500 د.إ شهرياً" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
