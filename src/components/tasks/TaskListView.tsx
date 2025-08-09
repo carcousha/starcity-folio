@@ -13,7 +13,8 @@ import {
   User,
   Clock,
   CheckCircle2,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -35,6 +36,22 @@ const TaskListView = ({ filters }: TaskListViewProps) => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const deleteMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase
+        .from('daily_tasks')
+        .delete()
+        .eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks-list'] });
+      toast({ title: 'تم الحذف', description: 'تم حذف المهمة بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error?.message || 'تعذر حذف المهمة', variant: 'destructive' });
+    }
+  });
 
   // جلب المهام بطريقة مؤقتة حتى يتم تحديث الأنواع
   const { data: tasks = [], isLoading } = useQuery({
@@ -185,6 +202,19 @@ const TaskListView = ({ filters }: TaskListViewProps) => {
                         إكمال
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => {
+                        if (confirm('هل أنت متأكد من حذف هذه المهمة؟')) {
+                          deleteMutation.mutate(task.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      حذف
+                    </Button>
                   </div>
                 </div>
               </CardContent>
