@@ -166,7 +166,12 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         interior_features: property.interior_features || [],
         exterior_features: property.exterior_features || [],
       });
-      setUploadedPhotos(property.photos || []);
+      try {
+        const photos = typeof property.photos === 'string' ? JSON.parse(property.photos) : property.photos || [];
+        setUploadedPhotos(photos);
+      } catch {
+        setUploadedPhotos([]);
+      }
     }
   }, [property, form]);
 
@@ -175,7 +180,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
     try {
       const submitData = {
         ...data,
-        photos: uploadedPhotos,
+        photos: JSON.stringify(uploadedPhotos),
       };
 
       let result;
