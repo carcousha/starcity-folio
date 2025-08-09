@@ -64,7 +64,6 @@ const CommissionDebtDeductionDialog: React.FC<CommissionDebtDeductionDialogProps
         .select('*')
         .in('debtor_id', employeeIds)
         .eq('status', 'pending')
-        .eq('auto_deduct_from_commission', true)
         .order('priority_level', { ascending: false })
         .order('created_at', { ascending: true });
 
@@ -165,6 +164,13 @@ const CommissionDebtDeductionDialog: React.FC<CommissionDebtDeductionDialogProps
       
       return newDecisions;
     });
+  };
+
+  const getSelectedDeductionTotalForEmployee = (employeeId: string, excludeDebtId?: string) => {
+    const decisions = deductionDecisions[employeeId] || [];
+    return decisions
+      .filter(d => d.action === 'deduct' && (!excludeDebtId || d.debt_id !== excludeDebtId))
+      .reduce((sum, d) => sum + (d.deduction_amount || 0), 0);
   };
 
   const handleConfirmDecisions = () => {
@@ -275,14 +281,43 @@ const CommissionDebtDeductionDialog: React.FC<CommissionDebtDeductionDialogProps
                                 checked={deductionDecisions[employeeId]?.some(d => d.debt_id === debt.id && d.action === 'deduct')}
                                 onCheckedChange={(checked) => {
                                   if (checked) {
-                                    handleDeductionChange(employeeId, debt.id, 'deduct', Math.min(debt.amount, employeeData?.calculated_share || 0));
+                                    const alreadySelected = getSelectedDeductionTotalForEmployee(employeeId, debt.id);
+                                    const maxForThis = Math.max(0, Math.min(debt.amount, (employeeData?.calculated_share || 0) - alreadySelected));
+                                    handleDeductionChange(employeeId, debt.id, 'deduct', maxForThis);
                                   }
                                 }}
                               />
                               <label htmlFor={`deduct-${debt.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                خصم من العمولة ({Math.min(debt.amount, employeeData?.calculated_share || 0)} د.إ)
+                                خصم من العمولة (حتى {Math.min(debt.amount, Math.max(0, (employeeData?.calculated_share || 0) - getSelectedDeductionTotalForEmployee(employeeId, debt.id)))} د.إ)
                               </label>
                             </div>
+
+                            {deductionDecisions[employeeId]?.some(d => d.debt_id === debt.id && d.action === 'deduct') && (
+                              <div className="pl-6">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={Math.min(
+                                    debt.amount,
+                                    Math.max(0, (employeeData?.calculated_share || 0) - getSelectedDeductionTotalForEmployee(employeeId, debt.id))
+                                  )}
+                                  step={0.01}
+                                  value={
+                                    deductionDecisions[employeeId]?.find(d => d.debt_id === debt.id && d.action === 'deduct')?.deduction_amount ?? 0
+                                  }
+                                  onChange={(e) => {
+                                    const val = Math.max(0, parseFloat(e.target.value) || 0);
+                                    const max = Math.min(
+                                      debt.amount,
+                                      Math.max(0, (employeeData?.calculated_share || 0) - getSelectedDeductionTotalForEmployee(employeeId, debt.id))
+                                    );
+                                    const bounded = Math.min(val, max);
+                                    handleDeductionChange(employeeId, debt.id, 'deduct', bounded);
+                                  }}
+                                  className="mt-2 w-40 border rounded px-2 py-1"
+                                />
+                              </div>
+                            )}
 
                             <div className="flex items-start space-x-2 space-x-reverse">
                               <Checkbox
