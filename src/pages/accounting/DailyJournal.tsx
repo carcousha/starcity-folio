@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -1148,24 +1149,20 @@ export default function DailyJournal() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="totalAmount">💰 المبلغ الإجمالي <span className="text-red-500">*</span></Label>
-                        <Input
+                        <CurrencyInput
                           id="totalAmount"
-                          type="number"
-                          step="0.01"
-                          value={formData.totalAmount}
-                          onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: e.target.value }))}
+                          value={Number(formData.totalAmount || 0)}
+                          onValueChange={(num) => setFormData(prev => ({ ...prev, totalAmount: String(num) }))}
                           placeholder="0.00"
                           required
                         />
                       </div>
                       <div>
                         <Label htmlFor="paidAmount">المبلغ المدفوع <span className="text-red-500">*</span></Label>
-                        <Input
+                        <CurrencyInput
                           id="paidAmount"
-                          type="number"
-                          step="0.01"
-                          value={formData.paidAmount}
-                          onChange={(e) => setFormData(prev => ({ ...prev, paidAmount: e.target.value }))}
+                          value={Number(formData.paidAmount || 0)}
+                          onValueChange={(num) => setFormData(prev => ({ ...prev, paidAmount: String(num) }))}
                           placeholder="0.00"
                         />
                       </div>

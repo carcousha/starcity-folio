@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Upload, X, Check, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 const propertySchema = z.object({
   title: z.string().min(1, 'عنوان العقار مطلوب'),
@@ -999,11 +1000,11 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                     <FormItem>
                       <FormLabel>السعر الإجمالي (درهم) *</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number"
-                          placeholder="500000"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : 0)}
+                        <CurrencyInput
+                          id="total_price"
+                          value={field.value}
+                          onValueChange={(num) => field.onChange(num)}
+                          placeholder="500,000"
                         />
                       </FormControl>
                       <FormMessage />
@@ -1018,12 +1019,11 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                     <FormItem>
                       <FormLabel>نسبة العمولة (%)</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number"
-                          step="0.01"
+                        <CurrencyInput
+                          id="commission_percentage"
+                          value={field.value}
+                          onValueChange={(num) => field.onChange(num)}
                           placeholder="2.5"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                         />
                       </FormControl>
                       <FormMessage />

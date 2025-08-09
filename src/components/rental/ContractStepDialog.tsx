@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -250,28 +251,22 @@ export function ContractStepDialog({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="rent_amount">قيمة الإيجار (د.إ)*</Label>
-                  <Input
+                  <CurrencyInput
                     id="rent_amount"
-                    type="number"
                     value={formData.rent_amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, rent_amount: parseFloat(e.target.value) || 0 }))}
+                    onValueChange={(num) => setFormData(prev => ({ ...prev, rent_amount: num }))}
                     placeholder="0"
-                    min="0"
-                    step="0.01"
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="security_deposit">مبلغ التأمين (د.إ)</Label>
-                  <Input
+                  <CurrencyInput
                     id="security_deposit"
-                    type="number"
                     value={formData.security_deposit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, security_deposit: parseFloat(e.target.value) || 0 }))}
+                    onValueChange={(num) => setFormData(prev => ({ ...prev, security_deposit: num }))}
                     placeholder="0"
-                    min="0"
-                    step="0.01"
                   />
                 </div>
               </div>
