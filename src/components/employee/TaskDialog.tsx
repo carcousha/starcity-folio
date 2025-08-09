@@ -74,7 +74,14 @@ export function TaskDialog({ open, onOpenChange, task, mode }: TaskDialogProps) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    // Normalize empty strings to null for optional fields
+    const payload = {
+      ...formData,
+      due_date: formData.due_date || null,
+      due_time: formData.due_time || null,
+      description: formData.description || null,
+    };
+    mutation.mutate(payload as any);
   };
 
   return (
