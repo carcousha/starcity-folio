@@ -18,6 +18,7 @@ import CRMIndex from "./pages/crm/index";
 import Clients from "./pages/crm/Clients";
 import Leads from "./pages/crm/Leads";
 import CRMProperties from "./pages/crm/Properties";
+import PropertyOwners from "./pages/crm/PropertyOwners";
 import TasksIndex from "./pages/tasks/index";
 import AccountingIndex from "./pages/accounting/index";
 import Expenses from "./pages/accounting/Expenses";
@@ -178,6 +179,11 @@ const AppProtector = () => {
                <Route path="/crm/properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <CRMProperties />
+                 </ProtectedRoute>
+               } />
+               <Route path="/crm/owners" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <PropertyOwners />
                  </ProtectedRoute>
                } />
               <Route path="/crm/tasks" element={

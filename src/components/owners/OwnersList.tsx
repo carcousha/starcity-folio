@@ -1,0 +1,366 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Search, 
+  Plus, 
+  Edit, 
+  Eye, 
+  Phone, 
+  Mail, 
+  Building, 
+  User,
+  MapPin,
+  FileText,
+  DollarSign
+} from "lucide-react";
+import { OwnerForm } from "./OwnerForm";
+import { OwnerDetails } from "./OwnerDetails";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PropertyOwner } from "@/types/owners";
+export const OwnersList = () => {
+  const { toast } = useToast();
+  const [owners, setOwners] = useState<PropertyOwner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [ownerTypeFilter, setOwnerTypeFilter] = useState<string>("all");
+  const [selectedOwner, setSelectedOwner] = useState<PropertyOwner | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  useEffect(() => {
+    fetchOwners();
+  }, []);
+
+  const fetchOwners = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("property_owners")
+        .select(`
+          *,
+          profiles:assigned_employee (
+            first_name,
+            last_name
+          )
+        `)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setOwners(data as PropertyOwner[] || []);
+    } catch (error: any) {
+      console.error("Error fetching owners:", error);
+      toast({
+        variant: "destructive",
+        title: "خطأ في تحميل البيانات",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredOwners = owners.filter((owner) => {
+    // Safe access to mobile_numbers (handle JSONB array)
+    const mobileNumbers = Array.isArray(owner.mobile_numbers) ? owner.mobile_numbers : [];
+    
+    const matchesSearch = 
+      owner.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      mobileNumbers.some((num: string) => num.includes(searchTerm)) ||
+      owner.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      owner.address?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesType = ownerTypeFilter === "all" || owner.owner_type === ownerTypeFilter;
+
+    return matchesSearch && matchesType;
+  });
+
+  const handleEditOwner = (owner: PropertyOwner) => {
+    setSelectedOwner(owner);
+    setShowForm(true);
+  };
+
+  const handleViewOwner = (owner: PropertyOwner) => {
+    setSelectedOwner(owner);
+    setShowDetails(true);
+  };
+
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setSelectedOwner(null);
+    fetchOwners();
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ar-AE', {
+      style: 'currency',
+      currency: 'AED',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground mt-4">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header and Controls */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-right">إدارة المُلاك</h1>
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogTrigger asChild>
+            <Button 
+              onClick={() => {
+                setSelectedOwner(null);
+                setShowForm(true);
+              }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              إضافة مالك جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-right">
+                {selectedOwner ? "تعديل بيانات المالك" : "إضافة مالك جديد"}
+              </DialogTitle>
+            </DialogHeader>
+            <OwnerForm
+              owner={selectedOwner}
+              onSuccess={handleFormSuccess}
+              onCancel={() => setShowForm(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="البحث بالاسم، رقم الهاتف، البريد الإلكتروني، أو العنوان..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 text-right"
+                dir="rtl"
+              />
+            </div>
+            <Select value={ownerTypeFilter} onValueChange={setOwnerTypeFilter}>
+              <SelectTrigger className="w-full sm:w-48 text-right" dir="rtl">
+                <SelectValue placeholder="نوع المالك" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الأنواع</SelectItem>
+                <SelectItem value="individual">أفراد</SelectItem>
+                <SelectItem value="company">شركات</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">إجمالي المُلاك</p>
+                <p className="text-2xl font-bold">{owners.length}</p>
+              </div>
+              <User className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">أفراد</p>
+                <p className="text-2xl font-bold">
+                  {owners.filter(o => o.owner_type === 'individual').length}
+                </p>
+              </div>
+              <User className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">شركات</p>
+                <p className="text-2xl font-bold">
+                  {owners.filter(o => o.owner_type === 'company').length}
+                </p>
+              </div>
+              <Building className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">إجمالي قيمة العقارات</p>
+                <p className="text-lg font-bold">
+                  {formatCurrency(
+                    owners.reduce((sum, owner) => sum + (owner.total_properties_value || 0), 0)
+                  )}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Owners Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredOwners.map((owner) => (
+          <Card key={owner.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewOwner(owner)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditOwner(owner)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="text-right">
+                  <CardTitle className="text-lg">{owner.full_name}</CardTitle>
+                  <Badge
+                    variant={owner.owner_type === "individual" ? "default" : "secondary"}
+                    className="mt-1"
+                  >
+                    {owner.owner_type === "individual" ? "فرد" : "شركة"}
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Contact Information */}
+              <div className="space-y-2">
+                {Array.isArray(owner.mobile_numbers) && owner.mobile_numbers.map((number: string, index: number) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-right" dir="rtl">{number}</span>
+                  </div>
+                ))}
+                
+                {owner.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-right" dir="rtl">{owner.email}</span>
+                  </div>
+                )}
+
+                {owner.address && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-right line-clamp-2" dir="rtl">{owner.address}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Statistics */}
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Building className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">{owner.total_properties_count}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">عقار</p>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <DollarSign className="h-4 w-4 text-green-500" />
+                    <span className="text-xs font-medium">
+                      {owner.total_properties_value > 0 
+                        ? `${(owner.total_properties_value / 1000000).toFixed(1)}م`
+                        : "0"
+                      }
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">درهم</p>
+                </div>
+              </div>
+
+              {/* Assigned Employee */}
+              {owner.profiles && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
+                  <User className="h-4 w-4" />
+                  <span className="text-right">
+                    الموظف المسؤول: {owner.profiles.first_name} {owner.profiles.last_name}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredOwners.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-lg text-muted-foreground">لا توجد بيانات مُلاك</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {searchTerm || ownerTypeFilter !== "all"
+                ? "لم يتم العثور على نتائج تطابق البحث"
+                : "لم يتم إضافة أي مُلاك بعد"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Owner Details Dialog */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-right">
+              تفاصيل المالك: {selectedOwner?.full_name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedOwner && (
+            <OwnerDetails 
+              owner={selectedOwner} 
+              onClose={() => setShowDetails(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
