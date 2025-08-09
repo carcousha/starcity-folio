@@ -67,6 +67,8 @@ import MyProperties from "./pages/employee/MyProperties";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import SecurityAuditPage from "./pages/SecurityAudit";
+import WhatsAppSmart from "./pages/crm/WhatsAppSmart";
+import WhatsAppTemplates from "./pages/whatsapp/Templates";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -164,6 +166,11 @@ const AppProtector = () => {
                <Route path="/crm" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <CRMIndex />
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/templates" element={
+                 <ProtectedRoute requiredPermission="canManageStaff">
+                   <WhatsAppTemplates />
                  </ProtectedRoute>
                } />
                <Route path="/crm/clients" element={

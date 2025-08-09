@@ -39,6 +39,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import AdminLogs from "./accounting/AdminLogs";
 import { AudioNotificationSettings } from "@/components/AudioNotificationSettings";
+import { Link } from "react-router-dom";
+import { MessageSquare } from "lucide-react";
 
 
 interface Setting {
@@ -554,6 +556,18 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  <div>
+                    <div className="font-medium">إدارة قوالب واتساب</div>
+                    <div className="text-sm text-muted-foreground">أضف/عدل قوالب الرسائل وربطها بالمراحل</div>
+                  </div>
+                </div>
+                <Link to="/whatsapp/templates">
+                  <Button variant="outline">إدارة القوالب</Button>
+                </Link>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
