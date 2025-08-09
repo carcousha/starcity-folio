@@ -30,7 +30,7 @@ import {
   MessageSquare
 } from "lucide-react";
 
-import {
+import { 
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useQuery } from '@tanstack/react-query';
+import { getTodayReminders } from '@/services/reminderService';
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -80,6 +82,20 @@ export function AppSidebar() {
   };
 
   // Main navigation items
+  // عدد تذكيرات اليوم (لاستخدامه كشارة Badge)
+  const { data: waReminders = [] } = useQuery({
+    queryKey: ['wa-reminders-count-badge'],
+    queryFn: async () => {
+      try {
+        const list = await getTodayReminders();
+        return list;
+      } catch {
+        return [] as any[];
+      }
+    }
+  });
+  const waRemindersCount = Array.isArray(waReminders) ? waReminders.length : 0;
+
   const mainItems = [
     { title: "الرئيسية", url: "/admin-dashboard", icon: Home },
     { 
@@ -110,7 +126,7 @@ export function AppSidebar() {
         { title: "القوالب", url: "/whatsapp/templates", icon: FileText },
         { title: "الذكّي", url: "/whatsapp/smart", icon: Megaphone },
         { title: "السجل", url: "/whatsapp/logs", icon: BarChart3 },
-        { title: "التذكيرات", url: "/whatsapp/reminders", icon: Calendar },
+        { title: "التذكيرات", url: "/whatsapp/reminders", icon: Calendar, badge: waRemindersCount > 0 ? waRemindersCount : undefined },
       ]
     },
     { 
@@ -384,10 +400,17 @@ export function AppSidebar() {
                                  justify-start px-6
                                `}
                              >
-                               <Link to={subItem.url} className="flex items-center w-full">
-                                 <subItem.icon className="h-4 w-4 ml-3" />
-                                 <span className="text-sm">{subItem.title}</span>
-                               </Link>
+                          <Link to={subItem.url} className="flex items-center w-full">
+                            <subItem.icon className="h-4 w-4 ml-3" />
+                            <span className="text-sm flex items-center gap-2">
+                              {subItem.title}
+                              {typeof (subItem as any).badge !== 'undefined' && (subItem as any).badge > 0 && (
+                                <span className="ml-2 inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white">
+                                  {(subItem as any).badge}
+                                </span>
+                              )}
+                            </span>
+                          </Link>
                              </SidebarMenuButton>
                            </SidebarMenuItem>
                          ))}
