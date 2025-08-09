@@ -8,7 +8,8 @@ export async function getTodayReminders() {
     .select('*')
     .gte('remind_at', start.toISOString())
     .lte('remind_at', end.toISOString())
-    .eq('enabled', true);
+    .eq('enabled', true)
+    .order('remind_at', { ascending: true });
   if (error) throw error;
   return data || [];
 }
@@ -16,7 +17,7 @@ export async function getTodayReminders() {
 export async function markReminderDone(id: string) {
   const { error } = await (supabase as any)
     .from('whatsapp_reminders')
-    .update({ surfaced: true })
+    .update({ enabled: false, surfaced: true })
     .eq('id', id);
   if (error) throw error;
   return true;

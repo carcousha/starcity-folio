@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "jobs": [
+    {
+      "name": "remindersJob",
+      "schedule": "0 9 * * *",
+      "endpoint": "/remindersJob",
+      "method": "POST"
+    }
+  ]
+}
+
+

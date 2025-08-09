@@ -32,11 +32,12 @@ import {
 } from "lucide-react";
 import SendWhatsApp from '@/components/whatsapp/SendWhatsApp';
 import { useQuery as useRQ } from '@tanstack/react-query';
-import { hasRecentWhatsAppMessage } from '@/services/logService';
+import { hasRecentWhatsAppMessage, getLeadMessageCount } from '@/services/logService';
 import { LeadForm } from "@/components/crm/LeadForm";
 import { LeadDetails } from "@/components/crm/LeadDetails";
 import { LeadActivity } from "@/components/crm/LeadActivity";
 import { formatCurrency } from "@/lib/utils";
+import React from 'react';
 
 interface Lead {
   id: string;
@@ -583,13 +584,8 @@ export default function Leads() {
                                       appointment_location: lead.preferred_location || ''
                                     }}
                                   />
-                                  {/* Badge: sent in last 24h */}
-                                  {true && (
-                                    <span className="text-[11px] px-2 py-1 rounded bg-green-100 text-green-800">
-                                      {/* Placeholder visual indicator; could compute with useQuery per lead for real-time */}
-                                      نشاط واتساب (24س)
-                                    </span>
-                                  )}
+                                  {/* مؤشر نشاط واتساب خلال 24 ساعة + عداد الرسائل */}
+                                  <LeadWhatsAppActivity leadId={lead.id} />
                                 </div>
                               </CardContent>
                             </Card>
@@ -721,5 +717,25 @@ export default function Leads() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function LeadWhatsAppActivity({ leadId }: { leadId: string }) {
+  const { data: recent = false } = useRQ({
+    queryKey: ['wa-recent', leadId],
+    queryFn: () => hasRecentWhatsAppMessage(leadId, 24)
+  });
+
+  const { data: count = 0 } = useRQ({
+    queryKey: ['wa-count', leadId],
+    queryFn: () => getLeadMessageCount(leadId)
+  });
+
+  if (!recent && count === 0) return null;
+
+  return (
+    <span className={`text-[11px] px-2 py-1 rounded ${recent ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+      {recent ? 'نشاط واتساب (24س)' : 'لا نشاط حديث'} • {count}
+    </span>
   );
 }
