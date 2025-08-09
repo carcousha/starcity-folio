@@ -4,9 +4,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Shield, AlertTriangle, Eye, RefreshCw, Activity } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, RefreshCw, Activity, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface SecuritySummary {
   period: string;
@@ -31,6 +32,8 @@ export const SecurityAudit = () => {
   const [recentEvents, setRecentEvents] = useState<SecurityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const { toast } = useToast();
 
   const fetchSecurityData = async () => {
@@ -76,6 +79,40 @@ export const SecurityAudit = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleResetFinancialData = async () => {
+    try {
+      setResetting(true);
+      
+      const { data, error } = await supabase
+        .rpc('reset_financial_data' as any);
+      
+      if (error) {
+        console.error('Reset error:', error);
+        toast({
+          title: "خطأ في إعادة التعيين",
+          description: error.message || "حدث خطأ أثناء حذف البيانات المالية",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "تم الحذف بنجاح",
+          description: "تم حذف جميع البيانات المالية بنجاح",
+          variant: "default"
+        });
+        setResetDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Reset financial data error:', error);
+      toast({
+        title: "خطأ في إعادة التعيين",
+        description: "حدث خطأ غير متوقع أثناء حذف البيانات",
+        variant: "destructive"
+      });
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -266,6 +303,37 @@ export const SecurityAudit = () => {
         </CardContent>
       </Card>
 
+      {/* Reset Financial Data */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            إعادة تعيين البيانات المالية
+          </CardTitle>
+          <CardDescription>
+            حذف جميع البيانات المالية (الإيرادات، المصروفات، العمولات، الخزينة، إلخ) والبدء من جديد
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>تحذير:</strong> هذه العملية ستحذف جميع البيانات المالية نهائياً. لن يتم حذف بيانات الموظفين أو العملاء أو العقارات.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button
+              variant="destructive"
+              onClick={() => setResetDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              حذف جميع البيانات المالية
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Security Recommendations */}
       <Card>
         <CardHeader>
@@ -303,6 +371,20 @@ export const SecurityAudit = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={resetDialogOpen}
+        onOpenChange={setResetDialogOpen}
+        title="تأكيد حذف البيانات المالية"
+        description="هذه العملية ستحذف جميع البيانات المالية نهائياً بما في ذلك: الإيرادات، المصروفات، العمولات، الخزينة، اليومية، والديون. لن يتم حذف بيانات الموظفين أو العملاء أو العقارات."
+        confirmText="نعم، احذف جميع البيانات المالية"
+        cancelText="إلغاء"
+        onConfirm={handleResetFinancialData}
+        variant="destructive"
+        loading={resetting}
+        requireMathVerification={true}
+      />
     </div>
   );
 };
