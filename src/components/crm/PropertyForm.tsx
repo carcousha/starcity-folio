@@ -45,6 +45,7 @@ const propertySchema = z.object({
   seo_description: z.string().min(10, 'الوصف يجب أن يكون 10 أحرف على الأقل'),
   internal_notes: z.string().optional(),
   assigned_employee: z.string().optional(),
+  country_code: z.string().min(1, 'مفتاح الدولة مطلوب'),
   owner_phone: z.string().min(8, 'رقم هاتف المالك مطلوب'),
   property_owner_id: z.string().optional(),
 });
@@ -95,6 +96,16 @@ const finishQualityLabels = {
   shell_core: 'هيكل وقواعد'
 };
 
+const countryCodeOptions = [
+  { code: '+971', country: 'الإمارات', flag: '🇦🇪' },
+  { code: '+20', country: 'مصر', flag: '🇪🇬' },
+  { code: '+966', country: 'السعودية', flag: '🇸🇦' },
+  { code: '+965', country: 'الكويت', flag: '🇰🇼' },
+  { code: '+974', country: 'قطر', flag: '🇶🇦' },
+  { code: '+973', country: 'البحرين', flag: '🇧🇭' },
+  { code: '+968', country: 'عمان', flag: '🇴🇲' },
+];
+
 const interiorFeaturesList = [
   { id: 'central_ac', label: 'تكييف مركزي' },
   { id: 'equipped_kitchen', label: 'مطبخ مجهز' },
@@ -130,6 +141,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
       is_negotiable: false,
       interior_features: [],
       exterior_features: [],
+      country_code: '+971',
       owner_phone: '',
       property_owner_id: '',
     }
@@ -156,21 +168,23 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   };
 
   // Function to find owner by phone number
-  const findOwnerByPhone = (phoneNumber: string) => {
+  const findOwnerByPhone = (countryCode: string, phoneNumber: string) => {
+    const fullNumber = countryCode + phoneNumber;
     return owners.find(owner => {
       const mobileNumbers = Array.isArray(owner.mobile_numbers) ? owner.mobile_numbers : [];
       return mobileNumbers.some((num: string) => 
-        num.replace(/[\s\-\(\)]/g, '') === phoneNumber.replace(/[\s\-\(\)]/g, '')
+        num.replace(/[\s\-\(\)]/g, '') === fullNumber.replace(/[\s\-\(\)]/g, '')
       );
     });
   };
 
   // Watch for phone number changes
   const watchOwnerPhone = form.watch('owner_phone');
+  const watchCountryCode = form.watch('country_code');
   
   useEffect(() => {
-    if (watchOwnerPhone && watchOwnerPhone.length > 8) {
-      const owner = findOwnerByPhone(watchOwnerPhone);
+    if (watchOwnerPhone && watchOwnerPhone.length > 6 && watchCountryCode) {
+      const owner = findOwnerByPhone(watchCountryCode, watchOwnerPhone);
       if (owner) {
         setSelectedOwner(owner);
         form.setValue('property_owner_id', owner.id);
@@ -183,7 +197,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         form.setValue('property_owner_id', '');
       }
     }
-  }, [watchOwnerPhone, owners, form, toast]);
+  }, [watchOwnerPhone, watchCountryCode, owners, form, toast]);
 
   const watchPropertyType = form.watch('property_type');
 
@@ -315,36 +329,62 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
               <CardDescription>أدخل رقم هاتف المالك للربط التلقائي</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="owner_phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>رقم هاتف المالك *</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="مثال: +971501234567" 
-                        {...field} 
-                        className="text-right"
-                        dir="rtl"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    {selectedOwner && (
-                      <div className="flex items-center gap-2 mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <Check className="h-5 w-5 text-green-600" />
-                        <User className="h-4 w-4 text-green-600" />
-                        <span className="text-green-800 font-medium">
-                          تم ربط العقار بالمالك: {selectedOwner.full_name}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">
-                          مربوط
-                        </Badge>
-                      </div>
-                    )}
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="country_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>مفتاح الدولة *</FormLabel>
+                      <FormControl>
+                        <select 
+                          {...field} 
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                        >
+                          {countryCodeOptions.map((option) => (
+                            <option key={option.code} value={option.code}>
+                              {option.flag} {option.code} {option.country}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="owner_phone"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>رقم هاتف المالك *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="مثال: 501234567" 
+                          {...field} 
+                          className="text-right"
+                          dir="rtl"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {selectedOwner && (
+                <div className="flex items-center gap-2 mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <Check className="h-5 w-5 text-green-600" />
+                  <User className="h-4 w-4 text-green-600" />
+                  <span className="text-green-800 font-medium">
+                    تم ربط العقار بالمالك: {selectedOwner.full_name}
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    مربوط
+                  </Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
 

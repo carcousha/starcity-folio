@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Search, Filter, Building2, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Building2, Eye, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -26,9 +26,14 @@ interface Property {
   photos: string;
   assigned_employee: string;
   created_at: string;
+  property_owner_id?: string;
   profiles?: {
     first_name: string;
     last_name: string;
+  } | null;
+  property_owners?: {
+    full_name: string;
+    mobile_numbers: string[];
   } | null;
 }
 
@@ -80,7 +85,8 @@ export default function Properties() {
         .from('crm_properties')
         .select(`
           *,
-          profiles!crm_properties_assigned_employee_fkey(first_name, last_name)
+          profiles!crm_properties_assigned_employee_fkey(first_name, last_name),
+          property_owners!crm_properties_property_owner_id_fkey(full_name, mobile_numbers)
         `)
         .order('created_at', { ascending: false });
       
@@ -88,7 +94,8 @@ export default function Properties() {
       return data?.map(item => ({
         ...item,
         photos: typeof item.photos === 'string' ? item.photos : JSON.stringify(item.photos || []),
-        profiles: item.profiles || null
+        profiles: item.profiles || null,
+        property_owners: item.property_owners || null
       })) as Property[] || [];
     }
   });
@@ -143,6 +150,14 @@ export default function Properties() {
       style: 'currency', 
       currency: 'AED' 
     }).format(price);
+  };
+
+  const handleWhatsAppClick = (mobileNumbers: string[]) => {
+    if (mobileNumbers && mobileNumbers.length > 0) {
+      const phoneNumber = mobileNumbers[0].replace(/[\s\-\(\)]/g, '');
+      const message = encodeURIComponent('مرحبا، أود الاستفسار عن العقار المتاح لديكم');
+      window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+    }
   };
 
   if (isLoading) {
@@ -319,15 +334,34 @@ export default function Properties() {
               )}
               
               <div className="flex justify-between items-center text-sm">
-                <Badge variant="outline">
-                  {transactionTypeLabels[property.transaction_type]}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {transactionTypeLabels[property.transaction_type]}
+                  </Badge>
+                  {property.property_owners && property.property_owners.mobile_numbers && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleWhatsAppClick(property.property_owners!.mobile_numbers)}
+                      className="h-7 px-2"
+                    >
+                      <MessageCircle className="h-3 w-3 ml-1" />
+                      واتس آب
+                    </Button>
+                  )}
+                </div>
                 {property.profiles && (
                   <span className="text-muted-foreground">
                     {property.profiles.first_name} {property.profiles.last_name}
                   </span>
                 )}
               </div>
+              
+              {property.property_owners && (
+                <div className="text-sm text-muted-foreground">
+                  المالك: {property.property_owners.full_name}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
