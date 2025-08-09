@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign } from "lucide-react";
+import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign, Grid3X3, Table } from "lucide-react";
 import { OwnerForm } from "./OwnerForm";
 import { OwnerDetails } from "./OwnerDetails";
+import { OwnersTable } from "./OwnersTable";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -21,6 +22,7 @@ export const OwnersList = () => {
   const [selectedOwner, setSelectedOwner] = useState<PropertyOwner | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   useEffect(() => {
     fetchOwners();
@@ -136,7 +138,32 @@ export const OwnersList = () => {
     <div className="space-y-6">
       {/* Header and Controls */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-right">إدارة المُلاك</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold text-right">إدارة المُلاك</h1>
+          
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+            <Button
+              variant={viewMode === "cards" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("cards")}
+              className="flex items-center gap-1"
+            >
+              <Grid3X3 className="h-4 w-4" />
+              كروت
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="flex items-center gap-1"
+            >
+              <Table className="h-4 w-4" />
+              جدول
+            </Button>
+          </div>
+        </div>
+        
         <Dialog open={showForm} onOpenChange={setShowForm}>
           <DialogTrigger asChild>
             <Button 
@@ -252,111 +279,120 @@ export const OwnersList = () => {
         </Card>
       </div>
 
-      {/* Owners Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredOwners.map((owner) => (
-          <Card key={owner.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewOwner(owner)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditOwner(owner)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="text-right">
-                  <CardTitle className="text-lg">{owner.full_name}</CardTitle>
-                  <Badge
-                    variant={owner.owner_type === "individual" ? "default" : "secondary"}
-                    className="mt-1"
-                  >
-                    {owner.owner_type === "individual" ? "فرد" : "شركة"}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Contact Information */}
-              <div className="space-y-2">
-                {Array.isArray(owner.mobile_numbers) && owner.mobile_numbers.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    <span className="flex-1">{owner.mobile_numbers.join(", ")}</span>
+      {/* Content based on view mode */}
+      {viewMode === "table" ? (
+        <OwnersTable
+          owners={filteredOwners}
+          onEdit={handleEditOwner}
+          onView={handleViewOwner}
+          onOpenWhatsApp={openWhatsApp}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredOwners.map((owner) => (
+            <Card key={owner.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => openWhatsApp(owner.mobile_numbers)}
-                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                      title="إرسال رسالة واتساب"
+                      onClick={() => handleViewOwner(owner)}
                     >
-                      <MessageCircle className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditOwner(owner)}
+                    >
+                      <Edit className="h-4 w-4" />
                     </Button>
                   </div>
-                )}
-                
-                {owner.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    <span className="text-right" dir="rtl">{owner.email}</span>
+                  <div className="text-right">
+                    <CardTitle className="text-lg">{owner.full_name}</CardTitle>
+                    <Badge
+                      variant={owner.owner_type === "individual" ? "default" : "secondary"}
+                      className="mt-1"
+                    >
+                      {owner.owner_type === "individual" ? "فرد" : "شركة"}
+                    </Badge>
                   </div>
-                )}
-
-                {owner.address && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span className="text-right line-clamp-2" dir="rtl">{owner.address}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Statistics */}
-              <div className="grid grid-cols-2 gap-4 pt-3 border-t">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Building className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">{owner.total_properties_count}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">عقار</p>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <DollarSign className="h-4 w-4 text-green-500" />
-                    <span className="text-xs font-medium">
-                      {owner.total_properties_value > 0 
-                        ? `${(owner.total_properties_value / 1000000).toFixed(1)}م`
-                        : "0"
-                      }
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Contact Information */}
+                <div className="space-y-2">
+                  {Array.isArray(owner.mobile_numbers) && owner.mobile_numbers.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      <span className="flex-1">{owner.mobile_numbers.join(", ")}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openWhatsApp(owner.mobile_numbers)}
+                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="إرسال رسالة واتساب"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {owner.email && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span className="text-right" dir="rtl">{owner.email}</span>
+                    </div>
+                  )}
+
+                  {owner.address && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span className="text-right line-clamp-2" dir="rtl">{owner.address}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Statistics */}
+                <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Building className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">{owner.total_properties_count}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">عقار</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <DollarSign className="h-4 w-4 text-green-500" />
+                      <span className="text-xs font-medium">
+                        {owner.total_properties_value > 0 
+                          ? `${(owner.total_properties_value / 1000000).toFixed(1)}م`
+                          : "0"
+                        }
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">درهم</p>
+                  </div>
+                </div>
+
+                {/* Assigned Employee */}
+                {owner.assigned_employee_profile && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
+                    <User className="h-4 w-4" />
+                    <span className="text-right">
+                      الموظف المسؤول: {owner.assigned_employee_profile.first_name} {owner.assigned_employee_profile.last_name}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">درهم</p>
-                </div>
-              </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-              {/* Assigned Employee */}
-              {owner.assigned_employee_profile && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
-                  <User className="h-4 w-4" />
-                  <span className="text-right">
-                    الموظف المسؤول: {owner.assigned_employee_profile.first_name} {owner.assigned_employee_profile.last_name}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredOwners.length === 0 && (
+      {filteredOwners.length === 0 && !loading && (
         <Card>
           <CardContent className="p-8 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

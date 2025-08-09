@@ -11,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Check, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const propertySchema = z.object({
   title: z.string().min(1, 'عنوان العقار مطلوب'),
@@ -44,6 +45,8 @@ const propertySchema = z.object({
   seo_description: z.string().min(10, 'الوصف يجب أن يكون 10 أحرف على الأقل'),
   internal_notes: z.string().optional(),
   assigned_employee: z.string().optional(),
+  owner_phone: z.string().min(8, 'رقم هاتف المالك مطلوب'),
+  property_owner_id: z.string().optional(),
 });
 
 type PropertyFormData = z.infer<typeof propertySchema>;
@@ -110,49 +113,91 @@ const exteriorFeaturesList = [
 ];
 
 export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [owners, setOwners] = useState<any[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<any>(null);
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
     defaultValues: {
-      title: '',
-      property_type: 'apartment',
+      property_type: 'villa',
       property_status: 'available',
       transaction_type: 'sale',
-      developer: '',
       emirate: 'ajman',
-      area_community: '',
-      full_address: '',
-      latitude: undefined,
-      longitude: undefined,
-      plot_area: undefined,
-      built_up_area: undefined,
-      bedrooms: undefined,
-      bathrooms: undefined,
-      floor_number: undefined,
-      unit_number: '',
-      property_age: undefined,
-      finish_quality: undefined,
-      total_price: 0,
+      finish_quality: 'standard',
       is_negotiable: false,
-      down_payment: undefined,
-      monthly_installments: undefined,
-      commission_percentage: undefined,
       interior_features: [],
       exterior_features: [],
-      virtual_tour_video: '',
-      floor_plan_url: '',
-      seo_description: '',
-      internal_notes: '',
+      owner_phone: '',
+      property_owner_id: '',
     }
   });
+
+  // Load owners on component mount
+  useEffect(() => {
+    fetchOwners();
+  }, []);
+
+  const fetchOwners = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('property_owners')
+        .select('id, full_name, mobile_numbers')
+        .eq('is_active', true)
+        .order('full_name');
+      
+      if (error) throw error;
+      setOwners(data || []);
+    } catch (error) {
+      console.error('Error fetching owners:', error);
+    }
+  };
+
+  // Function to find owner by phone number
+  const findOwnerByPhone = (phoneNumber: string) => {
+    return owners.find(owner => {
+      const mobileNumbers = Array.isArray(owner.mobile_numbers) ? owner.mobile_numbers : [];
+      return mobileNumbers.some((num: string) => 
+        num.replace(/[\s\-\(\)]/g, '') === phoneNumber.replace(/[\s\-\(\)]/g, '')
+      );
+    });
+  };
+
+  // Watch for phone number changes
+  const watchOwnerPhone = form.watch('owner_phone');
+  
+  useEffect(() => {
+    if (watchOwnerPhone && watchOwnerPhone.length > 8) {
+      const owner = findOwnerByPhone(watchOwnerPhone);
+      if (owner) {
+        setSelectedOwner(owner);
+        form.setValue('property_owner_id', owner.id);
+        toast({
+          title: "تم العثور على المالك",
+          description: `تم ربط العقار بالمالك: ${owner.full_name}`,
+        });
+      } else {
+        setSelectedOwner(null);
+        form.setValue('property_owner_id', '');
+      }
+    }
+  }, [watchOwnerPhone, owners, form, toast]);
 
   const watchPropertyType = form.watch('property_type');
 
   useEffect(() => {
     if (property) {
+      // Find owner if property has property_owner_id
+      if (property.property_owner_id) {
+        const owner = owners.find(o => o.id === property.property_owner_id);
+        if (owner) {
+          setSelectedOwner(owner);
+          form.setValue('owner_phone', Array.isArray(owner.mobile_numbers) ? owner.mobile_numbers[0] : '');
+        }
+      }
+      
       form.reset({
         ...property,
         latitude: property.latitude ? Number(property.latitude) : undefined,
@@ -165,6 +210,8 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         commission_percentage: property.commission_percentage ? Number(property.commission_percentage) : undefined,
         interior_features: property.interior_features || [],
         exterior_features: property.exterior_features || [],
+        property_owner_id: property.property_owner_id || '',
+        owner_phone: '',
       });
       try {
         const photos = typeof property.photos === 'string' ? JSON.parse(property.photos) : property.photos || [];
@@ -173,7 +220,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         setUploadedPhotos([]);
       }
     }
-  }, [property, form]);
+  }, [property, form, owners]);
 
   const onSubmit = async (data: PropertyFormData) => {
     setIsSubmitting(true);
@@ -261,6 +308,46 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           
+          {/* Owner Information Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>معلومات المالك</CardTitle>
+              <CardDescription>أدخل رقم هاتف المالك للربط التلقائي</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="owner_phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>رقم هاتف المالك *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="مثال: +971501234567" 
+                        {...field} 
+                        className="text-right"
+                        dir="rtl"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    {selectedOwner && (
+                      <div className="flex items-center gap-2 mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <Check className="h-5 w-5 text-green-600" />
+                        <User className="h-4 w-4 text-green-600" />
+                        <span className="text-green-800 font-medium">
+                          تم ربط العقار بالمالك: {selectedOwner.full_name}
+                        </span>
+                        <Badge variant="secondary" className="text-xs">
+                          مربوط
+                        </Badge>
+                      </div>
+                    )}
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
           {/* Basic Information */}
           <Card>
             <CardHeader>
@@ -407,46 +494,6 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="latitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>خط العرض (GPS)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="any"
-                          placeholder="25.4052"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="longitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>خط الطول (GPS)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="any"
-                          placeholder="55.5136"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             </CardContent>
           </Card>
@@ -540,83 +587,6 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                     />
                   </>
                 )}
-
-                {needsFloorNumber && (
-                  <FormField
-                    control={form.control}
-                    name="floor_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رقم الطابق *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            placeholder="2"
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {!isLandProperty && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="unit_number"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>رقم الوحدة/الشقة</FormLabel>
-                          <FormControl>
-                            <Input placeholder="A-101" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="property_age"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>عمر العقار (بالسنوات)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              placeholder="5"
-                              value={field.value || ''}
-                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="finish_quality"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>جودة التشطيب</FormLabel>
-                          <FormControl>
-                            <select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
-                              <option value="">اختر جودة التشطيب</option>
-                              {Object.entries(finishQualityLabels).map(([key, label]) => (
-                                <option key={key} value={key}>{label}</option>
-                              ))}
-                            </select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -650,44 +620,6 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
 
                 <FormField
                   control={form.control}
-                  name="down_payment"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الدفعة المقدمة (درهم)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number"
-                          placeholder="50000"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="monthly_installments"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الأقساط الشهرية (درهم)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number"
-                          placeholder="5000"
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="commission_percentage"
                   render={({ field }) => (
                     <FormItem>
@@ -710,7 +642,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                   control={form.control}
                   name="is_negotiable"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -727,175 +659,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
             </CardContent>
           </Card>
 
-          {/* Features */}
-          <Card>
-            <CardHeader>
-              <CardTitle>المميزات والخدمات</CardTitle>
-              <CardDescription>اختر المميزات المتوفرة في العقار</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Interior Features */}
-              <div>
-                <h4 className="font-semibold mb-3">المميزات الداخلية</h4>
-                <FormField
-                  control={form.control}
-                  name="interior_features"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {interiorFeaturesList.map((feature) => (
-                          <FormItem
-                            key={feature.id}
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(feature.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    field.onChange([...field.value, feature.id]);
-                                  } else {
-                                    field.onChange(field.value?.filter((value) => value !== feature.id));
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              {feature.label}
-                            </FormLabel>
-                          </FormItem>
-                        ))}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Separator />
-
-              {/* Exterior Features */}
-              <div>
-                <h4 className="font-semibold mb-3">المميزات الخارجية والمجتمع</h4>
-                <FormField
-                  control={form.control}
-                  name="exterior_features"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {exteriorFeaturesList.map((feature) => (
-                          <FormItem
-                            key={feature.id}
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(feature.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    field.onChange([...field.value, feature.id]);
-                                  } else {
-                                    field.onChange(field.value?.filter((value) => value !== feature.id));
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              {feature.label}
-                            </FormLabel>
-                          </FormItem>
-                        ))}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Media Upload */}
-          <Card>
-            <CardHeader>
-              <CardTitle>الصور والوسائط</CardTitle>
-              <CardDescription>رفع صور عالية الجودة للعقار</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <FormLabel>صور العقار</FormLabel>
-                <div className="mt-2">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                    id="photo-upload"
-                  />
-                  <label
-                    htmlFor="photo-upload"
-                    className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400"
-                  >
-                    <div className="text-center">
-                      <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                      <p className="mt-2 text-sm text-gray-600">انقر لرفع الصور</p>
-                    </div>
-                  </label>
-                </div>
-                
-                {uploadedPhotos.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    {uploadedPhotos.map((photo, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={photo}
-                          alt={`صورة ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="virtual_tour_video"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>رابط فيديو الجولة الافتراضية</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="floor_plan_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>رابط مخطط الطابق</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Descriptions */}
+          {/* Description */}
           <Card>
             <CardHeader>
               <CardTitle>الوصف والملاحظات</CardTitle>
@@ -907,10 +671,10 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                 name="seo_description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الوصف المحسن لمحركات البحث *</FormLabel>
+                    <FormLabel>وصف العقار *</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="وصف تفصيلي وجذاب للعقار يساعد في الظهور في نتائج البحث..."
+                        placeholder="وصف تفصيلي وجذاب للعقار..."
                         className="min-h-[100px]"
                         {...field} 
                       />
