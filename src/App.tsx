@@ -93,7 +93,7 @@ const App = () => {
   );
 };
 
-// مكون الحماية الرئيسي
+// مكون الحماية الرئيسي مع فحص صارم للغاية
 const AppProtector = () => {
   const { user, session, profile, loading } = useAuth();
   const location = useLocation();
@@ -103,24 +103,43 @@ const AppProtector = () => {
     return <Auth />;
   }
 
-  // إذا كان التحميل جاري، أظهر شاشة تحميل
+  // فحص فوري وصارم: إذا لم يكن هناك session صالح
+  if (!loading && (!session || !user)) {
+    console.log('AppProtector: No valid session detected, redirecting to login');
+    // تنظيف كامل لأي بيانات مخزنة محلياً
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace('/');
+    return null;
+  }
+
+  // إذا كان التحميل جاري، أظهر شاشة تحميل بسيطة
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">جاري التحقق من صحة الهوية...</p>
+        </div>
       </div>
     );
   }
 
-  // إذا لم يكن هناك session أو user أو profile، إعادة توجيه فورية
-  if (!session || !user || !profile) {
-    window.location.href = '/';
+  // فحص ثانوي: التأكد من وجود profile صالح
+  if (!profile) {
+    console.log('AppProtector: No profile found, redirecting to login');
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace('/');
     return null;
   }
 
-  // إذا كان المستخدم غير نشط
+  // فحص نشاط المستخدم
   if (!profile.is_active) {
-    window.location.href = '/';
+    console.log('AppProtector: User is not active, redirecting to login');
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace('/');
     return null;
   }
 

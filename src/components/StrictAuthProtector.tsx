@@ -11,21 +11,25 @@ export const StrictAuthProtector = ({ children }: { children: React.ReactNode })
   const location = useLocation();
   const currentPath = location.pathname;
 
-  // حماية فورية عند تحميل أي صفحة
+  // حماية فورية ومطلقة عند تحميل أي صفحة
   useEffect(() => {
     // إذا لم تكن صفحة تسجيل الدخول
     if (currentPath !== '/') {
-      // وإذا لم يكن هناك جلسة صالحة
-      if (!loading && (!session || !user || !profile)) {
-        console.log('StrictAuthProtector: Unauthorized access blocked, redirecting immediately');
-        window.location.href = '/';
+      // فحص فوري للجلسة
+      if (!loading && (!session || !user)) {
+        console.log('StrictAuthProtector: No valid session, clearing storage and redirecting');
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('/');
         return;
       }
       
-      // أو إذا كان المستخدم غير نشط
-      if (!loading && profile && !profile.is_active) {
-        console.log('StrictAuthProtector: Inactive user blocked');
-        window.location.href = '/';
+      // فحص Profile
+      if (!loading && (!profile || !profile.is_active)) {
+        console.log('StrictAuthProtector: Invalid or inactive profile, redirecting');
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('/');
         return;
       }
     }
