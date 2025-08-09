@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -252,27 +253,21 @@ const AddPropertyForm = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="price">السعر المطلوب (د.إ)</Label>
-                <Input
+                <CurrencyInput
                   id="price"
-                  type="number"
                   value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                  onValueChange={(num) => setFormData(prev => ({ ...prev, price: num }))}
                   placeholder="السعر المطلوب"
-                  min="0"
-                  step="0.01"
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="agreed_rent_amount">قيمة الإيجار المتفق عليها (د.إ)</Label>
-                <Input
+                <CurrencyInput
                   id="agreed_rent_amount"
-                  type="number"
                   value={formData.agreed_rent_amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, agreed_rent_amount: parseFloat(e.target.value) || 0 }))}
+                  onValueChange={(num) => setFormData(prev => ({ ...prev, agreed_rent_amount: num }))}
                   placeholder="قيمة الإيجار المتفق عليها"
-                  min="0"
-                  step="0.01"
                 />
               </div>
               

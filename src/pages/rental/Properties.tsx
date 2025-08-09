@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -342,23 +343,20 @@ const RentalProperties = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="agreed_rent_amount">مبلغ الإيجار المتفق عليه *</Label>
-                  <Input
+                  <CurrencyInput
                     id="agreed_rent_amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.agreed_rent_amount}
-                    onChange={(e) => setFormData({...formData, agreed_rent_amount: e.target.value})}
-                    required
+                    value={Number(formData.agreed_rent_amount || 0)}
+                    onValueChange={(num) => setFormData({...formData, agreed_rent_amount: String(num)})}
+                    placeholder="0"
                   />
                 </div>
                 <div>
                   <Label htmlFor="commission_percentage">نسبة العمولة (%)</Label>
-                  <Input
+                  <CurrencyInput
                     id="commission_percentage"
-                    type="number"
-                    step="0.01"
-                    value={formData.commission_percentage}
-                    onChange={(e) => setFormData({...formData, commission_percentage: e.target.value})}
+                    value={Number(formData.commission_percentage || 0)}
+                    onValueChange={(num) => setFormData({...formData, commission_percentage: String(num)})}
+                    placeholder="0"
                   />
                 </div>
               </div>
