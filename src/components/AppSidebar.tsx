@@ -100,6 +100,20 @@ export function AppSidebar() {
       ]
     },
     { 
+      title: "الواتساب", 
+      url: "/whatsapp", 
+      icon: MessageSquare,
+      hasSubmenu: true,
+      submenu: [
+        { title: "لوحة التحكم", url: "/whatsapp", icon: Home },
+        { title: "الإعدادات", url: "/whatsapp/settings", icon: Settings },
+        { title: "القوالب", url: "/whatsapp/templates", icon: FileText },
+        { title: "الذكّي", url: "/whatsapp/smart", icon: Megaphone },
+        { title: "السجل", url: "/whatsapp/logs", icon: BarChart3 },
+        { title: "التذكيرات", url: "/whatsapp/reminders", icon: Calendar },
+      ]
+    },
+    { 
       title: "إدارة الحسابات", 
       url: "/accounting", 
       icon: BarChart3,

@@ -68,6 +68,10 @@ import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import SecurityAuditPage from "./pages/SecurityAudit";
 import WhatsAppSmart from "./pages/crm/WhatsAppSmart";
+import WhatsAppHome from "./pages/whatsapp/index";
+import WhatsAppSettings from "./pages/whatsapp/Settings";
+import WhatsAppLogs from "./pages/whatsapp/Logs";
+import WhatsAppReminders from "./pages/whatsapp/Reminders";
 import WhatsAppTemplates from "./pages/whatsapp/Templates";
 
 const queryClient = new QueryClient({
@@ -183,9 +187,30 @@ const AppProtector = () => {
                    <Leads />
                  </ProtectedRoute>
                } />
-               <Route path="/crm/whatsapp" element={
+               {/* WhatsApp Module */}
+               <Route path="/whatsapp" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <WhatsAppHome />
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/smart" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <WhatsAppSmart />
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/settings" element={
+                 <ProtectedRoute requiredPermission="canManageStaff">
+                   <WhatsAppSettings />
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/logs" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <WhatsAppLogs />
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/reminders" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <WhatsAppReminders />
                  </ProtectedRoute>
                } />
                <Route path="/crm/properties" element={
