@@ -26,6 +26,7 @@ export function TaskDialog({ open, onOpenChange, task, mode }: TaskDialogProps) 
     description: task?.description || '',
     priority_level: task?.priority_level || 2,
     due_date: task?.due_date || '',
+    due_time: task?.due_time || '',
     status: task?.status || 'pending'
   });
 
@@ -58,7 +59,7 @@ export function TaskDialog({ open, onOpenChange, task, mode }: TaskDialogProps) 
       if (mode === 'create') {
         setFormData({
           title: '', description: '', priority_level: 2,
-          due_date: '', status: 'pending'
+          due_date: '', due_time: '', status: 'pending'
         });
       }
     },
@@ -128,6 +129,15 @@ export function TaskDialog({ open, onOpenChange, task, mode }: TaskDialogProps) 
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="due_time">الوقت</Label>
+              <Input
+                id="due_time"
+                type="time"
+                value={formData.due_time}
+                onChange={(e) => setFormData({...formData, due_time: e.target.value})}
               />
             </div>
           </div>

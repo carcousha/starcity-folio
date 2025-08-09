@@ -12,7 +12,8 @@ import {
   Filter,
   Plus,
   MoreVertical,
-  Edit
+  Edit,
+  Trash2
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,6 +117,20 @@ export default function MyTasks() {
       case 3: return "border-l-red-500";
       case 2: return "border-l-orange-500";
       default: return "border-l-gray-300";
+    }
+  };
+
+  const deleteTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('daily_tasks')
+        .delete()
+        .eq('id', taskId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['my-tasks'] });
+      toast({ title: 'تم الحذف', description: 'تم حذف المهمة بنجاح' });
+    } catch (err: any) {
+      toast({ title: 'خطأ', description: err.message || 'تعذر حذف المهمة', variant: 'destructive' });
     }
   };
 
@@ -317,6 +332,15 @@ export default function MyTasks() {
                         setEditDialogOpen(true);
                       }}>
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm('هل أنت متأكد من حذف هذه المهمة؟')) deleteTask(task.id)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
