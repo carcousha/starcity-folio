@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle, Trash2, Info, CheckCircle } from "lucide-react";
 import { LoadingButton } from "./loading-button";
+import { Input } from "./input";
+import { Label } from "./label";
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -22,6 +24,7 @@ interface ConfirmationDialogProps {
   onConfirm: () => void | Promise<void>;
   variant?: "default" | "destructive" | "warning" | "info";
   loading?: boolean;
+  requireMathVerification?: boolean;
 }
 
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
@@ -34,8 +37,47 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onConfirm,
   variant = "default",
   loading = false,
+  requireMathVerification = false,
 }) => {
+  const [mathQuestion, setMathQuestion] = useState<string>("");
+  const [mathAnswer, setMathAnswer] = useState<number>(0);
+  const [userAnswer, setUserAnswer] = useState<string>("");
+  const [mathError, setMathError] = useState<boolean>(false);
+
+  // Generate random math question
+  useEffect(() => {
+    if (requireMathVerification && open) {
+      const operations = ['+', '×'];
+      const operation = operations[Math.floor(Math.random() * operations.length)];
+      const num1 = Math.floor(Math.random() * 15) + 1;
+      const num2 = Math.floor(Math.random() * 15) + 1;
+      
+      let answer;
+      let question;
+      
+      if (operation === '+') {
+        answer = num1 + num2;
+        question = `${num1} + ${num2}`;
+      } else {
+        answer = num1 * num2;
+        question = `${num1} × ${num2}`;
+      }
+      
+      setMathQuestion(question);
+      setMathAnswer(answer);
+      setUserAnswer("");
+      setMathError(false);
+    }
+  }, [requireMathVerification, open]);
+
   const handleConfirm = async () => {
+    if (requireMathVerification) {
+      const userAnswerNum = parseInt(userAnswer);
+      if (isNaN(userAnswerNum) || userAnswerNum !== mathAnswer) {
+        setMathError(true);
+        return;
+      }
+    }
     await onConfirm();
   };
 
@@ -75,6 +117,36 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        
+        {requireMathVerification && (
+          <div className="space-y-3 px-6">
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <Label className="text-sm font-medium text-right block mb-2">
+                للتأكيد، يرجى حل هذه العملية الحسابية:
+              </Label>
+              <div className="text-center text-lg font-bold mb-3 text-primary">
+                {mathQuestion} = ?
+              </div>
+              <Input
+                type="number"
+                value={userAnswer}
+                onChange={(e) => {
+                  setUserAnswer(e.target.value);
+                  setMathError(false);
+                }}
+                placeholder="أدخل الإجابة"
+                className="text-center"
+                disabled={loading}
+              />
+              {mathError && (
+                <p className="text-destructive text-sm text-center mt-2">
+                  الإجابة غير صحيحة، يرجى المحاولة مرة أخرى
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+        
         <AlertDialogFooter className="flex-row-reverse gap-2">
           <LoadingButton
             onClick={handleConfirm}
