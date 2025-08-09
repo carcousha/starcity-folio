@@ -18,7 +18,7 @@ import CRMIndex from "./pages/crm/index";
 import Clients from "./pages/crm/Clients";
 import Leads from "./pages/crm/Leads";
 import CRMProperties from "./pages/crm/Properties";
-import PropertyOwners from "./pages/crm/PropertyOwners";
+import CRMPropertyOwners from "./pages/crm/PropertyOwners";
 import TasksIndex from "./pages/tasks/index";
 import AccountingIndex from "./pages/accounting/index";
 import Expenses from "./pages/accounting/Expenses";
@@ -34,7 +34,7 @@ import AdvancedDebts from "./pages/accounting/AdvancedDebts";
 import DailyJournal from "./pages/accounting/DailyJournal";
 import ReportsIndex from "./pages/reports/index";
 import RentalIndex from "./pages/rental/index";
-import PropertyOwners from "./pages/rental/PropertyOwners";
+import RentalPropertyOwners from "./pages/rental/PropertyOwners";
 import RentalProperties from "./pages/rental/Properties";
 import Tenants from "./pages/rental/Tenants";
 import RentalContracts from "./pages/rental/RentalContracts";
@@ -182,10 +182,10 @@ const AppProtector = () => {
                  </ProtectedRoute>
                } />
                <Route path="/crm/owners" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <PropertyOwners />
-                 </ProtectedRoute>
-               } />
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <CRMPropertyOwners />
+                  </ProtectedRoute>
+                } />
               <Route path="/crm/tasks" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <TasksIndex />
@@ -261,10 +261,10 @@ const AppProtector = () => {
                  </ProtectedRoute>
                } />
                <Route path="/rental/property-owners" element={
-                 <ProtectedRoute requiredPermission="canViewFinancials">
-                   <PropertyOwners />
-                 </ProtectedRoute>
-               } />
+                  <ProtectedRoute requiredPermission="canViewFinancials">
+                    <RentalPropertyOwners />
+                  </ProtectedRoute>
+                } />
               <Route path="/rental/properties" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
                   <RentalProperties />
