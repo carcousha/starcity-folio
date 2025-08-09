@@ -7,6 +7,12 @@ export function renderTemplate(bodyAr: string, bodyEn: string, lang: Lang, ctx: 
   return Mustache.render(source, ctx);
 }
 
+export function renderBody(body: string, ctx: Record<string, string>) {
+  // Support both {name} and {{name}} placeholders
+  const normalized = body.replace(/\{\s*(\w+)\s*\}/g, '{{$1}}');
+  return Mustache.render(normalized, ctx);
+}
+
 export function toE164(raw: string): string {
   // naive normalize; in production use libphonenumber-js
   const digits = raw.replace(/[^\d+]/g, '');

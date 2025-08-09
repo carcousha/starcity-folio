@@ -1,15 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { getTodayReminders, markReminderDone } from '@/services/reminderService';
+import SendWhatsApp from '@/components/whatsapp/SendWhatsApp';
+import { Button } from '@/components/ui/button';
 
 export default function WhatsAppReminders() {
-  const { data: reminders = [], isLoading } = useQuery({
-    queryKey: ['wa-reminders-all'],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from('whatsapp_reminders').select('*').order('remind_at', { ascending: true }).limit(200);
-      return data || [];
-    }
-  });
+  const qc = useQueryClient();
+  const { data: reminders = [], isLoading } = useQuery({ queryKey: ['wa-reminders-all'], queryFn: ()=> getTodayReminders() });
   return (
     <div className="space-y-6 p-6" dir="rtl">
       <h1 className="text-2xl font-bold">التذكيرات</h1>
@@ -24,7 +21,16 @@ export default function WhatsAppReminders() {
                     <div className="font-medium">{r.stage}</div>
                     <div className="text-sm text-muted-foreground">موعد: {new Date(r.remind_at).toLocaleString('ar-AE')}</div>
                   </div>
-                  <div className="text-sm">{r.enabled ? 'مفعّل' : 'معطّل'}</div>
+                  <div className="flex items-center gap-2">
+                    <SendWhatsApp
+                      leadId={r.lead_id}
+                      stage={r.stage}
+                      phone={'' as any}
+                      lang={'ar'}
+                      context={{}}
+                    />
+                    <Button variant="outline" size="sm" onClick={()=>{ markReminderDone(r.id).then(()=> qc.invalidateQueries({ queryKey: ['wa-reminders-all'] })); }}>تم</Button>
+                  </div>
                 </div>
               ))}
             </div>
