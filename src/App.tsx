@@ -68,10 +68,10 @@ import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import SecurityAuditPage from "./pages/SecurityAudit";
 import WhatsAppSmart from "./pages/crm/WhatsAppSmart";
-import WhatsAppHome from "./pages/whatsapp/index";
-import WhatsAppSettings from "./pages/whatsapp/Settings";
-import WhatsAppLogs from "./pages/whatsapp/Logs";
-import WhatsAppReminders from "./pages/whatsapp/Reminders";
+import WhatsAppHome from "./pages/whatsapp";
+import WhatsAppSettings from "./pages/whatsapp/Settings.tsx";
+import WhatsAppLogs from "./pages/whatsapp/Logs.tsx";
+import WhatsAppReminders from "./pages/whatsapp/Reminders.tsx";
 import WhatsAppTemplates from "./pages/whatsapp/Templates";
 
 const queryClient = new QueryClient({
