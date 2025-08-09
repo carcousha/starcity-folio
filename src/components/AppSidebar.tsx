@@ -93,6 +93,7 @@ export function AppSidebar() {
         { title: "العقارات", url: "/crm/properties", icon: Building },
         { title: "الملاك", url: "/crm/owners", icon: User },
         { title: "المهام", url: "/crm/tasks", icon: CheckSquare },
+        { title: "واتساب الذكي", url: "/crm/whatsapp", icon: MessageSquare },
         { title: "الحملات التسويقية", url: "/crm/campaigns", icon: Megaphone },
         { title: "الصفقات", url: "/crm/deals", icon: FileText },
         { title: "التحليلات والتقارير", url: "/crm/analytics", icon: PieChart },
