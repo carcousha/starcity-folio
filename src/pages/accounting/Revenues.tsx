@@ -69,6 +69,16 @@ export default function Revenues() {
     open: false,
     loading: false
   });
+
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    revenueId: string | null;
+    loading: boolean;
+  }>({
+    open: false,
+    revenueId: null,
+    loading: false
+  });
   
   const { toast } = useToast();
   const { user, profile } = useAuth();
@@ -328,14 +338,23 @@ export default function Revenues() {
   };
 
   const handleDeleteRevenue = async (revenueId: string) => {
-    const confirmDelete = window.confirm("هل أنت متأكد من حذف هذا الإيراد؟ هذه العملية لا يمكن التراجع عنها.");
-    if (!confirmDelete) return;
+    setDeleteDialog({
+      open: true,
+      revenueId,
+      loading: false
+    });
+  };
+
+  const executeDeleteRevenue = async () => {
+    if (!deleteDialog.revenueId) return;
+
+    setDeleteDialog(prev => ({ ...prev, loading: true }));
 
     try {
       const { error } = await supabase
         .from('revenues')
         .delete()
-        .eq('id', revenueId);
+        .eq('id', deleteDialog.revenueId);
 
       if (error) throw error;
 
@@ -345,6 +364,7 @@ export default function Revenues() {
       });
 
       fetchRevenues();
+      setDeleteDialog({ open: false, revenueId: null, loading: false });
     } catch (error: any) {
       console.error('Error deleting revenue:', error);
       toast({
@@ -352,6 +372,7 @@ export default function Revenues() {
         description: "فشل في حذف الإيراد",
         variant: "destructive",
       });
+      setDeleteDialog(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -925,6 +946,21 @@ export default function Revenues() {
         variant="destructive"
         onConfirm={executeBulkDelete}
         loading={confirmDialog.loading}
+        requireMathVerification={true}
+      />
+
+      {/* Individual Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}
+        title="تأكيد حذف الإيراد"
+        description="هل أنت متأكد من حذف هذا الإيراد؟ هذه العملية لا يمكن التراجع عنها."
+        confirmText="حذف"
+        cancelText="إلغاء"
+        variant="destructive"
+        onConfirm={executeDeleteRevenue}
+        loading={deleteDialog.loading}
+        requireMathVerification={true}
       />
 
       {/* Dialog للتعديل */}
