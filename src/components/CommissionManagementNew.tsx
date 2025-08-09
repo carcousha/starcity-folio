@@ -110,7 +110,8 @@ const CommissionManagementNew = () => {
           .from('debts')
           .select('debtor_id')
           .in('debtor_id', employeeIds)
-          .eq('status', 'pending');
+          .eq('status', 'pending')
+          .eq('auto_deduct_from_commission', true);
         
         if (!debtsError && debts && debts.length > 0) {
           // Show debt deduction dialog
@@ -579,24 +580,13 @@ const CommissionManagementNew = () => {
       <CommissionDebtDeductionDialog
         open={showDebtDialog}
         onOpenChange={handleDebtDialogClose}
-        employees={selectedEmployees.map(emp => {
-          const total = parseFloat(amount || '0');
-          const employeesCount = selectedEmployees.length || 1;
-          const employeesPortion = total * 0.5; // 50% للموظفين
-          let calcShare = 0;
-          if (distributionMode === 'custom' && customPercentages[emp.employee_id] != null) {
-            calcShare = (employeesPortion * (customPercentages[emp.employee_id] || 0)) / 100;
-          } else {
-            calcShare = employeesPortion / employeesCount;
-          }
-          return {
-            employee_id: emp.employee_id,
-            first_name: emp.first_name,
-            last_name: emp.last_name,
-            calculated_share: Number.isFinite(calcShare) ? calcShare : 0
-          };
-        })}
-        onDeductionDecision={() => { /* يمكن لاحقًا ربط تعديل net_share أو التسجيل المحاسبي */ }}
+        employees={selectedEmployees.map(emp => ({
+          employee_id: emp.employee_id,
+          first_name: emp.first_name,
+          last_name: emp.last_name,
+          calculated_share: lastCreatedCommission?.employees?.find((ce: any) => ce.employee_id === emp.employee_id)?.calculated_share || 0
+        }))}
+        onDeductionDecision={() => {}}
       />
     </div>
   );
