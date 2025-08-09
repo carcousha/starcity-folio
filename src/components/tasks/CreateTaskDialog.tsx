@@ -92,10 +92,10 @@ const CreateTaskDialog = ({ open, onClose }: CreateTaskDialogProps) => {
   });
 
   const { data: properties = [] } = useQuery({
-    queryKey: ['properties'],
+    queryKey: ['crm-properties-list'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('properties')
+        .from('crm_properties')
         .select('id, title')
         .order('title');
 

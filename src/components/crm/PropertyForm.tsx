@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Upload, X, Check, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -194,6 +195,7 @@ const sqmToSqft = (sqm: number): number => {
 
 export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [owners, setOwners] = useState<any[]>([]);
@@ -353,6 +355,9 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
       const submitData = {
         ...data,
         photos: JSON.stringify(uploadedPhotos),
+        // Ensure visibility to the creating employee in MyProperties page
+        created_by: profile?.user_id ?? null,
+        assigned_employee: data.assigned_employee || profile?.user_id || null,
       };
 
       let result;
