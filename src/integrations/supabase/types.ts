@@ -627,6 +627,7 @@ export type Database = {
           photos: Json | null
           plot_area: number | null
           property_age: number | null
+          property_owner_id: string | null
           property_status: string
           property_type: string
           search_vector: unknown | null
@@ -666,6 +667,7 @@ export type Database = {
           photos?: Json | null
           plot_area?: number | null
           property_age?: number | null
+          property_owner_id?: string | null
           property_status?: string
           property_type: string
           search_vector?: unknown | null
@@ -705,6 +707,7 @@ export type Database = {
           photos?: Json | null
           plot_area?: number | null
           property_age?: number | null
+          property_owner_id?: string | null
           property_status?: string
           property_type?: string
           search_vector?: unknown | null
@@ -730,6 +733,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "crm_properties_property_owner_id_fkey"
+            columns: ["property_owner_id"]
+            isOneToOne: false
+            referencedRelation: "property_owners"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2103,6 +2113,169 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_communications: {
+        Row: {
+          communication_type: string
+          completed_date: string | null
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          owner_id: string
+          priority_level: number | null
+          reminder_date: string | null
+          scheduled_date: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          communication_type: string
+          completed_date?: string | null
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          owner_id: string
+          priority_level?: number | null
+          reminder_date?: string | null
+          scheduled_date?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          communication_type?: string
+          completed_date?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          owner_id?: string
+          priority_level?: number | null
+          reminder_date?: string | null
+          scheduled_date?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_communications_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "property_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_documents: {
+        Row: {
+          document_name: string
+          document_type: string
+          expiry_date: string | null
+          file_size: number | null
+          file_url: string
+          id: string
+          is_expired: boolean | null
+          notes: string | null
+          owner_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          document_name: string
+          document_type: string
+          expiry_date?: string | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_expired?: boolean | null
+          notes?: string | null
+          owner_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          document_name?: string
+          document_type?: string
+          expiry_date?: string | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_expired?: boolean | null
+          notes?: string | null
+          owner_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_documents_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "property_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_financials: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          currency: string | null
+          description: string
+          id: string
+          owner_id: string
+          property_id: string | null
+          reference_number: string | null
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          currency?: string | null
+          description: string
+          id?: string
+          owner_id: string
+          property_id?: string | null
+          reference_number?: string | null
+          transaction_date?: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          currency?: string | null
+          description?: string
+          id?: string
+          owner_id?: string
+          property_id?: string | null
+          reference_number?: string | null
+          transaction_date?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_financials_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "property_owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_financials_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "crm_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pdf_templates: {
         Row: {
           created_at: string
@@ -2270,6 +2443,66 @@ export type Database = {
           property_type?: string
           status?: string
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      property_owners: {
+        Row: {
+          address: string | null
+          assigned_employee: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          id_number: string | null
+          internal_notes: string | null
+          is_active: boolean | null
+          last_contact_date: string | null
+          mobile_numbers: Json
+          nationality: string | null
+          owner_type: string
+          total_properties_count: number | null
+          total_properties_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          assigned_employee?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          id_number?: string | null
+          internal_notes?: string | null
+          is_active?: boolean | null
+          last_contact_date?: string | null
+          mobile_numbers?: Json
+          nationality?: string | null
+          owner_type?: string
+          total_properties_count?: number | null
+          total_properties_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          assigned_employee?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          id_number?: string | null
+          internal_notes?: string | null
+          is_active?: boolean | null
+          last_contact_date?: string | null
+          mobile_numbers?: Json
+          nationality?: string | null
+          owner_type?: string
+          total_properties_count?: number | null
+          total_properties_value?: number | null
           updated_at?: string
         }
         Relationships: []
