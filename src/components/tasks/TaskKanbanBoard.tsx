@@ -12,7 +12,8 @@ import {
   Paperclip, 
   User,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -50,6 +51,23 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
   const [selectedTask, setSelectedTask] = useState<TaskKanban | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await (supabase as any)
+        .from('daily_tasks')
+        .delete()
+        .eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-stats'] });
+      toast({ title: 'تم الحذف', description: 'تم حذف المهمة بنجاح' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'خطأ', description: error?.message || 'تعذر حذف المهمة', variant: 'destructive' });
+    }
+  });
 
   // جلب المهام
   const { data: tasks = [], isLoading } = useQuery({
@@ -153,12 +171,28 @@ const TaskKanbanBoard = ({ filters }: TaskKanbanBoardProps) => {
           <CardTitle className="text-sm font-medium line-clamp-2">
             {task.title}
           </CardTitle>
-          <Badge 
-            variant="outline" 
-            className={`text-xs ${getPriorityColor(task.priority_level)} flex-shrink-0 ml-2`}
-          >
-            {getPriorityLabel(task.priority_level)}
-          </Badge>
+          <div className="flex items-center gap-2 ml-2">
+            <Badge 
+              variant="outline" 
+              className={`text-xs ${getPriorityColor(task.priority_level)} flex-shrink-0`}
+            >
+              {getPriorityLabel(task.priority_level)}
+            </Badge>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-6 px-2 text-[11px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm('هل أنت متأكد من حذف هذه المهمة؟')) {
+                  deleteTaskMutation.mutate(task.id);
+                }
+              }}
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              حذف
+            </Button>
+          </div>
         </div>
         {task.description && (
           <p className="text-xs text-muted-foreground line-clamp-2">
