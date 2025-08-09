@@ -8,6 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { BulkActionsToolbar, createBulkActions } from "@/components/ui/bulk-actions-toolbar";
+import { SelectableTable, SelectableTableHeader, SelectableTableBody, SelectableTableRow, SelectableTableCell } from "@/components/ui/selectable-table";
+import { BulkActionDialog } from "@/components/ui/bulk-action-dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { Plus, Search, Filter, TrendingUp, Download, Calendar, BarChart3, Users, PieChart, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,8 +50,44 @@ export default function Revenues() {
   const [sourceFilter, setSourceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  
+  // Bulk actions state
+  const [bulkActionDialog, setBulkActionDialog] = useState<{
+    open: boolean;
+    type: "delete" | "changeCategory" | "export";
+    loading: boolean;
+  }>({
+    open: false,
+    type: "delete",
+    loading: false
+  });
+  
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    loading: boolean;
+  }>({
+    open: false,
+    loading: false
+  });
+  
   const { toast } = useToast();
   const { user, profile } = useAuth();
+
+  // Bulk selection hook
+  const {
+    selectedIds,
+    selectedItems,
+    selectedCount,
+    isSelected,
+    isAllSelected,
+    isIndeterminate,
+    toggleItem,
+    toggleAll,
+    clearSelection
+  } = useBulkSelection({
+    items: filteredRevenues,
+    getItemId: (revenue) => revenue.id
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -313,6 +354,133 @@ export default function Revenues() {
       });
     }
   };
+
+  // Bulk actions handlers
+  const handleBulkAction = (actionType: "delete" | "changeCategory" | "export") => {
+    setBulkActionDialog({
+      open: true,
+      type: actionType,
+      loading: false
+    });
+  };
+
+  const executeBulkAction = async (data: any = {}) => {
+    setBulkActionDialog(prev => ({ ...prev, loading: true }));
+    
+    try {
+      if (bulkActionDialog.type === "delete") {
+        setConfirmDialog({ open: true, loading: false });
+        setBulkActionDialog(prev => ({ ...prev, open: false, loading: false }));
+        return;
+      }
+      
+      if (bulkActionDialog.type === "changeCategory") {
+        const { newSource } = data;
+        if (!newSource) {
+          toast({
+            title: "خطأ",
+            description: "يرجى اختيار المصدر الجديد",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const selectedRevenueIds = Array.from(selectedIds);
+        const { error } = await supabase
+          .from('revenues')
+          .update({ source: newSource })
+          .in('id', selectedRevenueIds);
+
+        if (error) throw error;
+
+        toast({
+          title: "تم التحديث",
+          description: `تم تحديث مصدر ${selectedCount} إيراد بنجاح`,
+        });
+        
+        fetchRevenues();
+        clearSelection();
+      }
+      
+      if (bulkActionDialog.type === "export") {
+        exportSelectedToCSV();
+      }
+      
+    } catch (error: any) {
+      console.error('Error executing bulk action:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في تنفيذ العملية",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkActionDialog(prev => ({ ...prev, open: false, loading: false }));
+    }
+  };
+
+  const executeBulkDelete = async () => {
+    setConfirmDialog(prev => ({ ...prev, loading: true }));
+    
+    try {
+      const selectedRevenueIds = Array.from(selectedIds);
+      const { error } = await supabase
+        .from('revenues')
+        .delete()
+        .in('id', selectedRevenueIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم الحذف",
+        description: `تم حذف ${selectedCount} إيراد بنجاح`,
+      });
+      
+      fetchRevenues();
+      clearSelection();
+    } catch (error: any) {
+      console.error('Error deleting revenues:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف الإيرادات",
+        variant: "destructive",
+      });
+    } finally {
+      setConfirmDialog({ open: false, loading: false });
+    }
+  };
+
+  const exportSelectedToCSV = () => {
+    const headers = ['العنوان', 'المصدر', 'النوع', 'المبلغ', 'التاريخ', 'الموظف المسؤول', 'الوصف'];
+    const csvContent = [
+      headers.join(','),
+      ...selectedItems.map(revenue => {
+        const employee = profiles.find(p => p.user_id === revenue.recorded_by);
+        const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : '-';
+        return [
+          revenue.title,
+          revenue.source,
+          revenue.revenue_type || '-',
+          revenue.amount,
+          revenue.revenue_date,
+          employeeName,
+          revenue.description || ''
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `selected_revenues_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  // Define bulk actions
+  const bulkActions = [
+    createBulkActions.delete(() => handleBulkAction("delete")),
+    createBulkActions.changeCategory(() => handleBulkAction("changeCategory")),
+    createBulkActions.export(() => handleBulkAction("export"))
+  ];
 
   const exportToCSV = () => {
     const headers = ['العنوان', 'المصدر', 'النوع', 'المبلغ', 'التاريخ', 'الموظف المسؤول', 'الوصف'];
@@ -603,6 +771,14 @@ export default function Revenues() {
         </div>
       )}
 
+      {/* Bulk Actions Toolbar */}
+      <BulkActionsToolbar
+        selectedCount={selectedCount}
+        totalCount={filteredRevenues.length}
+        onClearSelection={clearSelection}
+        actions={bulkActions}
+      />
+
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -638,41 +814,60 @@ export default function Revenues() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">العنوان</TableHead>
-                  <TableHead className="text-right">المصدر</TableHead>
-                  <TableHead className="text-right">المبلغ</TableHead>
-                  <TableHead className="text-right">التاريخ</TableHead>
-                  <TableHead className="text-right">الموظف المسؤول</TableHead>
-                  <TableHead className="text-right">الوصف</TableHead>
-                  <TableHead className="text-right">العمليات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <SelectableTable>
+              <SelectableTableHeader
+                selectedCount={selectedCount}
+                totalCount={filteredRevenues.length}
+                onSelectAll={(checked) => {
+                  if (checked) {
+                    // Select all
+                    const allIds = new Set(filteredRevenues.map(item => item.id));
+                    // We need to use the setSelectedIds directly since we don't have selectAll with checked parameter
+                    filteredRevenues.forEach(item => {
+                      if (!selectedIds.has(item.id)) {
+                        toggleItem(item.id);
+                      }
+                    });
+                  } else {
+                    clearSelection();
+                  }
+                }}
+              >
+                <TableHead className="text-right">العنوان</TableHead>
+                <TableHead className="text-right">المصدر</TableHead>
+                <TableHead className="text-right">المبلغ</TableHead>
+                <TableHead className="text-right">التاريخ</TableHead>
+                <TableHead className="text-right">الموظف المسؤول</TableHead>
+                <TableHead className="text-right">الوصف</TableHead>
+                <TableHead className="text-right">العمليات</TableHead>
+              </SelectableTableHeader>
+              <SelectableTableBody>
                 {filteredRevenues.length > 0 ? (
                   filteredRevenues.map((revenue) => {
                     const employee = profiles.find(p => p.user_id === revenue.recorded_by);
                     const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : '-';
                     
                     return (
-                      <TableRow key={revenue.id}>
-                        <TableCell className="font-medium">{revenue.title}</TableCell>
-                        <TableCell>
+                      <SelectableTableRow
+                        key={revenue.id}
+                        selected={isSelected(revenue.id)}
+                        onSelect={() => toggleItem(revenue.id)}
+                      >
+                        <SelectableTableCell className="font-medium">{revenue.title}</SelectableTableCell>
+                        <SelectableTableCell>
                           <Badge variant="secondary">{revenue.source}</Badge>
-                        </TableCell>
-                        <TableCell className="font-semibold text-green-600">
+                        </SelectableTableCell>
+                        <SelectableTableCell className="font-semibold text-green-600">
                           {revenue.amount.toLocaleString('ar-AE')} درهم
-                        </TableCell>
-                        <TableCell>
+                        </SelectableTableCell>
+                        <SelectableTableCell>
                           {new Date(revenue.revenue_date).toLocaleDateString('ar-AE')}
-                        </TableCell>
-                        <TableCell>{employeeName}</TableCell>
-                        <TableCell className="max-w-xs truncate">
+                        </SelectableTableCell>
+                        <SelectableTableCell>{employeeName}</SelectableTableCell>
+                        <SelectableTableCell className="max-w-xs truncate">
                           {revenue.description || '-'}
-                        </TableCell>
-                        <TableCell>
+                        </SelectableTableCell>
+                        <SelectableTableCell>
                           <div className="flex gap-2">
                             <Button
                               variant="outline"
@@ -689,22 +884,48 @@ export default function Revenues() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </SelectableTableCell>
+                      </SelectableTableRow>
                     );
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                       لا توجد إيرادات متاحة
                     </TableCell>
                   </TableRow>
                 )}
-              </TableBody>
-            </Table>
+              </SelectableTableBody>
+            </SelectableTable>
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk Action Dialog */}
+      <BulkActionDialog
+        open={bulkActionDialog.open}
+        onOpenChange={(open) => setBulkActionDialog(prev => ({ ...prev, open }))}
+        title="إجراء متعدد على الإيرادات"
+        description={`سيتم تطبيق هذا الإجراء على ${selectedCount} إيراد محدد`}
+        selectedCount={selectedCount}
+        actionType={bulkActionDialog.type}
+        onConfirm={executeBulkAction}
+        loading={bulkActionDialog.loading}
+        options={bulkActionDialog.type === "changeCategory" ? sources.map(s => ({ value: s, label: s })) : []}
+      />
+
+      {/* Confirmation Dialog for Delete */}
+      <ConfirmationDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
+        title="تأكيد الحذف"
+        description={`هل أنت متأكد من حذف ${selectedCount} إيراد؟ هذه العملية لا يمكن التراجع عنها.`}
+        confirmText="حذف"
+        cancelText="إلغاء"
+        variant="destructive"
+        onConfirm={executeBulkDelete}
+        loading={confirmDialog.loading}
+      />
 
       {/* Dialog للتعديل */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

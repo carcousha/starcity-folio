@@ -47,6 +47,10 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { BulkActionsToolbar, createBulkActions } from '@/components/ui/bulk-actions-toolbar';
+import { SelectableTable, SelectableTableHeader, SelectableTableBody, SelectableTableRow, SelectableTableCell } from '@/components/ui/selectable-table';
+import { BulkActionDialog } from '@/components/ui/bulk-action-dialog';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import AvatarUpload from '@/components/AvatarUpload';
 import { 
   Plus, 
@@ -120,6 +124,26 @@ export default function Staff() {
     open: false,
     employee: null
   });
+  
+  // Bulk actions state
+  const [bulkActionDialog, setBulkActionDialog] = useState<{
+    open: boolean;
+    type: "delete" | "changeStatus" | "export";
+    loading: boolean;
+  }>({
+    open: false,
+    type: "delete",
+    loading: false
+  });
+  
+  const [confirmBulkDialog, setConfirmBulkDialog] = useState<{
+    open: boolean;
+    loading: boolean;
+  }>({
+    open: false,
+    loading: false
+  });
+  
   const [newEmployee, setNewEmployee] = useState<NewEmployeeForm>({
     firstName: '',
     lastName: '',
@@ -144,6 +168,19 @@ export default function Staff() {
   const { data: staff = [], isLoading: staffLoading } = useQuery({
     queryKey: ['staff'],
     queryFn: fetchStaff
+  });
+
+  // Bulk selection hook
+  const {
+    selectedIds,
+    selectedItems,
+    selectedCount,
+    isSelected,
+    toggleItem,
+    clearSelection
+  } = useBulkSelection({
+    items: staff,
+    getItemId: (employee) => employee.id
   });
 
   async function fetchStaff(): Promise<Staff[]> {
@@ -547,79 +584,106 @@ export default function Staff() {
         </Card>
       </div>
 
+      {/* Bulk Actions Toolbar - Only show for admins */}
+      {canManageStaff && (
+        <BulkActionsToolbar
+          selectedCount={selectedCount}
+          totalCount={staff.length}
+          onClearSelection={clearSelection}
+          actions={[
+            createBulkActions.delete(() => setBulkActionDialog({ open: true, type: "delete", loading: false })),
+            createBulkActions.export(() => setBulkActionDialog({ open: true, type: "export", loading: false }))
+          ]}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>قائمة الموظفين</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
+          {canManageStaff ? (
+            <SelectableTable>
+              <SelectableTableHeader
+                selectedCount={selectedCount}
+                totalCount={staff.length}
+                onSelectAll={(checked) => {
+                  if (checked) {
+                    staff.forEach(item => {
+                      if (!selectedIds.has(item.id)) {
+                        toggleItem(item.id);
+                      }
+                    });
+                  } else {
+                    clearSelection();
+                  }
+                }}
+              >
                 <TableHead>الموظف</TableHead>
                 <TableHead>البريد الإلكتروني</TableHead>
                 <TableHead>الهاتف</TableHead>
                 <TableHead>المنصب</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead>الإجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {staff.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center space-x-3 space-x-reverse">
-                      <AvatarUpload
-                        currentAvatarUrl={employee.avatar_url}
-                        employeeId={employee.user_id}
-                        employeeName={`${employee.first_name} ${employee.last_name}`}
-                        size="sm"
-                        canEdit={false}
-                        onAvatarUpdate={(newUrl) => {
-                          queryClient.invalidateQueries({ queryKey: ['staff'] });
-                        }}
-                      />
-                      <div>
-                        <div className="font-medium">{employee.first_name} {employee.last_name}</div>
-                        <div className="text-sm text-gray-500">
-                          منذ {new Date(employee.created_at).toLocaleDateString('ar-EG')}
+              </SelectableTableHeader>
+              <SelectableTableBody>
+                {staff.map((employee) => (
+                  <SelectableTableRow
+                    key={employee.id}
+                    selected={isSelected(employee.id)}
+                    onSelect={() => toggleItem(employee.id)}
+                  >
+                    <SelectableTableCell className="font-medium">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <AvatarUpload
+                          currentAvatarUrl={employee.avatar_url}
+                          employeeId={employee.user_id}
+                          employeeName={`${employee.first_name} ${employee.last_name}`}
+                          size="sm"
+                          canEdit={false}
+                          onAvatarUpdate={(newUrl) => {
+                            queryClient.invalidateQueries({ queryKey: ['staff'] });
+                          }}
+                        />
+                        <div>
+                          <div className="font-medium">{employee.first_name} {employee.last_name}</div>
+                          <div className="text-sm text-gray-500">
+                            منذ {new Date(employee.created_at).toLocaleDateString('ar-EG')}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{employee.email}</TableCell>
-                  <TableCell>{employee.phone || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {employee.role === 'admin' ? 'مدير' : 
-                       employee.role === 'accountant' ? 'محاسب' : 'موظف'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={employee.is_active ? 'default' : 'secondary'}
-                      className={employee.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-                    >
-                      {employee.is_active ? 'نشط' : 'غير نشط'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => openEmployeeProfile(employee)}
+                    </SelectableTableCell>
+                    <SelectableTableCell>{employee.email}</SelectableTableCell>
+                    <SelectableTableCell>{employee.phone || "-"}</SelectableTableCell>
+                    <SelectableTableCell>
+                      <Badge variant="outline">
+                        {employee.role === 'admin' ? 'مدير' : 
+                         employee.role === 'accountant' ? 'محاسب' : 'موظف'}
+                      </Badge>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
+                      <Badge 
+                        variant={employee.is_active ? 'default' : 'secondary'}
+                        className={employee.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
                       >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {canManageStaff && (
+                        {employee.is_active ? 'نشط' : 'غير نشط'}
+                      </Badge>
+                    </SelectableTableCell>
+                    <SelectableTableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openEmployeeProfile(employee)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <>
                            <Button 
                              size="sm" 
                              variant="outline"
                              onClick={() => {
-                               // فتح dialog تعديل الصورة للموظف المحدد
                                setSelectedEmployee(employee);
-                               // استخدام state منفصل لـ avatar dialog
                                setAvatarDialogOpen(employee.user_id);
                              }}
                              title="تعديل الصورة الشخصية"
@@ -672,13 +736,77 @@ export default function Staff() {
                              <Trash2 className="h-4 w-4" />
                            </Button>
                         </>
-                      )}
-                    </div>
-                  </TableCell>
+                      </div>
+                    </SelectableTableCell>
+                  </SelectableTableRow>
+                ))}
+              </SelectableTableBody>
+            </SelectableTable>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>الموظف</TableHead>
+                  <TableHead>البريد الإلكتروني</TableHead>
+                  <TableHead>الهاتف</TableHead>
+                  <TableHead>المنصب</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead>الإجراءات</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {staff.map((employee) => (
+                  <TableRow key={employee.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <AvatarUpload
+                          currentAvatarUrl={employee.avatar_url}
+                          employeeId={employee.user_id}
+                          employeeName={`${employee.first_name} ${employee.last_name}`}
+                          size="sm"
+                          canEdit={false}
+                          onAvatarUpdate={(newUrl) => {
+                            queryClient.invalidateQueries({ queryKey: ['staff'] });
+                          }}
+                        />
+                        <div>
+                          <div className="font-medium">{employee.first_name} {employee.last_name}</div>
+                          <div className="text-sm text-gray-500">
+                            منذ {new Date(employee.created_at).toLocaleDateString('ar-EG')}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{employee.email}</TableCell>
+                    <TableCell>{employee.phone || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {employee.role === 'admin' ? 'مدير' : 
+                         employee.role === 'accountant' ? 'محاسب' : 'موظف'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={employee.is_active ? 'default' : 'secondary'}
+                        className={employee.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                      >
+                        {employee.is_active ? 'نشط' : 'غير نشط'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => openEmployeeProfile(employee)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
