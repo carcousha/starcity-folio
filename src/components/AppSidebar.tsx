@@ -151,6 +151,7 @@ export function AppSidebar() {
           { title: "عملائي", url: "/employee/my-clients", icon: Users },
           { title: "ليدزي", url: "/employee/my-leads", icon: Target },
           { title: "عقاراتي", url: "/employee/my-properties", icon: Building },
+          { title: "الملاك", url: "/crm/owners", icon: User },
           { title: "مهامي", url: "/employee/my-tasks", icon: CheckSquare },
         ]
       },
