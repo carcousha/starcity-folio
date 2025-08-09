@@ -23,13 +23,13 @@ interface Property {
   bathrooms?: number;
   built_up_area?: number;
   plot_area?: number;
-  photos: string[];
+  photos: string;
   assigned_employee: string;
   created_at: string;
   profiles?: {
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
 
 const propertyTypeLabels = {
@@ -87,8 +87,8 @@ export default function Properties() {
       if (error) throw error;
       return data?.map(item => ({
         ...item,
-        photos: Array.isArray(item.photos) ? item.photos : [],
-        profiles: item.profiles || undefined
+        photos: typeof item.photos === 'string' ? item.photos : JSON.stringify(item.photos || []),
+        profiles: item.profiles || null
       })) as Property[] || [];
     }
   });
@@ -247,9 +247,9 @@ export default function Properties() {
         {filteredProperties.map((property) => (
           <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             <div className="aspect-video bg-gray-100 relative">
-              {property.photos && property.photos.length > 0 ? (
+              {property.photos && property.photos !== '[]' ? (
                 <img 
-                  src={property.photos[0]} 
+                  src={JSON.parse(property.photos)[0]} 
                   alt={property.title}
                   className="w-full h-full object-cover"
                 />
