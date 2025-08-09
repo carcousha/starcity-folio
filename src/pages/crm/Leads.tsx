@@ -30,6 +30,7 @@ import {
   MessageSquare,
   Trash2
 } from "lucide-react";
+import SendWhatsApp from '@/components/whatsapp/SendWhatsApp';
 import { LeadForm } from "@/components/crm/LeadForm";
 import { LeadDetails } from "@/components/crm/LeadDetails";
 import { LeadActivity } from "@/components/crm/LeadActivity";
@@ -562,6 +563,24 @@ export default function Leads() {
                                       <span>{new Date(lead.next_follow_up).toLocaleDateString('ar-AE')}</span>
                                     </div>
                                   )}
+                                </div>
+
+                                {/* أزرار تواصل سريعة */}
+                                <div className="flex gap-2 pt-2">
+                                  <SendWhatsApp
+                                    leadId={lead.id}
+                                    stage={stage.id}
+                                    phone={lead.phone}
+                                    lang={(lead.preferred_language || 'ar') as 'ar'|'en'}
+                                    template={undefined as any}
+                                    context={{
+                                      client_name: lead.full_name,
+                                      property_type: PROPERTY_TYPES[lead.property_type] || '',
+                                      appointment_date: lead.next_follow_up || '',
+                                      appointment_time: '',
+                                      appointment_location: lead.preferred_location || ''
+                                    }}
+                                  />
                                 </div>
                               </CardContent>
                             </Card>
