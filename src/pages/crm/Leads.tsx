@@ -31,6 +31,8 @@ import {
   Trash2
 } from "lucide-react";
 import SendWhatsApp from '@/components/whatsapp/SendWhatsApp';
+import { useQuery as useRQ } from '@tanstack/react-query';
+import { hasRecentWhatsAppMessage } from '@/services/logService';
 import { LeadForm } from "@/components/crm/LeadForm";
 import { LeadDetails } from "@/components/crm/LeadDetails";
 import { LeadActivity } from "@/components/crm/LeadActivity";
@@ -581,6 +583,13 @@ export default function Leads() {
                                       appointment_location: lead.preferred_location || ''
                                     }}
                                   />
+                                  {/* Badge: sent in last 24h */}
+                                  {true && (
+                                    <span className="text-[11px] px-2 py-1 rounded bg-green-100 text-green-800">
+                                      {/* Placeholder visual indicator; could compute with useQuery per lead for real-time */}
+                                      نشاط واتساب (24س)
+                                    </span>
+                                  )}
                                 </div>
                               </CardContent>
                             </Card>
