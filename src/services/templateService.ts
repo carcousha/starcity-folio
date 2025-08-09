@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { extractPlaceholders } from '@/lib/whatsapp';
 
 export type WhatsAppStage = 'Lead' | 'Negotiation' | 'Closing' | 'PostSale';
 export type Lang = 'ar' | 'en';
@@ -25,15 +26,25 @@ export async function getTemplates(filters?: { stage?: WhatsAppStage; lang?: Lan
 }
 
 export async function createTemplate(data: TemplateDTO) {
-  const payload: any = { ...data, variables: JSON.stringify(data.variables || []) };
-  const { data: res, error } = await (supabase as any).from('whatsapp_templates').insert(payload).select().single();
+  const used = extractPlaceholders(data.body);
+  const { data: auth } = await (supabase as any).auth.getUser();
+  const payload: any = { ...data, variables: used || [], created_by: auth?.user?.id || null };
+  const { data: res, error } = await (supabase as any)
+    .from('whatsapp_templates')
+    .insert(payload)
+    .select()
+    .single();
   if (error) throw error;
   return res as TemplateDTO;
 }
 
 export async function updateTemplate(id: string, data: Partial<TemplateDTO>) {
   const payload: any = { ...data };
-  if (data.variables) payload.variables = JSON.stringify(data.variables);
+  if (typeof data.body === 'string') {
+    payload.variables = extractPlaceholders(data.body);
+  } else if (data.variables) {
+    payload.variables = data.variables;
+  }
   const { data: res, error } = await (supabase as any).from('whatsapp_templates').update(payload).eq('id', id).select().single();
   if (error) throw error;
   return res as TemplateDTO;
