@@ -16,7 +16,7 @@ export interface PropertyOwner {
   is_active: boolean;
   created_by?: string;
   assigned_employee?: string;
-  profiles?: {
+  assigned_employee_profile?: {
     first_name: string;
     last_name: string;
   } | null;
