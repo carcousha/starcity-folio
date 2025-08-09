@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge';
 
 const propertySchema = z.object({
   title: z.string().min(1, 'عنوان العقار مطلوب'),
+  property_code: z.string().optional(),
+  listing_date: z.string().optional(),
   property_type: z.enum(['villa', 'apartment', 'land', 'shop', 'office', 'other']),
   property_status: z.enum(['available', 'reserved', 'sold', 'under_construction']),
   transaction_type: z.enum(['sale', 'rent', 'resale', 'off_plan']),
@@ -48,6 +50,36 @@ const propertySchema = z.object({
   country_code: z.string().min(1, 'مفتاح الدولة مطلوب'),
   owner_phone: z.string().min(8, 'رقم هاتف المالك مطلوب'),
   property_owner_id: z.string().optional(),
+  property_details: z.object({
+    neighborhood_type: z.string().optional(),
+    in_compound: z.boolean().optional(),
+    compound_name: z.string().optional(),
+    parking_count: z.number().optional(),
+    parking_type: z.string().optional(),
+    garden_area: z.number().optional(),
+    pool_type: z.string().optional(),
+    internet_provider: z.string().optional(),
+    internet_speed: z.string().optional(),
+    utilities_electricity: z.string().optional(),
+    utilities_water: z.string().optional(),
+    utilities_generator: z.boolean().optional(),
+    view_type: z.string().optional(),
+    orientation: z.string().optional(),
+    expansion_possible: z.boolean().optional(),
+    has_elevator: z.boolean().optional(),
+    flooring_type: z.string().optional(),
+    smart_home_features: z.array(z.string()).optional(),
+    suitability: z.array(z.string()).optional(),
+    legal_status: z.string().optional(),
+    has_building_permits: z.boolean().optional(),
+    official_valuation: z.number().optional(),
+    taxes_fees: z.string().optional(),
+    payment_methods: z.array(z.string()).optional(),
+    has_discounts: z.boolean().optional(),
+    discount_details: z.string().optional(),
+    monthly_costs: z.string().optional(),
+    nearby_pois: z.array(z.string()).optional(),
+  }).default({}),
 });
 
 type PropertyFormData = z.infer<typeof propertySchema>;
@@ -144,6 +176,9 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
       country_code: '+971',
       owner_phone: '',
       property_owner_id: '',
+      property_code: '',
+      listing_date: '',
+      property_details: {},
     }
   });
 
@@ -225,6 +260,9 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         interior_features: property.interior_features || [],
         exterior_features: property.exterior_features || [],
         property_owner_id: property.property_owner_id || '',
+        property_code: property.property_code || '',
+        listing_date: property.listing_date || '',
+        property_details: property.property_details || {},
         owner_phone: '',
       });
       try {
@@ -239,6 +277,17 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   const onSubmit = async (data: PropertyFormData) => {
     setIsSubmitting(true);
     try {
+      // Enforce linking to an existing owner by phone
+      if (!data.property_owner_id) {
+        toast({
+          title: 'رقم المالك غير مرتبط',
+          description: 'يرجى إدخال رقم مالك موجود ليتم ربط العقار بالمالك تلقائياً',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const submitData = {
         ...data,
         photos: JSON.stringify(uploadedPhotos),
@@ -477,6 +526,34 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="property_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>كود/رقم العقار</FormLabel>
+                      <FormControl>
+                        <Input placeholder="مثال: SC-2025-001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="listing_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>تاريخ الإدراج</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </CardContent>
           </Card>
@@ -535,6 +612,81 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
                   )}
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>خط العرض (Latitude)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.000001" value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>خط الطول (Longitude)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.000001" value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="property_details.neighborhood_type"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>نوع الحي (سكني، تجاري، مختلط)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="سكني / تجاري / مختلط" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="property_details.in_compound"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox checked={!!field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>داخل مجمع سكني (كمبوند)</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="property_details.compound_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>اسم المجمع (إن وجد)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="اسم الكمبوند / المجمع" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 

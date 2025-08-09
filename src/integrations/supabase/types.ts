@@ -621,12 +621,15 @@ export type Database = {
           internal_notes: string | null
           is_negotiable: boolean | null
           latitude: number | null
+          listing_date: string | null
           longitude: number | null
           monthly_installments: number | null
           owner_id: string | null
           photos: Json | null
           plot_area: number | null
           property_age: number | null
+          property_code: string | null
+          property_details: Json
           property_owner_id: string | null
           property_status: string
           property_type: string
@@ -661,12 +664,15 @@ export type Database = {
           internal_notes?: string | null
           is_negotiable?: boolean | null
           latitude?: number | null
+          listing_date?: string | null
           longitude?: number | null
           monthly_installments?: number | null
           owner_id?: string | null
           photos?: Json | null
           plot_area?: number | null
           property_age?: number | null
+          property_code?: string | null
+          property_details?: Json
           property_owner_id?: string | null
           property_status?: string
           property_type: string
@@ -701,12 +707,15 @@ export type Database = {
           internal_notes?: string | null
           is_negotiable?: boolean | null
           latitude?: number | null
+          listing_date?: string | null
           longitude?: number | null
           monthly_installments?: number | null
           owner_id?: string | null
           photos?: Json | null
           plot_area?: number | null
           property_age?: number | null
+          property_code?: string | null
+          property_details?: Json
           property_owner_id?: string | null
           property_status?: string
           property_type?: string
