@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Building, 
   Search,
@@ -15,26 +16,32 @@ import {
   Camera,
   Home,
   Plus,
-  Edit
+  Edit,
+  Phone
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { PropertyForm } from "@/components/crm/PropertyForm";
 
 export default function MyProperties() {
   const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
-  const { data: propertiesData, isLoading } = useQuery({
+  const { data: propertiesData, isLoading, refetch } = useQuery({
     queryKey: ['my-properties', profile?.user_id],
     queryFn: async () => {
       if (!profile) return [];
       
       const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .or(`listed_by.eq.${profile.user_id},created_by.eq.${profile.user_id}`)
+        .from('crm_properties')
+        .select(`
+          *,
+          property_owners:property_owner_id(id, full_name, mobile_numbers)
+        `)
+        .or(`assigned_employee.eq.${profile.user_id},created_by.eq.${profile.user_id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -45,11 +52,11 @@ export default function MyProperties() {
 
   const filteredProperties = propertiesData?.filter(property => {
     const matchesSearch = property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (property.description && property.description.toLowerCase().includes(searchTerm.toLowerCase()));
+                         property.full_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (property.area_community && property.area_community.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesType = selectedType === "all" || property.property_type === selectedType;
-    const matchesStatus = selectedStatus === "all" || property.status === selectedStatus;
+    const matchesStatus = selectedStatus === "all" || property.property_status === selectedStatus;
     
     return matchesSearch && matchesType && matchesStatus;
   }) || [];
@@ -68,6 +75,14 @@ export default function MyProperties() {
         return <Badge className="bg-orange-100 text-orange-800">معلق</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const handleWhatsAppClick = (mobileNumbers: string[]) => {
+    if (mobileNumbers && mobileNumbers.length > 0) {
+      const phoneNumber = mobileNumbers[0].replace(/\s+/g, '');
+      const whatsappUrl = `https://wa.me/${phoneNumber.startsWith('+') ? phoneNumber.slice(1) : phoneNumber}`;
+      window.open(whatsappUrl, '_blank');
     }
   };
 
@@ -110,10 +125,22 @@ export default function MyProperties() {
             <p className="text-muted-foreground">العقارات المسؤول عنها والمخصصة لي</p>
           </div>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 ml-2" />
-          إضافة عقار جديد
-        </Button>
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 ml-2" />
+              إضافة عقار جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <PropertyForm 
+              onSuccess={() => {
+                setShowAddDialog(false);
+                refetch();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
@@ -184,7 +211,7 @@ export default function MyProperties() {
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">العقارات المتاحة</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {filteredProperties.filter(p => p.status === 'available').length}
+                  {filteredProperties.filter(p => p.property_status === 'available').length}
                 </p>
               </div>
               <div className="p-3 rounded-full bg-green-50">
@@ -200,7 +227,7 @@ export default function MyProperties() {
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">العقارات المباعة</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {filteredProperties.filter(p => p.status === 'sold').length}
+                  {filteredProperties.filter(p => p.property_status === 'sold').length}
                 </p>
               </div>
               <div className="p-3 rounded-full bg-purple-50">
@@ -217,7 +244,7 @@ export default function MyProperties() {
                 <p className="text-sm font-medium text-muted-foreground">متوسط السعر</p>
                 <p className="text-2xl font-bold text-foreground">
                   {filteredProperties.length > 0 
-                    ? Math.round(filteredProperties.reduce((sum, p) => sum + Number(p.price), 0) / filteredProperties.length).toLocaleString()
+                    ? Math.round(filteredProperties.reduce((sum, p) => sum + Number(p.total_price), 0) / filteredProperties.length).toLocaleString()
                     : 0
                   } د.إ
                 </p>
@@ -258,9 +285,9 @@ export default function MyProperties() {
                 <div key={property.id} className="border rounded-lg overflow-hidden">
                   {/* Property Image */}
                   <div className="h-48 bg-gray-100 flex items-center justify-center">
-                    {property.images && property.images.length > 0 ? (
+                    {property.photos && Array.isArray(property.photos) && property.photos.length > 0 ? (
                       <img 
-                        src={property.images[0]} 
+                        src={property.photos[0] as string} 
                         alt={property.title}
                         className="w-full h-full object-cover"
                       />
@@ -278,27 +305,39 @@ export default function MyProperties() {
                           {getPropertyTypeName(property.property_type)}
                         </span>
                       </div>
-                      {getStatusBadge(property.status)}
+                      {getStatusBadge(property.property_status)}
                     </div>
                     
                     <h3 className="font-semibold text-lg mb-2">{property.title}</h3>
                     
                     <div className="flex items-center space-x-2 space-x-reverse mb-3 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4" />
-                      <span>{property.location}</span>
+                      <span>{property.full_address}</span>
                     </div>
                     
                     <div className="flex items-center space-x-2 space-x-reverse mb-4">
                       <DollarSign className="h-5 w-5 text-green-600" />
                       <span className="text-xl font-bold text-green-600">
-                        {Number(property.price).toLocaleString()} د.إ
+                        {Number(property.total_price).toLocaleString()} د.إ
                       </span>
                     </div>
                     
-                    {property.description && (
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {property.description}
-                      </p>
+                    {/* Owner Info */}
+                    {property.property_owners && (
+                      <div className="flex items-center space-x-2 space-x-reverse mb-3 text-sm text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span>المالك: {property.property_owners.full_name}</span>
+                        {property.property_owners.mobile_numbers && Array.isArray(property.property_owners.mobile_numbers) && property.property_owners.mobile_numbers.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleWhatsAppClick(property.property_owners.mobile_numbers as string[])}
+                            className="h-6 px-2"
+                          >
+                            <Phone className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                     )}
                     
                     {/* Property Features */}
@@ -309,8 +348,8 @@ export default function MyProperties() {
                       {property.bathrooms && (
                         <div>الحمامات: {property.bathrooms}</div>
                       )}
-                      {property.area && (
-                        <div>المساحة: {property.area} م²</div>
+                      {property.built_up_area && (
+                        <div>المساحة: {property.built_up_area} م²</div>
                       )}
                     </div>
                     
