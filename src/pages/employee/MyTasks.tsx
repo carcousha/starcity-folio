@@ -333,15 +333,17 @@ export default function MyTasks() {
                       }}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => {
-                          if (confirm('هل أنت متأكد من حذف هذه المهمة؟')) deleteTask(task.id)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {(task.created_by === profile.user_id) && (
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => {
+                            if (confirm('هل أنت متأكد من حذف هذه المهمة؟')) deleteTask(task.id)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 
