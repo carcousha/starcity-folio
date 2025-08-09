@@ -176,6 +176,11 @@ const AppProtector = () => {
                    <Leads />
                  </ProtectedRoute>
                } />
+               <Route path="/crm/whatsapp" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <WhatsAppSmart />
+                 </ProtectedRoute>
+               } />
                <Route path="/crm/properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <CRMProperties />
