@@ -44,7 +44,7 @@ export const OwnersList = () => {
         .from("property_owners")
         .select(`
           *,
-          profiles!property_owners_assigned_employee_fkey (
+          assigned_employee_profile:profiles!property_owners_assigned_employee_fkey (
             first_name,
             last_name
           )
@@ -57,9 +57,9 @@ export const OwnersList = () => {
       // Transform the data to match our interface
       const transformedData = data?.map(owner => ({
         ...owner,
-        profiles: Array.isArray(owner.profiles) && owner.profiles.length > 0 
-          ? owner.profiles[0] 
-          : null
+        assigned_employee_profile: Array.isArray(owner.assigned_employee_profile) && owner.assigned_employee_profile.length > 0 
+          ? owner.assigned_employee_profile[0] 
+          : owner.assigned_employee_profile || null
       })) || [];
       
       setOwners(transformedData as PropertyOwner[]);
@@ -327,11 +327,11 @@ export const OwnersList = () => {
               </div>
 
               {/* Assigned Employee */}
-              {owner.profiles && (
+              {owner.assigned_employee_profile && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
                   <User className="h-4 w-4" />
                   <span className="text-right">
-                    الموظف المسؤول: {owner.profiles.first_name} {owner.profiles.last_name}
+                    الموظف المسؤول: {owner.assigned_employee_profile.first_name} {owner.assigned_employee_profile.last_name}
                   </span>
                 </div>
               )}
