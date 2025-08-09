@@ -44,7 +44,7 @@ export const OwnersList = () => {
         .from("property_owners")
         .select(`
           *,
-          profiles:assigned_employee (
+          profiles!property_owners_assigned_employee_fkey (
             first_name,
             last_name
           )
@@ -53,7 +53,16 @@ export const OwnersList = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOwners(data as PropertyOwner[] || []);
+      
+      // Transform the data to match our interface
+      const transformedData = data?.map(owner => ({
+        ...owner,
+        profiles: Array.isArray(owner.profiles) && owner.profiles.length > 0 
+          ? owner.profiles[0] 
+          : null
+      })) || [];
+      
+      setOwners(transformedData as PropertyOwner[]);
     } catch (error: any) {
       console.error("Error fetching owners:", error);
       toast({

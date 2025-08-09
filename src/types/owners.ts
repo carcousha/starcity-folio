@@ -19,5 +19,5 @@ export interface PropertyOwner {
   profiles?: {
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
