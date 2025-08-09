@@ -1,28 +1,17 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { PropertyOwner } from "@/types/owners";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Eye, 
-  Phone, 
-  Mail, 
-  Building, 
-  User,
-  MapPin,
-  FileText,
-  DollarSign
-} from "lucide-react";
+import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign } from "lucide-react";
 import { OwnerForm } from "./OwnerForm";
 import { OwnerDetails } from "./OwnerDetails";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PropertyOwner } from "@/types/owners";
+
 export const OwnersList = () => {
   const { toast } = useToast();
   const [owners, setOwners] = useState<PropertyOwner[]>([]);
@@ -42,27 +31,35 @@ export const OwnersList = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("property_owners")
-        .select(`
-          *,
-          assigned_employee_profile:profiles!property_owners_assigned_employee_fkey (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       
-      // Transform the data to match our interface
-      const transformedData = data?.map(owner => ({
-        ...owner,
-        assigned_employee_profile: Array.isArray(owner.assigned_employee_profile) && owner.assigned_employee_profile.length > 0 
-          ? owner.assigned_employee_profile[0] 
-          : owner.assigned_employee_profile || null
-      })) || [];
+      // Get employee names separately to avoid relationship issues
+      const ownersWithEmployeeInfo = await Promise.all(
+        (data || []).map(async (owner) => {
+          if (owner.assigned_employee) {
+            const { data: employeeData } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('user_id', owner.assigned_employee)
+              .maybeSingle();
+            
+            return {
+              ...owner,
+              assigned_employee_profile: employeeData
+            };
+          }
+          return {
+            ...owner,
+            assigned_employee_profile: null
+          };
+        })
+      );
       
-      setOwners(transformedData as PropertyOwner[]);
+      setOwners(ownersWithEmployeeInfo as PropertyOwner[]);
     } catch (error: any) {
       console.error("Error fetching owners:", error);
       toast({
@@ -72,6 +69,16 @@ export const OwnersList = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to open WhatsApp
+  const openWhatsApp = (phoneNumbers: string[]) => {
+    if (phoneNumbers && phoneNumbers.length > 0) {
+      // Clean the phone number (remove spaces, dashes, etc.)
+      const cleanNumber = phoneNumbers[0].replace(/[\s\-\(\)]/g, '');
+      const whatsappUrl = `https://wa.me/${cleanNumber}`;
+      window.open(whatsappUrl, '_blank');
     }
   };
 
@@ -281,23 +288,32 @@ export const OwnersList = () => {
             <CardContent className="space-y-3">
               {/* Contact Information */}
               <div className="space-y-2">
-                {Array.isArray(owner.mobile_numbers) && owner.mobile_numbers.map((number: string, index: number) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-right" dir="rtl">{number}</span>
+                {Array.isArray(owner.mobile_numbers) && owner.mobile_numbers.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    <span className="flex-1">{owner.mobile_numbers.join(", ")}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openWhatsApp(owner.mobile_numbers)}
+                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                      title="إرسال رسالة واتساب"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
                   </div>
-                ))}
+                )}
                 
                 {owner.email && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4" />
                     <span className="text-right" dir="rtl">{owner.email}</span>
                   </div>
                 )}
 
                 {owner.address && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
                     <span className="text-right line-clamp-2" dir="rtl">{owner.address}</span>
                   </div>
                 )}
