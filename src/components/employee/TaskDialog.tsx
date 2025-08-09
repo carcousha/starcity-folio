@@ -63,10 +63,11 @@ export function TaskDialog({ open, onOpenChange, task, mode }: TaskDialogProps) 
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Task save error:', error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء حفظ المهمة",
+        description: error?.message || "حدث خطأ أثناء حفظ المهمة",
         variant: "destructive"
       });
     }
