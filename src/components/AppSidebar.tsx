@@ -116,6 +116,12 @@ export function AppSidebar() {
       ]
     },
     { 
+      title: "مركز الذكاء الاصطناعي", 
+      url: "/ai-intelligence-hub", 
+      icon: Brain,
+      hasSubmenu: false
+    },
+    { 
       title: "الواتساب", 
       url: "/whatsapp", 
       icon: MessageSquare,
