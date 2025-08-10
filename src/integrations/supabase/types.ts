@@ -3691,6 +3691,138 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_message_logs: {
+        Row: {
+          client_id: string | null
+          error: string | null
+          id: string
+          lang: string
+          lead_id: string | null
+          message_text: string
+          meta: Json
+          phone_e164: string
+          sent_at: string
+          sent_by: string | null
+          stage: string
+          status: string
+          template_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          error?: string | null
+          id?: string
+          lang: string
+          lead_id?: string | null
+          message_text: string
+          meta?: Json
+          phone_e164: string
+          sent_at?: string
+          sent_by?: string | null
+          stage: string
+          status?: string
+          template_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          error?: string | null
+          id?: string
+          lang?: string
+          lead_id?: string | null
+          message_text?: string
+          meta?: Json
+          phone_e164?: string
+          sent_at?: string
+          sent_by?: string | null
+          stage?: string
+          status?: string
+          template_id?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_reminders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          lead_id: string
+          remind_at: string
+          stage: string
+          surfaced: boolean
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          lead_id: string
+          remind_at: string
+          stage: string
+          surfaced?: boolean
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          lead_id?: string
+          remind_at?: string
+          stage?: string
+          surfaced?: boolean
+          template_id?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          footer: string | null
+          header: string | null
+          id: string
+          is_default: boolean
+          lang: string
+          name: string
+          stage: Database["public"]["Enums"]["whatsapp_stage"]
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          footer?: string | null
+          header?: string | null
+          id?: string
+          is_default?: boolean
+          lang: string
+          name: string
+          stage?: Database["public"]["Enums"]["whatsapp_stage"]
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          footer?: string | null
+          header?: string | null
+          id?: string
+          is_default?: boolean
+          lang?: string
+          name?: string
+          stage?: Database["public"]["Enums"]["whatsapp_stage"]
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -4040,6 +4172,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      reset_financial_data: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       restore_deleted_record: {
         Args: { p_audit_log_id: string }
         Returns: Json
@@ -4125,6 +4261,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "accountant" | "employee"
+      whatsapp_stage: "Lead" | "Negotiation" | "Closing" | "PostSale"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4253,6 +4390,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "accountant", "employee"],
+      whatsapp_stage: ["Lead", "Negotiation", "Closing", "PostSale"],
     },
   },
 } as const
