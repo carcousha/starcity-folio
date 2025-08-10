@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,66 +13,71 @@ import { AudioNotificationProvider } from "@/components/AudioNotificationProvide
 import { AppLayout } from "@/components/AppLayout";
 import { StrictAuthProtector } from "@/components/StrictAuthProtector";
 import { DashboardHome } from "@/components/DashboardHome";
-import Auth from "./pages/Auth";
-import CRMIndex from "./pages/crm/index";
-import Clients from "./pages/crm/Clients";
-import Leads from "./pages/crm/Leads";
-import CRMProperties from "./pages/crm/Properties";
-import CRMPropertyOwners from "./pages/crm/PropertyOwners";
-import TasksIndex from "./pages/tasks/index";
-import AccountingIndex from "./pages/accounting/index";
-import Expenses from "./pages/accounting/Expenses";
-import Revenues from "./pages/accounting/Revenues";
-import Commissions from "./pages/accounting/Commissions";
-import Debts from "./pages/accounting/Debts";
-import Vehicles from "./pages/accounting/Vehicles";
-import VehicleExpenses from "./pages/accounting/VehicleExpenses";
-import Staff from "./pages/accounting/Staff";
-import Treasury from "./pages/accounting/Treasury";
-import ActivityLogPage from "./pages/accounting/ActivityLog";
-import AdvancedDebts from "./pages/accounting/AdvancedDebts";
-import DailyJournal from "./pages/accounting/DailyJournal";
-import ReportsIndex from "./pages/reports/index";
-import RentalIndex from "./pages/rental/index";
-import RentalPropertyOwners from "./pages/rental/PropertyOwners";
-import RentalProperties from "./pages/rental/Properties";
-import Tenants from "./pages/rental/Tenants";
-import RentalContracts from "./pages/rental/RentalContracts";
-import GeneratedContracts from "./pages/rental/GeneratedContracts";
-import Installments from "./pages/rental/Installments";
-import GovernmentServices from "./pages/rental/GovernmentServices";
-import EmployeeReports from "./pages/reports/EmployeeReports";
-import EmployeeDetails from "./pages/reports/EmployeeDetails";
-import VehicleReports from "./pages/reports/VehicleReports";
-import CommissionsReports from "./pages/reports/CommissionsReports";
-import DebtsReports from "./pages/reports/DebtsReports";
-import ExpensesReports from "./pages/reports/ExpensesReports";
-import RevenuesReports from "./pages/reports/RevenuesReports";
-import TreasuryReports from "./pages/reports/TreasuryReports";
-import EmployeeDashboard from "./pages/employee/Dashboard";
-import MyCommissions from "./pages/employee/MyCommissions";
-import MyDebts from "./pages/employee/MyDebts";
-import MyProfile from "./pages/employee/MyProfile";
-import Vehicle from "./pages/employee/Vehicle";
-import MyRequests from "./pages/employee/MyRequests";
-import Complaints from "./pages/employee/Complaints";
-import Notifications from "./pages/employee/Notifications";
-import MyGoals from "./pages/employee/MyGoals";
-import MyEvaluation from "./pages/employee/MyEvaluation";
-import MyPerformance from "./pages/employee/MyPerformance";
-import MyClients from "./pages/employee/MyClients";
-import MyLeads from "./pages/employee/MyLeads";
-import MyTasks from "./pages/employee/MyTasks";
-import MyProperties from "./pages/employee/MyProperties";
-import NotFound from "./pages/NotFound";
-import Settings from "./pages/Settings";
-import SecurityAuditPage from "./pages/SecurityAudit";
-import WhatsAppSmart from "./pages/crm/WhatsAppSmart";
-import WhatsAppHome from "./pages/whatsapp";
-import WhatsAppSettings from "./pages/whatsapp/Settings.tsx";
-import WhatsAppLogs from "./pages/whatsapp/Logs.tsx";
-import WhatsAppReminders from "./pages/whatsapp/Reminders.tsx";
-import WhatsAppTemplates from "./pages/whatsapp/Templates";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+
+// Lazy Loading Components
+const Auth = lazy(() => import("./pages/Auth"));
+const CRMIndex = lazy(() => import("./pages/crm/index"));
+const Clients = lazy(() => import("./pages/crm/Clients"));
+const Leads = lazy(() => import("./pages/crm/Leads"));
+const CRMProperties = lazy(() => import("./pages/crm/Properties"));
+const CRMPropertyOwners = lazy(() => import("./pages/crm/PropertyOwners"));
+const TasksIndex = lazy(() => import("./pages/tasks/index"));
+const AccountingIndex = lazy(() => import("./pages/accounting/index"));
+const Expenses = lazy(() => import("./pages/accounting/Expenses"));
+const Revenues = lazy(() => import("./pages/accounting/Revenues"));
+const Commissions = lazy(() => import("./pages/accounting/Commissions"));
+const Debts = lazy(() => import("./pages/accounting/Debts"));
+const Vehicles = lazy(() => import("./pages/accounting/Vehicles"));
+const VehicleExpenses = lazy(() => import("./pages/accounting/VehicleExpenses"));
+const Staff = lazy(() => import("./pages/accounting/Staff"));
+const Treasury = lazy(() => import("./pages/accounting/Treasury"));
+const ActivityLogPage = lazy(() => import("./pages/accounting/ActivityLog"));
+const AdvancedDebts = lazy(() => import("./pages/accounting/AdvancedDebts"));
+const DailyJournal = lazy(() => import("./pages/accounting/DailyJournal"));
+const ReportsIndex = lazy(() => import("./pages/reports/index"));
+const RentalIndex = lazy(() => import("./pages/rental/index"));
+const RentalPropertyOwners = lazy(() => import("./pages/rental/PropertyOwners"));
+const RentalProperties = lazy(() => import("./pages/rental/Properties"));
+const Tenants = lazy(() => import("./pages/rental/Tenants"));
+const RentalContracts = lazy(() => import("./pages/rental/RentalContracts"));
+const GeneratedContracts = lazy(() => import("./pages/rental/GeneratedContracts"));
+const Installments = lazy(() => import("./pages/rental/Installments"));
+const GovernmentServices = lazy(() => import("./pages/rental/GovernmentServices"));
+const EmployeeReports = lazy(() => import("./pages/reports/EmployeeReports"));
+const EmployeeDetails = lazy(() => import("./pages/reports/EmployeeDetails"));
+const VehicleReports = lazy(() => import("./pages/reports/VehicleReports"));
+const CommissionsReports = lazy(() => import("./pages/reports/CommissionsReports"));
+const DebtsReports = lazy(() => import("./pages/reports/DebtsReports"));
+const ExpensesReports = lazy(() => import("./pages/reports/ExpensesReports"));
+const RevenuesReports = lazy(() => import("./pages/reports/RevenuesReports"));
+const TreasuryReports = lazy(() => import("./pages/reports/TreasuryReports"));
+const EmployeeDashboard = lazy(() => import("./pages/employee/Dashboard"));
+const MyCommissions = lazy(() => import("./pages/employee/MyCommissions"));
+const MyDebts = lazy(() => import("./pages/employee/MyDebts"));
+const MyProfile = lazy(() => import("./pages/employee/MyProfile"));
+const Vehicle = lazy(() => import("./pages/employee/Vehicle"));
+const MyRequests = lazy(() => import("./pages/employee/MyRequests"));
+const Complaints = lazy(() => import("./pages/employee/Complaints"));
+const Notifications = lazy(() => import("./pages/employee/Notifications"));
+const MyGoals = lazy(() => import("./pages/employee/MyGoals"));
+const MyEvaluation = lazy(() => import("./pages/employee/MyEvaluation"));
+const MyPerformance = lazy(() => import("./pages/employee/MyPerformance"));
+const MyClients = lazy(() => import("./pages/employee/MyClients"));
+const MyLeads = lazy(() => import("./pages/employee/MyLeads"));
+const MyTasks = lazy(() => import("./pages/employee/MyTasks"));
+const MyProperties = lazy(() => import("./pages/employee/MyProperties"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Settings = lazy(() => import("./pages/Settings"));
+const SecurityAuditPage = lazy(() => import("./pages/SecurityAudit"));
+const WhatsAppSmart = lazy(() => import("./pages/crm/WhatsAppSmart"));
+const WhatsAppHome = lazy(() => import("./pages/whatsapp"));
+const WhatsAppSettings = lazy(() => import("./pages/whatsapp/Settings.tsx"));
+const WhatsAppLogs = lazy(() => import("./pages/whatsapp/Logs.tsx"));
+const WhatsAppReminders = lazy(() => import("./pages/whatsapp/Reminders.tsx"));
+const WhatsAppTemplates = lazy(() => import("./pages/whatsapp/Templates"));
+const AIIntelligenceHub = lazy(() => import("./components/ai"));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -110,7 +115,11 @@ const AppProtector = () => {
 
   // إذا كان المسار صفحة تسجيل الدخول، اعرضها فقط
   if (location.pathname === "/") {
-    return <Auth />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Auth />
+      </Suspense>
+    );
   }
 
   // فحص فوري وصارم: إذا لم يكن هناك session صالح
@@ -162,317 +171,446 @@ const AppProtector = () => {
             <Routes>
                         <Route path="/admin-dashboard" element={
                           <ProtectedRoute requiredPermission="canManageStaff">
-                            <DashboardHome />
+                            <Suspense fallback={<LoadingSpinner />}>
+                              <DashboardHome />
+                            </Suspense>
                           </ProtectedRoute>
                         } />
               
               {/* CRM Routes - Admin and some for employees */}
                <Route path="/crm" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <CRMIndex />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <CRMIndex />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/whatsapp/templates" element={
                  <ProtectedRoute requiredPermission="canManageStaff">
-                   <WhatsAppTemplates />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppTemplates />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/crm/clients" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Clients />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <Clients />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/crm/leads" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Leads />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <Leads />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                {/* WhatsApp Module */}
                <Route path="/whatsapp" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <WhatsAppHome />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppHome />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/whatsapp/smart" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <WhatsAppSmart />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppSmart />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/whatsapp/settings" element={
                  <ProtectedRoute requiredPermission="canManageStaff">
-                   <WhatsAppSettings />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppSettings />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/whatsapp/logs" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <WhatsAppLogs />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppLogs />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/whatsapp/reminders" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <WhatsAppReminders />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppReminders />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/crm/properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <CRMProperties />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <CRMProperties />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/crm/owners" element={
                   <ProtectedRoute requiredPermission="crmAccess">
-                    <CRMPropertyOwners />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <CRMPropertyOwners />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
               <Route path="/crm/tasks" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <TasksIndex />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <TasksIndex />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               
               {/* Accounting Routes - Admin and Accountant */}
               <Route path="/accounting" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <AccountingIndex />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AccountingIndex />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/expenses" element={
                 <ProtectedRoute requiredPermission="canManageExpenses">
-                  <Expenses />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Expenses />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/revenues" element={
                 <ProtectedRoute requiredPermission="canManageRevenues">
-                  <Revenues />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Revenues />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/commissions" element={
                 <ProtectedRoute requiredPermission="canManageCommissions">
-                  <Commissions />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Commissions />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/debts" element={
                 <ProtectedRoute requiredPermission="canManageDebts">
-                  <Debts />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Debts />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/advanced-debts" element={
                 <ProtectedRoute requiredPermission="canManageDebts">
-                  <AdvancedDebts />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AdvancedDebts />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/vehicles" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
-                  <Vehicles />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Vehicles />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/vehicle-expenses" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
-                  <VehicleExpenses />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <VehicleExpenses />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/staff" element={
                 <ProtectedRoute requiredPermission="canViewAllStaff">
-                  <Staff />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Staff />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/treasury" element={
                 <ProtectedRoute requiredPermission="canViewTreasury">
-                  <Treasury />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Treasury />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/daily-journal" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <DailyJournal />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <DailyJournal />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/activity-log" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <ActivityLogPage />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <ActivityLogPage />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               
                {/* Rental Routes - Admin and Accountant */}
                <Route path="/rental" element={
                  <ProtectedRoute requiredPermission="canViewFinancials">
-                   <RentalIndex />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <RentalIndex />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/rental/property-owners" element={
                   <ProtectedRoute requiredPermission="canViewFinancials">
-                    <RentalPropertyOwners />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <RentalPropertyOwners />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
               <Route path="/rental/properties" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <RentalProperties />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <RentalProperties />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/rental/tenants" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <Tenants />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Tenants />
+                  </Suspense>
                 </ProtectedRoute>
               } />
                <Route path="/rental/contracts" element={
                  <ProtectedRoute requiredPermission="canManageCommissions">
-                   <RentalContracts />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <RentalContracts />
+                   </Suspense>
                  </ProtectedRoute>
                 } />
                 <Route path="/rental/generated-contracts" element={
                   <ProtectedRoute requiredPermission="canViewFinancials">
-                    <GeneratedContracts />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <GeneratedContracts />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
                 <Route path="/rental/installments" element={
                  <ProtectedRoute requiredPermission="canViewFinancials">
-                   <Installments />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <Installments />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/rental/government-services" element={
                  <ProtectedRoute requiredPermission="canViewFinancials">
-                   <GovernmentServices />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <GovernmentServices />
+                   </Suspense>
                  </ProtectedRoute>
                } />
               
               {/* Reports Routes - Admin and Accountant */}
               <Route path="/reports" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <ReportsIndex />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <ReportsIndex />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/employees" element={
                 <ProtectedRoute requiredPermission="canViewAllStaff">
-                  <EmployeeReports />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <EmployeeReports />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/employee/:employeeId" element={
                 <ProtectedRoute requiredPermission="canViewAllStaff">
-                  <EmployeeDetails />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <EmployeeDetails />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/vehicles" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
-                  <VehicleReports />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <VehicleReports />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/commissions" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <CommissionsReports />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <CommissionsReports />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/debts" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <DebtsReports />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <DebtsReports />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/expenses" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <ExpensesReports />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <ExpensesReports />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/revenues" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <RevenuesReports />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <RevenuesReports />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/reports/treasury" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <TreasuryReports />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <TreasuryReports />
+                  </Suspense>
                 </ProtectedRoute>
               } />
                
                {/* Employee Routes */}
                <Route path="/employee/dashboard" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <EmployeeDashboard />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <EmployeeDashboard />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-commissions" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyCommissions />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyCommissions />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-debts" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyDebts />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyDebts />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/vehicle" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Vehicle />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <Vehicle />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/requests" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyRequests />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyRequests />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/complaints" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Complaints />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <Complaints />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/notifications" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Notifications />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <Notifications />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/tasks" element={
                  <ProtectedRoute requiredPermission="canViewActivityLogs">
-                   <TasksIndex />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <TasksIndex />
+                   </Suspense>
                  </ProtectedRoute>
                } />
               <Route path="/my-goals" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <MyGoals />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <MyGoals />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               <Route path="/my-evaluation" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <MyEvaluation />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <MyEvaluation />
+                  </Suspense>
                 </ProtectedRoute>
                } />
                <Route path="/employee/my-performance" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyPerformance />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyPerformance />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-clients" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyClients />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyClients />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-leads" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyLeads />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyLeads />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-tasks" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyTasks />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyTasks />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyProperties />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyProperties />
+                   </Suspense>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-profile" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <MyProfile />
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <MyProfile />
+                   </Suspense>
                  </ProtectedRoute>
                } />
               
               {/* Settings Route - Admin only */}
               <Route path="/settings" element={
                 <ProtectedRoute requiredPermission="canManageStaff">
-                  <Settings />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Settings />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               
               {/* Security Audit Route - Admin only */}
               <Route path="/security-audit" element={
                 <ProtectedRoute requiredPermission="canManageStaff">
-                  <SecurityAuditPage />
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <SecurityAuditPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              
+              {/* AI Intelligence Hub */}
+              <Route path="/ai-intelligence-hub" element={
+                <ProtectedRoute requiredPermission="canManageStaff">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AIIntelligenceHub />
+                  </Suspense>
                 </ProtectedRoute>
               } />
               
@@ -481,7 +619,9 @@ const AppProtector = () => {
                 path="*"
                 element={
                   <ProtectedRoute requiredPermission="crmAccess">
-                    <NotFound />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <NotFound />
+                    </Suspense>
                   </ProtectedRoute>
                 }
               />
