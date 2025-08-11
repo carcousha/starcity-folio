@@ -84,99 +84,19 @@ export default function SmartRecommendations({
     refreshInterval: 300000 // 5 minutes in milliseconds
   });
 
-  // بيانات تجريبية للتوصيات
-  const mockRecommendations: BrokerRecommendation[] = [
-    {
-      id: '1',
-      type: 'follow_up',
-      priority: 'urgent',
-      title: 'متابعة مع أحمد محمد علي',
-      message: 'لم يتم التواصل مع العميل منذ 573 أيام. يتطلب متابعة عاجلة لاستعادة التواصل.',
-      client_id: '1',
-      created_at: new Date().toISOString(),
-      is_read: false,
-      action_required: true,
-      action_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: '2',
-      type: 'property_match',
-      priority: 'high',
-      title: 'عقار جديد يناسب سارة جونسون',
-      message: 'تم العثور على شقة في دبي مارينا تطابق جميع متطلبات العميلة سارة. يُنصح بالتواصل الفوري.',
-      client_id: '2',
-      property_id: 'prop-001',
-      created_at: new Date().toISOString(),
-      is_read: false,
-      action_required: true,
-      action_deadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: '3',
-      type: 'follow_up',
-      priority: 'medium',
-      title: 'مراجعة وضع محمد العلي',
-      message: 'العميل لم يستجب للعروض الأخيرة. يُنصح بمراجعة احتياجاته وتحديث الملف الشخصي.',
-      client_id: '3',
-      created_at: new Date().toISOString(),
-      is_read: true,
-      action_required: true
-    },
-    {
-      id: '4',
-      type: 'market_insight',
-      priority: 'low',
-      title: 'ارتفاع في أسعار الفلل في الرياض',
-      message: 'ارتفاع بنسبة 12% في أسعار الفلل خلال الشهر الماضي. فرصة جيدة للبائعين.',
-      created_at: new Date().toISOString(),
-      is_read: false,
-      action_required: false
-    },
-    {
-      id: '5',
-      type: 'market_insight',
-      priority: 'medium',
-      title: 'انخفاض في أسعار الشقق في دبي هيلز',
-      message: 'انخفاض بنسبة 8% في أسعار الشقق في دبي هيلز. فرصة جيدة للعملاء الباحثين عن استثمارات',
-      created_at: new Date().toISOString(),
-      is_read: false,
-      action_required: false
-    },
-    {
-      id: '6',
-      type: 'broker_assignment',
-      priority: 'high',
-      title: 'تعيين وسيط جديد للعميل فاطمة علي',
-      message: 'العميل فاطمة علي يحتاج لوسيط متخصص في العقارات الفاخرة. اقتراح: أحمد محمد',
-      client_id: '4',
-      created_at: new Date().toISOString(),
-      is_read: false,
-      action_required: true
-    },
-    {
-      id: '7',
-      type: 'property_match',
-      priority: 'medium',
-      title: 'عقار جديد يناسب عائلة الخالد',
-      message: 'فيلا في مجمع الإمارات هيلز تناسب متطلبات عائلة الخالد. 4 غرف نوم، حديقة خاصة',
-      client_id: '5',
-      property_id: 'prop-002',
-      created_at: new Date().toISOString(),
-      is_read: false,
-      action_required: true
-    }
-  ];
+  // استخدام التوصيات الحقيقية القادمة من الـ props
+  const baseRecommendations: BrokerRecommendation[] = recommendations || [];
 
   // إحصائيات التوصيات
   const stats = {
-    total: mockRecommendations.length,
-    unread: mockRecommendations.filter(r => !r.is_read).length,
-    urgent: mockRecommendations.filter(r => r.priority === 'urgent').length,
-    completed: mockRecommendations.filter(r => !r.action_required).length,
-    followUp: mockRecommendations.filter(r => r.type === 'follow_up').length,
-    propertyMatch: mockRecommendations.filter(r => r.type === 'property_match').length,
-    marketInsight: mockRecommendations.filter(r => r.type === 'market_insight').length,
-    brokerAssignment: mockRecommendations.filter(r => r.type === 'broker_assignment').length
+    total: baseRecommendations.length,
+    unread: baseRecommendations.filter(r => !r.is_read).length,
+    urgent: baseRecommendations.filter(r => r.priority === 'urgent').length,
+    completed: baseRecommendations.filter(r => !r.action_required).length,
+    followUp: baseRecommendations.filter(r => r.type === 'follow_up').length,
+    propertyMatch: baseRecommendations.filter(r => r.type === 'property_match').length,
+    marketInsight: baseRecommendations.filter(r => r.type === 'market_insight').length,
+    brokerAssignment: baseRecommendations.filter(r => r.type === 'broker_assignment').length
   };
 
   // إحصائيات الأداء
@@ -193,7 +113,7 @@ export default function SmartRecommendations({
 
   useEffect(() => {
     filterRecommendations();
-  }, [activeTab, searchQuery, selectedPriority, showCompleted]);
+  }, [activeTab, searchQuery, selectedPriority, showCompleted, recommendations]);
 
   // توليد التوصيات تلقائياً عند تحميل الكومبوننت
   useEffect(() => {
@@ -215,7 +135,7 @@ export default function SmartRecommendations({
   }, [notificationSettings.autoRefresh, notificationSettings.refreshInterval]);
 
   const filterRecommendations = () => {
-    let filtered = [...mockRecommendations];
+    let filtered = [...baseRecommendations];
 
     // فلترة حسب التبويب
     if (activeTab !== 'all') {
@@ -295,104 +215,25 @@ export default function SmartRecommendations({
     console.log('توليد تقرير شامل للتوصيات');
   };
 
-  // محاكاة توليد التوصيات الذكية
+  // تحديث/إعادة تحميل التوصيات (يعتمد على المصدر الخارجي)
   const generateSmartRecommendations = async () => {
     setIsGeneratingRecommendations(true);
     
     try {
-      // محاكاة عملية التوليد التي تستغرق وقت
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // توليد توصيات جديدة بناءً على البيانات الحالية
-      const newRecommendations = generateDynamicRecommendations();
-      
-      // إضافة التوصيات الجديدة
-      mockRecommendations.splice(0, 0, ...newRecommendations);
-      
-      // تحديث الوقت
+      // محاكاة انتظار تحديث المصدر الخارجي
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // تحديث الوقت وإعادة تطبيق الفلاتر على البيانات الواردة من props
       setLastUpdateTime(new Date());
       
       // إعادة تطبيق الفلاتر
       filterRecommendations();
-      
-      console.log(`تم توليد ${newRecommendations.length} توصية جديدة`);
       
     } catch (error) {
       console.error('خطأ في توليد التوصيات:', error);
     } finally {
       setIsGeneratingRecommendations(false);
     }
-  };
-
-  // توليد توصيات ديناميكية
-  const generateDynamicRecommendations = (): BrokerRecommendation[] => {
-    const recommendationTypes = [
-      {
-        type: 'follow_up',
-        priority: 'urgent',
-        templates: [
-          'متابعة عاجلة مع العميل {client} - لم يتم التواصل منذ {days} أيام',
-          'العميل {client} يحتاج إلى اتصال فوري لإتمام الصفقة',
-          'فرصة مهمة: العميل {client} أظهر اهتماماً عالياً بالعقار'
-        ]
-      },
-      {
-        type: 'property_match',
-        priority: 'high',
-        templates: [
-          'عقار جديد مثالي للعميل {client} في {area}',
-          'تطابق ممتاز: عقار يناسب كل متطلبات العميل {client}',
-          'فرصة استثمارية رائعة للعميل {client}'
-        ]
-      },
-      {
-        type: 'market_insight',
-        priority: 'medium',
-        templates: [
-          'انخفاض في أسعار {propertyType} في منطقة {area}',
-          'ارتفاع الطلب على {propertyType} بنسبة {percentage}%',
-          'فرصة استثمارية في {area} - أسعار منخفضة'
-        ]
-      }
-    ];
-
-    const clients = ['أحمد محمد', 'سارة أحمد', 'محمد علي', 'فاطمة الزهراء', 'خالد العتيبي'];
-    const areas = ['الرياض', 'دبي مارينا', 'الروضة', 'دبي هيلز', 'الإمارات هيلز'];
-    const propertyTypes = ['الفلل', 'الشقق', 'الأراضي', 'المكاتب'];
-
-    const recommendations: BrokerRecommendation[] = [];
-    const numRecommendations = Math.floor(Math.random() * 3) + 1; // 1-3 توصيات
-
-    for (let i = 0; i < numRecommendations; i++) {
-      const recType = recommendationTypes[Math.floor(Math.random() * recommendationTypes.length)];
-      const template = recType.templates[Math.floor(Math.random() * recType.templates.length)];
-      
-      const client = clients[Math.floor(Math.random() * clients.length)];
-      const area = areas[Math.floor(Math.random() * areas.length)];
-      const propertyType = propertyTypes[Math.floor(Math.random() * propertyTypes.length)];
-      const days = Math.floor(Math.random() * 30) + 1;
-      const percentage = Math.floor(Math.random() * 20) + 5;
-
-      const title = template
-        .replace('{client}', client)
-        .replace('{area}', area)
-        .replace('{propertyType}', propertyType)
-        .replace('{days}', days.toString())
-        .replace('{percentage}', percentage.toString());
-
-      recommendations.push({
-        id: `generated_${Date.now()}_${i}`,
-        type: recType.type as 'follow_up' | 'property_match' | 'broker_assignment' | 'market_insight',
-        priority: recType.priority as 'urgent' | 'low' | 'medium' | 'high',
-        title: title,
-        message: `توصية ذكية تم توليدها تلقائياً بناءً على تحليل البيانات الحالية والأنماط السلوكية للعملاء.`,
-        created_at: new Date().toISOString(),
-        is_read: false,
-        action_required: recType.priority === 'urgent' || recType.priority === 'high'
-      });
-    }
-
-    return recommendations;
   };
 
   // إعداد التحديث التلقائي
