@@ -164,11 +164,12 @@ const AppProtector = () => {
 
   // إذا وصل هنا، يعني المستخدم مصادق عليه ونشط
   return (
-    <AudioNotificationProvider>
-      <RouteGuard>
-        <AuthGuard>
-          <AppLayout>
-            <Routes>
+    <div dir="rtl">
+      <AudioNotificationProvider>
+        <RouteGuard>
+          <AuthGuard>
+            <AppLayout>
+              <Routes>
                         <Route path="/admin-dashboard" element={
                           <ProtectedRoute requiredPermission="canManageStaff">
                             <Suspense fallback={<LoadingSpinner />}>
@@ -613,6 +614,13 @@ const AppProtector = () => {
                   </Suspense>
                 </ProtectedRoute>
               } />
+              <Route path="/ai-intelligence-hub/:sub" element={
+                <ProtectedRoute requiredPermission="canManageStaff">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AIIntelligenceHub />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route
@@ -630,6 +638,7 @@ const AppProtector = () => {
         </AuthGuard>
       </RouteGuard>
     </AudioNotificationProvider>
+  </div>
   );
 };
 
