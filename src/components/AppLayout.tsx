@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -71,15 +71,24 @@ export function AppLayout({ children }: AppLayoutProps) {
     return null;
   }
 
-  return (
-    <SidebarProvider>
+  function LayoutShell({ children: layoutChildren }: { children: ReactNode }) {
+    const { state } = useSidebar();
+    const collapsed = state === "collapsed";
+    const paddingRightClass = collapsed ? "md:pr-0" : "md:pr-[--sidebar-width]";
+
+    return (
       <div className="min-h-screen flex flex-row-reverse w-full bg-background" dir="rtl">
         {/* Sidebar */}
         <AppSidebar />
 
         {/* Header */}
+<<<<<<< HEAD
         <header className="fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-40 md:pr-[--sidebar-width] peer-data-[state=collapsed]:md:pr-0">
           <div className="h-full px-4 md:pr-[--sidebar-width] peer-data-[state=collapsed]:md:pr-0 flex items-center justify-between flex-row-reverse">
+=======
+        <header className="fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-40">
+          <div className={`h-full px-4 flex items-center justify-between flex-row-reverse ${paddingRightClass}`}>
+>>>>>>> b116669 (Smart AI Edi 2t)
             {/* Actions (left in RTL) */}
             <div className="flex items-center space-x-2 space-x-reverse">
               <ThemeToggle />
@@ -123,15 +132,21 @@ export function AppLayout({ children }: AppLayoutProps) {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 pt-16 p-6 overflow-auto transition-[padding] duration-200 md:pr-[--sidebar-width] peer-data-[state=collapsed]:md:pr-0">
-          {children}
-          
+        <main className={`flex-1 pt-16 p-6 overflow-auto transition-[padding] duration-200 ${paddingRightClass}`}>
+          {layoutChildren}
+
           {/* Developer Credit */}
           <div className="fixed bottom-4 left-4 bg-background/80 backdrop-blur-sm border border-border rounded-lg px-3 py-2 text-xs text-muted-foreground z-30">
             البرمجة تمت بواسطة mohamed kamel egywbas@gmail.com
           </div>
         </main>
       </div>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <LayoutShell>{children}</LayoutShell>
     </SidebarProvider>
   );
 }

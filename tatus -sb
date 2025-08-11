@@ -1,0 +1,13 @@
+[33mf4d8864[m Fix sidebar layout and content overlap
+[33md9917c8[m Fix sidebar position to right + add new AI components
+[33m60c9a5d[m Protect all dashboard routes
+[33m294e8d1[m Refactor: Improve authentication and layout
+[33m780804a[m Restrict access to main page
+[33m0aaf81a[m Refactor UI for improvements
+[33m9552083[m[33m ([m[1;31morigin/codex/implement-user-verification-with-protectedroute[m[33m)[m refactor: rely on ProtectedRoute for auth
+[33ma714cd3[m[33m ([m[1;31morigin/codex/simplify-authentication-mechanism[m[33m)[m refactor: centralize route protection
+[33maf5a23b[m Fix "Lovable" branding
+[33m8ab0042[m Add notification database migrations
+[33m36ae50f[m Fix staff edit and add avatar
+[33m52e8f0d[m feat: Personalize greeting
+[33m0b23e3a[m Update sidebar to be fixed

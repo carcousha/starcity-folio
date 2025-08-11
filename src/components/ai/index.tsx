@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useToast } from '@/hooks/use-toast';
 import { Progress } from '../ui/progress';
 import { 
   Brain, 
@@ -57,6 +58,7 @@ export default function AIIntelligenceHub() {
   const navigate = useNavigate();
   const params = useParams();
   const [aiEngine] = useState(() => new AIEngine());
+  const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<AIAnalysisResult[]>([]);
   const [marketInsights, setMarketInsights] = useState<MarketInsight[]>([]);
@@ -255,6 +257,42 @@ export default function AIIntelligenceHub() {
       performFullAnalysis();
     }
   }, [dbClients.length, dbProperties.length]);
+
+  // تشغيل ترشيح العقارات تلقائياً عند إضافة عميل جديد في CRM (Realtime)
+  useEffect(() => {
+    // لا يمكن الاشتراك بدون خصائص متاحة للمطابقة
+    if (!dbProperties || dbProperties.length === 0) return;
+
+    const channel = supabase
+      .channel('realtime-clients-ai')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'clients' }, async (payload) => {
+        try {
+          const newClient = mapCrmClientToAIClient(payload.new);
+          setDbClients((prev) => [newClient, ...prev]);
+
+          // اجعل العميل الجديد هو المختار وقم بحساب التطابق فوراً
+          setSelectedClient(newClient);
+
+          const matches = await aiEngine.findPropertyMatches(newClient, dbProperties);
+          setPropertyMatches(matches);
+
+          const recs = await aiEngine.generateBrokerRecommendations([newClient], dbProperties);
+          setRecommendations((prev) => [...recs, ...prev]);
+
+          toast({
+            title: 'تم إضافة عميل جديد',
+            description: `تم توليد ترشيحات العقارات تلقائياً للعميل ${newClient.full_name}.`,
+          });
+        } catch (err) {
+          console.error('Realtime client insert handling error:', err);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch { /* no-op */ }
+    };
+  }, [dbProperties, aiEngine]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
