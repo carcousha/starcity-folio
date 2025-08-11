@@ -78,7 +78,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar />
 
         {/* Header */}
-        <header className="fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-40">
+        <header className="fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-40 md:pr-[--sidebar-width] peer-data-[state=collapsed]:md:pr-0">
           <div className="h-full px-4 md:pr-[--sidebar-width] peer-data-[state=collapsed]:md:pr-0 flex items-center justify-between flex-row-reverse">
             {/* Actions (left in RTL) */}
             <div className="flex items-center space-x-2 space-x-reverse">
