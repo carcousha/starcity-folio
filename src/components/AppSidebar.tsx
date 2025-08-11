@@ -250,7 +250,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar dir="rtl" side="right" className="border-l border-l-border bg-sidebar text-sidebar-foreground">
+    <Sidebar dir="rtl" side="right" collapsible="offcanvas" className="border-l border-l-border bg-sidebar text-sidebar-foreground">
       <SidebarContent>
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
