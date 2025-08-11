@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Progress } from '../ui/progress';
 import { 
   Brain, 
@@ -29,6 +30,7 @@ import {
 import {
   Client,
   Property,
+  PropertyMatch,
   AIAnalysisResult,
   MarketInsight,
   BrokerRecommendation,
@@ -37,6 +39,7 @@ import {
 
 // استيراد محرك الذكاء الاصطناعي
 import { AIEngine } from '../../services/aiEngine';
+import { supabase } from '@/integrations/supabase/client';
 
 // استيراد مكونات الذكاء الاصطناعي
 import ClientEvaluation from './ClientEvaluation';
@@ -60,6 +63,9 @@ export default function AIIntelligenceHub() {
   const [recommendations, setRecommendations] = useState<BrokerRecommendation[]>([]);
   const [performanceMetrics, setPerformanceMetrics] = useState<AIPerformanceMetrics | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [dbClients, setDbClients] = useState<Client[]>([]);
+  const [dbProperties, setDbProperties] = useState<Property[]>([]);
+  const [propertyMatches, setPropertyMatches] = useState<PropertyMatch[]>([]);
   const [activeTab, setActiveTab] = useState('property-recommendation');
 
   // تعريف وحدات داخلية للمركز تطابق قيم التبويبات لسهولة التحكم والتنقل
@@ -93,120 +99,98 @@ export default function AIIntelligenceHub() {
     navigate(`/ai-intelligence-hub/${id}`);
   };
 
-  // بيانات تجريبية للعملاء
-  const mockClients: Client[] = [
-    {
-      id: '1',
-      full_name: 'أحمد محمد علي',
-      email: 'ahmed@example.com',
-      phone: '+966501234567',
-      budget_min: 2000000,
-      budget_max: 3500000,
-      preferred_area: ['الروضة'],
-      property_type: ['villa'],
-      purpose: 'residential',
-      area_min: 3000,
-      area_max: 5000,
-      bedrooms_min: 4,
-      bathrooms_min: 3,
-      urgency_level: 4,
-      last_contact_date: new Date().toISOString(),
-      contact_frequency: 5,
-      interaction_score: 8,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      status: 'active'
-    },
-    {
-      id: '2',
-      full_name: 'Sarah Johnson',
-      email: 'sarah@example.com',
-      phone: '+971501234567',
-      budget_min: 1200000,
-      budget_max: 2000000,
-      preferred_area: ['Dubai Marina'],
-      property_type: ['apartment'],
-      purpose: 'residential',
-      area_min: 1200,
-      area_max: 2000,
-      bedrooms_min: 2,
-      bathrooms_min: 2,
-      urgency_level: 3,
-      last_contact_date: new Date().toISOString(),
-      contact_frequency: 3,
-      interaction_score: 7,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      status: 'active'
-    },
-    {
-      id: '3',
-      full_name: 'محمد العلي',
-      email: 'mohamed@example.com',
-      phone: '+966501234568',
-      budget_min: 800000,
-      budget_max: 1500000,
-      preferred_area: ['الرمرام'],
-      property_type: ['land'],
-      purpose: 'investment',
-      area_min: 500,
-      area_max: 1000,
-      bedrooms_min: 0,
-      bathrooms_min: 0,
-      urgency_level: 2,
-      last_contact_date: new Date().toISOString(),
-      contact_frequency: 2,
-      interaction_score: 6,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      status: 'active'
-    }
-  ];
+  // تحويل عميل CRM إلى نموذج AI Client
+  const mapCrmClientToAIClient = (c: any): Client => {
+    const mapPropertyType = (val?: string): Client['property_type'] => {
+      const normalized = (val || '').toLowerCase();
+      if (normalized.includes('villa') || normalized.includes('فيلا')) return ['villa'];
+      if (normalized.includes('apartment') || normalized.includes('شقة')) return ['apartment'];
+      if (normalized.includes('office') || normalized.includes('مكتب')) return ['office'];
+      if (normalized.includes('warehouse') || normalized.includes('مستودع')) return ['warehouse'];
+      if (normalized.includes('shop') || normalized.includes('محل')) return ['shop'];
+      if (normalized.includes('building') || normalized.includes('مبنى')) return ['building'];
+      if (normalized.includes('land') || normalized.includes('أرض')) return ['land'];
+      return ['apartment'];
+    };
 
-  // بيانات تجريبية للعقارات
-  const mockProperties: Property[] = [
-    {
-      id: '1',
-      title: 'فيلا فاخرة في الروضة - 4 غرف نوم',
-      description: 'فيلا حديثة البناء مع حديقة خاصة ومسبح',
-      price: 2800000,
-      area: 3500,
-      bedrooms: 4,
-      bathrooms: 3,
-      property_type: 'villa',
-      area_name: 'الروضة',
-      city: 'الرياض',
-      district: 'الروضة',
-      features: ['حديقة خاصة', 'مسبح', 'مطبخ مجهز', 'مصعد'],
-      images: ['/api/images/property1.jpg'],
-      status: 'available',
-      owner_id: 'owner1',
-      listed_date: new Date().toISOString(),
-      last_updated: new Date().toISOString(),
-      views_count: 45,
-      inquiries_count: 8
-    }
-  ];
+    const mapPurpose = (val?: string): Client['purpose'] => {
+      const normalized = (val || '').toLowerCase();
+      if (normalized.includes('invest')) return 'investment';
+      if (normalized.includes('both') || normalized.includes('كلا')) return 'both';
+      return 'residential';
+    };
+
+    const status: Client['status'] = 'active';
+
+    return {
+      id: c.id,
+      full_name: c.name || c.full_name || 'Client',
+      email: c.email,
+      phone: c.phone,
+      budget_min: typeof c.budget_min === 'number' ? c.budget_min : 0,
+      budget_max: typeof c.budget_max === 'number' ? c.budget_max : 0,
+      preferred_area: c.preferred_location ? [c.preferred_location] : [],
+      property_type: mapPropertyType(c.property_type_interest),
+      purpose: mapPurpose(c.purchase_purpose),
+      area_min: undefined,
+      area_max: undefined,
+      bedrooms_min: undefined,
+      bathrooms_min: undefined,
+      urgency_level: 3,
+      last_contact_date: c.last_contacted || c.updated_at || c.created_at || new Date().toISOString(),
+      contact_frequency: c.previous_deals_count || 0,
+      interaction_score: 0.6,
+      created_at: c.created_at || new Date().toISOString(),
+      updated_at: c.updated_at || new Date().toISOString(),
+      assigned_broker_id: c.assigned_to,
+      status,
+    };
+  };
+
+  // جلب بيانات حقيقية من Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [clientsRes, propertiesRes] = await Promise.all([
+          supabase.from('clients').select('*').order('updated_at', { ascending: false }),
+          supabase.from('properties').select('*').order('last_updated', { ascending: false })
+        ]);
+
+        if (clientsRes.error) throw clientsRes.error;
+        if (propertiesRes.error) throw propertiesRes.error;
+
+        const clients = (clientsRes.data || []).map(mapCrmClientToAIClient) as Client[];
+        const properties = (propertiesRes.data || []) as unknown as Property[];
+
+        setDbClients(clients);
+        setDbProperties(properties);
+      } catch (err) {
+        console.error('فشل تحميل بيانات العملاء/العقارات من Supabase:', err);
+      }
+    };
+    fetchData();
+  }, []);
 
   // تحليل شامل للبيانات
   const performFullAnalysis = async () => {
     setIsAnalyzing(true);
     try {
+      const clients = dbClients;
+      const properties = dbProperties;
+
       // تحليل شامل
       const results = await Promise.all(
-        mockClients.map(client => 
-          aiEngine.performFullAnalysis(client, mockProperties)
-        )
+        clients.map(client => aiEngine.performFullAnalysis(client, properties))
       );
 
       setAnalysisResults(results);
       
       // تحليل السوق
-      const insights = await aiEngine.analyzeMarketTrends(mockProperties);
+      const insights = await aiEngine.analyzeMarketTrends(properties);
       setMarketInsights(insights);
 
       // التوصيات
-      const recs = await aiEngine.generateBrokerRecommendations(mockClients, mockProperties);
+      const recs = await aiEngine.generateBrokerRecommendations(clients, properties);
       setRecommendations(recs);
 
       // مقاييس الأداء
@@ -239,9 +223,12 @@ export default function AIIntelligenceHub() {
   const reanalyzeClient = async (client: Client) => {
     setIsAnalyzing(true);
     try {
-      const result = await aiEngine.performFullAnalysis(client, mockProperties);
+      const result = await aiEngine.performFullAnalysis(client, dbProperties);
       setAnalysisResults(prev => prev.map(r => r.client_id === client.id ? result : r));
       setSelectedClient(client);
+      // تحديث نتائج التطابق للعقارات
+      const matches = await aiEngine.findPropertyMatches(client, dbProperties);
+      setPropertyMatches(matches);
     } catch (error) {
       console.error('خطأ في إعادة التحليل:', error);
     } finally {
@@ -249,10 +236,25 @@ export default function AIIntelligenceHub() {
     }
   };
 
+  // حساب التطابقات عند اختيار عميل
   useEffect(() => {
-    // تحليل تلقائي عند تحميل الصفحة
-    performFullAnalysis();
-  }, []);
+    const computeMatches = async () => {
+      if (selectedClient && dbProperties.length > 0) {
+        const matches = await aiEngine.findPropertyMatches(selectedClient, dbProperties);
+        setPropertyMatches(matches);
+      } else {
+        setPropertyMatches([]);
+      }
+    };
+    computeMatches();
+  }, [selectedClient, dbProperties, aiEngine]);
+
+  useEffect(() => {
+    // عند توفر بيانات فعلية من Supabase ابدأ التحليل
+    if (dbClients.length > 0 && dbProperties.length > 0) {
+      performFullAnalysis();
+    }
+  }, [dbClients.length, dbProperties.length]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -372,46 +374,78 @@ export default function AIIntelligenceHub() {
 
           {/* اختيار العميل */}
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-gray-800">
-              اختر العميل لتحليل العقارات المناسبة
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {mockClients.map((client) => (
-                <Card 
-                  key={client.id} 
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                    selectedClient?.id === client.id 
-                      ? 'ring-2 ring-purple-500 border-purple-200' 
-                      : 'hover:border-purple-300'
-                  }`}
-                  onClick={() => setSelectedClient(client)}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center">
-                        <span className="text-purple-700 font-bold text-lg">
-                          {client.full_name.charAt(0)}
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {client.urgency_level === 5 ? 'عالي جداً' : 
-                         client.urgency_level === 4 ? 'عالي' : 
-                         client.urgency_level === 3 ? 'متوسط' : 'منخفض'}
-                      </Badge>
-                    </div>
-                    
-                    <h4 className="font-semibold text-gray-900 mb-2">{client.full_name}</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {client.property_type[0]} في {client.preferred_area[0]}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {client.budget_min.toLocaleString()} د.إ. - {client.budget_max.toLocaleString()} د.إ.
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <h3 className="text-xl font-semibold text-gray-800">
+                اختر العميل لتحليل العقارات المناسبة
+              </h3>
+              <div className="w-full md:w-80">
+                <Select onValueChange={(val) => {
+                  const c = dbClients.find((cl) => cl.id === val);
+                  if (c) setSelectedClient(c);
+                }}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="اختر عميل من القائمة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dbClients.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        لا يوجد عملاء — انتقل إلى إدارة العملاء لإضافة عميل
+                      </SelectItem>
+                    ) : (
+                      dbClients.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.full_name} • {c.phone || ''}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
+            {/* شبكة بطاقات العملاء لسهولة الاختيار البصري */}
+            {dbClients.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {dbClients.map((client) => (
+                  <Card 
+                    key={client.id} 
+                    className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                      selectedClient?.id === client.id 
+                        ? 'ring-2 ring-purple-500 border-purple-200' 
+                        : 'hover:border-purple-300'
+                    }`}
+                    onClick={() => setSelectedClient(client)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center">
+                          <span className="text-purple-700 font-bold text-lg">
+                            {client.full_name.charAt(0)}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {client.urgency_level === 5 ? 'عالي جداً' : 
+                           client.urgency_level === 4 ? 'عالي' : 
+                           client.urgency_level === 3 ? 'متوسط' : 'منخفض'}
+                        </Badge>
+                      </div>
+                      
+                      <h4 className="font-semibold text-gray-900 mb-2">{client.full_name}</h4>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {client.property_type[0]}{client.preferred_area[0] ? ` في ${client.preferred_area[0]}` : ''}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {client.budget_min.toLocaleString()} د.إ. - {client.budget_max.toLocaleString()} د.إ.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 border rounded-lg bg-gray-50 text-gray-600">
+                لا يوجد عملاء للعرض هنا. انتقل إلى إدارة العملاء لإضافة عميل جديد من قائمة CRM.
+              </div>
+            )}
           </div>
 
           {/* نتائج التحليل */}
@@ -466,8 +500,8 @@ export default function AIIntelligenceHub() {
                 <p className="text-sm text-gray-600">مرتبة حسب درجة التوافق</p>
                 
                 <div className="space-y-4">
-                  {mockProperties.map((property) => (
-                    <Card key={property.id} className="border border-gray-200 hover:shadow-md transition-shadow">
+              {propertyMatches.map((match) => (
+                    <Card key={match.property.id} className="border border-gray-200 hover:shadow-md transition-shadow">
                       <CardContent className="p-6">
                         <div className="flex items-start space-x-4 space-x-reverse">
                           {/* صورة العقار */}
@@ -481,10 +515,10 @@ export default function AIIntelligenceHub() {
                           <div className="flex-1 space-y-3">
                             <div className="flex items-center justify-between">
                               <h5 className="text-lg font-semibold text-gray-900">
-                                #{property.id} {property.title}
+                                #{match.property.id} {match.property.title}
                               </h5>
                               <Badge className="bg-green-100 text-green-800 border-green-200">
-                                90% توافق
+                                {match.match_score}% توافق
                               </Badge>
                             </div>
                             
@@ -492,23 +526,23 @@ export default function AIIntelligenceHub() {
                               <div className="flex items-center space-x-2 space-x-reverse">
                                 <DollarSign className="h-4 w-4 text-gray-500" />
                                 <span className="text-gray-600">السعر:</span>
-                                <span className="font-medium">{property.price.toLocaleString()} د.إ.</span>
+                                <span className="font-medium">{match.property.price.toLocaleString()} د.إ.</span>
                               </div>
                               <div className="flex items-center space-x-2 space-x-reverse">
                                 <Ruler className="h-4 w-4 text-gray-500" />
                                 <span className="text-gray-600">المساحة:</span>
-                                <span className="font-medium">{property.area.toLocaleString()} قدم²</span>
+                                <span className="font-medium">{match.property.area.toLocaleString()} قدم²</span>
                               </div>
                               <div className="flex items-center space-x-2 space-x-reverse">
                                 <MapPin className="h-4 w-4 text-gray-500" />
                                 <span className="text-gray-600">المنطقة:</span>
-                                <span className="font-medium">{property.area_name}</span>
+                                <span className="font-medium">{match.property.area_name}</span>
                               </div>
                               <div className="flex items-center space-x-2 space-x-reverse">
                                 <Calendar className="h-4 w-4 text-gray-500" />
                                 <span className="text-gray-600">تاريخ الإدراج:</span>
                                 <span className="font-medium">
-                                  {new Date(property.listed_date).toLocaleDateString('ar-SA')}
+                                  {new Date(match.property.listed_date).toLocaleDateString('ar-SA')}
                                 </span>
                               </div>
                             </div>
@@ -517,18 +551,11 @@ export default function AIIntelligenceHub() {
                             <div>
                               <p className="text-sm text-gray-600 mb-2">أسباب التوافق:</p>
                               <div className="flex flex-wrap gap-2">
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  السعر ضمن الميزانية المحددة
-                                </Badge>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  نفس المنطقة المفضلة
-                                </Badge>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  نوع العقار المطلوب
-                                </Badge>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  توافق جيد مع معظم المعايير
-                                </Badge>
+                                {match.match_reasons.slice(0,4).map((reason, idx) => (
+                                  <Badge key={idx} variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                    {reason}
+                                  </Badge>
+                                ))}
                               </div>
                             </div>
                             
@@ -536,11 +563,11 @@ export default function AIIntelligenceHub() {
                             <div className="flex items-center space-x-6 space-x-reverse text-sm text-gray-500">
                               <div className="flex items-center space-x-2 space-x-reverse">
                                 <Eye className="h-4 w-4" />
-                                <span>{property.views_count} مشاهدة</span>
+                                <span>{match.property.views_count} مشاهدة</span>
                               </div>
                               <div className="flex items-center space-x-2 space-x-reverse">
                                 <MessageSquare className="h-4 w-4" />
-                                <span>{property.inquiries_count} استفسار</span>
+                                <span>{match.property.inquiries_count} استفسار</span>
                               </div>
                             </div>
                             
@@ -574,8 +601,8 @@ export default function AIIntelligenceHub() {
         <TabsContent value="smart-recommendations" className="space-y-4">
           <SmartRecommendations 
             recommendations={recommendations}
-            clients={mockClients}
-            properties={mockProperties}
+            clients={dbClients}
+            properties={dbProperties}
           />
         </TabsContent>
 

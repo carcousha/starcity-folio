@@ -39,6 +39,7 @@ import {
   MapPin,
   Settings
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 // أنواع البيانات
 interface ClientEvaluation {
@@ -169,6 +170,130 @@ interface Property {
   inquiries_count: number;
   ai_score?: number;
 }
+
+// نوع بيانات عميل CRM (من جدول clients)
+type CrmClient = {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  nationality?: string;
+  preferred_language?: string;
+  preferred_contact_method?: string;
+  property_type_interest?: string;
+  purchase_purpose?: string;
+  budget_min?: number;
+  budget_max?: number;
+  preferred_location?: string;
+  planned_purchase_date?: string;
+  client_status?: 'new' | 'contacted' | 'negotiating' | 'deal_closed' | 'deal_lost';
+  source?: string;
+  last_contacted?: string;
+  previous_deals_count?: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  assigned_to?: string;
+};
+
+const mapStatusToEvaluation = (status?: CrmClient['client_status']): ClientEvaluation['status'] => {
+  switch (status) {
+    case 'negotiating':
+      return 'hot_lead';
+    case 'contacted':
+    case 'deal_closed':
+      return 'active';
+    case 'deal_lost':
+      return 'cold_lead';
+    case 'new':
+    default:
+      return 'needs_followup';
+  }
+};
+
+const calcUrgency = (planned?: string): number => {
+  if (!planned) return 50;
+  const now = new Date();
+  const date = new Date(planned);
+  const diffDays = Math.max(0, Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  if (diffDays <= 30) return 90;
+  if (diffDays <= 90) return 70;
+  if (diffDays <= 180) return 60;
+  return 40;
+};
+
+const calcBudgetClarity = (min?: number, max?: number): number => {
+  if (typeof min === 'number' && typeof max === 'number' && max > 0 && max >= min) {
+    const range = max - min;
+    const ratio = range / Math.max(1, max);
+    return Math.round(Math.max(30, Math.min(100, 100 - ratio * 100)));
+  }
+  return 50;
+};
+
+const calcOverallScore = (
+  communication: number,
+  urgency: number,
+  budget: number,
+  response: number,
+  preview: number
+): number => {
+  const avg = (communication + urgency + budget + response + preview) / 5;
+  return Math.min(5, Math.max(1, Math.round((avg / 100) * 5)));
+};
+
+const buildRecommendations = (ev: ClientEvaluation): string[] => {
+  const list: string[] = [];
+  if (ev.status === 'needs_followup') list.push('زيادة وتيرة التواصل مع العميل');
+  if (ev.timing_urgency >= 80) list.push('حجز موعد معاينة قريب');
+  if (ev.budget_clarity < 60) list.push('تأكيد نطاق الميزانية وتوضيح المتطلبات');
+  if (ev.response_rate < 40) list.push('استخدام قناة تواصل بديلة (واتساب/اتصال)');
+  if (ev.preview_activity < 40) list.push('إرسال أمثلة عقارات أقرب لاهتمام العميل');
+  if (list.length === 0) list.push('متابعة دورية وتقديم عروض مناسبة');
+  return list;
+};
+
+const mapCrmClientToEvaluation = (c: CrmClient): ClientEvaluation => {
+  const communication_frequency = c.previous_deals_count ? Math.min(100, c.previous_deals_count * 10) : 50;
+  const timing_urgency = calcUrgency(c.planned_purchase_date);
+  const budget_clarity = calcBudgetClarity(c.budget_min, c.budget_max);
+  const response_rate = 50; // يمكن لاحقاً ربطه بإحصائيات حقيقية
+  const preview_activity = 50; // يمكن لاحقاً ربطه بتتبّع فتح الروابط/المعاينات
+  const status = mapStatusToEvaluation(c.client_status);
+  const overall_score = calcOverallScore(
+    communication_frequency,
+    timing_urgency,
+    budget_clarity,
+    response_rate,
+    preview_activity
+  );
+
+  const base: ClientEvaluation = {
+    id: c.id,
+    full_name: c.name,
+    phone: c.phone,
+    location: c.preferred_location || c.address || 'غير محدد',
+    communication_frequency,
+    timing_urgency,
+    budget_clarity,
+    response_rate,
+    preview_activity,
+    overall_score,
+    status,
+    last_contact_date: c.last_contacted || c.updated_at || c.created_at,
+    recommendations: [],
+    priority:
+      timing_urgency >= 80 || status === 'hot_lead'
+        ? 'high'
+        : timing_urgency >= 60
+        ? 'medium'
+        : 'low',
+    assigned_to: c.assigned_to,
+  };
+
+  return { ...base, recommendations: buildRecommendations(base) };
+};
 
 // بيانات تجريبية للعملاء
 const mockClientEvaluations: ClientEvaluation[] = [
@@ -1933,7 +2058,7 @@ const ClientEvaluationCard: React.FC<{
 
 // المكون الرئيسي لتقييم العملاء
 export default function ClientEvaluation() {
-  const [clients, setClients] = useState<ClientEvaluation[]>(mockClientEvaluations);
+  const [clients, setClients] = useState<ClientEvaluation[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
@@ -1943,6 +2068,25 @@ export default function ClientEvaluation() {
   const [showCharts, setShowCharts] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<ConversationLog[]>([]);
   const [pendingFollowups, setPendingFollowups] = useState<string[]>([]);
+
+  // جلب عملاء CRM وتحويلهم لتقييم
+  useEffect(() => {
+    const fetchCrmClients = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .order('updated_at', { ascending: false });
+        if (error) throw error;
+        const mapped = (data as unknown as CrmClient[]).map(mapCrmClientToEvaluation);
+        setClients(mapped);
+      } catch (err) {
+        console.error('فشل تحميل عملاء CRM:', err);
+        // كخطة بديلة، يمكن استخدام البيانات التجريبية إن رغبت لاحقاً
+      }
+    };
+    fetchCrmClients();
+  }, []);
 
   // إحصائيات التقييم
   const getScoreDistribution = () => {
