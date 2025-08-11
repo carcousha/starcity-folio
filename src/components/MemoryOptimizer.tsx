@@ -4,8 +4,7 @@ import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Switch } from './ui/switch';
-import { 
-  Memory, 
+import {
   Trash2, 
   RefreshCw, 
   AlertTriangle, 
@@ -230,7 +229,7 @@ export const MemoryOptimizer: React.FC<MemoryOptimizerProps> = ({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Memory className="h-5 w-5" />
+            <Gauge className="h-5 w-5" />
             حالة الذاكرة
           </CardTitle>
         </CardHeader>
