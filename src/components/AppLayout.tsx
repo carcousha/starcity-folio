@@ -74,6 +74,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex flex-row-reverse w-full bg-background" dir="rtl">
+        {/* Sidebar */}
+        <AppSidebar />
+
         {/* Header */}
         <header className="fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-40">
           <div className="h-full px-4 md:pr-[--sidebar-width] peer-data-[state=collapsed]:md:pr-0 flex items-center justify-between flex-row-reverse">
@@ -118,9 +121,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </div>
         </header>
-
-        {/* Sidebar */}
-        <AppSidebar />
 
         {/* Main Content */}
         <main className="flex-1 pt-16 p-6 overflow-auto transition-[padding] duration-200 md:pr-[--sidebar-width] peer-data-[state=collapsed]:md:pr-0">
