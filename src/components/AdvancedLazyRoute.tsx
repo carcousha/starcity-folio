@@ -107,7 +107,6 @@ export const AdvancedLazyRoute: React.FC<AdvancedLazyRouteProps> = ({
     <ErrorBoundary fallback={errorFallback}>
       <Suspense 
         fallback={fallback || defaultFallback}
-        onError={handleError}
       >
         <Component onLoad={handleLoad} />
       </Suspense>

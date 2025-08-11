@@ -317,7 +317,21 @@ export default function AISettingsHub() {
           propertyMatching: settings.propertyMatching,
           clientAnalysis: settings.clientAnalysis,
           marketInsights: settings.marketInsights,
-          notifications: settings.notifications,
+          notifications: {
+            email: settings.notifications?.email ?? false,
+            sms: settings.notifications?.sms ?? false,
+            whatsapp: settings.notifications?.whatsapp ?? false,
+            push: settings.notifications?.push ?? false,
+            priorityFilter: (settings.notifications?.priorityFilter as 'all' | 'high' | 'urgent') ?? 'all',
+            quietHours: {
+              enabled: settings.notifications?.quietHours?.enabled ?? false,
+              start: settings.notifications?.quietHours?.start ?? '22:00',
+              end: settings.notifications?.quietHours?.end ?? '07:00',
+            },
+            frequency: (settings.notifications?.frequency === 'instant' || settings.notifications?.frequency === 'hourly' || settings.notifications?.frequency === 'daily')
+              ? (settings.notifications!.frequency as 'instant' | 'hourly' | 'daily')
+              : 'daily',
+          },
           uaeSpecific: settings.uaeSpecific,
           integrations: {
             dubizzle: settings.integrations.dubizzle.enabled,
@@ -367,7 +381,7 @@ export default function AISettingsHub() {
     setIsSaving(true);
     try {
       // تحويل تنسيق المكون إلى تنسيق الخدمة
-      const serviceSettings: Partial<AISettingsConfig> = {
+      const serviceSettings: any = {
         general: config.general,
         propertyMatching: config.propertyMatching,
         clientAnalysis: config.clientAnalysis,
@@ -481,7 +495,21 @@ export default function AISettingsHub() {
             propertyMatching: newSettings.propertyMatching,
             clientAnalysis: newSettings.clientAnalysis,
             marketInsights: newSettings.marketInsights,
-            notifications: newSettings.notifications,
+            notifications: {
+              email: newSettings.notifications?.email ?? false,
+              sms: newSettings.notifications?.sms ?? false,
+              whatsapp: newSettings.notifications?.whatsapp ?? false,
+              push: newSettings.notifications?.push ?? false,
+              priorityFilter: (newSettings.notifications?.priorityFilter as 'all' | 'high' | 'urgent') ?? 'all',
+              quietHours: {
+                enabled: newSettings.notifications?.quietHours?.enabled ?? false,
+                start: newSettings.notifications?.quietHours?.start ?? '22:00',
+                end: newSettings.notifications?.quietHours?.end ?? '07:00',
+              },
+              frequency: (newSettings.notifications?.frequency === 'instant' || newSettings.notifications?.frequency === 'hourly' || newSettings.notifications?.frequency === 'daily')
+                ? (newSettings.notifications!.frequency as 'instant' | 'hourly' | 'daily')
+                : 'daily',
+            },
             uaeSpecific: newSettings.uaeSpecific,
             integrations: {
               dubizzle: newSettings.integrations.dubizzle.enabled,

@@ -422,7 +422,7 @@ const getPropertyRecommendations = (client: ClientEvaluation): PropertyRecommend
       property,
       match_score: Math.min(100, matchScore),
       match_reasons: matchReasons,
-      predicted_interest
+      predicted_interest: predictedInterest
     };
   }).sort((a, b) => b.match_score - a.match_score);
 };
