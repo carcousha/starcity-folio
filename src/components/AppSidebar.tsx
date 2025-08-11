@@ -45,6 +45,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useQuery } from '@tanstack/react-query';
 import { getTodayReminders } from '@/services/reminderService';
+import logo from '@/assets/starcity-logo.png';
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -109,7 +110,6 @@ export function AppSidebar() {
         { title: "العقارات", url: "/crm/properties", icon: Building },
         { title: "الملاك", url: "/crm/owners", icon: User },
         { title: "المهام", url: "/crm/tasks", icon: CheckSquare },
-        { title: "واتساب الذكي", url: "/crm/whatsapp", icon: MessageSquare },
         { title: "الحملات التسويقية", url: "/crm/campaigns", icon: Megaphone },
         { title: "الصفقات", url: "/crm/deals", icon: FileText },
         { title: "التحليلات والتقارير", url: "/crm/analytics", icon: PieChart },
@@ -250,245 +250,233 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar
-      className="border-l border-gray-200 bg-white"
-      collapsible="icon"
-      side="right"
-    >
-      <SidebarContent className="bg-white text-gray-900">
-        {/* Logo Section */}
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center space-x-3 space-x-reverse">
-            <img 
-              src="/lovable-uploads/0ebdd2d6-a147-4eaa-a1ee-3b88e1c3739f.png" 
-              alt="ستار سيتي العقارية"
-              className="h-10 w-auto"
-            />
-            {!collapsed && (
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">ستار سيتي</h2>
-                <p className="text-xs text-gray-500">نظام إدارة العقارات</p>
-              </div>
-            )}
+    <Sidebar dir="rtl" side="right" className="border-l border-l-border bg-sidebar text-sidebar-foreground">
+      <SidebarContent>
+        <div className="flex flex-col h-full">
+          {/* Logo/Brand */}
+          <div className="p-6 border-b border-sidebar-border">
+            <div className="flex items-center space-x-3 space-x-reverse">
+              <img src={logo} alt="Star City" className="w-10 h-10 rounded-lg object-contain bg-white p-1 border border-sidebar-border" />
+              {!collapsed && (
+                <div>
+                  <h1 className="text-lg font-bold">Star City</h1>
+                  <p className="text-xs text-sidebar-foreground">نظام إدارة العقارات</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Main Navigation */}
-        <div className="py-4">
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {/* Show employee navigation if employee, otherwise show admin navigation */}
-                {(profile?.role === 'employee' ? getCurrentModules() : mainItems).map((item) => (
-                  <div key={item.title}>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        asChild={!item.hasSubmenu}
-                        className={`
-                          mx-3 mb-1 rounded-lg transition-all duration-200 h-12
-                          ${isActive(item.url) 
-                            ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
-                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                          }
-                          ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
-                        `}
-                        onClick={item.hasSubmenu ? () => toggleSection(
-                          item.title === 'إدارة العلاقات العامة' ? 'crm' : 
-                          item.title === 'إدارة الحسابات' ? 'accounting' : 
-                          item.title === 'وحدة الإيجارات' ? 'rental' :
-                          item.title === '💼 العمليات' ? 'operations' :
-                          item.title === '💵 المالية' ? 'finance' :
-                          item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
-                          item.title === '🔔 الإشعارات' ? 'notifications' :
-                          'other'
-                        ) : undefined}
-                      >
-                        {item.hasSubmenu ? (
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center">
-                              <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
-                              {!collapsed && <span className="font-medium">{item.title}</span>}
-                            </div>
-                            {!collapsed && (
-                              expandedSections.includes(
-                                item.title === 'إدارة العلاقات العامة' ? 'crm' : 
-                                item.title === 'إدارة الحسابات' ? 'accounting' : 
-                                item.title === 'وحدة الإيجارات' ? 'rental' :
-                                item.title === '💼 العمليات' ? 'operations' :
-                                item.title === '💵 المالية' ? 'finance' :
-                                item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
-                                item.title === '🔔 الإشعارات' ? 'notifications' :
-                                'other'
-                              )
-                                ? <ChevronDown className="h-4 w-4" />
-                                : <ChevronRight className="h-4 w-4" />
-                            )}
-                          </div>
-                        ) : (
-                          <Link to={item.url} className="flex items-center w-full">
-                            <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
-                            {!collapsed && <span className="font-medium">{item.title}</span>}
-                          </Link>
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    
-                    {/* Submenu */}
-                    {item.hasSubmenu && expandedSections.includes(
-                      item.title === 'إدارة العلاقات العامة' ? 'crm' : 
-                      item.title === 'إدارة الحسابات' ? 'accounting' : 
-                      item.title === 'وحدة الإيجارات' ? 'rental' :
-                      item.title === '💼 العمليات' ? 'operations' :
-                      item.title === '💵 المالية' ? 'finance' :
-                      item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
-                      item.title === '🔔 الإشعارات' ? 'notifications' :
-                      'other'
-                    ) && !collapsed && (
-                      <div className="mr-4 space-y-1">
-                          {item.submenu?.filter(subItem => {
-                            // Check permissions for each submenu item
-                            if (subItem.url.includes('/crm/clients')) {
-                              return checkPermission('crmAccess');
-                            }
-                            if (subItem.url.includes('/crm/leads')) {
-                              return checkPermission('crmAccess'); 
-                            }
-                            if (subItem.url.includes('/crm/properties')) {
-                              return checkPermission('crmAccess');
-                            }
-                            if (subItem.url.includes('/crm/')) {
-                              return checkPermission('crmAccess');
-                            }
-                           if (subItem.url.includes('/accounting/expenses')) {
-                             return checkPermission('canManageExpenses');
-                           }
-                            if (subItem.url.includes('/accounting/revenues')) {
-                              return checkPermission('canManageRevenues');
-                            }
-                            if (subItem.url.includes('/accounting/commissions')) {
-                              return checkPermission('canManageRevenues');
-                            }
-                             if (subItem.url.includes('/accounting/debts')) {
-                               return checkPermission('canManageDebts');
-                             }
-                             if (subItem.url.includes('/accounting/vehicles')) {
-                               return checkPermission('canManageVehicles');
-                             }
-                             if (subItem.url.includes('/accounting/vehicle-expenses')) {
-                               return checkPermission('canManageVehicles');
-                             }
-                             if (subItem.url.includes('/reports')) {
-                               return checkPermission('canViewAllReports');
-                             }
-                            if (subItem.url.includes('/accounting/staff')) {
-                              return checkPermission('canViewAllStaff');
-                            }
-                            if (subItem.url.includes('/accounting/treasury')) {
-                              return checkPermission('canViewTreasury');
-                            }
-                            if (subItem.url.includes('/accounting/activity-log')) {
-                              return checkPermission('canViewActivityLogs');
-                            }
-                            if (subItem.url.includes('/rental/')) {
-                              return checkPermission('canViewFinancials');
-                            }
-                            return true; // Default allow
-                         }).map((subItem) => (
-                           <SidebarMenuItem key={subItem.title}>
-                             <SidebarMenuButton 
-                               asChild
-                               className={`
-                                 mx-3 mb-1 rounded-lg transition-all duration-200 h-10
-                                 ${isActive(subItem.url) 
-                                   ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
-                                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                                 }
-                                 justify-start px-6
-                               `}
-                             >
-                          <Link to={subItem.url} className="flex items-center w-full">
-                            <subItem.icon className="h-4 w-4 ml-3" />
-                            <span className="text-sm flex items-center gap-2">
-                              {subItem.title}
-                              {typeof (subItem as any).badge !== 'undefined' && (subItem as any).badge > 0 && (
-                                <span className="ml-2 inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white">
-                                  {(subItem as any).badge}
-                                </span>
-                              )}
-                            </span>
-                          </Link>
-                             </SidebarMenuButton>
-                           </SidebarMenuItem>
-                         ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          {/* Additional Modules for non-employees */}
-          {profile?.role !== 'employee' && getCurrentModules().length > 0 && (
+          {/* Main Navigation */}
+          <div className="py-4 flex-1 overflow-y-auto">
             <SidebarGroup>
-              <SidebarGroupLabel className="px-6 py-2 text-gray-500 text-sm font-medium">
-              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {getCurrentModules().map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild
-                        className={`
-                          mx-3 mb-1 rounded-lg transition-all duration-200 h-11
-                          ${isActive(item.url) 
-                            ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                          }
-                          ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
-                        `}
-                      >
-                        <Link to={item.url} className="flex items-center w-full">
-                          <item.icon className={`h-4 w-4 ${collapsed ? '' : 'ml-3'}`} />
-                          {!collapsed && <span className="text-sm">{item.title}</span>}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                  {/* Show employee navigation if employee, otherwise show admin navigation */}
+                  {(profile?.role === 'employee' ? getCurrentModules() : mainItems).map((item) => (
+                    <div key={item.title}>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          asChild={!item.hasSubmenu}
+                          className={`
+                            mx-3 mb-1 rounded-lg transition-all duration-200 h-12
+                            ${isActive(item.url) 
+                              ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                            }
+                            ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
+                          `}
+                          onClick={item.hasSubmenu ? () => toggleSection(
+                            item.title === 'إدارة العلاقات العامة' ? 'crm' : 
+                            item.title === 'إدارة الحسابات' ? 'accounting' : 
+                            item.title === 'وحدة الإيجارات' ? 'rental' :
+                            item.title === '💼 العمليات' ? 'operations' :
+                            item.title === '💵 المالية' ? 'finance' :
+                            item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
+                            item.title === '🔔 الإشعارات' ? 'notifications' :
+                            'other'
+                          ) : undefined}
+                        >
+                          {item.hasSubmenu ? (
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center">
+                                <item.icon className={`h-5 w-5 ${collapsed ? '' : 'ml-3'}`} />
+                                {!collapsed && <span className="font-medium">{item.title}</span>}
+                              </div>
+                              {!collapsed && (
+                                expandedSections.includes(
+                                  item.title === 'إدارة العلاقات العامة' ? 'crm' : 
+                                  item.title === 'إدارة الحسابات' ? 'accounting' : 
+                                  item.title === 'وحدة الإيجارات' ? 'rental' :
+                                  item.title === '💼 العمليات' ? 'operations' :
+                                  item.title === '💵 المالية' ? 'finance' :
+                                  item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
+                                  item.title === '🔔 الإشعارات' ? 'notifications' :
+                                  'other'
+                                )
+                                  ? <ChevronDown className="h-4 w-4" />
+                                  : <ChevronRight className="h-4 w-4" />
+                              )}
+                            </div>
+                          ) : (
+                            <Link to={item.url} className="flex items-center w-full">
+                              <item.icon className={`h-5 w-5 ${collapsed ? '' : 'mr-3'}`} />
+                              {!collapsed && <span className="font-medium">{item.title}</span>}
+                            </Link>
+                          )}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      
+                        {/* Submenu */}
+                      {item.hasSubmenu && expandedSections.includes(
+                        item.title === 'إدارة العلاقات العامة' ? 'crm' : 
+                        item.title === 'إدارة الحسابات' ? 'accounting' : 
+                        item.title === 'وحدة الإيجارات' ? 'rental' :
+                        item.title === '💼 العمليات' ? 'operations' :
+                        item.title === '💵 المالية' ? 'finance' :
+                        item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
+                        item.title === '🔔 الإشعارات' ? 'notifications' :
+                        'other'
+                        ) && !collapsed && (
+                        <div className="pr-6 border-r border-sidebar-border space-y-1">
+                            {item.submenu?.filter(subItem => {
+                              // Check permissions for each submenu item
+                              if (subItem.url.includes('/crm/clients')) {
+                                return checkPermission('crmAccess');
+                              }
+                              if (subItem.url.includes('/crm/leads')) {
+                                return checkPermission('crmAccess'); 
+                              }
+                              if (subItem.url.includes('/crm/properties')) {
+                                return checkPermission('crmAccess');
+                              }
+                              if (subItem.url.includes('/crm/owners')) {
+                                return checkPermission('crmAccess');
+                              }
+                              if (subItem.url.includes('/whatsapp')) {
+                                return checkPermission('crmAccess');
+                              }
+                              if (subItem.url.includes('/tasks')) {
+                                return checkPermission('crmAccess');
+                              }
+                              if (subItem.url.includes('/reports')) {
+                                return checkPermission('canViewAllReports');
+                              }
+                              if (subItem.url.includes('/accounting')) {
+                                return checkPermission('canViewFinancials');
+                              }
+                              if (subItem.url.includes('/rental')) {
+                                return checkPermission('canViewFinancials');
+                              }
+                              if (subItem.url.includes('/employee')) {
+                                return checkPermission('canManageStaff');
+                              }
+                              if (subItem.url.includes('/settings')) {
+                                return checkPermission('canManageStaff');
+                              }
+                              if (subItem.url.includes('/security-audit')) {
+                                return checkPermission('canManageStaff');
+                              }
+                              if (subItem.url.includes('/ai-intelligence-hub')) {
+                                return checkPermission('canManageStaff');
+                              }
+                              return true;
+                            }).map((subItem) => (
+                             <SidebarMenuItem key={subItem.title}>
+                               <SidebarMenuButton 
+                                 asChild
+                                 className={`
+                                   mx-3 mb-1 rounded-lg transition-all duration-200 h-10
+                                   ${isActive(subItem.url) 
+                                     ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                                   }
+                                   justify-start px-6
+                                 `}
+                               >
+                            <Link to={subItem.url} className="flex items-center w-full">
+                               <subItem.icon className="h-4 w-4 ml-3" />
+                              <span className="text-sm flex items-center gap-2">
+                                {subItem.title}
+                                {typeof (subItem as any).badge !== 'undefined' && (subItem as any).badge > 0 && (
+                                   <span className="mr-2 inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white">
+                                    {(subItem as any).badge}
+                                  </span>
+                                )}
+                              </span>
+                            </Link>
+                               </SidebarMenuButton>
+                             </SidebarMenuItem>
+                           ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {/* Additional Modules for non-employees */}
+            {profile?.role !== 'employee' && getCurrentModules().length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="px-6 py-2 text-gray-500 text-sm font-medium">
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {getCurrentModules().map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton 
+                          asChild
+                          className={`
+                            mx-3 mb-1 rounded-lg transition-all duration-200 h-11
+                            ${isActive(item.url) 
+                              ? 'bg-yellow-500 text-white shadow-md hover:bg-yellow-600' 
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                            }
+                            ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
+                          `}
+                        >
+                          <Link to={item.url} className="flex items-center w-full">
+                            <item.icon className={`h-4 w-4 ${collapsed ? '' : 'ml-3'}`} />
+                            {!collapsed && <span className="text-sm">{item.title}</span>}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+          </div>
+
+          {/* User Card */}
+          {!collapsed && profile && (
+            <div className="mt-auto p-4 border-t border-gray-100 bg-gray-50">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3 space-x-reverse">
+                  <div className="w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">
+                    {profile.first_name[0]}{profile.last_name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {profile.first_name} {profile.last_name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {profile.role === 'admin' ? 'مدير' : 
+                       profile.role === 'accountant' ? 'محاسب' : 'موظف'}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={signOut}
+                  className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <LogOut className="h-4 w-4 ml-2" />
+                  تسجيل الخروج
+                </button>
+              </div>
+            </div>
           )}
         </div>
-
-        {/* User Card */}
-        {!collapsed && profile && (
-          <div className="mt-auto p-4 border-t border-gray-100 bg-gray-50">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">
-                  {profile.first_name[0]}{profile.last_name[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {profile.first_name} {profile.last_name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {profile.role === 'admin' ? 'مدير' : 
-                     profile.role === 'accountant' ? 'محاسب' : 'موظف'}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={signOut}
-                className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <LogOut className="h-4 w-4 ml-2" />
-                تسجيل الخروج
-              </button>
-            </div>
-          </div>
-        )}
       </SidebarContent>
     </Sidebar>
   );

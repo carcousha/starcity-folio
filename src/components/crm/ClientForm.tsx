@@ -152,7 +152,19 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
   };
 
   const onSubmit = async (data: ClientFormData) => {
+    if (!user?.id) {
+      toast({
+        title: "خطأ في المصادقة",
+        description: "يجب أن تكون مسجل دخول لإضافة عميل",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
+    
+
+    
     try {
       const clientData = {
         ...data,
@@ -162,6 +174,8 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
         created_by: user?.id,
         assigned_to: user?.id
       };
+
+
 
       if (client) {
         const { error } = await supabase
@@ -176,9 +190,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
           description: "تم تحديث بيانات العميل بنجاح",
         });
       } else {
-        const { error } = await supabase
+        const { data: insertedData, error } = await supabase
           .from('clients')
-          .insert(clientData);
+          .insert(clientData)
+          .select();
 
         if (error) throw error;
 
@@ -259,7 +274,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
 
                   <div className="space-y-2">
                     <Label htmlFor="nationality">الجنسية</Label>
-                    <Select onValueChange={(value) => setValue("nationality", value)}>
+                    <Select 
+                      value={watch("nationality") || ""} 
+                      onValueChange={(value) => setValue("nationality", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر الجنسية" />
                       </SelectTrigger>
@@ -275,7 +293,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
 
                   <div className="space-y-2">
                     <Label htmlFor="preferred_language">لغة التواصل المفضلة</Label>
-                    <Select onValueChange={(value) => setValue("preferred_language", value)}>
+                    <Select 
+                      value={watch("preferred_language") || "ar"}
+                      onValueChange={(value) => setValue("preferred_language", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر اللغة" />
                       </SelectTrigger>
@@ -289,7 +310,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
 
                   <div className="space-y-2">
                     <Label htmlFor="preferred_contact_method">طريقة التواصل المفضلة</Label>
-                    <Select onValueChange={(value) => setValue("preferred_contact_method", value)}>
+                    <Select 
+                      value={watch("preferred_contact_method") || ""}
+                      onValueChange={(value) => setValue("preferred_contact_method", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر طريقة التواصل" />
                       </SelectTrigger>
@@ -318,7 +342,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="property_type_interest">نوع العقار المهتم به</Label>
-                    <Select onValueChange={(value) => setValue("property_type_interest", value)}>
+                    <Select 
+                      value={watch("property_type_interest") || ""}
+                      onValueChange={(value) => setValue("property_type_interest", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر نوع العقار" />
                       </SelectTrigger>
@@ -334,7 +361,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
 
                   <div className="space-y-2">
                     <Label htmlFor="purchase_purpose">غرض الشراء</Label>
-                    <Select onValueChange={(value) => setValue("purchase_purpose", value)}>
+                    <Select 
+                      value={watch("purchase_purpose") || ""}
+                      onValueChange={(value) => setValue("purchase_purpose", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر الغرض" />
                       </SelectTrigger>
@@ -390,7 +420,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
 
                   <div className="space-y-2">
                     <Label htmlFor="preferred_payment_method">طريقة الدفع المفضلة</Label>
-                    <Select onValueChange={(value) => setValue("preferred_payment_method", value)}>
+                    <Select 
+                      value={watch("preferred_payment_method") || ""}
+                      onValueChange={(value) => setValue("preferred_payment_method", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر طريقة الدفع" />
                       </SelectTrigger>
@@ -410,7 +443,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="client_status">حالة العميل</Label>
-                    <Select onValueChange={(value) => setValue("client_status", value)}>
+                    <Select 
+                      value={watch("client_status") || "new"}
+                      onValueChange={(value) => setValue("client_status", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر الحالة" />
                       </SelectTrigger>
@@ -426,7 +462,10 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
 
                   <div className="space-y-2">
                     <Label htmlFor="source">مصدر العميل</Label>
-                    <Select onValueChange={(value) => setValue("source", value)}>
+                    <Select 
+                      value={watch("source") || ""}
+                      onValueChange={(value) => setValue("source", value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المصدر" />
                       </SelectTrigger>

@@ -107,6 +107,8 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
 
   const submitMutation = useMutation({
     mutationFn: async (data: LeadFormData) => {
+
+      
       const formData = {
         ...data,
         property_type: data.property_type as 'villa' | 'apartment' | 'land' | 'commercial',
@@ -118,6 +120,8 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
         ...(lead ? {} : { stage: 'new' })
       };
 
+
+
       if (lead) {
         const { error } = await supabase
           .from('leads')
@@ -126,9 +130,10 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
         
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data: insertedData, error } = await supabase
           .from('leads')
-          .insert([formData]);
+          .insert([formData])
+          .select();
         
         if (error) throw error;
       }
@@ -150,6 +155,15 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
   });
 
   const onSubmit = (data: LeadFormData) => {
+    if (!user?.id) {
+      toast({
+        title: "خطأ في المصادقة",
+        description: "يجب أن تكون مسجل دخول لإضافة ليد",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     submitMutation.mutate(data);
   };
 
@@ -210,7 +224,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
             <div>
               <Label htmlFor="preferred_language">لغة التواصل المفضلة *</Label>
               <Select
-                value={watch("preferred_language")}
+                value={watch("preferred_language") || "ar"}
                 onValueChange={(value) => setValue("preferred_language", value)}
               >
                 <SelectTrigger>
@@ -237,7 +251,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
             <div>
               <Label htmlFor="lead_source">مصدر الليد *</Label>
               <Select
-                value={watch("lead_source")}
+                value={watch("lead_source") || "other"}
                 onValueChange={(value) => setValue("lead_source", value)}
               >
                 <SelectTrigger>
@@ -256,7 +270,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
             <div>
               <Label htmlFor="property_type">نوع العقار المهتم به *</Label>
               <Select
-                value={watch("property_type")}
+                value={watch("property_type") || "apartment"}
                 onValueChange={(value) => setValue("property_type", value)}
               >
                 <SelectTrigger>
@@ -275,7 +289,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
             <div>
               <Label htmlFor="purchase_purpose">الغرض من الشراء *</Label>
               <Select
-                value={watch("purchase_purpose")}
+                value={watch("purchase_purpose") || "residence"}
                 onValueChange={(value) => setValue("purchase_purpose", value)}
               >
                 <SelectTrigger>
@@ -341,7 +355,7 @@ export function LeadForm({ onSuccess, lead }: LeadFormProps) {
             <div>
               <Label htmlFor="assigned_to">الموظف المسؤول</Label>
               <Select
-                value={watch("assigned_to")}
+                value={watch("assigned_to") || "unassigned"}
                 onValueChange={(value) => setValue("assigned_to", value)}
               >
                 <SelectTrigger>
