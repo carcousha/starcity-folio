@@ -77,12 +77,14 @@ export function AppLayout({ children }: AppLayoutProps) {
     const paddingRightClass = collapsed ? "md:pr-0" : "md:pr-[--sidebar-width]";
 
     return (
-      <div className="min-h-screen flex flex-row-reverse w-full bg-background" dir="rtl">
+      <div className="min-h-screen flex flex-row-reverse w-full bg-background relative" dir="rtl">
         {/* Sidebar */}
-        <AppSidebar />
+        <div className="fixed inset-y-0 right-0 z-40">
+          <AppSidebar />
+        </div>
 
         {/* Header */}
-        <header className="fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-40">
+        <div className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-50">
           <div className={`h-full px-4 flex items-center justify-between flex-row-reverse ${paddingRightClass}`}>
             {/* Actions (left in RTL) */}
             <div className="flex items-center space-x-2 space-x-reverse">
@@ -124,10 +126,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               )}
             </div>
           </div>
-        </header>
+        </div>
 
         {/* Main Content */}
-        <main className={`flex-1 pt-16 p-6 overflow-auto transition-[padding] duration-200 ${paddingRightClass}`}>
+        <main className={`flex-1 pt-16 p-6 overflow-auto transition-[padding] duration-200 ${paddingRightClass} relative z-10`}>
           {layoutChildren}
 
           {/* Developer Credit */}
