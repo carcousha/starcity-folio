@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,12 @@ export default function ExternalSuppliers() {
   const [addCategory, setAddCategory] = useState<SmartSupplier['category']>('broker');
   const [addPriority, setAddPriority] = useState<SmartSupplier['priority']>('medium');
   const [editCategory, setEditCategory] = useState<SmartSupplier['category']>('broker');
-  const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('medium');
+const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('medium');
+
+  const { user } = useAuth();
+  useEffect(() => {
+    if (user) whatsappSmartService.setUserId(user.id);
+  }, [user]);
 
   // جلب الموردين مع الفلاتر
   const { data: suppliers = [], isLoading } = useQuery({
