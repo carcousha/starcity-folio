@@ -67,11 +67,25 @@ class WhatsAppSmartService {
       const { data, error } = await supabase
         .from('daily_tasks')
         .select('*')
-        .gte('scheduled_date', today)
-        .order('scheduled_date', { ascending: true });
+        .gte('due_date', today)
+        .order('due_date', { ascending: true });
 
       if (error) throw error;
-      return data || [];
+
+      const tasks: SmartTask[] = (data || []).map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        task_type: (row.task_type as SmartTask['task_type']) || 'other',
+        target_suppliers: row.target_suppliers || [],
+        target_count: row.target_count || 0,
+        status: row.status,
+        scheduled_date: row.due_date,
+        reminder_time: row.due_time || null,
+        completed_at: row.completed_at || null,
+      }));
+
+      return tasks;
     } catch (error) {
       console.error('Error loading daily tasks:', error);
       return [];

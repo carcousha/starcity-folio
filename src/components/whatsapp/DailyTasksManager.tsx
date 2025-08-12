@@ -22,10 +22,16 @@ export default function DailyTasksManager() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [taskForm, setTaskForm] = useState({
+  const [taskForm, setTaskForm] = useState<{ 
+    title: string;
+    description: string;
+    task_type: SmartTask['task_type'];
+    scheduled_date: string;
+    reminder_time: string | null;
+  }>({
     title: '',
     description: '',
-    task_type: 'whatsapp_message' as const,
+    task_type: 'whatsapp_message',
     scheduled_date: format(new Date(), 'yyyy-MM-dd'),
     reminder_time: '09:00'
   });
@@ -51,11 +57,12 @@ export default function DailyTasksManager() {
 
   const saveTask = async () => {
     try {
-      const taskData = {
+      const taskData: Omit<SmartTask, 'id' | 'created_at' | 'updated_at'> = {
         ...taskForm,
         target_suppliers: [],
         target_count: 0,
-        status: 'pending' as const
+        status: 'pending',
+        completed_at: null,
       };
 
       if (editingTask) {
@@ -74,8 +81,6 @@ export default function DailyTasksManager() {
           const newTask: SmartTask = {
             id: taskId,
             ...taskData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
           };
           setTasks([newTask, ...tasks]);
         }
@@ -345,7 +350,7 @@ export default function DailyTasksManager() {
               <Label htmlFor="task_type">نوع المهمة</Label>
               <Select
                 value={taskForm.task_type}
-                onValueChange={(value: 'whatsapp_message' | 'follow_up' | 'meeting' | 'other') => 
+                onValueChange={(value: SmartTask['task_type']) => 
                   setTaskForm({ ...taskForm, task_type: value })
                 }
               >
