@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PropertyOwner } from "@/types/owners";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign, Grid3X3, Table } from "lucide-react";
+import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign, Grid3X3, Table, RefreshCw } from "lucide-react";
 import { OwnerForm } from "./OwnerForm";
 import { OwnerDetails } from "./OwnerDetails";
 import { OwnersTable } from "./OwnersTable";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// تخزين مؤقت للبيانات
+const ownersCache = {
+  data: null as PropertyOwner[] | null,
+  lastFetch: 0,
+  cacheExpiry: 5 * 60 * 1000, // 5 دقائق
+};
 
 export const OwnersList = () => {
   const { toast } = useToast();
@@ -23,12 +30,51 @@ export const OwnersList = () => {
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+  // استعادة الحالة من localStorage
   useEffect(() => {
-    fetchOwners();
+    const savedViewMode = localStorage.getItem('owners-view-mode');
+    if (savedViewMode === 'cards' || savedViewMode === 'table') {
+      setViewMode(savedViewMode);
+    }
+
+    const savedSearchTerm = localStorage.getItem('owners-search-term');
+    if (savedSearchTerm) {
+      setSearchTerm(savedSearchTerm);
+    }
+
+    const savedOwnerTypeFilter = localStorage.getItem('owners-type-filter');
+    if (savedOwnerTypeFilter) {
+      setOwnerTypeFilter(savedOwnerTypeFilter);
+    }
   }, []);
 
-  const fetchOwners = async () => {
+  // حفظ الحالة في localStorage
+  useEffect(() => {
+    localStorage.setItem('owners-view-mode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    localStorage.setItem('owners-search-term', searchTerm);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    localStorage.setItem('owners-type-filter', ownerTypeFilter);
+  }, [ownerTypeFilter]);
+
+  const fetchOwners = useCallback(async (forceRefresh = false) => {
+    // التحقق من التخزين المؤقت
+    const now = Date.now();
+    if (!forceRefresh && 
+        ownersCache.data && 
+        (now - ownersCache.lastFetch) < ownersCache.cacheExpiry) {
+      setOwners(ownersCache.data);
+      setIsDataLoaded(true);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -61,7 +107,12 @@ export const OwnersList = () => {
         })
       );
       
+      // تحديث التخزين المؤقت
+      ownersCache.data = ownersWithEmployeeInfo as PropertyOwner[];
+      ownersCache.lastFetch = now;
+      
       setOwners(ownersWithEmployeeInfo as PropertyOwner[]);
+      setIsDataLoaded(true);
     } catch (error: any) {
       console.error("Error fetching owners:", error);
       toast({
@@ -72,7 +123,17 @@ export const OwnersList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  // تحميل البيانات عند بدء المكون
+  useEffect(() => {
+    fetchOwners();
+  }, [fetchOwners]);
+
+  // تحديث البيانات يدوياً
+  const refreshData = useCallback(() => {
+    fetchOwners(true);
+  }, [fetchOwners]);
 
   // Function to open WhatsApp
   const openWhatsApp = (phoneNumbers: string[]) => {
@@ -112,8 +173,51 @@ export const OwnersList = () => {
   const handleFormSuccess = () => {
     setShowForm(false);
     setSelectedOwner(null);
-    fetchOwners();
+    refreshData(); // Refresh data after successful form submission
   };
+
+  // حفظ المالك المحدد في localStorage
+  useEffect(() => {
+    if (selectedOwner) {
+      localStorage.setItem('owners-selected-owner', JSON.stringify(selectedOwner));
+    }
+  }, [selectedOwner]);
+
+  // استعادة المالك المحدد من localStorage
+  useEffect(() => {
+    const savedOwner = localStorage.getItem('owners-selected-owner');
+    if (savedOwner && isDataLoaded) {
+      try {
+        const owner = JSON.parse(savedOwner);
+        // التحقق من أن المالك لا يزال موجوداً في البيانات الحالية
+        if (owners.find(o => o.id === owner.id)) {
+          setSelectedOwner(owner);
+        }
+      } catch (error) {
+        console.error('خطأ في استعادة المالك المحفوظ:', error);
+      }
+    }
+  }, [isDataLoaded, owners]);
+
+  // تنظيف التخزين المؤقت عند تسجيل الخروج
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth-session' && !e.newValue) {
+        // تم تسجيل الخروج، امسح التخزين المؤقت
+        ownersCache.data = null;
+        ownersCache.lastFetch = 0;
+        localStorage.removeItem('owners-view-mode');
+        localStorage.removeItem('owners-search-term');
+        localStorage.removeItem('owners-type-filter');
+        localStorage.removeItem('owners-selected-owner');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ar-AE', {
@@ -153,7 +257,7 @@ export const OwnersList = () => {
               كروت
             </Button>
             <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
+              variant={viewMode === "table" ? "ghost" : "default"}
               size="sm"
               onClick={() => setViewMode("table")}
               className="flex items-center gap-1"
@@ -162,6 +266,25 @@ export const OwnersList = () => {
               جدول
             </Button>
           </div>
+
+          {/* زر تحديث البيانات */}
+          <Button
+            onClick={refreshData}
+            disabled={loading}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>تحديث البيانات</span>
+          </Button>
+
+          {/* عرض آخر تحديث */}
+          {isDataLoaded && (
+            <Badge variant="secondary" className="text-xs">
+              آخر تحديث: {new Date(ownersCache.lastFetch).toLocaleTimeString('ar-SA')}
+            </Badge>
+          )}
         </div>
         
         <Dialog open={showForm} onOpenChange={setShowForm}>

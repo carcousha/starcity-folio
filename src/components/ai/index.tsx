@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -50,6 +50,15 @@ import AISettingsHub from './AISettingsHub';
 import UAEMarketPredictions from './UAEMarketPredictions';
 import UAEAIModels from './UAEAIModels';
 
+// تخزين مؤقت للبيانات
+const dataCache = {
+  clients: null as Client[] | null,
+  properties: null as Property[] | null,
+  lastFetch: 0,
+  cacheExpiry: 5 * 60 * 1000, // 5 دقائق
+  currentUser: localStorage.getItem('auth-user') || null, // حفظ حالة المستخدم
+};
+
 /**
  * الوحدة الرئيسية للذكاء الاصطناعي
  * تجمع كل الخدمات والمكونات الذكية في مكان واحد
@@ -69,6 +78,7 @@ export default function AIIntelligenceHub() {
   const [dbProperties, setDbProperties] = useState<Property[]>([]);
   const [propertyMatches, setPropertyMatches] = useState<PropertyMatch[]>([]);
   const [activeTab, setActiveTab] = useState('property-recommendation');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // تعريف وحدات داخلية للمركز تطابق قيم التبويبات لسهولة التحكم والتنقل
   const hubModules: Array<{
@@ -92,17 +102,29 @@ export default function AIIntelligenceHub() {
     const sub = (params as any)?.sub as string | undefined;
     if (sub && hubModules.some(m => m.id === sub)) {
       setActiveTab(sub);
+      // حفظ التبويب النشط في localStorage
+      localStorage.setItem('ai-active-tab', sub);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.sub]);
 
-  const handleSelectTab = (id: string) => {
+  const handleSelectTab = useCallback((id: string) => {
     setActiveTab(id);
+    // حفظ التبويب النشط في localStorage
+    localStorage.setItem('ai-active-tab', id);
     navigate(`/ai-intelligence-hub/${id}`);
-  };
+  }, [navigate]);
+
+  // استعادة التبويب النشط من localStorage عند بدء المكون
+  useEffect(() => {
+    const savedTab = localStorage.getItem('ai-active-tab');
+    if (savedTab && hubModules.some(m => m.id === savedTab)) {
+      setActiveTab(savedTab);
+    }
+  }, [hubModules]);
 
   // تحويل عميل CRM إلى نموذج AI Client
-  const mapCrmClientToAIClient = (c: any): Client => {
+  const mapCrmClientToAIClient = useCallback((c: any): Client => {
     const mapPropertyType = (val?: string): Client['property_type'] => {
       const normalized = (val || '').toLowerCase();
       if (normalized.includes('villa') || normalized.includes('فيلا')) return ['villa'];
@@ -147,34 +169,105 @@ export default function AIIntelligenceHub() {
       assigned_broker_id: c.assigned_to,
       status,
     };
-  };
-
-  // جلب بيانات حقيقية من Supabase
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [clientsRes, propertiesRes] = await Promise.all([
-          supabase.from('clients').select('*').order('updated_at', { ascending: false }),
-          supabase.from('properties').select('*').order('last_updated', { ascending: false })
-        ]);
-
-        if (clientsRes.error) throw clientsRes.error;
-        if (propertiesRes.error) throw propertiesRes.error;
-
-        const clients = (clientsRes.data || []).map(mapCrmClientToAIClient) as Client[];
-        const properties = (propertiesRes.data || []) as unknown as Property[];
-
-        setDbClients(clients);
-        setDbProperties(properties);
-      } catch (err) {
-        console.error('فشل تحميل بيانات العملاء/العقارات من Supabase:', err);
-      }
-    };
-    fetchData();
   }, []);
 
+  // تحويل عقار CRM إلى نموذج AI Property
+  const mapCrmPropertyToAIProperty = useCallback((p: any): Property => {
+    const mapPropertyType = (val?: string): Property['property_type'] => {
+      const normalized = (val || '').toLowerCase();
+      if (normalized.includes('villa') || normalized.includes('فيلا')) return 'villa';
+      if (normalized.includes('apartment') || normalized.includes('شقة')) return 'apartment';
+      if (normalized.includes('office') || normalized.includes('مكتب')) return 'office';
+      if (normalized.includes('warehouse') || normalized.includes('مستودع')) return 'warehouse';
+      if (normalized.includes('shop') || normalized.includes('محل')) return 'shop';
+      if (normalized.includes('building') || normalized.includes('مبنى')) return 'building';
+      if (normalized.includes('land') || normalized.includes('أرض')) return 'land';
+      return 'apartment';
+    };
+
+    const mapStatus = (val?: string): Property['status'] => {
+      const normalized = (val || '').toLowerCase();
+      if (normalized.includes('sold') || normalized.includes('مباع')) return 'sold';
+      if (normalized.includes('rented') || normalized.includes('مؤجر')) return 'rented';
+      if (normalized.includes('under_contract') || normalized.includes('عقد')) return 'under_contract';
+      return 'available';
+    };
+
+    return {
+      id: p.id,
+      title: p.title || p.property_name || `عقار #${p.id}`,
+      description: p.description || p.notes || 'لا يوجد وصف متاح',
+      price: typeof p.price === 'number' ? p.price : (typeof p.asking_price === 'number' ? p.asking_price : 0),
+      area: typeof p.area === 'number' ? p.area : (typeof p.square_feet === 'number' ? p.square_feet : 0),
+      bedrooms: typeof p.bedrooms === 'number' ? p.bedrooms : 0,
+      bathrooms: typeof p.bathrooms === 'number' ? p.bathrooms : 0,
+      property_type: mapPropertyType(p.property_type),
+      area_name: p.area_name || p.location || p.neighborhood || 'غير محدد',
+      city: p.city || p.city_name || 'غير محدد',
+      district: p.district || p.area || 'غير محدد',
+      features: p.features ? (Array.isArray(p.features) ? p.features : [p.features]) : [],
+      images: p.images ? (Array.isArray(p.images) ? p.images : [p.images]) : [],
+      status: mapStatus(p.status),
+      owner_id: p.owner_id || p.created_by || '',
+      listed_date: p.listed_date || p.created_at || new Date().toISOString(),
+      last_updated: p.last_updated || p.updated_at || p.created_at || new Date().toISOString(),
+      views_count: typeof p.views_count === 'number' ? p.views_count : 0,
+      inquiries_count: typeof p.inquiries_count === 'number' ? p.inquiries_count : 0,
+      ai_score: typeof p.ai_score === 'number' ? p.ai_score : undefined,
+    };
+  }, []);
+
+  // جلب بيانات حقيقية من Supabase مع تخزين مؤقت
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    // التحقق من التخزين المؤقت
+    const now = Date.now();
+    if (!forceRefresh && 
+        dataCache.clients && 
+        dataCache.properties && 
+        (now - dataCache.lastFetch) < dataCache.cacheExpiry) {
+      setDbClients(dataCache.clients);
+      setDbProperties(dataCache.properties);
+      setIsDataLoaded(true);
+      return;
+    }
+
+    try {
+      const [clientsRes, propertiesRes] = await Promise.all([
+        supabase.from('clients').select('*').order('updated_at', { ascending: false }),
+        supabase.from('crm_properties').select('*').order('last_updated', { ascending: false })
+      ]);
+
+      if (clientsRes.error) throw clientsRes.error;
+      if (propertiesRes.error) throw propertiesRes.error;
+
+      const clients = (clientsRes.data || []).map(mapCrmClientToAIClient) as Client[];
+      const properties = (propertiesRes.data || []).map(mapCrmPropertyToAIProperty) as Property[];
+
+      // تحديث التخزين المؤقت
+      dataCache.clients = clients;
+      dataCache.properties = properties;
+      dataCache.lastFetch = now;
+
+      setDbClients(clients);
+      setDbProperties(properties);
+      setIsDataLoaded(true);
+    } catch (err) {
+      console.error('فشل تحميل بيانات العملاء/العقارات من Supabase:', err);
+      setIsDataLoaded(false);
+    }
+  }, [mapCrmClientToAIClient, mapCrmPropertyToAIProperty]);
+
+  // تحميل البيانات عند بدء المكون
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
   // تحليل شامل للبيانات
-  const performFullAnalysis = async () => {
+  const performFullAnalysis = useCallback(async () => {
+    if (!isDataLoaded || dbClients.length === 0 || dbProperties.length === 0) {
+      return;
+    }
+
     setIsAnalyzing(true);
     try {
       const clients = dbClients;
@@ -219,10 +312,10 @@ export default function AIIntelligenceHub() {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [aiEngine, dbClients, dbProperties, isDataLoaded]);
 
   // إعادة تحليل العميل المحدد
-  const reanalyzeClient = async (client: Client) => {
+  const reanalyzeClient = useCallback(async (client: Client) => {
     setIsAnalyzing(true);
     try {
       const result = await aiEngine.performFullAnalysis(client, dbProperties);
@@ -236,7 +329,7 @@ export default function AIIntelligenceHub() {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [aiEngine, dbProperties]);
 
   // حساب التطابقات عند اختيار عميل
   useEffect(() => {
@@ -251,17 +344,17 @@ export default function AIIntelligenceHub() {
     computeMatches();
   }, [selectedClient, dbProperties, aiEngine]);
 
+  // تشغيل التحليل عند توفر البيانات
   useEffect(() => {
-    // عند توفر بيانات فعلية من Supabase ابدأ التحليل
-    if (dbClients.length > 0 && dbProperties.length > 0) {
+    if (isDataLoaded && dbClients.length > 0 && dbProperties.length > 0) {
       performFullAnalysis();
     }
-  }, [dbClients.length, dbProperties.length]);
+  }, [isDataLoaded, dbClients.length, dbProperties.length, performFullAnalysis]);
 
   // تشغيل ترشيح العقارات تلقائياً عند إضافة عميل جديد في CRM (Realtime)
   useEffect(() => {
     // لا يمكن الاشتراك بدون خصائص متاحة للمطابقة
-    if (!dbProperties || dbProperties.length === 0) return;
+    if (!isDataLoaded || !dbProperties || dbProperties.length === 0) return;
 
     const channel = supabase
       .channel('realtime-clients-ai')
@@ -269,6 +362,11 @@ export default function AIIntelligenceHub() {
         try {
           const newClient = mapCrmClientToAIClient(payload.new);
           setDbClients((prev) => [newClient, ...prev]);
+
+          // تحديث التخزين المؤقت
+          if (dataCache.clients) {
+            dataCache.clients = [newClient, ...dataCache.clients];
+          }
 
           // اجعل العميل الجديد هو المختار وقم بحساب التطابق فوراً
           setSelectedClient(newClient);
@@ -292,7 +390,213 @@ export default function AIIntelligenceHub() {
     return () => {
       try { supabase.removeChannel(channel); } catch { /* no-op */ }
     };
-  }, [dbProperties, aiEngine]);
+  }, [dbProperties, aiEngine, mapCrmClientToAIClient, toast, isDataLoaded]);
+
+  // تحديث البيانات يدوياً
+  const refreshData = useCallback(() => {
+    fetchData(true);
+  }, [fetchData]);
+
+  // تنظيف التخزين المؤقت عند تسجيل الخروج
+  const clearCache = useCallback(() => {
+    dataCache.clients = null;
+    dataCache.properties = null;
+    dataCache.lastFetch = 0;
+    localStorage.removeItem('ai-selected-client');
+    localStorage.removeItem('ai-analysis-results');
+    localStorage.removeItem('ai-recommendations');
+    localStorage.removeItem('ai-property-matches');
+    localStorage.removeItem('ai-market-insights');
+    localStorage.removeItem('ai-performance-metrics');
+    localStorage.removeItem('ai-active-tab');
+  }, []);
+
+  // تنظيف التخزين المؤقت عند إغلاق الصفحة
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // لا نحذف التخزين المؤقت عند إغلاق الصفحة، فقط عند تسجيل الخروج
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // تنظيف التخزين المؤقت عند تسجيل الخروج
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth-session' && !e.newValue) {
+        // تم تسجيل الخروج، امسح التخزين المؤقت
+        clearCache();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [clearCache]);
+
+  // تنظيف التخزين المؤقت عند تغيير المستخدم
+  useEffect(() => {
+    const handleUserChange = () => {
+      // إذا تغير المستخدم، امسح التخزين المؤقت
+      clearCache();
+    };
+
+    // استمع لتغييرات في localStorage
+    const checkUserChange = setInterval(() => {
+      const currentUser = localStorage.getItem('auth-user');
+      if (currentUser !== dataCache.currentUser) {
+        dataCache.currentUser = currentUser;
+        handleUserChange();
+      }
+    }, 1000);
+
+    return () => clearInterval(checkUserChange);
+  }, [clearCache]);
+
+  // تنظيف التخزين المؤقت عند تغيير الصفحة
+  useEffect(() => {
+    const handleRouteChange = () => {
+      // إذا تغيرت الصفحة، احفظ الحالة الحالية
+      if (selectedClient) {
+        localStorage.setItem('ai-selected-client', JSON.stringify(selectedClient));
+      }
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [selectedClient]);
+
+  // تنظيف التخزين المؤقت عند تغيير البيانات
+  useEffect(() => {
+    const handleDataChange = () => {
+      // إذا تغيرت البيانات، امسح التخزين المؤقت
+      if (dbClients.length > 0 || dbProperties.length > 0) {
+        dataCache.lastFetch = Date.now();
+      }
+    };
+
+    // استمع لتغييرات في البيانات
+    handleDataChange();
+  }, [dbClients.length, dbProperties.length]);
+
+  // حفظ الحالة في localStorage
+  useEffect(() => {
+    if (selectedClient) {
+      localStorage.setItem('ai-selected-client', JSON.stringify(selectedClient));
+    }
+  }, [selectedClient]);
+
+  // حفظ نتائج التحليل في localStorage
+  useEffect(() => {
+    if (analysisResults.length > 0) {
+      localStorage.setItem('ai-analysis-results', JSON.stringify(analysisResults));
+    }
+  }, [analysisResults]);
+
+  // حفظ التوصيات في localStorage
+  useEffect(() => {
+    if (recommendations.length > 0) {
+      localStorage.setItem('ai-recommendations', JSON.stringify(recommendations));
+    }
+  }, [recommendations]);
+
+  // حفظ التطابقات في localStorage
+  useEffect(() => {
+    if (propertyMatches.length > 0) {
+      localStorage.setItem('ai-property-matches', JSON.stringify(propertyMatches));
+    }
+  }, [propertyMatches]);
+
+  // حفظ رؤى السوق في localStorage
+  useEffect(() => {
+    if (marketInsights.length > 0) {
+      localStorage.setItem('ai-market-insights', JSON.stringify(marketInsights));
+    }
+  }, [marketInsights]);
+
+  // حفظ مؤشرات الأداء في localStorage
+  useEffect(() => {
+    if (performanceMetrics) {
+      localStorage.setItem('ai-performance-metrics', JSON.stringify(performanceMetrics));
+    }
+  }, [performanceMetrics]);
+
+  // استعادة الحالة من localStorage
+  useEffect(() => {
+    const savedClient = localStorage.getItem('ai-selected-client');
+    if (savedClient && isDataLoaded) {
+      try {
+        const client = JSON.parse(savedClient);
+        // التحقق من أن العميل لا يزال موجوداً في البيانات الحالية
+        if (dbClients.find(c => c.id === client.id)) {
+          setSelectedClient(client);
+        }
+      } catch (error) {
+        console.error('خطأ في استعادة العميل المحفوظ:', error);
+      }
+    }
+
+    // استعادة نتائج التحليل
+    const savedAnalysis = localStorage.getItem('ai-analysis-results');
+    if (savedAnalysis) {
+      try {
+        const analysis = JSON.parse(savedAnalysis);
+        setAnalysisResults(analysis);
+      } catch (error) {
+        console.error('خطأ في استعادة نتائج التحليل:', error);
+      }
+    }
+
+    // استعادة التوصيات
+    const savedRecommendations = localStorage.getItem('ai-recommendations');
+    if (savedRecommendations) {
+      try {
+        const recs = JSON.parse(savedRecommendations);
+        setRecommendations(recs);
+      } catch (error) {
+        console.error('خطأ في استعادة التوصيات:', error);
+      }
+    }
+
+    // استعادة التطابقات
+    const savedMatches = localStorage.getItem('ai-property-matches');
+    if (savedMatches) {
+      try {
+        const matches = JSON.parse(savedMatches);
+        setPropertyMatches(matches);
+      } catch (error) {
+        console.error('خطأ في استعادة التطابقات:', error);
+      }
+    }
+
+    // استعادة رؤى السوق
+    const savedInsights = localStorage.getItem('ai-market-insights');
+    if (savedInsights) {
+      try {
+        const insights = JSON.parse(savedInsights);
+        setMarketInsights(insights);
+      } catch (error) {
+        console.error('خطأ في استعادة رؤى السوق:', error);
+      }
+    }
+
+    // استعادة مؤشرات الأداء
+    const savedMetrics = localStorage.getItem('ai-performance-metrics');
+    if (savedMetrics) {
+      try {
+        const metrics = JSON.parse(savedMetrics);
+        setPerformanceMetrics(metrics);
+      } catch (error) {
+        console.error('خطأ في استعادة مؤشرات الأداء:', error);
+      }
+    }
+  }, [isDataLoaded, dbClients]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -305,6 +609,35 @@ export default function AIIntelligenceHub() {
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
           نظام ذكي لتحليل البيانات وتقديم التوصيات لزيادة كفاءة المبيعات
         </p>
+        
+        {/* شريط الأدوات */}
+        <div className="flex items-center justify-center space-x-4 space-x-reverse">
+          <Button
+            onClick={refreshData}
+            disabled={isAnalyzing}
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2 space-x-reverse"
+          >
+            <RefreshCw className={`h-4 w-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
+            <span>تحديث البيانات</span>
+          </Button>
+          
+          <Button
+            onClick={clearCache}
+            variant="ghost"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <span>مسح التخزين المؤقت</span>
+          </Button>
+          
+          {isDataLoaded && (
+            <Badge variant="secondary" className="text-xs">
+              آخر تحديث: {new Date(dataCache.lastFetch).toLocaleTimeString('ar-SA')}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* الوحدات الداخلية - شبكة كروت للتحكم السريع */}

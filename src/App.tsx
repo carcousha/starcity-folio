@@ -76,7 +76,12 @@ const WhatsAppSettings = lazy(() => import("./pages/whatsapp/Settings.tsx"));
 const WhatsAppLogs = lazy(() => import("./pages/whatsapp/Logs.tsx"));
 const WhatsAppReminders = lazy(() => import("./pages/whatsapp/Reminders.tsx"));
 const WhatsAppTemplates = lazy(() => import("./pages/whatsapp/Templates"));
+const WhatsAppSmartModule = lazy(() => import("./pages/whatsapp/SmartModule"));
+const SmartDailyTasks = lazy(() => import("./pages/whatsapp/smart/DailyTasksPage"));
+const SmartExternalSuppliers = lazy(() => import("./pages/whatsapp/smart/ExternalSuppliersPage"));
+const SmartSettingsPage = lazy(() => import("./pages/whatsapp/smart/SmartSettingsPage"));
 const AIIntelligenceHub = lazy(() => import("./components/ai"));
+const AIHubDashboard = lazy(() => import("./components/ai/AIHubDashboard"));
 
 
 const queryClient = new QueryClient({
@@ -219,6 +224,34 @@ const AppProtector = () => {
                  <ProtectedRoute requiredPermission="crmAccess">
                    <Suspense fallback={<LoadingSpinner />}>
                      <WhatsAppSmart />
+                   </Suspense>
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/smart-module" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppSmartModule />
+                   </Suspense>
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/smart-module/tasks" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <SmartDailyTasks />
+                   </Suspense>
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/smart-module/suppliers" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <SmartExternalSuppliers />
+                   </Suspense>
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/smart-module/settings" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <SmartSettingsPage />
                    </Suspense>
                  </ProtectedRoute>
                } />
@@ -607,20 +640,20 @@ const AppProtector = () => {
               } />
               
               {/* AI Intelligence Hub */}
-              <Route path="/ai-intelligence-hub" element={
-                <ProtectedRoute requiredPermission="canManageStaff">
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <AIIntelligenceHub />
-                  </Suspense>
-                </ProtectedRoute>
-              } />
-              <Route path="/ai-intelligence-hub/:sub" element={
-                <ProtectedRoute requiredPermission="canManageStaff">
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <AIIntelligenceHub />
-                  </Suspense>
-                </ProtectedRoute>
-              } />
+               <Route path="/ai-intelligence-hub" element={
+                 <ProtectedRoute requiredPermission="canManageStaff">
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <AIHubDashboard />
+                   </Suspense>
+                 </ProtectedRoute>
+               } />
+               <Route path="/ai-intelligence-hub/:sub" element={
+                 <ProtectedRoute requiredPermission="canManageStaff">
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <AIIntelligenceHub />
+                   </Suspense>
+                 </ProtectedRoute>
+               } />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route
