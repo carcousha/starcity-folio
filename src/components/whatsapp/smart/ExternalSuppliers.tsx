@@ -28,6 +28,7 @@ import { whatsappSmartService, SmartSupplier } from '@/services/whatsappSmartSer
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ExternalSuppliers() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +37,12 @@ export default function ExternalSuppliers() {
   const [editingSupplier, setEditingSupplier] = useState<SmartSupplier | null>(null);
   const [isAddingSupplier, setIsAddingSupplier] = useState(false);
   const queryClient = useQueryClient();
+
+  // محليات لاختيار الفئة والأولوية في النموذجين (إضافة/تعديل)
+  const [addCategory, setAddCategory] = useState<SmartSupplier['category']>('broker');
+  const [addPriority, setAddPriority] = useState<SmartSupplier['priority']>('medium');
+  const [editCategory, setEditCategory] = useState<SmartSupplier['category']>('broker');
+  const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('medium');
 
   // جلب الموردين مع الفلاتر
   const { data: suppliers = [], isLoading } = useQuery({
@@ -146,20 +153,22 @@ export default function ExternalSuppliers() {
   };
 
   const handleAddSupplier = (formData: FormData) => {
-    const firstName = formData.get('first_name') as string;
-    const lastName = formData.get('last_name') as string;
-    const contactName = formData.get('contact_name') as string;
-    
-    const supplier = {
-      name: `${firstName} ${lastName}`, // الاسم الكامل للعرض
+    const firstName = (formData.get('first_name') as string) || '';
+    const lastName = (formData.get('last_name') as string) || '';
+    const contactName = (formData.get('contact_name') as string) || `${firstName} ${lastName}`.trim();
+    const rawPhone = (formData.get('phone') as string) || '';
+    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+    const supplier: Omit<SmartSupplier, 'id' | 'created_at' | 'updated_at'> = {
+      name: `${firstName} ${lastName}`.trim(), // الاسم الكامل للعرض
       first_name: firstName,
       last_name: lastName,
       contact_name: contactName,
-      phone: formData.get('phone') as string,
-      company_name: formData.get('company_name') as string || null,
-      category: formData.get('category') as SmartSupplier['category'],
-      priority: formData.get('priority') as SmartSupplier['priority'],
-      notes: formData.get('notes') as string || null,
+      phone: cleanPhone,
+      company_name: (formData.get('company_name') as string) || null,
+      category: addCategory,
+      priority: addPriority,
+      notes: ((formData.get('notes') as string) || '').trim() || null,
       last_contact_date: null,
       last_contact_type: null,
       is_active: true,
@@ -171,20 +180,21 @@ export default function ExternalSuppliers() {
   const handleUpdateSupplier = (formData: FormData) => {
     if (!editingSupplier) return;
 
-    const firstName = formData.get('first_name') as string;
-    const lastName = formData.get('last_name') as string;
-    const contactName = formData.get('contact_name') as string;
+    const fullName = ((formData.get('name') as string) || '').trim();
+    const [firstName = '', ...rest] = fullName.split(' ');
+    const lastName = rest.join(' ');
+    const rawPhone = (formData.get('phone') as string) || '';
+    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
 
-    const updates = {
-      name: `${firstName} ${lastName}`, // الاسم الكامل للعرض
-      first_name: firstName,
-      last_name: lastName,
-      contact_name: contactName,
-      phone: formData.get('phone') as string,
-      company_name: formData.get('company_name') as string || null,
-      category: formData.get('category') as SmartSupplier['category'],
-      priority: formData.get('priority') as SmartSupplier['priority'],
-      notes: formData.get('notes') as string || null,
+    const updates: Partial<SmartSupplier> = {
+      name: fullName || undefined,
+      first_name: firstName || undefined,
+      last_name: lastName || undefined,
+      phone: cleanPhone || undefined,
+      company_name: ((formData.get('company_name') as string) || '').trim() || undefined,
+      category: editCategory,
+      priority: editPriority,
+      notes: ((formData.get('notes') as string) || '').trim() || undefined,
     };
 
     updateSupplierMutation.mutate({ id: editingSupplier.id, updates });
@@ -249,7 +259,7 @@ export default function ExternalSuppliers() {
               </div>
               <div>
                 <Label htmlFor="category">الفئة</Label>
-                <Select name="category" required>
+                <Select value={addCategory} onValueChange={(v) => setAddCategory(v as SmartSupplier['category'])} required>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الفئة" />
                   </SelectTrigger>
@@ -262,7 +272,7 @@ export default function ExternalSuppliers() {
               </div>
               <div>
                 <Label htmlFor="priority">الأولوية</Label>
-                <Select name="priority" required>
+                <Select value={addPriority} onValueChange={(v) => setAddPriority(v as SmartSupplier['priority'])} required>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الأولوية" />
                   </SelectTrigger>
@@ -428,7 +438,11 @@ export default function ExternalSuppliers() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setEditingSupplier(supplier)}
+                          onClick={() => { 
+                            setEditingSupplier(supplier);
+                            setEditCategory(supplier.category);
+                            setEditPriority(supplier.priority);
+                          }}
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
@@ -486,7 +500,7 @@ export default function ExternalSuppliers() {
               </div>
               <div>
                 <Label htmlFor="edit-category">الفئة</Label>
-                <Select name="category" defaultValue={editingSupplier.category} required>
+                <Select value={editCategory} onValueChange={(v) => setEditCategory(v as SmartSupplier['category'])} required>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -499,7 +513,7 @@ export default function ExternalSuppliers() {
               </div>
               <div>
                 <Label htmlFor="edit-priority">الأولوية</Label>
-                <Select name="priority" defaultValue={editingSupplier.priority} required>
+                <Select value={editPriority} onValueChange={(v) => setEditPriority(v as SmartSupplier['priority'])} required>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
