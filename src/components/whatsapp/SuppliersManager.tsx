@@ -24,13 +24,20 @@ export default function SuppliersManager() {
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [supplierForm, setSupplierForm] = useState({
+  const [supplierForm, setSupplierForm] = useState<{
+    name: string;
+    phone: string;
+    company_name: string;
+    category: 'broker' | 'land_owner' | 'developer';
+    notes: string;
+    priority: 'low' | 'medium' | 'high';
+  }>({
     name: '',
     phone: '',
     company_name: '',
-    category: 'broker' as const,
+    category: 'broker',
     notes: '',
-    priority: 'medium' as const
+    priority: 'medium'
   });
 
   useEffect(() => {
@@ -68,16 +75,35 @@ export default function SuppliersManager() {
           ));
         }
       } else {
-        const supplierId = await whatsappSmartService.addSupplier(supplierForm);
+        const supplierId = await whatsappSmartService.addSupplier({
+          name: supplierForm.name,
+          first_name: supplierForm.name.split(' ')[0] || '',
+          last_name: supplierForm.name.split(' ').slice(1).join(' ') || '',
+          contact_name: supplierForm.name,
+          phone: supplierForm.phone,
+          company_name: supplierForm.company_name || null,
+          category: supplierForm.category,
+          notes: supplierForm.notes || null,
+          priority: supplierForm.priority,
+          last_contact_date: null,
+          last_contact_type: null,
+          is_active: true,
+        });
         if (supplierId) {
           const newSupplier: SmartSupplier = {
             id: supplierId,
-            ...supplierForm,
+            name: supplierForm.name,
+            first_name: supplierForm.name.split(' ')[0] || '',
+            last_name: supplierForm.name.split(' ').slice(1).join(' ') || '',
+            contact_name: supplierForm.name,
+            phone: supplierForm.phone,
+            company_name: supplierForm.company_name || null,
+            category: supplierForm.category,
+            notes: supplierForm.notes || null,
+            priority: supplierForm.priority,
             last_contact_date: null,
             last_contact_type: null,
             is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
           };
           setSuppliers([newSupplier, ...suppliers]);
         }
