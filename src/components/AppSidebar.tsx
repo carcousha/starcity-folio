@@ -1,5 +1,5 @@
 import { useLocation, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
   Home, 
   Users,
@@ -53,7 +53,111 @@ export function AppSidebar() {
   const { profile, signOut, user, loading, session } = useAuth();
   const { checkPermission } = useRoleAccess();
   const currentPath = location.pathname;
-  const [expandedSections, setExpandedSections] = useState<string[]>(['crm']);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+
+  // تحديد القسم النشط بناءً على الرابط الحالي
+  const getActiveSection = useMemo(() => {
+    console.log('getActiveSection called with currentPath:', currentPath);
+    if (currentPath === '/admin-dashboard' || currentPath === '/employee/dashboard') {
+      console.log('On main page, returning null');
+      return null; // الصفحة الرئيسية
+    }
+    if (currentPath.startsWith('/crm')) {
+      console.log('CRM section detected');
+      return 'crm';
+    }
+    if (currentPath.startsWith('/whatsapp')) {
+      console.log('WhatsApp section detected');
+      return 'whatsapp';
+    }
+    if (currentPath.startsWith('/accounting')) {
+      console.log('Accounting section detected');
+      return 'accounting';
+    }
+    if (currentPath.startsWith('/rental')) {
+      console.log('Rental section detected');
+      return 'rental';
+    }
+    if (currentPath.startsWith('/ai-intelligence-hub')) {
+      console.log('AI section detected');
+      return 'ai';
+    }
+    if (currentPath.startsWith('/employee/my-clients') || currentPath.startsWith('/employee/my-leads') || 
+        currentPath.startsWith('/employee/my-properties') || currentPath.startsWith('/employee/my-tasks')) {
+      console.log('Employee operations section detected');
+      return 'operations';
+    }
+    if (currentPath.startsWith('/employee/my-commissions') || currentPath.startsWith('/employee/my-debts') || 
+        currentPath.startsWith('/employee/my-performance')) {
+      console.log('Employee finance section detected');
+      return 'finance';
+    }
+    if (currentPath.startsWith('/employee/vehicle') || currentPath.startsWith('/employee/requests') || 
+        currentPath.startsWith('/employee/complaints')) {
+      console.log('Employee admin services section detected');
+      return 'admin-services';
+    }
+    if (currentPath.startsWith('/employee/notifications')) {
+      console.log('Employee notifications section detected');
+      return 'notifications';
+    }
+    console.log('No section detected, returning null');
+    return null;
+  }, [currentPath]);
+
+  // حفظ حالة الشريط الجانبي في localStorage
+  useEffect(() => {
+    const savedExpandedSections = localStorage.getItem('sidebar-expanded-sections');
+    if (savedExpandedSections) {
+      try {
+        const parsed = JSON.parse(savedExpandedSections);
+        if (Array.isArray(parsed)) {
+          console.log('Restoring saved sidebar state:', parsed);
+          setExpandedSections(parsed);
+        }
+      } catch (error) {
+        console.error('Error parsing saved sidebar state:', error);
+      }
+    }
+  }, []);
+
+  // تحديث القسم المفتوح عند تغيير الرابط
+  useEffect(() => {
+    console.log('Route changed - getActiveSection:', getActiveSection);
+    if (getActiveSection) {
+      console.log('Setting active section:', getActiveSection);
+      setExpandedSections([getActiveSection]);
+      localStorage.setItem('sidebar-expanded-sections', JSON.stringify([getActiveSection]));
+    } else if (expandedSections.length > 0) {
+      // إذا كنا في الصفحة الرئيسية، أغلق جميع الأقسام
+      console.log('On main page, closing all sections');
+      setExpandedSections([]);
+      localStorage.removeItem('sidebar-expanded-sections');
+    }
+  }, [getActiveSection]); // فقط getActiveSection
+
+  // حفظ حالة الشريط الجانبي عند تغييرها
+  useEffect(() => {
+    if (expandedSections.length > 0) {
+      localStorage.setItem('sidebar-expanded-sections', JSON.stringify(expandedSections));
+    }
+  }, [expandedSections]);
+
+  // تنظيف localStorage عند تسجيل الخروج
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth-session' && !e.newValue) {
+        // تم تسجيل الخروج، امسح حالة الشريط الجانبي
+        localStorage.removeItem('sidebar-expanded-sections');
+        setExpandedSections([]);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   // حماية صارمة: إذا كان التحميل جاري، لا تظهر السايدبار
   if (loading) {
@@ -74,12 +178,42 @@ export function AppSidebar() {
 
   const isActive = (path: string) => currentPath === path;
   
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => 
-      prev.includes(section) 
-        ? prev.filter(s => s !== section)
-        : [section] // Only open the clicked section, close all others
-    );
+  const toggleSection = useCallback((section: string) => {
+    console.log('Toggling section:', section); // للتأكد من أن الدالة تعمل
+    setExpandedSections(prev => {
+      if (prev.includes(section)) {
+        // إذا كان القسم مفتوح، أغلقوه
+        console.log('Closing section:', section);
+        return prev.filter(s => s !== section);
+      } else {
+        // إذا كان القسم مغلق، افتحوه وأغلق باقي الأقسام
+        console.log('Opening section:', section, 'closing others');
+        return [section];
+      }
+    });
+  }, []);
+
+  // الحصول على اسم القسم من العنوان
+  const getSectionKey = useCallback((title: string) => {
+    console.log('Getting section key for title:', title); // للتأكد من أن الدالة تعمل
+    if (title === 'إدارة العلاقات العامة') return 'crm';
+    if (title === 'إدارة الحسابات') return 'accounting';
+    if (title === 'وحدة الإيجارات') return 'rental';
+    if (title === 'الواتساب') return 'whatsapp';
+    if (title === '💼 العمليات') return 'operations';
+    if (title === '💵 المالية') return 'finance';
+    if (title === '🚗 الخدمات الإدارية') return 'admin-services';
+    if (title === '🔔 الإشعارات') return 'notifications';
+    const result = 'other';
+    console.log('Section key result:', result);
+    return result;
+  }, []);
+
+  // التحقق من أن القسم مفتوح
+  const isSectionExpanded = (title: string) => {
+    const sectionKey = getSectionKey(title);
+    console.log('Checking if section expanded:', title, 'key:', sectionKey, 'expandedSections:', expandedSections);
+    return expandedSections.includes(sectionKey);
   };
 
   // Main navigation items
@@ -130,7 +264,11 @@ export function AppSidebar() {
         { title: "لوحة التحكم", url: "/whatsapp", icon: Home },
         { title: "الإعدادات", url: "/whatsapp/settings", icon: Settings },
         { title: "القوالب", url: "/whatsapp/templates", icon: FileText },
-        { title: "الذكّي", url: "/whatsapp/smart", icon: Megaphone },
+        { title: "الذكّي", url: "/whatsapp/smart-module/tasks", icon: Brain, hasSubmenu: true, submenu: [
+          { title: "المهمات اليومية", url: "/whatsapp/smart-module/tasks", icon: Calendar },
+          { title: "الموردين الخارجيين", url: "/whatsapp/smart-module/suppliers", icon: Users },
+          { title: "الإعدادات الذكية", url: "/whatsapp/smart-module/settings", icon: Settings }
+        ] },
         { title: "السجل", url: "/whatsapp/logs", icon: BarChart3 },
         { title: "التذكيرات", url: "/whatsapp/reminders", icon: Calendar, badge: waRemindersCount > 0 ? waRemindersCount : undefined },
       ]
@@ -285,16 +423,7 @@ export function AppSidebar() {
                             }
                             ${collapsed ? 'justify-center px-3' : 'justify-start px-4'}
                           `}
-                          onClick={item.hasSubmenu ? () => toggleSection(
-                            item.title === 'إدارة العلاقات العامة' ? 'crm' : 
-                            item.title === 'إدارة الحسابات' ? 'accounting' : 
-                            item.title === 'وحدة الإيجارات' ? 'rental' :
-                            item.title === '💼 العمليات' ? 'operations' :
-                            item.title === '💵 المالية' ? 'finance' :
-                            item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
-                            item.title === '🔔 الإشعارات' ? 'notifications' :
-                            'other'
-                          ) : undefined}
+                                                     onClick={item.hasSubmenu ? () => toggleSection(getSectionKey(item.title)) : undefined}
                         >
                           {item.hasSubmenu ? (
                             <div className="flex items-center justify-between w-full">
@@ -303,16 +432,7 @@ export function AppSidebar() {
                                 {!collapsed && <span className="font-medium">{item.title}</span>}
                               </div>
                               {!collapsed && (
-                                expandedSections.includes(
-                                  item.title === 'إدارة العلاقات العامة' ? 'crm' : 
-                                  item.title === 'إدارة الحسابات' ? 'accounting' : 
-                                  item.title === 'وحدة الإيجارات' ? 'rental' :
-                                  item.title === '💼 العمليات' ? 'operations' :
-                                  item.title === '💵 المالية' ? 'finance' :
-                                  item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
-                                  item.title === '🔔 الإشعارات' ? 'notifications' :
-                                  'other'
-                                )
+                                isSectionExpanded(item.title)
                                   ? <ChevronDown className="h-4 w-4" />
                                   : <ChevronRight className="h-4 w-4" />
                               )}
@@ -327,16 +447,7 @@ export function AppSidebar() {
                       </SidebarMenuItem>
                       
                         {/* Submenu */}
-                      {item.hasSubmenu && expandedSections.includes(
-                        item.title === 'إدارة العلاقات العامة' ? 'crm' : 
-                        item.title === 'إدارة الحسابات' ? 'accounting' : 
-                        item.title === 'وحدة الإيجارات' ? 'rental' :
-                        item.title === '💼 العمليات' ? 'operations' :
-                        item.title === '💵 المالية' ? 'finance' :
-                        item.title === '🚗 الخدمات الإدارية' ? 'admin-services' :
-                        item.title === '🔔 الإشعارات' ? 'notifications' :
-                        'other'
-                        ) && !collapsed && (
+                      {item.hasSubmenu && isSectionExpanded(item.title) && !collapsed && (
                         <div className="pr-6 border-r border-sidebar-border space-y-1">
                             {item.submenu?.filter(subItem => {
                               // Check permissions for each submenu item

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { User, Phone, Mail, Globe, Calendar as CalendarIcon, IdCard, MapPin, MessageSquare, Languages, FileText, CheckCircle, X, Plus, Edit, Download, Search, MessageCircle, Trash2 } from 'lucide-react';
+import { User, Phone, Mail, Globe, Calendar as CalendarIcon, IdCard, MapPin, MessageSquare, Languages, FileText, CheckCircle, X, Plus, Edit, Download, Search, MessageCircle, Trash2, RefreshCw } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -52,10 +53,15 @@ interface PropertyOwnerForm {
   status: string;
 }
 
+// تخزين مؤقت للبيانات
+const rentalOwnersCache = {
+  data: null as PropertyOwner[] | null,
+  lastFetch: 0,
+  cacheExpiry: 5 * 60 * 1000, // 5 دقائق
+};
+
 const PropertyOwners = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [owners, setOwners] = useState<PropertyOwner[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<PropertyOwner | null>(null);
@@ -77,58 +83,60 @@ const PropertyOwners = () => {
     status: 'active'
   });
 
-  // Fetch owners data
-  const fetchOwners = async () => {
-    setLoading(true);
-    try {
-      // Simulate API call - replace with actual Supabase query
-      const mockData: PropertyOwner[] = [
-        {
-          id: '1',
-          full_name: 'أحمد محمد الشامسي',
-          phone: '+971501234567',
-          email: 'ahmed@example.com',
-          nationality: 'ae',
-          id_passport_number: '784-1985-1234567-8',
-          mailing_address: 'عجمان - منطقة الروضة - شارع الشيخ راشد',
-          preferred_contact_method: 'whatsapp',
-          preferred_language: 'ar',
-          internal_notes: 'مالك موثوق ومتعاون',
-          status: 'active',
-          created_at: '2024-01-15T10:00:00Z',
-          updated_at: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: '2', 
-          full_name: 'فاطمة علي النعيمي',
-          phone: '+971507654321',
-          email: 'fatima@example.com',
-          nationality: 'ae',
-          id_passport_number: '784-1980-9876543-2',
-          mailing_address: 'عجمان - النعيمية - برج النصر',
-          preferred_contact_method: 'email',
-          preferred_language: 'ar',
-          internal_notes: 'تملك عدة عقارات في المنطقة',
-          status: 'active',
-          created_at: '2024-01-10T14:30:00Z',
-          updated_at: '2024-01-10T14:30:00Z'
-        }
-      ];
-      setOwners(mockData);
-    } catch (error) {
-      console.error('Error fetching owners:', error);
-      toast({
-        title: "خطأ",
-        description: "فشل في تحميل قائمة الملاك",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // استعادة الحالة من localStorage
   useEffect(() => {
-    fetchOwners();
+    const savedSearchTerm = localStorage.getItem('rental-owners-search-term');
+    if (savedSearchTerm) {
+      setSearchTerm(savedSearchTerm);
+    }
+  }, []);
+
+  // حفظ الحالة في localStorage
+  useEffect(() => {
+    localStorage.setItem('rental-owners-search-term', searchTerm);
+  }, [searchTerm]);
+
+  const queryClient = useQueryClient();
+
+  // استخدام React Query لجلب البيانات مع caching تلقائي
+  const { data: ownersData = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['rental-property-owners'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rental_property_owners")
+        .select('*')
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as PropertyOwner[];
+    },
+    staleTime: 5 * 60 * 1000, // البيانات صالحة لمدة 5 دقائق
+    gcTime: 10 * 60 * 1000, // حفظ في cache لمدة 10 دقائق
+    refetchOnWindowFocus: false, // لا تعيد fetch عند التركيز على النافذة
+    refetchOnMount: false, // لا تعيد fetch عند mount المكون
+  });
+
+  // تحديث البيانات يدوياً
+  const refreshData = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // تنظيف التخزين المؤقت عند تسجيل الخروج
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth-session' && !e.newValue) {
+        // تم تسجيل الخروج، امسح التخزين المؤقت
+        rentalOwnersCache.data = null;
+        rentalOwnersCache.lastFetch = 0;
+        localStorage.removeItem('rental-owners-search-term');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Reset form
@@ -161,11 +169,53 @@ const PropertyOwners = () => {
       });
       return;
     }
-
-    setLoading(true);
     try {
-      // Here you would typically save to Supabase
-      // if editing, update; if new, insert
+      let result;
+      
+      if (editingOwner) {
+        // تحديث مالك موجود
+        const { error } = await supabase
+          .from("rental_property_owners")
+          .update({
+            full_name: formData.full_name,
+            phone: formData.phone,
+            email: formData.email,
+            birth_date: formData.birth_date?.toISOString(),
+            nationality: formData.nationality,
+            id_passport_number: formData.id_passport_number,
+            mailing_address: formData.mailing_address,
+            preferred_contact_method: formData.preferred_contact_method,
+            preferred_language: formData.preferred_language,
+            internal_notes: formData.internal_notes,
+            status: formData.status,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", editingOwner.id);
+
+        if (error) throw error;
+      } else {
+        // إضافة مالك جديد
+        const { error } = await supabase
+          .from("rental_property_owners")
+          .insert({
+            full_name: formData.full_name,
+            phone: formData.phone,
+            email: formData.email,
+            birth_date: formData.birth_date?.toISOString(),
+            nationality: formData.nationality,
+            id_passport_number: formData.id_passport_number,
+            mailing_address: formData.mailing_address,
+            preferred_contact_method: formData.preferred_contact_method,
+            preferred_language: formData.preferred_language,
+            internal_notes: formData.internal_notes,
+            status: formData.status,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+      }
       
       toast({
         title: "تم الحفظ",
@@ -174,16 +224,15 @@ const PropertyOwners = () => {
       
       setDialogOpen(false);
       resetForm();
-      fetchOwners(); // Refresh list
-    } catch (error) {
+      // تحديث cache React Query
+      queryClient.invalidateQueries({ queryKey: ['rental-property-owners'] });
+    } catch (error: any) {
       console.error('Error saving owner:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حفظ بيانات المالك",
+        description: error.message || "فشل في حفظ بيانات المالك",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -210,13 +259,17 @@ const PropertyOwners = () => {
   const handleDelete = async () => {
     if (!ownerToDelete) return;
     
-    setLoading(true);
     try {
-      // Here you would typically delete from Supabase
-      // await supabase.from('property_owners').delete().eq('id', ownerToDelete.id);
+      // حذف من Supabase
+      const { error } = await supabase
+        .from('rental_property_owners')
+        .delete()
+        .eq('id', ownerToDelete.id);
+
+      if (error) throw error;
       
-      // For now, remove from local state
-      setOwners(owners.filter(owner => owner.id !== ownerToDelete.id));
+      // تحديث cache React Query
+      queryClient.invalidateQueries({ queryKey: ['rental-property-owners'] });
       
       toast({
         title: "تم الحذف",
@@ -225,15 +278,13 @@ const PropertyOwners = () => {
       
       setDeleteDialogOpen(false);
       setOwnerToDelete(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting owner:', error);
       toast({
         title: "خطأ",
-        description: "فشل في حذف المالك",
+        description: error.message || "فشل في حذف المالك",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -318,8 +369,40 @@ const PropertyOwners = () => {
     );
   };
 
+  // تحديث حالة المالك
+  const toggleOwnerStatus = async (owner: PropertyOwner) => {
+    try {
+      const newStatus = owner.status === 'active' ? 'inactive' : 'active';
+      
+      const { error } = await supabase
+        .from('rental_property_owners')
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', owner.id);
+
+      if (error) throw error;
+
+      // تحديث cache React Query
+      queryClient.invalidateQueries({ queryKey: ['rental-property-owners'] });
+
+      toast({
+        title: "تم التحديث",
+        description: `تم ${newStatus === 'active' ? 'تفعيل' : 'إلغاء تفعيل'} المالك بنجاح`,
+      });
+    } catch (error: any) {
+      console.error('Error updating owner status:', error);
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل في تحديث حالة المالك",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filtered owners
-  const filteredOwners = owners.filter(owner =>
+  const filteredOwners = ownersData.filter(owner =>
     owner.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     owner.phone.includes(searchTerm) ||
     owner.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -621,11 +704,11 @@ const PropertyOwners = () => {
                       </Button>
                       <Button 
                         type="submit" 
-                        disabled={loading}
+                        disabled={isLoading}
                         className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <CheckCircle className="h-4 w-4 ml-2" />
-                        {loading ? 'جاري الحفظ...' : editingOwner ? 'تحديث المالك' : 'حفظ المالك'}
+                        {isLoading ? 'جاري الحفظ...' : editingOwner ? 'تحديث المالك' : 'حفظ المالك'}
                       </Button>
                     </div>
                   </form>
@@ -653,6 +736,25 @@ const PropertyOwners = () => {
                   className="w-full"
                 />
               </div>
+              
+              {/* زر تحديث البيانات */}
+              <Button
+                onClick={refreshData}
+                disabled={isLoading}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>تحديث البيانات</span>
+              </Button>
+
+              {/* عرض آخر تحديث */}
+              {!isLoading && (
+                <Badge variant="secondary" className="text-xs">
+                  آخر تحديث: {new Date().toLocaleTimeString('ar-SA')}
+                </Badge>
+              )}
+
               <Button
                 variant="outline"
                 onClick={exportToPDF}
@@ -681,7 +783,7 @@ const PropertyOwners = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
                 <p className="mt-2 text-gray-500">جاري تحميل البيانات...</p>
@@ -711,40 +813,65 @@ const PropertyOwners = () => {
                       <TableCell>{owner.email}</TableCell>
                       <TableCell>{owner.nationality}</TableCell>
                       <TableCell>{getStatusBadge(owner.status)}</TableCell>
-                       <TableCell>
-                         <div className="flex gap-2">
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={() => handleEdit(owner)}
-                             className="flex items-center gap-1"
-                           >
-                             <Edit className="h-3 w-3" />
-                             تعديل
-                           </Button>
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={() => {
-                               setOwnerToDelete(owner);
-                               setDeleteDialogOpen(true);
-                             }}
-                             className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                           >
-                             <Trash2 className="h-3 w-3" />
-                             حذف
-                           </Button>
-                           <Button
-                             variant="outline"
-                             size="sm"
-                             onClick={() => handleWhatsApp(owner.phone)}
-                             className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
-                           >
-                             <MessageCircle className="h-3 w-3" />
-                             واتساب
-                           </Button>
-                         </div>
-                       </TableCell>
+                                               <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(owner)}
+                              className="flex items-center gap-1"
+                            >
+                              <Edit className="h-3 w-3" />
+                              تعديل
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleOwnerStatus(owner)}
+                              className={`flex items-center gap-1 ${
+                                owner.status === 'active' 
+                                  ? 'text-orange-600 border-orange-200 hover:bg-orange-50' 
+                                  : 'text-green-600 border-green-200 hover:bg-green-50'
+                              }`}
+                            >
+                              {owner.status === 'active' ? (
+                                <>
+                                  <X className="h-3 w-3" />
+                                  إلغاء التفعيل
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-3 w-3" />
+                                  تفعيل
+                                </>
+                              )}
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setOwnerToDelete(owner);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              حذف
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleWhatsApp(owner.phone)}
+                              className="flex items-center gap-1 text-green-600 border-green-200 hover:bg-green-50"
+                            >
+                              <MessageCircle className="h-3 w-3" />
+                              واتساب
+                            </Button>
+                          </div>
+                        </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -763,7 +890,7 @@ const PropertyOwners = () => {
           cancelText="إلغاء"
           variant="destructive"
           onConfirm={handleDelete}
-          loading={loading}
+                          loading={isLoading}
         />
       </div>
     </div>

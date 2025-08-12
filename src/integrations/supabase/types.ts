@@ -254,6 +254,249 @@ export type Database = {
           }
         ]
       }
+      external_suppliers: {
+        Row: {
+          id: string
+          name: string
+          phone: string
+          company_name: string | null
+          category: 'broker' | 'land_owner' | 'developer'
+          last_contact_date: string | null
+          last_contact_type: 'call' | 'whatsapp' | 'email' | null
+          notes: string | null
+          priority: 'low' | 'medium' | 'high'
+          created_by: string
+          assigned_to: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          phone: string
+          company_name?: string | null
+          category: 'broker' | 'land_owner' | 'developer'
+          last_contact_date?: string | null
+          last_contact_type?: 'call' | 'whatsapp' | 'email' | null
+          notes?: string | null
+          priority?: 'low' | 'medium' | 'high'
+          created_by: string
+          assigned_to?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          phone?: string
+          company_name?: string | null
+          category?: 'broker' | 'land_owner' | 'developer'
+          last_contact_date?: string | null
+          last_contact_type?: 'call' | 'whatsapp' | 'email' | null
+          notes?: string | null
+          priority?: 'low' | 'medium' | 'high'
+          created_by?: string
+          assigned_to?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_suppliers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_suppliers_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      daily_tasks: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          task_type: 'whatsapp_message' | 'follow_up' | 'meeting' | 'other'
+          target_suppliers: Json
+          target_count: number
+          status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+          scheduled_date: string
+          reminder_time: string | null
+          completed_at: string | null
+          created_by: string
+          assigned_to: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          task_type: 'whatsapp_message' | 'follow_up' | 'meeting' | 'other'
+          target_suppliers?: Json
+          target_count?: number
+          status?: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+          scheduled_date: string
+          reminder_time?: string | null
+          completed_at?: string | null
+          created_by: string
+          assigned_to?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          task_type?: 'whatsapp_message' | 'follow_up' | 'meeting' | 'other'
+          target_suppliers?: Json
+          target_count?: number
+          status?: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+          scheduled_date?: string
+          reminder_time?: string | null
+          completed_at?: string | null
+          created_by?: string
+          assigned_to?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      whatsapp_smart_logs: {
+        Row: {
+          id: string
+          supplier_id: string | null
+          task_id: string | null
+          message_template: string
+          message_sent: string
+          phone_number: string
+          status: 'sent' | 'delivered' | 'read' | 'failed'
+          whatsapp_message_id: string | null
+          sent_at: string
+          sent_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          supplier_id?: string | null
+          task_id?: string | null
+          message_template: string
+          message_sent: string
+          phone_number: string
+          status?: 'sent' | 'delivered' | 'read' | 'failed'
+          whatsapp_message_id?: string | null
+          sent_at?: string
+          sent_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          supplier_id?: string | null
+          task_id?: string | null
+          message_template?: string
+          message_sent?: string
+          phone_number?: string
+          status?: 'sent' | 'delivered' | 'read' | 'failed'
+          whatsapp_message_id?: string | null
+          sent_at?: string
+          sent_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_smart_logs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "external_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_smart_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "daily_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_smart_logs_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      whatsapp_smart_settings: {
+        Row: {
+          id: string
+          daily_message_limit: number
+          message_cooldown_hours: number
+          target_categories: Json
+          daily_reminder_time: string | null
+          auto_send_enabled: boolean
+          message_template_ar: string
+          message_template_en: string
+          user_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          daily_message_limit: number
+          message_cooldown_hours: number
+          target_categories?: Json
+          daily_reminder_time?: string | null
+          auto_send_enabled?: boolean
+          message_template_ar: string
+          message_template_en: string
+          user_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          daily_message_limit?: number
+          message_cooldown_hours?: number
+          target_categories?: Json
+          daily_reminder_time?: string | null
+          auto_send_enabled?: boolean
+          message_template_ar?: string
+          message_template_en?: string
+          user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_smart_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
