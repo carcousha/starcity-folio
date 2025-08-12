@@ -558,35 +558,6 @@ export function AppSidebar() {
               </SidebarGroup>
             )}
           </div>
-
-          {/* User Card */}
-          {!collapsed && profile && (
-            <div className="mt-auto p-4 border-t border-gray-100 bg-gray-50">
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <div className="w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center text-sm font-bold">
-                    {profile.first_name[0]}{profile.last_name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {profile.first_name} {profile.last_name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {profile.role === 'admin' ? 'مدير' : 
-                       profile.role === 'accountant' ? 'محاسب' : 'موظف'}
-                    </p>
-                  </div>
-                </div>
-                <button 
-                  onClick={signOut}
-                  className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <LogOut className="h-4 w-4 ml-2" />
-                  تسجيل الخروج
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </SidebarContent>
     </Sidebar>

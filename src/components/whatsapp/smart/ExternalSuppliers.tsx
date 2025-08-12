@@ -11,16 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Search, 
-  Filter, 
   Plus, 
   Edit, 
   Trash2, 
   MessageCircle, 
   Phone, 
   Mail, 
-  Calendar,
-  Building,
   User,
+  Building,
   Loader2,
   ExternalLink
 } from 'lucide-react';
@@ -36,30 +34,41 @@ export default function ExternalSuppliers() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [editingSupplier, setEditingSupplier] = useState<SmartSupplier | null>(null);
   const [isAddingSupplier, setIsAddingSupplier] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  
   const queryClient = useQueryClient();
 
-  // محليات لاختيار الفئة والأولوية في النموذجين (إضافة/تعديل)
   const [addCategory, setAddCategory] = useState<SmartSupplier['category']>('broker');
   const [addPriority, setAddPriority] = useState<SmartSupplier['priority']>('medium');
   const [editCategory, setEditCategory] = useState<SmartSupplier['category']>('broker');
-const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('medium');
+  const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('medium');
 
   const { user } = useAuth();
   useEffect(() => {
     if (user) whatsappSmartService.setUserId(user.id);
   }, [user]);
 
-  // جلب الموردين مع الفلاتر
-  const { data: suppliers = [], isLoading } = useQuery({
-    queryKey: ['external-suppliers', { category: categoryFilter, priority: priorityFilter, search: searchTerm }],
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+  const { data: suppliers = [], isLoading, isFetching } = useQuery({
+    queryKey: ['external-suppliers', { category: categoryFilter, priority: priorityFilter, search: debouncedSearchTerm }],
     queryFn: () => whatsappSmartService.loadSuppliers({
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       priority: priorityFilter !== 'all' ? priorityFilter : undefined,
-      search: searchTerm || undefined,
+      search: debouncedSearchTerm || undefined,
     }),
+    placeholderData: (prevData) => prevData, // Keep old data visible while fetching
   });
 
-  // إضافة مورد جديد
   const addSupplierMutation = useMutation({
     mutationFn: (supplier: Omit<SmartSupplier, 'id' | 'created_at' | 'updated_at'>) =>
       whatsappSmartService.addSupplier(supplier),
@@ -73,7 +82,6 @@ const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('med
     },
   });
 
-  // تحديث مورد
   const updateSupplierMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<SmartSupplier> }) =>
       whatsappSmartService.updateSupplier(id, updates),
@@ -87,7 +95,6 @@ const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('med
     },
   });
 
-  // حذف مورد
   const deleteSupplierMutation = useMutation({
     mutationFn: (id: string) => whatsappSmartService.deleteSupplier(id),
     onSuccess: () => {
@@ -100,372 +107,244 @@ const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('med
   });
 
   const getCategoryText = (category: SmartSupplier['category']) => {
-    switch (category) {
-      case 'broker':
-        return 'وسيط';
-      case 'land_owner':
-        return 'مالك أرض';
-      case 'developer':
-        return 'مطور';
-      default:
-        return category;
-    }
+    const categories: Record<SmartSupplier['category'], string> = {
+      broker: 'وسيط',
+      land_owner: 'مالك أرض',
+      developer: 'مطور',
+    };
+    return categories[category] || category;
   };
 
   const getPriorityColor = (priority: SmartSupplier['priority']) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const colors: Record<SmartSupplier['priority'], string> = {
+      high: 'bg-red-500',
+      medium: 'bg-yellow-500',
+      low: 'bg-green-500',
+    };
+    return colors[priority] || 'bg-gray-500';
   };
 
   const getPriorityText = (priority: SmartSupplier['priority']) => {
-    switch (priority) {
-      case 'high':
-        return 'عالية';
-      case 'medium':
-        return 'متوسطة';
-      case 'low':
-        return 'منخفضة';
-      default:
-        return priority;
-    }
+    const priorities: Record<SmartSupplier['priority'], string> = {
+      high: 'عالية',
+      medium: 'متوسطة',
+      low: 'منخفضة',
+    };
+    return priorities[priority] || priority;
   };
 
   const getContactTypeIcon = (type: SmartSupplier['last_contact_type']) => {
-    switch (type) {
-      case 'call':
-        return <Phone className="h-4 w-4" />;
-      case 'whatsapp':
-        return <MessageCircle className="h-4 w-4" />;
-      case 'email':
-        return <Mail className="h-4 w-4" />;
-      default:
-        return null;
-    }
+    const icons: Record<SmartSupplier['last_contact_type'], React.ReactNode> = {
+      whatsapp: <MessageCircle className="h-4 w-4 text-green-500" />,
+      call: <Phone className="h-4 w-4 text-blue-500" />,
+      email: <Mail className="h-4 w-4 text-red-500" />,
+      meeting: <User className="h-4 w-4 text-purple-500" />,
+    };
+    return icons[type] || null;
   };
 
   const handleWhatsAppSend = (phone: string) => {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const whatsappUrl = `https://wa.me/${cleanPhone}`;
+    const message = 'مرحباً، بخصوص فرصة التعاون...';
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
-  const handleAddSupplier = (formData: FormData) => {
-    const firstName = (formData.get('first_name') as string) || '';
-    const lastName = (formData.get('last_name') as string) || '';
-    const contactName = (formData.get('contact_name') as string) || `${firstName} ${lastName}`.trim();
-    const rawPhone = (formData.get('phone') as string) || '';
-    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
-
-    const supplier: Omit<SmartSupplier, 'id' | 'created_at' | 'updated_at'> = {
-      name: `${firstName} ${lastName}`.trim(), // الاسم الكامل للعرض
-      first_name: firstName,
-      last_name: lastName,
-      contact_name: contactName,
-      phone: cleanPhone,
-      company_name: (formData.get('company_name') as string) || null,
+  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newSupplier = {
+      name: formData.get('name') as string,
+      phone: formData.get('phone') as string,
+      company_name: formData.get('company_name') as string,
       category: addCategory,
       priority: addPriority,
-      notes: ((formData.get('notes') as string) || '').trim() || null,
-      last_contact_date: null,
-      last_contact_type: null,
-      is_active: true,
+      notes: formData.get('notes') as string,
+      last_contact_date: new Date().toISOString(),
+      last_contact_type: 'whatsapp',
+      user_id: user?.id || '',
     };
-
-    addSupplierMutation.mutate(supplier);
+    addSupplierMutation.mutate(newSupplier);
   };
 
-  const handleUpdateSupplier = (formData: FormData) => {
+  const handleUpdateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!editingSupplier) return;
-
-    const fullName = ((formData.get('name') as string) || '').trim();
-    const [firstName = '', ...rest] = fullName.split(' ');
-    const lastName = rest.join(' ');
-    const rawPhone = (formData.get('phone') as string) || '';
-    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
-
-    const updates: Partial<SmartSupplier> = {
-      name: fullName || undefined,
-      first_name: firstName || undefined,
-      last_name: lastName || undefined,
-      phone: cleanPhone || undefined,
-      company_name: ((formData.get('company_name') as string) || '').trim() || undefined,
+    const formData = new FormData(e.currentTarget);
+    const updates = {
+      name: formData.get('name') as string,
+      phone: formData.get('phone') as string,
+      company_name: formData.get('company_name') as string,
       category: editCategory,
       priority: editPriority,
-      notes: ((formData.get('notes') as string) || '').trim() || undefined,
+      notes: formData.get('notes') as string,
     };
-
     updateSupplierMutation.mutate({ id: editingSupplier.id, updates });
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="mr-2">جاري تحميل الموردين...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  useEffect(() => {
+    if (editingSupplier) {
+      setEditCategory(editingSupplier.category);
+      setEditPriority(editingSupplier.priority);
+    }
+  }, [editingSupplier]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">الموردين الخارجيين</h2>
-        <Dialog open={isAddingSupplier} onOpenChange={setIsAddingSupplier}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 ml-1" />
-              إضافة مورد جديد
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md" dir="rtl">
-            <DialogHeader>
-              <DialogTitle>إضافة مورد جديد</DialogTitle>
-            </DialogHeader>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAddSupplier(new FormData(e.currentTarget));
-              }}
-              className="space-y-4"
-            >
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label htmlFor="first_name">الاسم الأول</Label>
-                  <Input id="first_name" name="first_name" required />
-                </div>
-                <div>
-                  <Label htmlFor="last_name">الاسم الأخير</Label>
-                  <Input id="last_name" name="last_name" required />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="contact_name">اسم التواصل (Nickname)</Label>
-                <Input id="contact_name" name="contact_name" placeholder="الاسم المفضل للتواصل" required />
-              </div>
-              <div>
-                <Label htmlFor="phone">رقم الهاتف</Label>
-                <Input id="phone" name="phone" type="tel" required />
-              </div>
-              <div>
-                <Label htmlFor="company_name">اسم الشركة</Label>
-                <Input id="company_name" name="company_name" />
-              </div>
-              <div>
-                <Label htmlFor="category">الفئة</Label>
-                <Select value={addCategory} onValueChange={(v) => setAddCategory(v as SmartSupplier['category'])} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الفئة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="broker">وسيط</SelectItem>
-                    <SelectItem value="land_owner">مالك أرض</SelectItem>
-                    <SelectItem value="developer">مطور</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="priority">الأولوية</Label>
-                <Select value={addPriority} onValueChange={(v) => setAddPriority(v as SmartSupplier['priority'])} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الأولوية" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="high">عالية</SelectItem>
-                    <SelectItem value="medium">متوسطة</SelectItem>
-                    <SelectItem value="low">منخفضة</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="notes">ملاحظات</Label>
-                <Textarea id="notes" name="notes" />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={addSupplierMutation.isPending}>
-                  {addSupplierMutation.isPending ? 'جاري الإضافة...' : 'إضافة المورد'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setIsAddingSupplier(false)}>
-                  إلغاء
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* البحث والفلاتر */}
+    <div dir="rtl" className="p-4 space-y-4">
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <CardHeader>
+          <CardTitle>إدارة الموردين الخارجيين</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+            <div className="relative flex-grow sm:flex-grow-0">
+              <form onSubmit={(e) => e.preventDefault()} className="relative">
                 <Input
-                  placeholder="البحث في الأسماء أو الشركات..."
+                  placeholder="ابحث بالاسم, الهاتف, الشركة..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
+                  className="pl-10 w-full sm:w-64"
                 />
-              </div>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                {isFetching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
+              </form>
             </div>
-            
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="الفئة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع الفئات</SelectItem>
-                <SelectItem value="broker">وسطاء</SelectItem>
-                <SelectItem value="land_owner">ملاك أراضي</SelectItem>
-                <SelectItem value="developer">مطورين</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="الأولوية" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع الأولويات</SelectItem>
-                <SelectItem value="high">عالية</SelectItem>
-                <SelectItem value="medium">متوسطة</SelectItem>
-                <SelectItem value="low">منخفضة</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="الفئة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الفئات</SelectItem>
+                  <SelectItem value="broker">وسيط</SelectItem>
+                  <SelectItem value="land_owner">مالك أرض</SelectItem>
+                  <SelectItem value="developer">مطور</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="الأولوية" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الأولويات</SelectItem>
+                  <SelectItem value="high">عالية</SelectItem>
+                  <SelectItem value="medium">متوسطة</SelectItem>
+                  <SelectItem value="low">منخفضة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Dialog open={isAddingSupplier} onOpenChange={setIsAddingSupplier}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="ml-2 h-4 w-4" /> إضافة مورد
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md" dir="rtl">
+                <DialogHeader>
+                  <DialogTitle>إضافة مورد جديد</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="add-name">الاسم</Label>
+                    <Input id="add-name" name="name" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="add-phone">رقم الهاتف</Label>
+                    <Input id="add-phone" name="phone" type="tel" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="add-company_name">اسم الشركة</Label>
+                    <Input id="add-company_name" name="company_name" />
+                  </div>
+                  <div>
+                    <Label htmlFor="add-category">الفئة</Label>
+                    <Select value={addCategory} onValueChange={(v) => setAddCategory(v as SmartSupplier['category'])} required>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="broker">وسيط</SelectItem>
+                        <SelectItem value="land_owner">مالك أرض</SelectItem>
+                        <SelectItem value="developer">مطور</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="add-priority">الأولوية</Label>
+                    <Select value={addPriority} onValueChange={(v) => setAddPriority(v as SmartSupplier['priority'])} required>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">عالية</SelectItem>
+                        <SelectItem value="medium">متوسطة</SelectItem>
+                        <SelectItem value="low">منخفضة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="add-notes">ملاحظات</Label>
+                    <Textarea id="add-notes" name="notes" />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button type="button" variant="outline" onClick={() => setIsAddingSupplier(false)}>إلغاء</Button>
+                    <Button type="submit" disabled={addSupplierMutation.isPending}>
+                      {addSupplierMutation.isPending ? 'جاري الإضافة...' : 'إضافة المورد'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* جدول الموردين */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="relative overflow-x-auto border rounded-lg mt-4">
+            <Table className={`transition-opacity duration-300 ${isFetching && !isLoading ? 'opacity-50' : ''}`}>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">الاسم</TableHead>
-                  <TableHead className="text-right">رقم الهاتف</TableHead>
-                  <TableHead className="text-right">اسم الشركة</TableHead>
-                  <TableHead className="text-right">الفئة</TableHead>
-                  <TableHead className="text-right">آخر تواصل</TableHead>
-                  <TableHead className="text-right">نوع التواصل</TableHead>
-                  <TableHead className="text-right">ملاحظات</TableHead>
-                  <TableHead className="text-right">الأولوية</TableHead>
-                  <TableHead className="text-right">الإجراءات</TableHead>
+                  <TableHead>الاسم</TableHead>
+                  <TableHead>الفئة</TableHead>
+                  <TableHead>الأولوية</TableHead>
+                  <TableHead>آخر تواصل</TableHead>
+                  <TableHead>ملاحظات</TableHead>
+                  <TableHead>إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {suppliers.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      <div className="flex flex-col items-center gap-2">
-                        <User className="h-12 w-12 text-gray-400" />
-                        <p className="text-gray-500">لا توجد موردين مطابقين للبحث</p>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <span className="ml-2">جاري تحميل البيانات...</span>
                       </div>
                     </TableCell>
                   </TableRow>
+                ) : suppliers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">لا توجد بيانات لعرضها.</TableCell>
+                  </TableRow>
                 ) : (
                   suppliers.map((supplier) => (
-                    <TableRow key={supplier.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">{supplier.name}</TableCell>
+                    <TableRow key={supplier.id}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{supplier.phone}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleWhatsAppSend(supplier.phone)}
-                            className="p-1 h-6 w-6"
-                          >
-                            <MessageCircle className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        <div className="font-medium">{supplier.name}</div>
+                        <div className="text-sm text-gray-500" dir="ltr">{supplier.phone}</div>
+                        {supplier.company_name && <div className="text-xs text-gray-400 flex items-center gap-1"><Building className="h-3 w-3"/>{supplier.company_name}</div>}
                       </TableCell>
+                      <TableCell>{getCategoryText(supplier.category)}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Building className="h-4 w-4 text-gray-400" />
-                          {supplier.company_name || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {getCategoryText(supplier.category)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {supplier.last_contact_date ? (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            {format(new Date(supplier.last_contact_date), 'dd/MM/yyyy', { locale: ar })}
-                          </div>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {supplier.last_contact_type ? (
-                          <div className="flex items-center gap-1">
-                            {getContactTypeIcon(supplier.last_contact_type)}
-                            <span className="text-sm">
-                              {supplier.last_contact_type === 'call' && 'اتصال'}
-                              {supplier.last_contact_type === 'whatsapp' && 'واتساب'}
-                              {supplier.last_contact_type === 'email' && 'إيميل'}
-                            </span>
-                          </div>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[150px]">
-                        <div className="truncate" title={supplier.notes || ''}>
-                          {supplier.notes || '-'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getPriorityColor(supplier.priority)}>
+                        <Badge variant="outline" className="flex items-center gap-1.5">
+                          <span className={`h-2 w-2 rounded-full ${getPriorityColor(supplier.priority)}`}></span>
                           {getPriorityText(supplier.priority)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                          onClick={() => { 
-                            setEditingSupplier(supplier);
-                            setEditCategory(supplier.category);
-                            setEditPriority(supplier.priority);
-                          }}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteSupplierMutation.mutate(supplier.id)}
-                            disabled={deleteSupplierMutation.isPending}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleWhatsAppSend(supplier.phone)}
-                          >
-                            تنفيذ
-                          </Button>
+                        <div className="flex items-center gap-2">
+                          {getContactTypeIcon(supplier.last_contact_type)}
+                          <span>{format(new Date(supplier.last_contact_date), 'PP', { locale: ar })}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell><div className="max-w-xs truncate" title={supplier.notes || ''}>{supplier.notes || '-'}</div></TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => setEditingSupplier(supplier)}><Edit className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => deleteSupplierMutation.mutate(supplier.id)} disabled={deleteSupplierMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleWhatsAppSend(supplier.phone)}><ExternalLink className="h-4 w-4 text-green-600" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -477,20 +356,13 @@ const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('med
         </CardContent>
       </Card>
 
-      {/* نافذة تعديل المورد */}
-      <Dialog open={!!editingSupplier} onOpenChange={() => setEditingSupplier(null)}>
+      <Dialog open={!!editingSupplier} onOpenChange={(v) => !v && setEditingSupplier(null)}>
         <DialogContent className="max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle>تعديل المورد</DialogTitle>
           </DialogHeader>
           {editingSupplier && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleUpdateSupplier(new FormData(e.currentTarget));
-              }}
-              className="space-y-4"
-            >
+            <form onSubmit={handleUpdateSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="edit-name">الاسم</Label>
                 <Input id="edit-name" name="name" defaultValue={editingSupplier.name} required />
@@ -506,9 +378,7 @@ const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('med
               <div>
                 <Label htmlFor="edit-category">الفئة</Label>
                 <Select value={editCategory} onValueChange={(v) => setEditCategory(v as SmartSupplier['category'])} required>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="broker">وسيط</SelectItem>
                     <SelectItem value="land_owner">مالك أرض</SelectItem>
@@ -519,9 +389,7 @@ const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('med
               <div>
                 <Label htmlFor="edit-priority">الأولوية</Label>
                 <Select value={editPriority} onValueChange={(v) => setEditPriority(v as SmartSupplier['priority'])} required>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="high">عالية</SelectItem>
                     <SelectItem value="medium">متوسطة</SelectItem>
@@ -533,12 +401,10 @@ const [editPriority, setEditPriority] = useState<SmartSupplier['priority']>('med
                 <Label htmlFor="edit-notes">ملاحظات</Label>
                 <Textarea id="edit-notes" name="notes" defaultValue={editingSupplier.notes || ''} />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setEditingSupplier(null)}>إلغاء</Button>
                 <Button type="submit" disabled={updateSupplierMutation.isPending}>
                   {updateSupplierMutation.isPending ? 'جاري التحديث...' : 'تحديث المورد'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setEditingSupplier(null)}>
-                  إلغاء
                 </Button>
               </div>
             </form>

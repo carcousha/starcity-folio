@@ -113,7 +113,12 @@ class WhatsAppSmartService {
       }
 
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%`);
+        const searchTerm = filters.search.trim();
+        if (searchTerm) {
+          query = query.or(
+            `name.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%,contact_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`
+          );
+        }
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
