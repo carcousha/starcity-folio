@@ -162,7 +162,7 @@ export default function ExternalSuppliers() {
       priority: addPriority,
       notes: formData.get('notes') as string,
       last_contact_date: new Date().toISOString(),
-      last_contact_type: 'whatsapp',
+      last_contact_type: 'whatsapp' as const,
       is_active: true,
       created_by: user?.id || '',
       assigned_to: user?.id || null,
