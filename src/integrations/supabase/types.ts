@@ -3975,6 +3975,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_rate_limit_secure: {
+        Args: {
+          user_email: string
+          max_attempts?: number
+          time_window_minutes?: number
+        }
+        Returns: boolean
+      }
       convert_existing_personal_expenses_to_debts: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -4308,6 +4316,10 @@ export type Database = {
       validate_password_strength_enhanced: {
         Args: { password: string }
         Returns: Json
+      }
+      validate_phone_number: {
+        Args: { phone_input: string }
+        Returns: boolean
       }
       validate_role_access: {
         Args: { required_role: Database["public"]["Enums"]["app_role"] }

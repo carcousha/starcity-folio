@@ -134,13 +134,12 @@ export default function ExternalSuppliers() {
   };
 
   const getContactTypeIcon = (type: SmartSupplier['last_contact_type']) => {
-    const icons: Record<SmartSupplier['last_contact_type'], React.ReactNode> = {
+    const icons: Record<string, React.ReactNode> = {
       whatsapp: <MessageCircle className="h-4 w-4 text-green-500" />,
       call: <Phone className="h-4 w-4 text-blue-500" />,
       email: <Mail className="h-4 w-4 text-red-500" />,
-      meeting: <User className="h-4 w-4 text-purple-500" />,
     };
-    return icons[type] || null;
+    return icons[type || 'whatsapp'] || <MessageCircle className="h-4 w-4 text-green-500" />;
   };
 
   const handleWhatsAppSend = (phone: string) => {
@@ -154,6 +153,9 @@ export default function ExternalSuppliers() {
     const formData = new FormData(e.currentTarget);
     const newSupplier = {
       name: formData.get('name') as string,
+      first_name: formData.get('name') as string,
+      last_name: '',
+      contact_name: formData.get('name') as string,
       phone: formData.get('phone') as string,
       company_name: formData.get('company_name') as string,
       category: addCategory,
@@ -161,7 +163,9 @@ export default function ExternalSuppliers() {
       notes: formData.get('notes') as string,
       last_contact_date: new Date().toISOString(),
       last_contact_type: 'whatsapp',
-      user_id: user?.id || '',
+      is_active: true,
+      created_by: user?.id || '',
+      assigned_to: user?.id || null,
     };
     addSupplierMutation.mutate(newSupplier);
   };
