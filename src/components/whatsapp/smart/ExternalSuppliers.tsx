@@ -151,7 +151,7 @@ export default function ExternalSuppliers() {
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newSupplier = {
+    const newSupplier: Omit<SmartSupplier, "id"> = {
       name: formData.get('name') as string,
       first_name: formData.get('name') as string,
       last_name: '',
@@ -162,10 +162,8 @@ export default function ExternalSuppliers() {
       priority: addPriority,
       notes: formData.get('notes') as string,
       last_contact_date: new Date().toISOString(),
-      last_contact_type: 'whatsapp' as const,
+      last_contact_type: 'whatsapp',
       is_active: true,
-      created_by: user?.id || '',
-      assigned_to: user?.id || null,
     };
     addSupplierMutation.mutate(newSupplier);
   };
