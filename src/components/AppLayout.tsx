@@ -74,18 +74,17 @@ export function AppLayout({ children }: AppLayoutProps) {
   function LayoutShell({ children: layoutChildren }: { children: ReactNode }) {
     const { state } = useSidebar();
     const collapsed = state === "collapsed";
-    const paddingRightClass = collapsed ? "md:pr-0" : "md:pr-[--sidebar-width]";
 
     return (
       <div className="min-h-screen flex flex-row-reverse w-full bg-background relative" dir="rtl">
         {/* Sidebar */}
-        <div className="fixed inset-y-0 right-0 z-40">
+        <div className={`fixed inset-y-0 right-0 z-40 transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
           <AppSidebar />
         </div>
 
         {/* Header */}
         <div className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-50">
-          <div className={`h-full px-4 flex items-center justify-between flex-row-reverse ${paddingRightClass}`}>
+          <div className={`h-full px-4 flex items-center justify-between flex-row-reverse transition-all duration-300 ${collapsed ? 'md:pr-16' : 'md:pr-64'}`}>
             {/* Actions (left in RTL) */}
             <div className="flex items-center space-x-2 space-x-reverse">
               <ThemeToggle />
@@ -129,7 +128,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
 
         {/* Main Content */}
-        <main className={`flex-1 pt-16 p-6 overflow-auto transition-[padding] duration-200 ${paddingRightClass} relative z-10`}>
+        <main className={`flex-1 pt-16 p-6 overflow-auto transition-all duration-300 ${collapsed ? 'md:pr-16' : 'md:pr-64'} relative z-10`}>
           {layoutChildren}
 
           {/* Developer Credit */}
