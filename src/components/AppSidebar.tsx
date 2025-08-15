@@ -82,6 +82,10 @@ export function AppSidebar() {
       console.log('AI section detected');
       return 'ai';
     }
+    if (currentPath.startsWith('/land-sales')) {
+      console.log('Land Sales section detected');
+      return 'land-sales';
+    }
     if (currentPath.startsWith('/employee/my-clients') || currentPath.startsWith('/employee/my-leads') || 
         currentPath.startsWith('/employee/my-properties') || currentPath.startsWith('/employee/my-tasks')) {
       console.log('Employee operations section detected');
