@@ -311,6 +311,20 @@ export function AppSidebar() {
         { title: "الخدمات الحكومية", url: "/rental/government-services", icon: CheckCircle },
         { title: "التجديدات", url: "/rental/renewals", icon: Calendar },
       ]
+    },
+    { 
+      title: "وحدة بيع الأراضي", 
+      url: "/land-sales", 
+      icon: Target,
+      hasSubmenu: true,
+      submenu: [
+        { title: "لوحة التحكم", url: "/land-sales", icon: Home },
+        { title: "إدارة الأراضي", url: "/land-sales/properties", icon: Building },
+        { title: "الوسطاء", url: "/land-sales/brokers", icon: Users },
+        { title: "العملاء", url: "/land-sales/clients", icon: User },
+        { title: "المهام", url: "/land-sales/tasks", icon: CheckSquare },
+        { title: "التقارير", url: "/land-sales/reports", icon: BarChart3 },
+      ]
     }
   ];
 

@@ -6,7 +6,7 @@ import { LandClients } from "./LandClients";
 import { LandTasks } from "./LandTasks";
 import { LandReports } from "./LandReports";
 
-export function LandSalesRoutes() {
+export default function LandSalesIndex() {
   return (
     <Routes>
       <Route index element={<LandSalesDashboard />} />
