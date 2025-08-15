@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -1902,6 +1902,393 @@ export type Database = {
             columns: ["debt_id"]
             isOneToOne: false
             referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      land_brokers: {
+        Row: {
+          activity_status: string | null
+          areas_specialization: Json | null
+          commission_percentage: number | null
+          created_at: string | null
+          created_by: string
+          deals_count: number | null
+          email: string | null
+          id: string
+          last_activity_date: string | null
+          name: string
+          phone: string
+          total_sales_amount: number | null
+          updated_at: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          activity_status?: string | null
+          areas_specialization?: Json | null
+          commission_percentage?: number | null
+          created_at?: string | null
+          created_by: string
+          deals_count?: number | null
+          email?: string | null
+          id?: string
+          last_activity_date?: string | null
+          name: string
+          phone: string
+          total_sales_amount?: number | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          activity_status?: string | null
+          areas_specialization?: Json | null
+          commission_percentage?: number | null
+          created_at?: string | null
+          created_by?: string
+          deals_count?: number | null
+          email?: string | null
+          id?: string
+          last_activity_date?: string | null
+          name?: string
+          phone?: string
+          total_sales_amount?: number | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      land_client_interactions: {
+        Row: {
+          broker_id: string | null
+          client_id: string
+          created_at: string | null
+          created_by: string
+          follow_up_date: string | null
+          follow_up_required: boolean | null
+          id: string
+          interaction_date: string | null
+          interaction_type: string
+          land_id: string | null
+          notes: string | null
+        }
+        Insert: {
+          broker_id?: string | null
+          client_id: string
+          created_at?: string | null
+          created_by: string
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type: string
+          land_id?: string | null
+          notes?: string | null
+        }
+        Update: {
+          broker_id?: string | null
+          client_id?: string
+          created_at?: string | null
+          created_by?: string
+          follow_up_date?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type?: string
+          land_id?: string | null
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "land_client_interactions_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "land_brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "land_client_interactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "land_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "land_client_interactions_land_id_fkey"
+            columns: ["land_id"]
+            isOneToOne: false
+            referencedRelation: "land_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      land_clients: {
+        Row: {
+          area_max: number | null
+          area_min: number | null
+          assigned_to: string | null
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string | null
+          created_by: string
+          email: string | null
+          id: string
+          last_contact_date: string | null
+          name: string
+          nationality: string | null
+          notes: string | null
+          phone: string
+          preferred_locations: Json | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          area_max?: number | null
+          area_min?: number | null
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string | null
+          created_by: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          name: string
+          nationality?: string | null
+          notes?: string | null
+          phone: string
+          preferred_locations?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          area_max?: number | null
+          area_min?: number | null
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          name?: string
+          nationality?: string | null
+          notes?: string | null
+          phone?: string
+          preferred_locations?: Json | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      land_deals: {
+        Row: {
+          broker_id: string | null
+          client_id: string
+          closed_at: string | null
+          closed_by: string | null
+          commission_amount: number | null
+          created_at: string | null
+          created_by: string
+          deal_amount: number
+          deal_date: string | null
+          id: string
+          land_id: string
+          notes: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          broker_id?: string | null
+          client_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          commission_amount?: number | null
+          created_at?: string | null
+          created_by: string
+          deal_amount: number
+          deal_date?: string | null
+          id?: string
+          land_id: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          broker_id?: string | null
+          client_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          commission_amount?: number | null
+          created_at?: string | null
+          created_by?: string
+          deal_amount?: number
+          deal_date?: string | null
+          id?: string
+          land_id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "land_deals_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "land_brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "land_deals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "land_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "land_deals_land_id_fkey"
+            columns: ["land_id"]
+            isOneToOne: false
+            referencedRelation: "land_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      land_properties: {
+        Row: {
+          area_sqm: number
+          assigned_to: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          images: Json | null
+          internal_notes: string | null
+          latitude: number | null
+          location: string
+          longitude: number | null
+          price: number
+          source_type: string
+          status: string
+          title: string
+          updated_at: string | null
+          videos: Json | null
+        }
+        Insert: {
+          area_sqm: number
+          assigned_to?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          images?: Json | null
+          internal_notes?: string | null
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          price: number
+          source_type: string
+          status?: string
+          title: string
+          updated_at?: string | null
+          videos?: Json | null
+        }
+        Update: {
+          area_sqm?: number
+          assigned_to?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          images?: Json | null
+          internal_notes?: string | null
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          price?: number
+          source_type?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+          videos?: Json | null
+        }
+        Relationships: []
+      }
+      land_tasks: {
+        Row: {
+          assigned_to: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          priority: string | null
+          related_broker_id: string | null
+          related_client_id: string | null
+          related_land_id: string | null
+          status: string | null
+          task_type: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          priority?: string | null
+          related_broker_id?: string | null
+          related_client_id?: string | null
+          related_land_id?: string | null
+          status?: string | null
+          task_type?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          priority?: string | null
+          related_broker_id?: string | null
+          related_client_id?: string | null
+          related_land_id?: string | null
+          status?: string | null
+          task_type?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "land_tasks_related_broker_id_fkey"
+            columns: ["related_broker_id"]
+            isOneToOne: false
+            referencedRelation: "land_brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "land_tasks_related_client_id_fkey"
+            columns: ["related_client_id"]
+            isOneToOne: false
+            referencedRelation: "land_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "land_tasks_related_land_id_fkey"
+            columns: ["related_land_id"]
+            isOneToOne: false
+            referencedRelation: "land_properties"
             referencedColumns: ["id"]
           },
         ]
@@ -3911,11 +4298,11 @@ export type Database = {
       calculate_commission_new_system: {
         Args: {
           p_client_name: string
-          p_transaction_type: string
+          p_custom_percentages?: Json
+          p_employee_ids?: string[]
           p_property_type: string
           p_total_amount: number
-          p_employee_ids?: string[]
-          p_custom_percentages?: Json
+          p_transaction_type: string
         }
         Returns: Json
       }
@@ -3953,8 +4340,8 @@ export type Database = {
       }
       check_module_permission: {
         Args: {
-          module_name_param: string
           action_type_param: string
+          module_name_param: string
           user_id_param?: string
         }
         Returns: boolean
@@ -3969,17 +4356,17 @@ export type Database = {
       }
       check_rate_limit_enhanced: {
         Args: {
-          user_email: string
           max_attempts?: number
           time_window_minutes?: number
+          user_email: string
         }
         Returns: boolean
       }
       check_rate_limit_secure: {
         Args: {
-          user_email: string
           max_attempts?: number
           time_window_minutes?: number
+          user_email: string
         }
         Returns: boolean
       }
@@ -3993,19 +4380,19 @@ export type Database = {
       }
       create_commission_simple: {
         Args: {
-          p_client_name: string
           p_amount: number
+          p_client_name: string
+          p_custom_percentages?: Json
           p_employee_ids: string[]
           p_transaction_name?: string
-          p_custom_percentages?: Json
         }
         Returns: Json
       }
       create_debt_installments: {
         Args: {
           p_debt_id: string
-          p_installment_count: number
           p_frequency: string
+          p_installment_count: number
           p_start_date: string
         }
         Returns: undefined
@@ -4013,35 +4400,35 @@ export type Database = {
       create_system_notification: {
         Args:
           | {
-              p_title: string
               p_message: string
-              p_type?: string
-              p_priority?: string
-              p_related_table?: string
-              p_related_id?: string
-              p_scheduled_for?: string
               p_metadata?: Json
+              p_priority?: string
+              p_related_id?: string
+              p_related_table?: string
+              p_scheduled_for?: string
+              p_title: string
+              p_type: string
+              p_user_id: string
             }
           | {
-              p_user_id: string
-              p_title: string
               p_message: string
-              p_type: string
-              p_priority?: string
-              p_related_table?: string
-              p_related_id?: string
-              p_scheduled_for?: string
               p_metadata?: Json
+              p_priority?: string
+              p_related_id?: string
+              p_related_table?: string
+              p_scheduled_for?: string
+              p_title: string
+              p_type?: string
             }
         Returns: string
       }
       create_task_notification: {
         Args: {
-          p_task_id: string
-          p_user_id: string
-          p_notification_type: string
-          p_title: string
           p_message: string
+          p_notification_type: string
+          p_task_id: string
+          p_title: string
+          p_user_id: string
         }
         Returns: string
       }
@@ -4063,28 +4450,28 @@ export type Database = {
       }
       generate_rental_installments: {
         Args: {
-          p_contract_id: string
-          p_start_date: string
-          p_installments_count: number
-          p_frequency: string
           p_amount_per_installment: number
+          p_contract_id: string
+          p_frequency: string
+          p_installments_count: number
+          p_start_date: string
         }
         Returns: undefined
       }
       get_contracts_report: {
-        Args: { p_start_date?: string; p_end_date?: string; p_status?: string }
+        Args: { p_end_date?: string; p_start_date?: string; p_status?: string }
         Returns: {
           contract_id: string
           contract_number: string
-          property_title: string
-          tenant_name: string
-          rent_amount: number
-          start_date: string
-          end_date: string
           contract_status: string
-          total_installments: number
+          end_date: string
           paid_installments: number
           pending_installments: number
+          property_title: string
+          rent_amount: number
+          start_date: string
+          tenant_name: string
+          total_installments: number
           total_paid: number
           total_pending: number
         }[]
@@ -4096,37 +4483,37 @@ export type Database = {
       get_employee_commission_statement: {
         Args: { employee_id_param?: string }
         Returns: {
+          current_total_debts: number
+          employee_email: string
           employee_id: string
           employee_name: string
-          employee_email: string
-          total_commissions_count: number
           total_calculated_commissions: number
+          total_commissions_count: number
           total_deducted_debts: number
+          total_incentives: number
           total_net_commissions: number
           total_paid_commissions: number
           total_pending_commissions: number
-          total_incentives: number
-          current_total_debts: number
         }[]
       }
       get_employee_financial_summary: {
         Args: { employee_user_id: string }
         Returns: {
-          total_commissions: number
-          total_debts: number
           net_commissions: number
-          total_deals: number
           recent_activities: Json
+          total_commissions: number
+          total_deals: number
+          total_debts: number
         }[]
       }
       get_monthly_budget_report: {
         Args: { target_month?: string }
         Returns: {
+          actual_spent: number
           category: string
           monthly_limit: number
-          actual_spent: number
-          remaining_budget: number
           percentage_used: number
+          remaining_budget: number
           status: string
           transaction_count: number
         }[]
@@ -4146,7 +4533,7 @@ export type Database = {
       has_role: {
         Args:
           | { _role: Database["public"]["Enums"]["app_role"] }
-          | { _user_id: string; _role: Database["public"]["Enums"]["app_role"] }
+          | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
         Returns: boolean
       }
       is_accountant: {
@@ -4175,43 +4562,43 @@ export type Database = {
       }
       link_service_to_accounting: {
         Args: {
-          service_id_param: string
           expense_amount: number
           expense_description?: string
+          service_id_param: string
         }
         Returns: string
       }
       log_auth_attempt: {
         Args: {
           attempt_type_param: string
-          user_identifier_param: string
-          success_param: boolean
           error_message_param?: string
           metadata_param?: Json
+          success_param: boolean
+          user_identifier_param: string
         }
         Returns: string
       }
       log_financial_activity: {
         Args: {
-          p_operation_type: string
-          p_description: string
           p_amount: number
-          p_source_table: string
-          p_source_id: string
-          p_related_table?: string
-          p_related_id?: string
-          p_user_id?: string
+          p_description: string
           p_metadata?: Json
+          p_operation_type: string
+          p_related_id?: string
+          p_related_table?: string
+          p_source_id: string
+          p_source_table: string
+          p_user_id?: string
         }
         Returns: string
       }
       log_security_event: {
         Args: {
-          event_type: string
           description: string
+          event_type: string
+          metadata?: Json
           severity?: string
           user_id_param?: string
-          metadata?: Json
         }
         Returns: string
       }
@@ -4222,20 +4609,20 @@ export type Database = {
       process_installment_payment: {
         Args: {
           p_installment_id: string
+          p_notes?: string
           p_payment_amount: number
           p_payment_method?: string
-          p_notes?: string
         }
         Returns: boolean
       }
       process_rental_payment: {
         Args: {
+          p_bank_name?: string
+          p_cheque_number?: string
           p_installment_id: string
+          p_notes?: string
           p_payment_amount: number
           p_payment_method?: string
-          p_cheque_number?: string
-          p_bank_name?: string
-          p_notes?: string
         }
         Returns: boolean
       }
@@ -4262,13 +4649,13 @@ export type Database = {
       secure_role_change: {
         Args:
           | {
-              target_user_id: string
-              new_role: Database["public"]["Enums"]["app_role"]
-            }
-          | {
-              target_user_id: string
               new_role: Database["public"]["Enums"]["app_role"]
               reason?: string
+              target_user_id: string
+            }
+          | {
+              new_role: Database["public"]["Enums"]["app_role"]
+              target_user_id: string
             }
         Returns: Json
       }
@@ -4278,9 +4665,9 @@ export type Database = {
       }
       send_commission_notification: {
         Args: {
-          employee_id_param: string
-          commission_id_param: string
           commission_amount: number
+          commission_id_param: string
+          employee_id_param: string
         }
         Returns: string
       }
@@ -4298,10 +4685,10 @@ export type Database = {
       }
       update_service_stage: {
         Args: {
+          notes_param?: string
           service_id_param: string
           stage_name_param: string
           stage_status_param?: string
-          notes_param?: string
         }
         Returns: boolean
       }
