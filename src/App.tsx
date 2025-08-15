@@ -83,6 +83,9 @@ const SmartSettingsPage = lazy(() => import("./pages/whatsapp/smart/SmartSetting
 const AIIntelligenceHub = lazy(() => import("./components/ai"));
 const AIHubDashboard = lazy(() => import("./components/ai/AIHubDashboard"));
 
+// Land Sales Module
+const LandSalesIndex = lazy(() => import("./pages/land-sales/index"));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -441,6 +444,15 @@ const AppProtector = () => {
                    </Suspense>
                  </ProtectedRoute>
                } />
+              
+              {/* Land Sales Routes - Admin and Accountant */}
+              <Route path="/land-sales/*" element={
+                <ProtectedRoute requiredPermission="canViewFinancials">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <LandSalesIndex />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
               
               {/* Reports Routes - Admin and Accountant */}
               <Route path="/reports" element={
