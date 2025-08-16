@@ -2156,6 +2156,7 @@ export type Database = {
       }
       land_properties: {
         Row: {
+          area_sqft: number | null
           area_sqm: number
           assigned_to: string | null
           created_at: string | null
@@ -2175,6 +2176,7 @@ export type Database = {
           videos: Json | null
         }
         Insert: {
+          area_sqft?: number | null
           area_sqm: number
           assigned_to?: string | null
           created_at?: string | null
@@ -2194,6 +2196,7 @@ export type Database = {
           videos?: Json | null
         }
         Update: {
+          area_sqft?: number | null
           area_sqm?: number
           assigned_to?: string | null
           created_at?: string | null
