@@ -19,7 +19,8 @@ interface LandBroker {
   email?: string;
   whatsapp_number?: string;
   areas_specialization: string[];
-  commission_percentage: number;
+  office_name?: string;
+  office_location?: string;
   activity_status: 'active' | 'medium' | 'low' | 'inactive';
   deals_count: number;
   total_sales_amount: number;
@@ -102,7 +103,8 @@ export function LandBrokers() {
       phone: formData.get('phone') as string,
       email: formData.get('email') as string || undefined,
       whatsapp_number: formData.get('whatsapp_number') as string || undefined,
-      commission_percentage: Number(formData.get('commission_percentage')),
+      office_name: formData.get('office_name') as string || undefined,
+      office_location: formData.get('office_location') as string || undefined,
       activity_status: formData.get('activity_status') as 'active' | 'medium' | 'low' | 'inactive',
       areas_specialization: (formData.get('areas_specialization') as string)
         .split(',')
@@ -216,16 +218,24 @@ export function LandBrokers() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="commission_percentage">نسبة العمولة (%)</Label>
+                  <Label htmlFor="office_name">المكتب العقاري</Label>
                   <Input 
-                    id="commission_percentage" 
-                    name="commission_percentage" 
-                    type="number"
-                    step="0.1"
-                    defaultValue={editingBroker?.commission_percentage || 2.5}
-                    required 
+                    id="office_name" 
+                    name="office_name" 
+                    defaultValue={editingBroker?.office_name}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="office_location">موقع المكتب</Label>
+                  <Input 
+                    id="office_location" 
+                    name="office_location"
+                    defaultValue={editingBroker?.office_location}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="activity_status">حالة النشاط</Label>
                   <Select name="activity_status" defaultValue={editingBroker?.activity_status || 'active'}>
@@ -347,10 +357,18 @@ export function LandBrokers() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">العمولة:</span>
-                    <span className="font-medium">{broker.commission_percentage}%</span>
-                  </div>
+                  {broker.office_name && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">المكتب العقاري:</span>
+                      <span className="font-medium">{broker.office_name}</span>
+                    </div>
+                  )}
+                  {broker.office_location && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">موقع المكتب:</span>
+                      <span className="font-medium">{broker.office_location}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">الصفقات:</span>
                     <span className="font-medium">{broker.deals_count}</span>
