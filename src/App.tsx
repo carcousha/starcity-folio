@@ -76,6 +76,7 @@ const WhatsAppSettings = lazy(() => import("./pages/whatsapp/Settings.tsx"));
 const WhatsAppLogs = lazy(() => import("./pages/whatsapp/Logs.tsx"));
 const WhatsAppReminders = lazy(() => import("./pages/whatsapp/Reminders.tsx"));
 const WhatsAppTemplates = lazy(() => import("./pages/whatsapp/Templates"));
+const WhatsAppAPI = lazy(() => import("./pages/whatsapp/WhatsAppAPI"));
 const WhatsAppSmartModule = lazy(() => import("./pages/whatsapp/SmartModule"));
 const SmartDailyTasks = lazy(() => import("./pages/whatsapp/smart/DailyTasksPage"));
 const SmartExternalSuppliers = lazy(() => import("./pages/whatsapp/smart/ExternalSuppliersPage"));
@@ -198,6 +199,13 @@ const AppProtector = () => {
                  <ProtectedRoute requiredPermission="canManageStaff">
                    <Suspense fallback={<LoadingSpinner />}>
                      <WhatsAppTemplates />
+                   </Suspense>
+                 </ProtectedRoute>
+               } />
+               <Route path="/whatsapp/api" element={
+                 <ProtectedRoute requiredPermission="crmAccess">
+                   <Suspense fallback={<LoadingSpinner />}>
+                     <WhatsAppAPI />
                    </Suspense>
                  </ProtectedRoute>
                } />
