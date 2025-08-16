@@ -283,17 +283,25 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       };
 
-      // محاولة الإرسال المباشر أولاً
-      let response;
-      try {
-        response = await fetch(`${apiConfig.base_url}/send-message`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload)
-        });
-      } catch (directError) {
+             // محاولة الإرسال المباشر أولاً
+       let response;
+       try {
+         console.log('🔄 محاولة الإرسال المباشر...');
+         console.log('📤 Payload:', payload);
+         console.log('🌐 URL:', `${apiConfig.base_url}/send-message`);
+         
+         response = await fetch(`${apiConfig.base_url}/send-message`, {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+           },
+           body: JSON.stringify(payload)
+         });
+         
+         console.log('✅ نجح الإرسال المباشر');
+         console.log('📊 Status:', response.status);
+         console.log('📋 Headers:', response.headers);
+       } catch (directError) {
         console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
         
         // استخدام CORS Proxy كبديل
@@ -360,18 +368,40 @@ const WhatsAppAPI: React.FC = () => {
         }
       }
 
-      const result = await response.json();
-      
-      if (result.status) {
-        addToHistory('text', recipientNumber, messageText, 'sent', result);
-        toast({
-          title: "تم الإرسال",
-          description: "تم إرسال الرسالة النصية بنجاح"
-        });
-        clearTextForm();
-      } else {
-        throw new Error(result.msg || 'فشل في الإرسال');
-      }
+             // التحقق من أن الاستجابة صحيحة
+       let result;
+       try {
+         const responseText = await response.text();
+         console.log('استجابة API:', responseText);
+         
+         // محاولة parsing JSON
+         try {
+           result = JSON.parse(responseText);
+         } catch (jsonError) {
+           console.error('فشل في parsing JSON:', jsonError);
+           console.log('محتوى الاستجابة:', responseText);
+           
+           // إذا كان HTML، نحاول استخراج رسالة خطأ
+           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
+           } else {
+             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
+           }
+         }
+         
+         if (result.status) {
+           addToHistory('text', recipientNumber, messageText, 'sent', result);
+           toast({
+             title: "تم الإرسال",
+             description: "تم إرسال الرسالة النصية بنجاح"
+           });
+           clearTextForm();
+         } else {
+           throw new Error(result.msg || 'فشل في الإرسال');
+         }
+       } catch (parseError) {
+         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
+       }
     } catch (error) {
       console.error('خطأ في إرسال الرسالة النصية:', error);
       addToHistory('text', recipientNumber, messageText, 'failed', { error: error.message });
@@ -421,18 +451,40 @@ const WhatsAppAPI: React.FC = () => {
         body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
-      
-      if (result.status) {
-        addToHistory('media', recipientNumber, `${mediaType}: ${caption || messageText}`, 'sent', result);
-        toast({
-          title: "تم الإرسال",
-          description: "تم إرسال رسالة الوسائط بنجاح"
-        });
-        clearMediaForm();
-      } else {
-        throw new Error(result.msg || 'فشل في الإرسال');
-      }
+             // التحقق من أن الاستجابة صحيحة
+       let result;
+       try {
+         const responseText = await response.text();
+         console.log('استجابة API (Media):', responseText);
+         
+         // محاولة parsing JSON
+         try {
+           result = JSON.parse(responseText);
+         } catch (jsonError) {
+           console.error('فشل في parsing JSON (Media):', jsonError);
+           console.log('محتوى الاستجابة (Media):', responseText);
+           
+           // إذا كان HTML، نحاول استخراج رسالة خطأ
+           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
+           } else {
+             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
+           }
+         }
+         
+         if (result.status) {
+           addToHistory('media', recipientNumber, `${mediaType}: ${caption || messageText}`, 'sent', result);
+           toast({
+             title: "تم الإرسال",
+             description: "تم إرسال رسالة الوسائط بنجاح"
+           });
+           clearMediaForm();
+         } else {
+           throw new Error(result.msg || 'فشل في الإرسال');
+         }
+       } catch (parseError) {
+         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
+       }
     } catch (error) {
       console.error('خطأ في إرسال رسالة الوسائط:', error);
       addToHistory('media', recipientNumber, `${mediaType}: ${caption || messageText}`, 'failed', { error: error.message });
@@ -480,18 +532,40 @@ const WhatsAppAPI: React.FC = () => {
         body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
-      
-      if (result.status) {
-        addToHistory('location', recipientNumber, `موقع: ${latitude}, ${longitude}`, 'sent', result);
-        toast({
-          title: "تم الإرسال",
-          description: "تم إرسال الموقع بنجاح"
-        });
-        clearLocationForm();
-      } else {
-        throw new Error(result.msg || 'فشل في الإرسال');
-      }
+             // التحقق من أن الاستجابة صحيحة
+       let result;
+       try {
+         const responseText = await response.text();
+         console.log('استجابة API (Location):', responseText);
+         
+         // محاولة parsing JSON
+         try {
+           result = JSON.parse(responseText);
+         } catch (jsonError) {
+           console.error('فشل في parsing JSON (Location):', jsonError);
+           console.log('محتوى الاستجابة (Location):', responseText);
+           
+           // إذا كان HTML، نحاول استخراج رسالة خطأ
+           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
+           } else {
+             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
+           }
+         }
+         
+         if (result.status) {
+           addToHistory('location', recipientNumber, `موقع: ${latitude}, ${longitude}`, 'sent', result);
+           toast({
+             title: "تم الإرسال",
+             description: "تم إرسال الموقع بنجاح"
+           });
+           clearLocationForm();
+         } else {
+           throw new Error(result.msg || 'فشل في الإرسال');
+         }
+       } catch (parseError) {
+         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
+       }
     } catch (error) {
       console.error('خطأ في إرسال الموقع:', error);
       addToHistory('location', recipientNumber, `موقع: ${latitude}, ${longitude}`, 'failed', { error: error.message });
@@ -539,18 +613,40 @@ const WhatsAppAPI: React.FC = () => {
         body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
-      
-      if (result.status) {
-        addToHistory('vcard', recipientNumber, `جهة اتصال: ${contactName}`, 'sent', result);
-        toast({
-          title: "تم الإرسال",
-          description: "تم إرسال VCard بنجاح"
-        });
-        clearVCardForm();
-      } else {
-        throw new Error(result.msg || 'فشل في الإرسال');
-      }
+             // التحقق من أن الاستجابة صحيحة
+       let result;
+       try {
+         const responseText = await response.text();
+         console.log('استجابة API (VCard):', responseText);
+         
+         // محاولة parsing JSON
+         try {
+           result = JSON.parse(responseText);
+         } catch (jsonError) {
+           console.error('فشل في parsing JSON (VCard):', jsonError);
+           console.log('محتوى الاستجابة (VCard):', responseText);
+           
+           // إذا كان HTML، نحاول استخراج رسالة خطأ
+           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
+           } else {
+             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
+           }
+         }
+         
+         if (result.status) {
+           addToHistory('vcard', recipientNumber, `جهة اتصال: ${contactName}`, 'sent', result);
+           toast({
+             title: "تم الإرسال",
+             description: "تم إرسال VCard بنجاح"
+           });
+           clearVCardForm();
+         } else {
+           throw new Error(result.msg || 'فشل في الإرسال');
+         }
+       } catch (parseError) {
+         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
+       }
     } catch (error) {
       console.error('خطأ في إرسال VCard:', error);
       addToHistory('vcard', recipientNumber, `جهة اتصال: ${contactName}`, 'failed', { error: error.message });
