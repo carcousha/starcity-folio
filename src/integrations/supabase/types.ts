@@ -2165,6 +2165,7 @@ export type Database = {
           id: string
           images: Json | null
           internal_notes: string | null
+          land_location: string | null
           latitude: number | null
           location: string
           longitude: number | null
@@ -2185,6 +2186,7 @@ export type Database = {
           id?: string
           images?: Json | null
           internal_notes?: string | null
+          land_location?: string | null
           latitude?: number | null
           location: string
           longitude?: number | null
@@ -2205,6 +2207,7 @@ export type Database = {
           id?: string
           images?: Json | null
           internal_notes?: string | null
+          land_location?: string | null
           latitude?: number | null
           location?: string
           longitude?: number | null
