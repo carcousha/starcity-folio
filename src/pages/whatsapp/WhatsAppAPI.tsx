@@ -304,82 +304,92 @@ const WhatsAppAPI: React.FC = () => {
        } catch (directError) {
         console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
         
-        // استخدام CORS Proxy كبديل
-        const corsProxies = [
-          'https://api.allorigins.win/raw?url=',
-          'https://cors-anywhere.herokuapp.com/',
-          'https://thingproxy.freeboard.io/fetch/',
-          'https://cors.bridged.cc/'
-        ];
-        
-        let response;
-        let lastError;
-        
-        // تجربة CORS Proxies متعددة
-        for (const proxy of corsProxies) {
-          try {
-            console.log(`جاري تجربة CORS Proxy: ${proxy}`);
-            
-            if (proxy.includes('allorigins')) {
-              // allorigins يحتاج طريقة مختلفة
-              response = await fetch(`${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-              });
-            } else {
-              response = await fetch(`${proxy}${apiConfig.base_url}/send-message`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Origin': window.location.origin,
-                },
-                body: JSON.stringify(payload)
-              });
-            }
-            
-            // التحقق من أن الاستجابة JSON صحيحة
-            const responseText = await response.text();
-            try {
-              JSON.parse(responseText);
-              // إذا نجح parsing، نعيد response object
-              response = new Response(responseText, {
-                status: response.status,
-                statusText: response.statusText,
-                headers: response.headers
-              });
-              break;
-            } catch (jsonError) {
-              console.log(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON:`, responseText.substring(0, 100));
-              lastError = new Error(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON`);
-              continue;
-            }
-          } catch (proxyError) {
-            console.log(`فشل CORS Proxy ${proxy}:`, proxyError);
-            lastError = proxyError;
-            continue;
-          }
-        }
-        
-        if (!response) {
-          throw lastError || new Error('جميع CORS Proxies فشلت');
-        }
+                 // استخدام CORS Proxy كبديل
+         const corsProxies = [
+           'https://api.allorigins.win/raw?url=',
+           'https://cors-anywhere.herokuapp.com/',
+           'https://thingproxy.freeboard.io/fetch/',
+           'https://cors.bridged.cc/'
+         ];
+         
+         let proxyResponse;
+         let lastError;
+         
+         // تجربة CORS Proxies متعددة
+         for (const proxy of corsProxies) {
+           try {
+             console.log(`جاري تجربة CORS Proxy: ${proxy}`);
+             
+             if (proxy.includes('allorigins')) {
+               // allorigins يحتاج طريقة مختلفة
+               proxyResponse = await fetch(`${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`, {
+                 method: 'POST',
+                 headers: {
+                   'Content-Type': 'application/json',
+                 },
+                 body: JSON.stringify(payload)
+               });
+             } else {
+               proxyResponse = await fetch(`${proxy}${apiConfig.base_url}/send-message`, {
+                 method: 'POST',
+                 headers: {
+                   'Content-Type': 'application/json',
+                   'Origin': window.location.origin,
+                 },
+                 body: JSON.stringify(payload)
+               });
+             }
+             
+             // التحقق من أن الاستجابة JSON صحيحة
+             const responseText = await proxyResponse.text();
+             try {
+               JSON.parse(responseText);
+               // إذا نجح parsing، نعيد response object
+               response = new Response(responseText, {
+                 status: proxyResponse.status,
+                 statusText: proxyResponse.statusText,
+                 headers: proxyResponse.headers
+               });
+               console.log(`✅ نجح CORS Proxy: ${proxy}`);
+               break;
+             } catch (jsonError) {
+               console.log(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON:`, responseText.substring(0, 100));
+               lastError = new Error(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON`);
+               continue;
+             }
+           } catch (proxyError) {
+             console.log(`فشل CORS Proxy ${proxy}:`, proxyError);
+             lastError = proxyError;
+             continue;
+           }
+         }
+         
+         if (!response) {
+           throw lastError || new Error('جميع CORS Proxies فشلت');
+         }
       }
 
              // التحقق من أن الاستجابة صحيحة
+       if (!response) {
+         throw new Error('لم يتم الحصول على استجابة من API');
+       }
+       
+       console.log('📥 استجابة API:', response);
+       console.log('📊 Status:', response.status);
+       console.log('📋 Headers:', response.headers);
+       
        let result;
        try {
          const responseText = await response.text();
-         console.log('استجابة API:', responseText);
+         console.log('📄 محتوى الاستجابة:', responseText);
          
          // محاولة parsing JSON
          try {
            result = JSON.parse(responseText);
+           console.log('✅ تم parsing JSON بنجاح:', result);
          } catch (jsonError) {
-           console.error('فشل في parsing JSON:', jsonError);
-           console.log('محتوى الاستجابة:', responseText);
+           console.error('❌ فشل في parsing JSON:', jsonError);
+           console.log('📄 محتوى الاستجابة الكامل:', responseText);
            
            // إذا كان HTML، نحاول استخراج رسالة خطأ
            if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
@@ -390,6 +400,7 @@ const WhatsAppAPI: React.FC = () => {
          }
          
          if (result.status) {
+           console.log('🎉 الرسالة أرسلت بنجاح!');
            addToHistory('text', recipientNumber, messageText, 'sent', result);
            toast({
              title: "تم الإرسال",
@@ -400,6 +411,7 @@ const WhatsAppAPI: React.FC = () => {
            throw new Error(result.msg || 'فشل في الإرسال');
          }
        } catch (parseError) {
+         console.error('❌ خطأ في معالجة الاستجابة:', parseError);
          throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
        }
     } catch (error) {
