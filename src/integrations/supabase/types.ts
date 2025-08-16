@@ -2170,7 +2170,9 @@ export type Database = {
           latitude: number | null
           location: string
           longitude: number | null
+          plot_number: string | null
           price: number
+          source_name: string | null
           source_type: string
           status: string
           title: string
@@ -2192,7 +2194,9 @@ export type Database = {
           latitude?: number | null
           location: string
           longitude?: number | null
+          plot_number?: string | null
           price: number
+          source_name?: string | null
           source_type: string
           status?: string
           title: string
@@ -2214,7 +2218,9 @@ export type Database = {
           latitude?: number | null
           location?: string
           longitude?: number | null
+          plot_number?: string | null
           price?: number
+          source_name?: string | null
           source_type?: string
           status?: string
           title?: string
