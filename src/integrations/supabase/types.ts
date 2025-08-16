@@ -1910,7 +1910,6 @@ export type Database = {
         Row: {
           activity_status: string | null
           areas_specialization: Json | null
-          commission_percentage: number | null
           created_at: string | null
           created_by: string
           deals_count: number | null
@@ -1918,6 +1917,8 @@ export type Database = {
           id: string
           last_activity_date: string | null
           name: string
+          office_location: string | null
+          office_name: string | null
           phone: string
           total_sales_amount: number | null
           updated_at: string | null
@@ -1926,7 +1927,6 @@ export type Database = {
         Insert: {
           activity_status?: string | null
           areas_specialization?: Json | null
-          commission_percentage?: number | null
           created_at?: string | null
           created_by: string
           deals_count?: number | null
@@ -1934,6 +1934,8 @@ export type Database = {
           id?: string
           last_activity_date?: string | null
           name: string
+          office_location?: string | null
+          office_name?: string | null
           phone: string
           total_sales_amount?: number | null
           updated_at?: string | null
@@ -1942,7 +1944,6 @@ export type Database = {
         Update: {
           activity_status?: string | null
           areas_specialization?: Json | null
-          commission_percentage?: number | null
           created_at?: string | null
           created_by?: string
           deals_count?: number | null
@@ -1950,6 +1951,8 @@ export type Database = {
           id?: string
           last_activity_date?: string | null
           name?: string
+          office_location?: string | null
+          office_name?: string | null
           phone?: string
           total_sales_amount?: number | null
           updated_at?: string | null
