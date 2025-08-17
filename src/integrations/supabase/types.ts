@@ -1920,6 +1920,7 @@ export type Database = {
           office_location: string | null
           office_name: string | null
           phone: string
+          short_name: string | null
           total_sales_amount: number | null
           updated_at: string | null
           whatsapp_number: string | null
@@ -1937,6 +1938,7 @@ export type Database = {
           office_location?: string | null
           office_name?: string | null
           phone: string
+          short_name?: string | null
           total_sales_amount?: number | null
           updated_at?: string | null
           whatsapp_number?: string | null
@@ -1954,6 +1956,7 @@ export type Database = {
           office_location?: string | null
           office_name?: string | null
           phone?: string
+          short_name?: string | null
           total_sales_amount?: number | null
           updated_at?: string | null
           whatsapp_number?: string | null
