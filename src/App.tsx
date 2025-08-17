@@ -72,15 +72,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const SecurityAuditPage = lazy(() => import("./pages/SecurityAudit"));
 const WhatsAppSmart = lazy(() => import("./pages/crm/WhatsAppSmart"));
 const WhatsAppHome = lazy(() => import("./pages/whatsapp"));
-const WhatsAppDashboard = lazy(() => import("./pages/whatsapp/Dashboard"));
-const WhatsAppSmartMessages = lazy(() => import("./pages/whatsapp/SmartMessages"));
-const WhatsAppTemplates = lazy(() => import("./pages/whatsapp/Templates"));
-const WhatsAppLogs = lazy(() => import("./pages/whatsapp/Logs"));
-const WhatsAppAutoReply = lazy(() => import("./pages/whatsapp/AutoReply"));
-const WhatsAppCampaigns = lazy(() => import("./pages/whatsapp/Campaigns"));
-const WhatsAppReports = lazy(() => import("./pages/whatsapp/Reports"));
-const WhatsAppSettings = lazy(() => import("./pages/whatsapp/Settings"));
-const WhatsAppQuickSend = lazy(() => import("./pages/whatsapp/QuickSend"));
+// WhatsApp pages - will be recreated
 
 const AIIntelligenceHub = lazy(() => import("./components/ai"));
 const AIHubDashboard = lazy(() => import("./components/ai/AIHubDashboard"));
@@ -219,69 +211,7 @@ const AppProtector = () => {
                     </Suspense>
                   </ProtectedRoute>
                 } />
-                <Route path="/whatsapp/dashboard" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppDashboard />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/smart-messages" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppSmartMessages />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/templates" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppTemplates />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/logs" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppLogs />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/auto-reply" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppAutoReply />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/campaigns" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppCampaigns />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/reports" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppReports />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/settings" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppSettings />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                <Route path="/whatsapp/quick-send" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppQuickSend />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
+                 {/* WhatsApp routes - will be recreated */}
 
                <Route path="/crm/properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
