@@ -1,451 +1,586 @@
-import { useState, useEffect } from 'react';
+// WhatsApp Reports Component
+// صفحة تقارير الواتساب
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, TrendingUp, MessageSquare, Users, Calendar, Download, Filter } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Send,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  Download,
+  RefreshCw,
+  Filter,
+  Eye,
+  MessageSquare,
+  Target,
+  Clock,
+  Loader2
+} from 'lucide-react';
 
-interface Stats {
-  stat_date: string;
-  total_sent: number;
-  total_delivered: number;
-  total_read: number;
-  total_failed: number;
-  campaigns_count: number;
-  contacts_added: number;
+import { whatsappService } from '@/services/whatsappService';
+import { WhatsAppStats, WhatsAppMessage, WhatsAppCampaign } from '@/types/whatsapp';
+
+interface ReportsState {
+  stats: WhatsAppStats | null;
+  recentMessages: WhatsAppMessage[];
+  campaigns: WhatsAppCampaign[];
+  isLoading: boolean;
+  dateRange: {
+    from: string;
+    to: string;
+  };
+  selectedPeriod: 'today' | 'week' | 'month' | 'custom';
 }
 
-interface ActivityLog {
-  id: string;
-  activity_type: string;
-  description: string;
-  created_at: string;
-  metadata?: any;
-}
+export default function WhatsAppReports() {
+  const [state, setState] = useState<ReportsState>({
+    stats: null,
+    recentMessages: [],
+    campaigns: [],
+    isLoading: false,
+    dateRange: {
+      from: '',
+      to: ''
+    },
+    selectedPeriod: 'week'
+  });
 
-export default function Reports() {
-  const [stats, setStats] = useState<Stats[]>([]);
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('7'); // Last 7 days
   const { toast } = useToast();
 
   useEffect(() => {
-    loadReportsData();
-  }, [dateRange]);
+    setDateRangeFromPeriod(state.selectedPeriod);
+    loadReports();
+  }, []);
 
-  const loadReportsData = async () => {
+  const updateState = (updates: Partial<ReportsState>) => {
+    setState(prev => ({ ...prev, ...updates }));
+  };
+
+  const setDateRangeFromPeriod = (period: typeof state.selectedPeriod) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let from: Date;
+    let to: Date = now;
+
+    switch (period) {
+      case 'today':
+        from = today;
+        break;
+      case 'week':
+        from = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        from = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+        break;
+      default:
+        return; // للفترة المخصصة، لا نغير التواريخ
+    }
+
+    updateState({
+      selectedPeriod: period,
+      dateRange: {
+        from: from.toISOString().split('T')[0],
+        to: to.toISOString().split('T')[0]
+      }
+    });
+  };
+
+  const loadReports = async () => {
     try {
-      setLoading(true);
+      updateState({ isLoading: true });
       
-      // تحميل الإحصائيات
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(endDate.getDate() - parseInt(dateRange));
+      const [statsData, campaignsData] = await Promise.all([
+        whatsappService.getStats(),
+        whatsappService.getCampaigns()
+      ]);
       
-      const { data: statsData, error: statsError } = await supabase
-        .from('whatsapp_stats')
-        .select('*')
-        .gte('stat_date', startDate.toISOString().split('T')[0])
-        .lte('stat_date', endDate.toISOString().split('T')[0])
-        .order('stat_date', { ascending: true });
-
-      if (statsError) throw statsError;
-      setStats(statsData || []);
-
-      // تحميل سجل الأنشطة
-      const { data: logsData, error: logsError } = await supabase
-        .from('whatsapp_activity_logs')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (logsError) throw logsError;
-      setActivityLogs(logsData || []);
-
-    } catch (error: any) {
+      updateState({ 
+        stats: statsData,
+        campaigns: campaignsData,
+        recentMessages: statsData.recent_activity || []
+      });
+    } catch (error) {
+      console.error('Error loading reports:', error);
       toast({
         title: "خطأ",
         description: "فشل في تحميل التقارير",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      updateState({ isLoading: false });
     }
   };
 
-  const calculateTotals = () => {
-    return stats.reduce((totals, stat) => ({
-      total_sent: totals.total_sent + stat.total_sent,
-      total_delivered: totals.total_delivered + stat.total_delivered,
-      total_read: totals.total_read + stat.total_read,
-      total_failed: totals.total_failed + stat.total_failed,
-      campaigns_count: totals.campaigns_count + stat.campaigns_count,
-      contacts_added: totals.contacts_added + stat.contacts_added
-    }), {
-      total_sent: 0,
-      total_delivered: 0,
-      total_read: 0,
-      total_failed: 0,
-      campaigns_count: 0,
-      contacts_added: 0
+  const exportReport = () => {
+    toast({
+      title: "قريباً",
+      description: "ميزة تصدير التقارير ستكون متاحة قريباً",
+      variant: "default"
     });
   };
 
-  const calculateSuccessRate = () => {
-    const totals = calculateTotals();
-    if (totals.total_sent === 0) return 0;
-    return Math.round((totals.total_delivered / totals.total_sent) * 100);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const calculateReadRate = () => {
-    const totals = calculateTotals();
-    if (totals.total_delivered === 0) return 0;
-    return Math.round((totals.total_read / totals.total_delivered) * 100);
+  const getMessageStatusIcon = (status: string) => {
+    switch (status) {
+      case 'sent': return <Send className="h-4 w-4 text-blue-600" />;
+      case 'delivered': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'failed': return <XCircle className="h-4 w-4 text-red-600" />;
+      default: return <Clock className="h-4 w-4 text-yellow-600" />;
+    }
   };
 
-  const getActivityTypeLabel = (type: string) => {
-    const labels = {
-      contact_added: 'إضافة جهة اتصال',
-      contact_updated: 'تحديث جهة اتصال',
-      campaign_created: 'إنشاء حملة',
-      campaign_sent: 'إرسال حملة',
-      message_sent: 'إرسال رسالة',
-      template_created: 'إنشاء قالب',
-      contacts_imported: 'استيراد جهات اتصال'
+  const getMessageStatusBadge = (status: string) => {
+    const statusMap = {
+      'sent': { label: 'تم الإرسال', color: 'bg-blue-100 text-blue-800' },
+      'delivered': { label: 'تم التسليم', color: 'bg-green-100 text-green-800' },
+      'failed': { label: 'فشل', color: 'bg-red-100 text-red-800' },
+      'pending': { label: 'انتظار', color: 'bg-yellow-100 text-yellow-800' }
     };
-    return labels[type as keyof typeof labels] || type;
+    
+    const statusInfo = statusMap[status as keyof typeof statusMap] || { label: status, color: 'bg-gray-100 text-gray-800' };
+    return <Badge className={statusInfo.color}>{statusInfo.label}</Badge>;
   };
 
-  const getActivityTypeColor = (type: string) => {
-    const colors = {
-      contact_added: 'bg-blue-100 text-blue-800',
-      contact_updated: 'bg-yellow-100 text-yellow-800',
-      campaign_created: 'bg-green-100 text-green-800',
-      campaign_sent: 'bg-purple-100 text-purple-800',
-      message_sent: 'bg-indigo-100 text-indigo-800',
-      template_created: 'bg-pink-100 text-pink-800',
-      contacts_imported: 'bg-orange-100 text-orange-800'
+  const getCampaignStatusBadge = (status: string) => {
+    const statusMap = {
+      'draft': { label: 'مسودة', color: 'bg-gray-100 text-gray-800' },
+      'scheduled': { label: 'مجدولة', color: 'bg-blue-100 text-blue-800' },
+      'running': { label: 'قيد التنفيذ', color: 'bg-yellow-100 text-yellow-800' },
+      'completed': { label: 'مكتملة', color: 'bg-green-100 text-green-800' },
+      'paused': { label: 'متوقفة', color: 'bg-orange-100 text-orange-800' },
+      'cancelled': { label: 'ملغاة', color: 'bg-red-100 text-red-800' }
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    
+    const statusInfo = statusMap[status as keyof typeof statusMap] || { label: status, color: 'bg-gray-100 text-gray-800' };
+    return <Badge className={statusInfo.color}>{statusInfo.label}</Badge>;
   };
 
-  const totals = calculateTotals();
-
-  if (loading) {
+  if (!state.stats && !state.isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="text-center py-8">
+        <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600">لا توجد بيانات متاحة للتقارير</p>
+        <Button onClick={loadReports} className="mt-4">
+          إعادة المحاولة
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl" dir="rtl">
-      <div className="space-y-6">
-        {/* العنوان والفلاتر */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-              <BarChart3 className="h-8 w-8" />
-              التقارير والإحصائيات
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              مراقبة أداء حملات واتساب وتحليل النتائج
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">آخر 7 أيام</SelectItem>
-                <SelectItem value="30">آخر 30 يوم</SelectItem>
-                <SelectItem value="90">آخر 3 أشهر</SelectItem>
-                <SelectItem value="365">آخر سنة</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Button variant="outline">
-              <Download className="ml-2 h-4 w-4" />
-              تصدير التقرير
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">تقارير الواتساب</h2>
+          <p className="text-gray-600">تحليلات شاملة لأداء رسائل الواتساب</p>
         </div>
-
-        {/* الإحصائيات الرئيسية */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">إجمالي الرسائل المرسلة</p>
-                  <p className="text-2xl font-bold">{totals.total_sent.toLocaleString()}</p>
-                  <p className="text-xs text-green-600">
-                    <TrendingUp className="h-3 w-3 inline ml-1" />
-                    نشط
-                  </p>
-                </div>
-                <MessageSquare className="h-8 w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">الرسائل المسلمة</p>
-                  <p className="text-2xl font-bold text-green-600">{totals.total_delivered.toLocaleString()}</p>
-                  <p className="text-xs text-green-600">
-                    {calculateSuccessRate()}% نسبة النجاح
-                  </p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">الرسائل المقروءة</p>
-                  <p className="text-2xl font-bold text-blue-600">{totals.total_read.toLocaleString()}</p>
-                  <p className="text-xs text-blue-600">
-                    {calculateReadRate()}% نسبة القراءة
-                  </p>
-                </div>
-                <Users className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">الحملات المنفذة</p>
-                  <p className="text-2xl font-bold text-purple-600">{totals.campaigns_count}</p>
-                  <p className="text-xs text-purple-600">
-                    {totals.contacts_added} جهة اتصال جديدة
-                  </p>
-                </div>
-                <Calendar className="h-8 w-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex space-x-3 space-x-reverse">
+          <Button onClick={exportReport} variant="outline">
+            <Download className="ml-2 h-4 w-4" />
+            تصدير التقرير
+          </Button>
+          <Button onClick={loadReports} disabled={state.isLoading}>
+            {state.isLoading ? (
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="ml-2 h-4 w-4" />
+            )}
+            تحديث
+          </Button>
         </div>
+      </div>
 
-        {/* التبويبات */}
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+      {/* Period Filter */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>الفترة الزمنية</Label>
+              <Select
+                value={state.selectedPeriod}
+                onValueChange={(value: any) => setDateRangeFromPeriod(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">اليوم</SelectItem>
+                  <SelectItem value="week">آخر 7 أيام</SelectItem>
+                  <SelectItem value="month">آخر شهر</SelectItem>
+                  <SelectItem value="custom">فترة مخصصة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {state.selectedPeriod === 'custom' && (
+              <>
+                <div className="space-y-2">
+                  <Label>من تاريخ</Label>
+                  <Input
+                    type="date"
+                    value={state.dateRange.from}
+                    onChange={(e) => updateState({
+                      dateRange: { ...state.dateRange, from: e.target.value }
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>إلى تاريخ</Label>
+                  <Input
+                    type="date"
+                    value={state.dateRange.to}
+                    onChange={(e) => updateState({
+                      dateRange: { ...state.dateRange, to: e.target.value }
+                    })}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="flex items-end">
+              <Button onClick={loadReports} className="w-full">
+                <Filter className="ml-2 h-4 w-4" />
+                تطبيق الفلتر
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {state.isLoading ? (
+        <div className="text-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="mt-2 text-gray-600">جاري تحميل التقارير...</p>
+        </div>
+      ) : (
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="performance">الأداء</TabsTrigger>
-            <TabsTrigger value="activity">سجل الأنشطة</TabsTrigger>
+            <TabsTrigger value="messages">الرسائل</TabsTrigger>
+            <TabsTrigger value="campaigns">الحملات</TabsTrigger>
+            <TabsTrigger value="contacts">جهات الاتصال</TabsTrigger>
           </TabsList>
 
+          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* الرسم البياني */}
-            <Card>
-              <CardHeader>
-                <CardTitle>إحصائيات الرسائل اليومية</CardTitle>
-                <CardDescription>
-                  عدد الرسائل المرسلة والمسلمة يومياً خلال الفترة المحددة
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
-                  <p className="text-gray-500">الرسم البياني سيتم إضافته قريباً</p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">إجمالي الرسائل</p>
+                      <p className="text-2xl font-bold">{state.stats?.total_messages_sent.toLocaleString()}</p>
+                    </div>
+                    <Send className="h-8 w-8 text-blue-600" />
+                  </div>
+                  <div className="flex items-center mt-2 text-sm text-green-600">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    <span>+12.5% من الشهر الماضي</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* توزيع أنواع الرسائل */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">معدل النجاح</p>
+                      <p className="text-2xl font-bold">{state.stats?.success_rate.toFixed(1)}%</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div className="flex items-center mt-2 text-sm text-green-600">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    <span>+2.1% من الشهر الماضي</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">جهات الاتصال</p>
+                      <p className="text-2xl font-bold">{state.stats?.total_contacts.toLocaleString()}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <div className="flex items-center mt-2 text-sm text-green-600">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    <span>+8.3% من الشهر الماضي</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">الحملات النشطة</p>
+                      <p className="text-2xl font-bold">{state.stats?.active_campaigns}</p>
+                    </div>
+                    <Target className="h-8 w-8 text-orange-600" />
+                  </div>
+                  <div className="flex items-center mt-2 text-sm text-gray-600">
+                    <span>في التنفيذ حالياً</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts Placeholder */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>توزيع الرسائل حسب الحالة</CardTitle>
+                  <CardTitle>توزيع حالة الرسائل</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span>مرسل</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: '100%' }}></div>
+                  <div className="space-y-4">
+                    {state.stats && Object.entries(state.stats.messages_by_status).map(([status, count]) => {
+                      const total = Object.values(state.stats!.messages_by_status).reduce((a, b) => a + b, 0);
+                      const percentage = total > 0 ? (count / total) * 100 : 0;
+                      
+                      return (
+                        <div key={status} className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <div className="flex items-center space-x-2 space-x-reverse">
+                              {getMessageStatusIcon(status)}
+                              <span>{getMessageStatusBadge(status)}</span>
+                            </div>
+                            <span className="font-medium">{count.toLocaleString()}</span>
+                          </div>
+                          <Progress value={percentage} className="h-2" />
                         </div>
-                        <span className="text-sm">{totals.total_sent}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span>مسلم</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-green-600 h-2 rounded-full" 
-                            style={{ width: `${(totals.total_delivered / Math.max(totals.total_sent, 1)) * 100}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm">{totals.total_delivered}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span>مقروء</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-purple-600 h-2 rounded-full" 
-                            style={{ width: `${(totals.total_read / Math.max(totals.total_sent, 1)) * 100}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm">{totals.total_read}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span>فشل</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-red-600 h-2 rounded-full" 
-                            style={{ width: `${(totals.total_failed / Math.max(totals.total_sent, 1)) * 100}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm">{totals.total_failed}</span>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>معدلات الأداء</CardTitle>
+                  <CardTitle>توزيع جهات الاتصال</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-green-600">{calculateSuccessRate()}%</p>
-                      <p className="text-sm text-muted-foreground">نسبة التسليم</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-blue-600">{calculateReadRate()}%</p>
-                      <p className="text-sm text-muted-foreground">نسبة القراءة</p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-purple-600">{Math.round(totals.total_sent / Math.max(totals.campaigns_count, 1))}</p>
-                      <p className="text-sm text-muted-foreground">متوسط الرسائل لكل حملة</p>
-                    </div>
+                    {state.stats && [
+                      { type: 'owners', label: 'الملاك', count: state.stats.contacts_by_type.owners, color: 'bg-blue-500' },
+                      { type: 'marketers', label: 'المسوقين', count: state.stats.contacts_by_type.marketers, color: 'bg-green-500' },
+                      { type: 'clients', label: 'العملاء', count: state.stats.contacts_by_type.clients, color: 'bg-purple-500' }
+                    ].map(({ type, label, count, color }) => {
+                      const total = state.stats!.total_contacts;
+                      const percentage = total > 0 ? (count / total) * 100 : 0;
+                      
+                      return (
+                        <div key={type} className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium">{label}</span>
+                            <span>{count.toLocaleString()} ({percentage.toFixed(1)}%)</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full ${color}`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
-          <TabsContent value="performance" className="space-y-6">
+          {/* Messages Tab */}
+          <TabsContent value="messages" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>الأداء اليومي المفصل</CardTitle>
+                <CardTitle>آخر الرسائل المرسلة</CardTitle>
+                <CardDescription>تفاصيل الرسائل المرسلة مؤخراً</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>التاريخ</TableHead>
-                      <TableHead>مرسل</TableHead>
-                      <TableHead>مسلم</TableHead>
-                      <TableHead>مقروء</TableHead>
-                      <TableHead>فشل</TableHead>
-                      <TableHead>الحملات</TableHead>
-                      <TableHead>نسبة النجاح</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {stats.map((stat, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          {new Date(stat.stat_date).toLocaleDateString('ar-EG')}
-                        </TableCell>
-                        <TableCell>{stat.total_sent}</TableCell>
-                        <TableCell className="text-green-600">{stat.total_delivered}</TableCell>
-                        <TableCell className="text-blue-600">{stat.total_read}</TableCell>
-                        <TableCell className="text-red-600">{stat.total_failed}</TableCell>
-                        <TableCell>{stat.campaigns_count}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {stat.total_sent > 0 ? Math.round((stat.total_delivered / stat.total_sent) * 100) : 0}%
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
+                {state.recentMessages.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    لا توجد رسائل حديثة
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {state.recentMessages.map(message => (
+                      <div key={message.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          {getMessageStatusIcon(message.status)}
+                          <div>
+                            <p className="font-medium">
+                              {message.contact?.name || `+${message.phone_number}`}
+                            </p>
+                            <p className="text-sm text-gray-600 truncate max-w-xs">
+                              {message.content}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          {getMessageStatusBadge(message.status)}
+                          <span className="text-sm text-gray-500">
+                            {formatDate(message.created_at)}
+                          </span>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
-                
-                {stats.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    لا توجد بيانات للفترة المحددة
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="activity" className="space-y-6">
+          {/* Campaigns Tab */}
+          <TabsContent value="campaigns" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>سجل الأنشطة الأخيرة</CardTitle>
-                <CardDescription>
-                  آخر الأنشطة والعمليات المنفذة في النظام
-                </CardDescription>
+                <CardTitle>أداء الحملات</CardTitle>
+                <CardDescription>تحليل أداء الحملات الإعلانية</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>النشاط</TableHead>
-                      <TableHead>الوصف</TableHead>
-                      <TableHead>التوقيت</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {activityLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell>
-                          <Badge className={getActivityTypeColor(log.activity_type)}>
-                            {getActivityTypeLabel(log.activity_type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{log.description}</TableCell>
-                        <TableCell>
-                          {new Date(log.created_at).toLocaleString('ar-EG')}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                
-                {activityLogs.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    لا توجد أنشطة مسجلة
+                {state.campaigns.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    لا توجد حملات متاحة
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {state.campaigns.map(campaign => {
+                      const successRate = campaign.messages_sent > 0 ? 
+                        (campaign.messages_delivered / campaign.messages_sent) * 100 : 0;
+                      const progress = campaign.total_recipients > 0 ?
+                        (campaign.messages_sent / campaign.total_recipients) * 100 : 0;
+                      
+                      return (
+                        <div key={campaign.id} className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h3 className="font-medium">{campaign.name}</h3>
+                              <p className="text-sm text-gray-600">{campaign.description}</p>
+                            </div>
+                            {getCampaignStatusBadge(campaign.status)}
+                          </div>
+                          
+                          <div className="grid grid-cols-4 gap-4 mb-3 text-sm">
+                            <div className="text-center">
+                              <p className="font-medium">{campaign.total_recipients}</p>
+                              <p className="text-gray-600">مستهدف</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-medium">{campaign.messages_sent}</p>
+                              <p className="text-gray-600">مرسل</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-medium">{campaign.messages_delivered}</p>
+                              <p className="text-gray-600">تم التسليم</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-medium">{successRate.toFixed(1)}%</p>
+                              <p className="text-gray-600">معدل النجاح</p>
+                            </div>
+                          </div>
+                          
+                          {campaign.status === 'running' && (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span>التقدم</span>
+                                <span>{progress.toFixed(1)}%</span>
+                              </div>
+                              <Progress value={progress} className="h-2" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Contacts Tab */}
+          <TabsContent value="contacts" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Users className="ml-2 h-5 w-5 text-blue-600" />
+                    الملاك
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-blue-600">
+                    {state.stats?.contacts_by_type.owners.toLocaleString()}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    من إجمالي {state.stats?.total_contacts.toLocaleString()} جهة اتصال
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Users className="ml-2 h-5 w-5 text-green-600" />
+                    المسوقين
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600">
+                    {state.stats?.contacts_by_type.marketers.toLocaleString()}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    من إجمالي {state.stats?.total_contacts.toLocaleString()} جهة اتصال
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Users className="ml-2 h-5 w-5 text-purple-600" />
+                    العملاء
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-purple-600">
+                    {state.stats?.contacts_by_type.clients.toLocaleString()}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    من إجمالي {state.stats?.total_contacts.toLocaleString()} جهة اتصال
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
-      </div>
+      )}
     </div>
   );
 }

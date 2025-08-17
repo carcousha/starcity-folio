@@ -564,9 +564,7 @@ export default function Settings() {
                     <div className="text-sm text-muted-foreground">أضف/عدل قوالب الرسائل وربطها بالمراحل</div>
                   </div>
                 </div>
-                <Link to="/whatsapp/templates">
-                  <Button variant="outline">إدارة القوالب</Button>
-                </Link>
+
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">

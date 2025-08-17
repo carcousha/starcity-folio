@@ -30,7 +30,7 @@ import {
   MessageSquare,
   Trash2
 } from "lucide-react";
-import SendWhatsApp from '@/components/whatsapp/SendWhatsApp';
+
 import { useQuery as useRQ } from '@tanstack/react-query';
 import { hasRecentWhatsAppMessage, getLeadMessageCount } from '@/services/logService';
 import { LeadForm } from "@/components/crm/LeadForm";
@@ -79,7 +79,7 @@ const LEAD_SOURCES = {
   facebook_ads: 'إعلان فيسبوك',
   google_ads: 'إعلان جوجل',
   referral: 'توصية',
-  whatsapp: 'واتساب',
+  
   real_estate_expo: 'معرض عقاري',
   other: 'أخرى'
 };

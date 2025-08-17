@@ -1,531 +1,603 @@
-import { useState, useEffect } from 'react';
+// WhatsApp Templates Component
+// صفحة إدارة قوالب الرسائل
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { FileText, Plus, Copy, Edit, Trash2, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  FileText,
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Copy,
+  MessageSquare,
+  Image,
+  Users,
+  BarChart3,
+  Loader2,
+  Eye,
+  TrendingUp,
+  Calendar
+} from 'lucide-react';
 
-interface Template {
-  id: string;
-  name: string;
-  description?: string;
-  message_type: 'text' | 'media' | 'button' | 'list' | 'poll';
-  content: any;
-  variables: string[];
-  category: string;
-  is_active: boolean;
-  usage_count: number;
-  created_at: string;
+import { whatsappService } from '@/services/whatsappService';
+import {
+  WhatsAppTemplate,
+  CreateTemplateForm,
+  MessageType,
+  TemplateCategory
+} from '@/types/whatsapp';
+
+interface TemplatesState {
+  templates: WhatsAppTemplate[];
+  isLoading: boolean;
+  searchTerm: string;
+  categoryFilter: TemplateCategory | 'all';
+  typeFilter: MessageType | 'all';
+  showCreateDialog: boolean;
+  showEditDialog: boolean;
+  editingTemplate: WhatsAppTemplate | null;
+  newTemplate: CreateTemplateForm;
 }
 
-export default function Templates() {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [newTemplate, setNewTemplate] = useState({
-    name: '',
-    description: '',
-    message_type: 'text' as const,
-    content: {
-      text: '',
-      footer: '',
-      buttons: [],
-      media_url: '',
-      list_items: []
-    },
-    category: 'general',
-    variables: [] as string[]
+const initialTemplate: CreateTemplateForm = {
+  name: '',
+  content: '',
+  template_type: 'text',
+  category: 'other',
+  media_url: '',
+  buttons: [],
+  poll_options: []
+};
+
+export default function WhatsAppTemplates() {
+  const [state, setState] = useState<TemplatesState>({
+    templates: [],
+    isLoading: false,
+    searchTerm: '',
+    categoryFilter: 'all',
+    typeFilter: 'all',
+    showCreateDialog: false,
+    showEditDialog: false,
+    editingTemplate: null,
+    newTemplate: { ...initialTemplate }
   });
+
   const { toast } = useToast();
 
   useEffect(() => {
     loadTemplates();
   }, []);
 
+  const updateState = (updates: Partial<TemplatesState>) => {
+    setState(prev => ({ ...prev, ...updates }));
+  };
+
   const loadTemplates = async () => {
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_templates')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTemplates(data || []);
-    } catch (error: any) {
+      updateState({ isLoading: true });
+      const templatesData = await whatsappService.getTemplates();
+      updateState({ templates: templatesData });
+    } catch (error) {
+      console.error('Error loading templates:', error);
       toast({
         title: "خطأ",
         description: "فشل في تحميل القوالب",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      updateState({ isLoading: false });
     }
   };
 
   const handleCreateTemplate = async () => {
-    if (!newTemplate.name.trim()) {
+    try {
+      const validation = whatsappService.validateTemplate(state.newTemplate);
+      if (!validation.isValid) {
+        toast({
+          title: "خطأ في البيانات",
+          description: validation.errors.join('، '),
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await whatsappService.createTemplate(state.newTemplate);
+      
       toast({
-        title: "خطأ",
-        description: "يرجى إدخال اسم القالب",
+        title: "تم الإنشاء بنجاح",
+        description: "تم إضافة القالب بنجاح",
+        variant: "default"
+      });
+
+      updateState({
+        showCreateDialog: false,
+        newTemplate: { ...initialTemplate }
+      });
+
+      loadTemplates();
+    } catch (error: any) {
+      console.error('Error creating template:', error);
+      toast({
+        title: "خطأ في الإنشاء",
+        description: error.message || "فشل في إضافة القالب",
         variant: "destructive"
       });
-      return;
     }
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!state.editingTemplate) return;
 
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_templates')
-        .insert([{
-          ...newTemplate,
-          content: newTemplate.content,
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setTemplates([data, ...templates]);
-      setShowCreateDialog(false);
-      resetNewTemplate();
-
+      await whatsappService.updateTemplate(state.editingTemplate.id, state.newTemplate);
+      
       toast({
-        title: "تم بنجاح",
-        description: "تم إنشاء القالب بنجاح"
+        title: "تم التحديث بنجاح",
+        description: "تم تحديث القالب",
+        variant: "default"
       });
+
+      updateState({
+        showEditDialog: false,
+        editingTemplate: null,
+        newTemplate: { ...initialTemplate }
+      });
+
+      loadTemplates();
     } catch (error: any) {
+      console.error('Error updating template:', error);
       toast({
-        title: "خطأ",
-        description: error.message || "فشل في إنشاء القالب",
+        title: "خطأ في التحديث",
+        description: error.message || "فشل في تحديث القالب",
         variant: "destructive"
       });
     }
   };
 
-  const resetNewTemplate = () => {
-    setNewTemplate({
-      name: '',
-      description: '',
-      message_type: 'text',
-      content: {
-        text: '',
-        footer: '',
-        buttons: [],
-        media_url: '',
-        list_items: []
+  const handleDeleteTemplate = async (template: WhatsAppTemplate) => {
+    if (!confirm(`هل أنت متأكد من حذف القالب "${template.name}"؟`)) return;
+
+    try {
+      await whatsappService.deleteTemplate(template.id);
+      
+      toast({
+        title: "تم الحذف بنجاح",
+        description: "تم حذف القالب",
+        variant: "default"
+      });
+
+      loadTemplates();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast({
+        title: "خطأ في الحذف",
+        description: "فشل في حذف القالب",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const startEditTemplate = (template: WhatsAppTemplate) => {
+    updateState({
+      editingTemplate: template,
+      newTemplate: {
+        name: template.name,
+        content: template.content,
+        template_type: template.template_type,
+        category: template.category,
+        media_url: template.media_url || '',
+        buttons: template.buttons || [],
+        poll_options: template.poll_options || []
       },
-      category: 'general',
-      variables: []
+      showEditDialog: true
     });
   };
 
-  const extractVariables = (text: string) => {
-    const variableRegex = /\{\{(\w+)\}\}/g;
-    const variables: string[] = [];
-    let match;
-    
-    while ((match = variableRegex.exec(text)) !== null) {
-      if (!variables.includes(match[1])) {
-        variables.push(match[1]);
-      }
+  const duplicateTemplate = async (template: WhatsAppTemplate) => {
+    const duplicated: CreateTemplateForm = {
+      name: `${template.name} - نسخة`,
+      content: template.content,
+      template_type: template.template_type,
+      category: template.category,
+      media_url: template.media_url || '',
+      buttons: template.buttons || [],
+      poll_options: template.poll_options || []
+    };
+
+    try {
+      await whatsappService.createTemplate(duplicated);
+      toast({
+        title: "تم النسخ بنجاح",
+        description: "تم إنشاء نسخة من القالب",
+        variant: "default"
+      });
+      loadTemplates();
+    } catch (error) {
+      toast({
+        title: "خطأ في النسخ",
+        description: "فشل في نسخ القالب",
+        variant: "destructive"
+      });
     }
-    
-    return variables;
   };
 
-  const handleTextChange = (text: string) => {
-    const variables = extractVariables(text);
-    setNewTemplate({
-      ...newTemplate,
-      content: { ...newTemplate.content, text },
-      variables
+  const filteredTemplates = state.templates.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+                         template.content.toLowerCase().includes(state.searchTerm.toLowerCase());
+    
+    const matchesCategory = state.categoryFilter === 'all' || template.category === state.categoryFilter;
+    const matchesType = state.typeFilter === 'all' || template.template_type === state.typeFilter;
+    
+    return matchesSearch && matchesCategory && matchesType;
+  });
+
+  const getTypeIcon = (type: MessageType) => {
+    switch (type) {
+      case 'text': return <MessageSquare className="h-4 w-4" />;
+      case 'media': return <Image className="h-4 w-4" />;
+      case 'button': return <Plus className="h-4 w-4" />;
+      case 'poll': return <BarChart3 className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  const getTypeBadge = (type: MessageType) => {
+    const typeMap = {
+      'text': { label: 'نص', color: 'bg-blue-100 text-blue-800' },
+      'media': { label: 'وسائط', color: 'bg-green-100 text-green-800' },
+      'button': { label: 'أزرار', color: 'bg-purple-100 text-purple-800' },
+      'poll': { label: 'استطلاع', color: 'bg-orange-100 text-orange-800' },
+      'sticker': { label: 'ملصق', color: 'bg-pink-100 text-pink-800' },
+      'product': { label: 'منتج', color: 'bg-indigo-100 text-indigo-800' }
+    };
+    
+    const typeInfo = typeMap[type] || { label: type, color: 'bg-gray-100 text-gray-800' };
+    return <Badge className={typeInfo.color}>{typeInfo.label}</Badge>;
+  };
+
+  const getCategoryBadge = (category: TemplateCategory) => {
+    const categoryMap = {
+      'real_estate_offer': { label: 'عرض عقاري', color: 'bg-emerald-100 text-emerald-800' },
+      'advertisement': { label: 'إعلان', color: 'bg-yellow-100 text-yellow-800' },
+      'reminder': { label: 'تذكير', color: 'bg-red-100 text-red-800' },
+      'other': { label: 'أخرى', color: 'bg-gray-100 text-gray-800' }
+    };
+    
+    const categoryInfo = categoryMap[category] || { label: category, color: 'bg-gray-100 text-gray-800' };
+    return <Badge className={categoryInfo.color}>{categoryInfo.label}</Badge>;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
-
-  const getMessageTypeLabel = (type: string) => {
-    const types = {
-      text: 'نصية',
-      media: 'وسائط',
-      button: 'تفاعلية',
-      list: 'قائمة',
-      poll: 'استطلاع'
-    };
-    return types[type as keyof typeof types] || type;
-  };
-
-  const getMessageTypeColor = (type: string) => {
-    const colors = {
-      text: 'bg-blue-100 text-blue-800',
-      media: 'bg-purple-100 text-purple-800',
-      button: 'bg-green-100 text-green-800',
-      list: 'bg-orange-100 text-orange-800',
-      poll: 'bg-pink-100 text-pink-800'
-    };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
-
-  const handlePreviewTemplate = (template: Template) => {
-    setSelectedTemplate(template);
-    setShowPreviewDialog(true);
-  };
-
-  const renderPreviewContent = (template: Template) => {
-    switch (template.message_type) {
-      case 'text':
-        return (
-          <div className="space-y-3">
-            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-              <p className="whitespace-pre-wrap">{template.content.text}</p>
-              {template.content.footer && (
-                <p className="text-sm text-gray-500 mt-2 border-t pt-2">
-                  {template.content.footer}
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      case 'media':
-        return (
-          <div className="space-y-3">
-            {template.content.media_url && (
-              <div className="bg-gray-100 p-4 rounded text-center">
-                <p className="text-sm text-gray-600">صورة/فيديو</p>
-                <p className="text-xs text-gray-500">{template.content.media_url}</p>
-              </div>
-            )}
-            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-              <p className="whitespace-pre-wrap">{template.content.text}</p>
-            </div>
-          </div>
-        );
-      case 'button':
-        return (
-          <div className="space-y-3">
-            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-              <p className="whitespace-pre-wrap">{template.content.text}</p>
-            </div>
-            <div className="space-y-2">
-              {template.content.buttons?.map((button: any, index: number) => (
-                <Button key={index} variant="outline" className="w-full">
-                  {button.text}
-                </Button>
-              ))}
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="bg-gray-50 p-4 rounded">
-            <p className="text-gray-600">معاينة غير متاحة لهذا النوع</p>
-          </div>
-        );
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl" dir="rtl">
-      <div className="space-y-6">
-        {/* العنوان والأزرار */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-              <FileText className="h-8 w-8" />
-              قوالب الرسائل
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              إنشاء وإدارة قوالب رسائل واتساب قابلة لإعادة الاستخدام
-            </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">قوالب الرسائل</h2>
+          <p className="text-gray-600">إدارة القوالب الجاهزة للرسائل</p>
+        </div>
+        <Button onClick={() => updateState({ showCreateDialog: true })}>
+          <Plus className="ml-2 h-4 w-4" />
+          إضافة قالب جديد
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="البحث في القوالب..."
+                value={state.searchTerm}
+                onChange={(e) => updateState({ searchTerm: e.target.value })}
+                className="pl-10"
+              />
+            </div>
+
+            <Select
+              value={state.categoryFilter}
+              onValueChange={(value) => updateState({ categoryFilter: value as any })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="الفئة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الفئات</SelectItem>
+                <SelectItem value="real_estate_offer">عرض عقاري</SelectItem>
+                <SelectItem value="advertisement">إعلان</SelectItem>
+                <SelectItem value="reminder">تذكير</SelectItem>
+                <SelectItem value="other">أخرى</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={state.typeFilter}
+              onValueChange={(value) => updateState({ typeFilter: value as any })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="النوع" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الأنواع</SelectItem>
+                <SelectItem value="text">نص</SelectItem>
+                <SelectItem value="media">وسائط</SelectItem>
+                <SelectItem value="button">أزرار</SelectItem>
+                <SelectItem value="poll">استطلاع</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button onClick={loadTemplates} variant="outline" disabled={state.isLoading}>
+              {state.isLoading ? (
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="ml-2 h-4 w-4" />
+              )}
+              إعادة تحميل
+            </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Templates Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {state.isLoading ? (
+          <div className="col-span-full text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+            <p className="mt-2 text-gray-600">جاري تحميل القوالب...</p>
+          </div>
+        ) : filteredTemplates.length === 0 ? (
+          <div className="col-span-full text-center py-8">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">لا توجد قوالب متطابقة مع البحث</p>
+          </div>
+        ) : (
+          filteredTemplates.map(template => (
+            <Card key={template.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    {getTypeIcon(template.template_type)}
+                    <CardTitle className="text-lg">{template.name}</CardTitle>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="ghost">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => startEditTemplate(template)}>
+                        <Edit className="ml-2 h-4 w-4" />
+                        تعديل
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => duplicateTemplate(template)}>
+                        <Copy className="ml-2 h-4 w-4" />
+                        نسخ
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteTemplate(template)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="ml-2 h-4 w-4" />
+                        حذف
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                
+                <div className="flex space-x-2 space-x-reverse">
+                  {getTypeBadge(template.template_type)}
+                  {getCategoryBadge(template.category)}
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-700 line-clamp-3">{template.content}</p>
+                </div>
+                
+                {template.media_url && (
+                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                    📎 يحتوي على وسائط
+                  </div>
+                )}
+                
+                {template.buttons && template.buttons.length > 0 && (
+                  <div className="text-xs text-purple-600 bg-purple-50 p-2 rounded">
+                    🔘 {template.buttons.length} أزرار
+                  </div>
+                )}
+                
+                {template.poll_options && template.poll_options.length > 0 && (
+                  <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                    📊 {template.poll_options.length} خيارات استطلاع
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center space-x-1 space-x-reverse">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>استُخدم {template.usage_count} مرة</span>
+                  </div>
+                  <div className="flex items-center space-x-1 space-x-reverse">
+                    <Calendar className="h-3 w-3" />
+                    <span>{formatDate(template.created_at)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Create Template Dialog */}
+      <Dialog open={state.showCreateDialog} onOpenChange={(open) => updateState({ showCreateDialog: open })}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>إضافة قالب جديد</DialogTitle>
+            <DialogDescription>
+              أنشئ قالب جديد لاستخدامه في الرسائل
+            </DialogDescription>
+          </DialogHeader>
           
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="ml-2 h-4 w-4" />
-                إنشاء قالب جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>إنشاء قالب رسالة جديد</DialogTitle>
-                <DialogDescription>
-                  إنشاء قالب قابل لإعادة الاستخدام في الحملات
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="template-name">اسم القالب *</Label>
-                  <Input
-                    id="template-name"
-                    value={newTemplate.name}
-                    onChange={(e) => setNewTemplate({...newTemplate, name: e.target.value})}
-                    placeholder="اسم القالب"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="template-category">الفئة</Label>
-                  <Select value={newTemplate.category} onValueChange={(value) => setNewTemplate({...newTemplate, category: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">عام</SelectItem>
-                      <SelectItem value="marketing">تسويق</SelectItem>
-                      <SelectItem value="notifications">تنبيهات</SelectItem>
-                      <SelectItem value="welcome">ترحيب</SelectItem>
-                      <SelectItem value="followup">متابعة</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="col-span-2">
-                  <Label htmlFor="template-description">وصف القالب</Label>
-                  <Input
-                    id="template-description"
-                    value={newTemplate.description}
-                    onChange={(e) => setNewTemplate({...newTemplate, description: e.target.value})}
-                    placeholder="وصف مختصر للقالب"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="message-type">نوع الرسالة</Label>
-                  <Select value={newTemplate.message_type} onValueChange={(value: any) => setNewTemplate({...newTemplate, message_type: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">رسالة نصية</SelectItem>
-                      <SelectItem value="media">رسالة وسائط</SelectItem>
-                      <SelectItem value="button">رسالة تفاعلية</SelectItem>
-                      <SelectItem value="list">قائمة اختيارات</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {newTemplate.message_type === 'media' && (
-                  <div>
-                    <Label htmlFor="media-url">رابط الوسائط</Label>
-                    <Input
-                      id="media-url"
-                      value={newTemplate.content.media_url}
-                      onChange={(e) => setNewTemplate({
-                        ...newTemplate,
-                        content: { ...newTemplate.content, media_url: e.target.value }
-                      })}
-                      placeholder="https://example.com/image.jpg"
-                      dir="ltr"
-                    />
-                  </div>
-                )}
-                
-                <div className="col-span-2">
-                  <Label htmlFor="message-text">نص الرسالة *</Label>
-                  <Textarea
-                    id="message-text"
-                    value={newTemplate.content.text}
-                    onChange={(e) => handleTextChange(e.target.value)}
-                    placeholder="اكتب نص الرسالة هنا... استخدم {{المتغير}} للمتغيرات"
-                    rows={5}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    استخدم المتغيرات مثل: &#123;&#123;name&#125;&#125;، &#123;&#123;company&#125;&#125;، &#123;&#123;date&#125;&#125;
-                  </p>
-                </div>
-                
-                <div className="col-span-2">
-                  <Label htmlFor="message-footer">تذييل الرسالة</Label>
-                  <Input
-                    id="message-footer"
-                    value={newTemplate.content.footer}
-                    onChange={(e) => setNewTemplate({
-                      ...newTemplate,
-                      content: { ...newTemplate.content, footer: e.target.value }
-                    })}
-                    placeholder="نص التذييل (اختياري)"
-                  />
-                </div>
-                
-                {newTemplate.variables.length > 0 && (
-                  <div className="col-span-2">
-                    <Label>المتغيرات المكتشفة</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {newTemplate.variables.map((variable, index) => (
-                        <Badge key={index} variant="outline">
-                          {variable}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex justify-end gap-2 mt-6">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  إلغاء
-                </Button>
-                <Button onClick={handleCreateTemplate}>
-                  إنشاء القالب
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <TemplateForm
+            template={state.newTemplate}
+            onChange={(updates) => updateState({ newTemplate: { ...state.newTemplate, ...updates } })}
+            onSubmit={handleCreateTemplate}
+            onCancel={() => updateState({ showCreateDialog: false, newTemplate: { ...initialTemplate } })}
+            submitLabel="إضافة القالب"
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Template Dialog */}
+      <Dialog open={state.showEditDialog} onOpenChange={(open) => updateState({ showEditDialog: open })}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>تعديل القالب</DialogTitle>
+            <DialogDescription>
+              تعديل بيانات القالب "{state.editingTemplate?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          
+          <TemplateForm
+            template={state.newTemplate}
+            onChange={(updates) => updateState({ newTemplate: { ...state.newTemplate, ...updates } })}
+            onSubmit={handleUpdateTemplate}
+            onCancel={() => updateState({ 
+              showEditDialog: false, 
+              editingTemplate: null, 
+              newTemplate: { ...initialTemplate } 
+            })}
+            submitLabel="حفظ التغييرات"
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Template Form Component
+interface TemplateFormProps {
+  template: CreateTemplateForm;
+  onChange: (updates: Partial<CreateTemplateForm>) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  submitLabel: string;
+}
+
+function TemplateForm({ template, onChange, onSubmit, onCancel, submitLabel }: TemplateFormProps) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit();
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">اسم القالب *</Label>
+          <Input
+            id="name"
+            value={template.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            placeholder="اسم القالب"
+            required
+          />
         </div>
 
-        {/* جدول القوالب */}
-        <Card>
-          <CardHeader>
-            <CardTitle>القوالب ({templates.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>اسم القالب</TableHead>
-                  <TableHead>النوع</TableHead>
-                  <TableHead>الفئة</TableHead>
-                  <TableHead>المتغيرات</TableHead>
-                  <TableHead>مرات الاستخدام</TableHead>
-                  <TableHead>تاريخ الإنشاء</TableHead>
-                  <TableHead>الإجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {templates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{template.name}</div>
-                        {template.description && (
-                          <div className="text-sm text-muted-foreground">{template.description}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getMessageTypeColor(template.message_type)}>
-                        {getMessageTypeLabel(template.message_type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{template.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {template.variables?.slice(0, 2).map((variable, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {variable}
-                          </Badge>
-                        ))}
-                        {template.variables?.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{template.variables.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{template.usage_count}</TableCell>
-                    <TableCell>
-                      {new Date(template.created_at).toLocaleDateString('ar-EG')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="outline" onClick={() => handlePreviewTemplate(template)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem>
-                              <Copy className="h-4 w-4 ml-2" />
-                              نسخ القالب
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="h-4 w-4 ml-2" />
-                              تحرير القالب
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="h-4 w-4 ml-2" />
-                              حذف القالب
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            
-            {templates.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                لا توجد قوالب حتى الآن. ابدأ بإنشاء قالبك الأول!
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* معاينة القالب */}
-        <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>معاينة القالب: {selectedTemplate?.name}</DialogTitle>
-              <DialogDescription>
-                هكذا ستظهر الرسالة للمستلمين
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="max-w-sm mx-auto bg-white rounded-lg shadow-sm">
-                <div className="bg-green-600 text-white p-3 rounded-t-lg">
-                  <p className="text-sm font-medium">واتساب</p>
-                </div>
-                <div className="p-4">
-                  {selectedTemplate && renderPreviewContent(selectedTemplate)}
-                </div>
-              </div>
-            </div>
-            
-            {selectedTemplate?.variables && selectedTemplate.variables.length > 0 && (
-              <div className="mt-4">
-                <Label>المتغيرات في هذا القالب:</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedTemplate.variables.map((variable, index) => (
-                    <Badge key={index} variant="outline">
-                      {variable}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  ستحتاج لتحديد قيم هذه المتغيرات عند استخدام القالب في الحملات
-                </p>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        <div className="space-y-2">
+          <Label htmlFor="category">الفئة *</Label>
+          <Select
+            value={template.category}
+            onValueChange={(value) => onChange({ category: value as TemplateCategory })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="real_estate_offer">عرض عقاري</SelectItem>
+              <SelectItem value="advertisement">إعلان</SelectItem>
+              <SelectItem value="reminder">تذكير</SelectItem>
+              <SelectItem value="other">أخرى</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-    </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="template_type">نوع القالب *</Label>
+        <Select
+          value={template.template_type}
+          onValueChange={(value) => onChange({ template_type: value as MessageType })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="text">نص</SelectItem>
+            <SelectItem value="media">وسائط</SelectItem>
+            <SelectItem value="button">أزرار</SelectItem>
+            <SelectItem value="poll">استطلاع</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="content">محتوى القالب *</Label>
+        <Textarea
+          id="content"
+          value={template.content}
+          onChange={(e) => onChange({ content: e.target.value })}
+          placeholder="اكتب محتوى القالب هنا... يمكنك استخدام {name} للاسم و {company} للشركة"
+          rows={4}
+          required
+        />
+        <p className="text-xs text-gray-500">
+          يمكنك استخدام المتغيرات: {'{name}'} للاسم، {'{company}'} للشركة، {'{phone}'} للهاتف
+        </p>
+      </div>
+
+      {template.template_type === 'media' && (
+        <div className="space-y-2">
+          <Label htmlFor="media_url">رابط الوسائط</Label>
+          <Input
+            id="media_url"
+            value={template.media_url}
+            onChange={(e) => onChange({ media_url: e.target.value })}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+      )}
+
+      <div className="flex space-x-3 space-x-reverse pt-4">
+        <Button type="submit" className="flex-1">
+          {submitLabel}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+          إلغاء
+        </Button>
+      </div>
+    </form>
   );
 }
