@@ -12,10 +12,18 @@ export class WhatsAppSender {
     try {
       console.log('إرسال رسالة نصية:', data);
       
-      // استخدام API المحلي
-      const response = await fetch('/api/whatsapp', {
+      // استخدام Supabase Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -63,9 +71,17 @@ export class WhatsAppSender {
     try {
       console.log('إرسال وسائط:', data);
       
-      const response = await fetch('/api/whatsapp', {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -112,9 +128,17 @@ export class WhatsAppSender {
     try {
       console.log('إرسال ملصق:', data);
       
-      const response = await fetch('/api/whatsapp', {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -160,9 +184,17 @@ export class WhatsAppSender {
     try {
       console.log('إرسال استطلاع:', data);
       
-      const response = await fetch('/api/whatsapp', {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -211,9 +243,17 @@ export class WhatsAppSender {
     try {
       console.log('إرسال رسالة بأزرار:', data);
       
-      const response = await fetch('/api/whatsapp', {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

@@ -105,9 +105,26 @@ serve(async (req) => {
       body: JSON.stringify(requestBody)
     })
 
-    const result = await response.json()
+    let result
+    try {
+      const responseText = await response.text()
+      console.log('نص الاستجابة الخام:', responseText)
+      
+      if (responseText.trim()) {
+        result = JSON.parse(responseText)
+      } else {
+        result = { message: 'استجابة فارغة من API' }
+      }
+    } catch (parseError) {
+      console.error('خطأ في تحليل JSON:', parseError)
+      result = { 
+        status: false,
+        message: 'استجابة غير صالحة من API الخارجي',
+        raw_response: responseText
+      }
+    }
     
-    console.log('استجابة API:', result)
+    console.log('استجابة API معالجة:', result)
 
     return new Response(
       JSON.stringify(result),
