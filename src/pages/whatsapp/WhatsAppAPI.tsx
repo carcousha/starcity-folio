@@ -211,8 +211,7 @@ const WhatsAppAPI: React.FC = () => {
               testResponse = await fetch(`${proxy}${apiConfig.base_url}/send-message`, {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'Origin': window.location.origin,
+                  'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                   api_key: apiConfig.api_key,
@@ -291,12 +290,12 @@ const WhatsAppAPI: React.FC = () => {
          console.log('🌐 URL:', `${apiConfig.base_url}/send-message`);
          
          response = await fetch(`${apiConfig.base_url}/send-message`, {
-           method: 'POST',
-           headers: {
-             'Content-Type': 'application/json',
-           },
-           body: JSON.stringify(payload)
-         });
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
          
          console.log('✅ نجح الإرسال المباشر');
          console.log('📊 Status:', response.status);
@@ -306,10 +305,12 @@ const WhatsAppAPI: React.FC = () => {
         
                  // استخدام CORS Proxy كبديل
          const corsProxies = [
-           'https://api.allorigins.win/raw?url=',
            'https://cors-anywhere.herokuapp.com/',
+           'https://api.allorigins.win/raw?url=',
            'https://thingproxy.freeboard.io/fetch/',
-           'https://cors.bridged.cc/'
+           'https://cors.bridged.cc/',
+           'https://corsproxy.io/?',
+           'https://api.codetabs.com/v1/proxy?quest='
          ];
          
          let proxyResponse;
@@ -333,8 +334,7 @@ const WhatsAppAPI: React.FC = () => {
                proxyResponse = await fetch(`${proxy}${apiConfig.base_url}/send-message`, {
                  method: 'POST',
                  headers: {
-                   'Content-Type': 'application/json',
-                   'Origin': window.location.origin,
+                   'Content-Type': 'application/json'
                  },
                  body: JSON.stringify(payload)
                });
@@ -457,8 +457,7 @@ const WhatsAppAPI: React.FC = () => {
       const response = await fetch(`${corsProxy}${apiUrl}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Origin': window.location.origin,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -532,14 +531,13 @@ const WhatsAppAPI: React.FC = () => {
       };
 
       // استخدام CORS Proxy لحل مشكلة CORS
-      const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+      const corsProxy = 'https://cors-join.herokuapp.com/';
       const apiUrl = `${apiConfig.base_url}/send-location`;
       
       const response = await fetch(`${corsProxy}${apiUrl}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Origin': window.location.origin,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -619,8 +617,7 @@ const WhatsAppAPI: React.FC = () => {
       const response = await fetch(`${corsProxy}${apiUrl}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Origin': window.location.origin,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
