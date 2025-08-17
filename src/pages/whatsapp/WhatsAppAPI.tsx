@@ -128,7 +128,7 @@ const WhatsAppAPI: React.FC = () => {
     if (!apiConfig.api_key || !apiConfig.sender) {
       toast({
         title: "خطأ في التكوين",
-        description: "يرجى تكوين API أولاً",
+        description: "يرجى إدخال API Key ورقم المرسل أولاً",
         variant: "destructive"
       });
       return;
@@ -136,131 +136,140 @@ const WhatsAppAPI: React.FC = () => {
 
     setIsLoading(true);
     try {
-      console.log('اختبار الاتصال بالـ API...');
-      console.log('API Key:', apiConfig.api_key);
-      console.log('Sender:', apiConfig.sender);
-      console.log('Base URL:', apiConfig.base_url);
+      console.log('🔍 اختبار الاتصال بالـ API...');
+      console.log('📋 API Key:', apiConfig.api_key.substring(0, 10) + '...');
+      console.log('📱 Sender:', apiConfig.sender);
+      console.log('🌐 Base URL:', apiConfig.base_url);
       
-      // إرشادات لحل مشكلة CORS
-      console.log('💡 إذا فشل الاختبار، جرب هذه الحلول:');
-      console.log('1. افتح: https://cors-anywhere.herokuapp.com/corsdemo');
-      console.log('2. اضغط: "Request temporary access to the demo server"');
-      console.log('3. عد للصفحة وجرب الاختبار مرة أخرى');
+      const testPayload = {
+        api_key: apiConfig.api_key,
+        sender: apiConfig.sender,
+        number: '971501234567', // رقم اختبار
+        message: 'Test connection from WhatsApp API',
+        footer: 'Test via API'
+      };
 
-      // اختبار الاتصال المباشر
+      let response;
+      let testSuccess = false;
+      
+      // قائمة CORS Proxies محدثة
+      const corsProxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://cors-anywhere.herokuapp.com/',
+        'https://thingproxy.freeboard.io/fetch/',
+        'https://cors.bridged.cc/',
+        'https://corsproxy.io/?',
+        'https://api.codetabs.com/v1/proxy?quest='
+      ];
+      
+      // محاولة الإرسال المباشر أولاً
       try {
-        const testResponse = await fetch(`${apiConfig.base_url}/send-message`, {
+        console.log('🔄 محاولة الاتصال المباشر...');
+        response = await fetch(`${apiConfig.base_url}/send-message`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
-          body: JSON.stringify({
-            api_key: apiConfig.api_key,
-            sender: apiConfig.sender,
-            number: '1234567890', // رقم اختبار
-            message: 'Test message',
-            footer: 'Test'
-          })
+          body: JSON.stringify(testPayload)
         });
-
-        console.log('استجابة الاختبار المباشر:', testResponse);
         
-        if (testResponse.ok) {
-          toast({
-            title: "نجح الاتصال المباشر",
-            description: "API يعمل بشكل طبيعي"
-          });
-        } else {
-          throw new Error(`HTTP ${testResponse.status}: ${testResponse.statusText}`);
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ الاتصال المباشر نجح:', result);
+          testSuccess = true;
+          
+          if (result.status) {
+            toast({
+              title: "✅ نجح الاختبار",
+              description: "API يعمل بشكل طبيعي - الاتصال المباشر",
+              variant: "default"
+            });
+          } else {
+            toast({
+              title: "⚠️ مشكلة في البيانات",
+              description: result.msg || "تحقق من API Key ورقم المرسل",
+              variant: "destructive"
+            });
+          }
+          return;
         }
       } catch (directError) {
-        console.log('الاختبار المباشر فشل، جاري اختبار CORS Proxy...');
+        console.log('❌ الاتصال المباشر فشل:', directError.message);
+      }
+      
+      // إذا فشل الاتصال المباشر، نجرب CORS Proxies
+      if (!testSuccess) {
+        console.log('🔄 جاري تجربة CORS Proxies...');
         
-        // اختبار CORS Proxy
-        const corsProxies = [
-          'https://api.allorigins.win/raw?url=',
-          'https://cors-anywhere.herokuapp.com/',
-          'https://thingproxy.freeboard.io/fetch/',
-          'https://cors.bridged.cc/'
-        ];
-        
-        let testResponse;
-        let lastError;
-        
-        // تجربة CORS Proxies متعددة
         for (const proxy of corsProxies) {
           try {
-            console.log(`جاري اختبار CORS Proxy: ${proxy}`);
+            console.log(`🔍 جاري اختبار: ${proxy}`);
             
+            let url;
             if (proxy.includes('allorigins')) {
-              // allorigins يحتاج طريقة مختلفة
-              testResponse = await fetch(`${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  api_key: apiConfig.api_key,
-                  sender: apiConfig.sender,
-                  number: '1234567890',
-                  message: 'Test message',
-                  footer: 'Test'
-                })
-              });
+              url = `${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`;
             } else {
-              testResponse = await fetch(`${proxy}${apiConfig.base_url}/send-message`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  api_key: apiConfig.api_key,
-                  sender: apiConfig.sender,
-                  number: '1234567890',
-                  message: 'Test message',
-                  footer: 'Test'
-                })
-              });
+              url = `${proxy}${apiConfig.base_url}/send-message`;
             }
             
-            // التحقق من أن الاستجابة JSON صحيحة
-            const responseText = await testResponse.text();
-            try {
-              JSON.parse(responseText);
-              console.log(`نجح CORS Proxy: ${proxy}`);
+            response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(testPayload)
+            });
+            
+            if (response.ok) {
+              const responseText = await response.text();
+              console.log(`📥 استجابة من ${proxy}:`, responseText);
+              
+              let result;
+              try {
+                result = JSON.parse(responseText);
+              } catch (parseError) {
+                if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+                  throw new Error(`${proxy} أعاد HTML بدلاً من JSON`);
+                }
+                throw new Error(`استجابة غير صحيحة من ${proxy}`);
+              }
+              
+              console.log(`✅ نجح ${proxy}:`, result);
+              testSuccess = true;
+              
+              if (result.status) {
+                toast({
+                  title: "✅ نجح الاختبار",
+                  description: `API يعمل عبر CORS Proxy: ${proxy.replace('https://', '').split('/')[0]}`,
+                  variant: "default"
+                });
+              } else {
+                toast({
+                  title: "⚠️ مشكلة في البيانات",
+                  description: result.msg || "تحقق من API Key ورقم المرسل",
+                  variant: "destructive"
+                });
+              }
               break;
-            } catch (jsonError) {
-              console.log(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON:`, responseText.substring(0, 100));
-              lastError = new Error(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON`);
-              continue;
             }
           } catch (proxyError) {
-            console.log(`فشل CORS Proxy ${proxy}:`, proxyError);
-            lastError = proxyError;
+            console.log(`❌ فشل ${proxy}:`, proxyError.message);
             continue;
           }
         }
-        
-        if (!testResponse) {
-          throw lastError || new Error('جميع CORS Proxies فشلت');
-        }
-
-        console.log('استجابة اختبار CORS Proxy:', testResponse);
-        
-        if (testResponse.ok) {
-          toast({
-            title: "نجح الاتصال عبر CORS Proxy",
-            description: "API يعمل مع CORS Proxy"
-          });
-        } else {
-          throw new Error(`CORS Proxy failed: HTTP ${testResponse.status}`);
-        }
       }
+      
+      if (!testSuccess) {
+        throw new Error('جميع طرق الاتصال فشلت - تحقق من الاتصال بالإنترنت');
+      }
+      
     } catch (error) {
-      console.error('خطأ في اختبار الاتصال:', error);
+      console.error('❌ خطأ عام في اختبار الاتصال:', error);
       toast({
         title: "فشل في اختبار الاتصال",
-        description: `خطأ: ${error.message}`,
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -282,144 +291,140 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       };
 
-             // محاولة الإرسال المباشر أولاً
-       let response;
-       try {
-         console.log('🔄 محاولة الإرسال المباشر...');
-         console.log('📤 Payload:', payload);
-         console.log('🌐 URL:', `${apiConfig.base_url}/send-message`);
-         
-         response = await fetch(`${apiConfig.base_url}/send-message`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          });
-         
-         console.log('✅ نجح الإرسال المباشر');
-         console.log('📊 Status:', response.status);
-         console.log('📋 Headers:', response.headers);
-       } catch (directError) {
-        console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
+      console.log('🚀 بدء إرسال الرسالة النصية...');
+      console.log('📋 البيانات:', {
+        api_key: payload.api_key.substring(0, 10) + '...',
+        sender: payload.sender,
+        number: payload.number,
+        message: payload.message.substring(0, 50) + (payload.message.length > 50 ? '...' : ''),
+        footer: payload.footer
+      });
+
+      let response;
+      let success = false;
+      
+      // قائمة CORS Proxies محدثة ومرتبة حسب السرعة والموثوقية
+      const corsProxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://cors-anywhere.herokuapp.com/',
+        'https://thingproxy.freeboard.io/fetch/',
+        'https://cors.bridged.cc/',
+        'https://corsproxy.io/?',
+        'https://api.codetabs.com/v1/proxy?quest='
+      ];
+      
+      // محاولة الإرسال المباشر أولاً
+      try {
+        console.log('🔄 محاولة الإرسال المباشر...');
+        response = await fetch(`${apiConfig.base_url}/send-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
         
-                 // استخدام CORS Proxy كبديل
-         const corsProxies = [
-           'https://cors-anywhere.herokuapp.com/',
-           'https://api.allorigins.win/raw?url=',
-           'https://thingproxy.freeboard.io/fetch/',
-           'https://cors.bridged.cc/',
-           'https://corsproxy.io/?',
-           'https://api.codetabs.com/v1/proxy?quest='
-         ];
-         
-         let proxyResponse;
-         let lastError;
-         
-         // تجربة CORS Proxies متعددة
-         for (const proxy of corsProxies) {
-           try {
-             console.log(`جاري تجربة CORS Proxy: ${proxy}`);
-             
-             if (proxy.includes('allorigins')) {
-               // allorigins يحتاج طريقة مختلفة
-               proxyResponse = await fetch(`${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`, {
-                 method: 'POST',
-                 headers: {
-                   'Content-Type': 'application/json',
-                 },
-                 body: JSON.stringify(payload)
-               });
-             } else {
-               proxyResponse = await fetch(`${proxy}${apiConfig.base_url}/send-message`, {
-                 method: 'POST',
-                 headers: {
-                   'Content-Type': 'application/json'
-                 },
-                 body: JSON.stringify(payload)
-               });
-             }
-             
-             // التحقق من أن الاستجابة JSON صحيحة
-             const responseText = await proxyResponse.text();
-             try {
-               JSON.parse(responseText);
-               // إذا نجح parsing، نعيد response object
-               response = new Response(responseText, {
-                 status: proxyResponse.status,
-                 statusText: proxyResponse.statusText,
-                 headers: proxyResponse.headers
-               });
-               console.log(`✅ نجح CORS Proxy: ${proxy}`);
-               break;
-             } catch (jsonError) {
-               console.log(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON:`, responseText.substring(0, 100));
-               lastError = new Error(`CORS Proxy ${proxy} أعاد HTML بدلاً من JSON`);
-               continue;
-             }
-           } catch (proxyError) {
-             console.log(`فشل CORS Proxy ${proxy}:`, proxyError);
-             lastError = proxyError;
-             continue;
-           }
-         }
-         
-         if (!response) {
-           throw lastError || new Error('جميع CORS Proxies فشلت');
-         }
+        if (response.ok) {
+          console.log('✅ نجح الإرسال المباشر');
+          success = true;
+        }
+      } catch (directError) {
+        console.log('❌ الإرسال المباشر فشل:', directError.message);
+      }
+      
+      // إذا فشل الإرسال المباشر، نجرب CORS Proxies
+      if (!success) {
+        console.log('🔄 جاري استخدام CORS Proxies...');
+        
+        for (const proxy of corsProxies) {
+          try {
+            console.log(`🔍 جاري تجربة: ${proxy}`);
+            
+            let url;
+            if (proxy.includes('allorigins')) {
+              url = `${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`;
+            } else {
+              url = `${proxy}${apiConfig.base_url}/send-message`;
+            }
+            
+            response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+            
+            if (response && response.ok) {
+              console.log(`✅ نجح الإرسال عبر: ${proxy}`);
+              success = true;
+              break;
+            }
+          } catch (proxyError) {
+            console.log(`❌ فشل ${proxy}:`, proxyError.message);
+            continue;
+          }
+        }
+      }
+      
+      if (!response || !success) {
+        throw new Error('فشل في الاتصال بجميع الطرق المتاحة');
       }
 
-             // التحقق من أن الاستجابة صحيحة
-       if (!response) {
-         throw new Error('لم يتم الحصول على استجابة من API');
-       }
-       
-       console.log('📥 استجابة API:', response);
-       console.log('📊 Status:', response.status);
-       console.log('📋 Headers:', response.headers);
-       
-       let result;
-       try {
-         const responseText = await response.text();
-         console.log('📄 محتوى الاستجابة:', responseText);
-         
-         // محاولة parsing JSON
-         try {
-           result = JSON.parse(responseText);
-           console.log('✅ تم parsing JSON بنجاح:', result);
-         } catch (jsonError) {
-           console.error('❌ فشل في parsing JSON:', jsonError);
-           console.log('📄 محتوى الاستجابة الكامل:', responseText);
-           
-           // إذا كان HTML، نحاول استخراج رسالة خطأ
-           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
-           } else {
-             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
-           }
-         }
-         
-         if (result.status) {
-           console.log('🎉 الرسالة أرسلت بنجاح!');
-           addToHistory('text', recipientNumber, messageText, 'sent', result);
-           toast({
-             title: "تم الإرسال",
-             description: "تم إرسال الرسالة النصية بنجاح"
-           });
-           clearTextForm();
-         } else {
-           throw new Error(result.msg || 'فشل في الإرسال');
-         }
-       } catch (parseError) {
-         console.error('❌ خطأ في معالجة الاستجابة:', parseError);
-         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
-       }
+      // معالجة الاستجابة
+      const responseText = await response.text();
+      console.log('📥 استجابة الخادم:', responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('❌ فشل في تحليل JSON:', jsonError);
+        
+        if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+          throw new Error('الخادم أعاد صفحة HTML بدلاً من JSON - تحقق من الرابط');
+        } else {
+          throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
+        }
+      }
+      
+      console.log('📊 النتيجة المحللة:', result);
+      
+      if (result.status === true) {
+        console.log('🎉 تم إرسال الرسالة بنجاح!');
+        addToHistory('text', recipientNumber, messageText, 'sent', result);
+        toast({
+          title: "✅ تم الإرسال بنجاح",
+          description: "تم إرسال الرسالة النصية بنجاح",
+          variant: "default"
+        });
+        clearTextForm();
+      } else {
+        const errorMsg = result.msg || result.message || 'خطأ غير معروف';
+        console.error('❌ فشل الإرسال:', errorMsg);
+        
+        // رسائل خطأ مفهومة
+        let userFriendlyError = errorMsg;
+        if (errorMsg.includes('api_key') || errorMsg.includes('sender')) {
+          userFriendlyError = 'API Key أو رقم المرسل غير صحيح - تحقق من الإعدادات';
+        } else if (errorMsg.includes('number') || errorMsg.includes('recipient')) {
+          userFriendlyError = 'رقم المستلم غير صحيح - تحقق من تنسيق الرقم';
+        } else if (errorMsg.includes('message')) {
+          userFriendlyError = 'نص الرسالة غير صحيح أو فارغ';
+        }
+        
+        addToHistory('text', recipientNumber, messageText, 'failed', result);
+        throw new Error(userFriendlyError);
+      }
+      
     } catch (error) {
-      console.error('خطأ في إرسال الرسالة النصية:', error);
+      console.error('❌ خطأ عام في إرسال الرسالة:', error);
       addToHistory('text', recipientNumber, messageText, 'failed', { error: error.message });
       toast({
-        title: "خطأ في الإرسال",
-        description: `فشل في إرسال الرسالة: ${error.message}`,
+        title: "❌ فشل في الإرسال",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -763,17 +768,37 @@ const WhatsAppAPI: React.FC = () => {
   const validateBasicFields = (): boolean => {
     if (!apiConfig.api_key || !apiConfig.sender) {
       toast({
-        title: "خطأ في التكوين",
-        description: "يرجى تكوين API أولاً",
+        title: "❌ خطأ في التكوين",
+        description: "يرجى إدخال API Key ورقم المرسل في الإعدادات أولاً",
         variant: "destructive"
       });
       return false;
     }
 
-    if (!recipientNumber || !messageText) {
+    if (!recipientNumber) {
       toast({
-        title: "بيانات ناقصة",
-        description: "يرجى ملء رقم المستلم والرسالة",
+        title: "❌ بيانات ناقصة",
+        description: "يرجى إدخال رقم المستلم",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!messageText) {
+      toast({
+        title: "❌ بيانات ناقصة", 
+        description: "يرجى كتابة نص الرسالة",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // التحقق من تنسيق رقم الهاتف
+    const phoneRegex = /^(\+?[1-9]\d{1,14})$/;
+    if (!phoneRegex.test(recipientNumber.replace(/\s/g, ''))) {
+      toast({
+        title: "❌ رقم هاتف غير صحيح",
+        description: "يرجى إدخال رقم هاتف صحيح (مثال: +971501234567)",
         variant: "destructive"
       });
       return false;
@@ -857,15 +882,41 @@ const WhatsAppAPI: React.FC = () => {
                 WhatsApp API
               </h1>
               <p className="text-slate-600 text-lg">إرسال رسائل WhatsApp عبر API من x-growth.tech</p>
+              {!apiConfig.api_key || !apiConfig.sender ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                  <p className="text-yellow-800 text-sm font-medium flex items-center">
+                    <AlertCircle className="h-4 w-4 ml-2" />
+                    يرجى تكوين API Key ورقم المرسل أولاً لبدء الإرسال
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
+                  <p className="text-green-800 text-sm font-medium flex items-center">
+                    <CheckCircle className="h-4 w-4 ml-2" />
+                    تم تكوين API بنجاح - يمكنك البدء في إرسال الرسائل
+                  </p>
+                </div>
+              )}
             </div>
             
-            <Button
-              onClick={() => setIsConfigOpen(true)}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 h-12 rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 hover:scale-105"
-            >
-              <Settings className="h-5 w-5 ml-2" />
-              إعدادات API
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={testAPIConnection}
+                disabled={isLoading || !apiConfig.api_key || !apiConfig.sender}
+                variant="outline"
+                className="px-6 py-3 h-12 rounded-xl border-2 border-green-200 hover:border-green-300 transition-all duration-200"
+              >
+                <CheckCircle className="h-5 w-5 ml-2" />
+                اختبار الاتصال
+              </Button>
+              <Button
+                onClick={() => setIsConfigOpen(true)}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 h-12 rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 hover:scale-105"
+              >
+                <Settings className="h-5 w-5 ml-2" />
+                إعدادات API
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1213,40 +1264,76 @@ const WhatsAppAPI: React.FC = () => {
                    />
                  </div>
                  
-                 {/* مساعدة CORS */}
-                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                   <h4 className="font-medium text-blue-800 mb-2">💡 حل مشكلة CORS</h4>
-                   <p className="text-sm text-blue-700 mb-2">إذا فشل الاختبار، اتبع هذه الخطوات:</p>
-                   <ol className="text-xs text-blue-600 space-y-1 list-decimal list-inside">
-                     <li>افتح: <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" rel="noopener noreferrer" className="underline">cors-anywhere.herokuapp.com/corsdemo</a></li>
-                     <li>اضغط: "Request temporary access to the demo server"</li>
-                     <li>عد للصفحة وجرب الاختبار مرة أخرى</li>
-                   </ol>
-                 </div>
-              </div>
-              
-                             <div className="flex gap-3 mt-6">
-                 <Button
-                   variant="outline"
-                   onClick={() => setIsConfigOpen(false)}
-                   className="flex-1 border-slate-200 hover:border-slate-300"
-                 >
-                   إلغاء
-                 </Button>
-                 <Button
-                   onClick={testAPIConnection}
-                   disabled={isLoading}
-                   className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                 >
-                   {isLoading ? 'جاري الاختبار...' : 'اختبار الاتصال'}
-                 </Button>
-                 <Button
-                   onClick={saveConfig}
-                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-                 >
-                   حفظ
-                 </Button>
+                  {/* إرشادات التكوين */}
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                      <CheckCircle className="h-4 w-4 ml-2" />
+                      متطلبات التكوين
+                    </h4>
+                    <div className="space-y-2 text-sm text-green-700">
+                      <div className="flex items-start">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
+                        <span><strong>API Key:</strong> احصل عليه من لوحة تحكم x-growth.tech</span>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
+                        <span><strong>رقم المرسل:</strong> رقم الواتساب المسجل في الخدمة (بدون +)</span>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
+                        <span><strong>مثال رقم صحيح:</strong> 971585700181</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* مساعدة CORS */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+                      <AlertCircle className="h-4 w-4 ml-2" />
+                      حل مشكلة CORS
+                    </h4>
+                    <p className="text-sm text-blue-700 mb-2">إذا فشل الاختبار بسبب CORS:</p>
+                    <ol className="text-xs text-blue-600 space-y-1 list-decimal list-inside">
+                      <li>افتح: <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">cors-anywhere.herokuapp.com/corsdemo</a></li>
+                      <li>اضغط: "Request temporary access to the demo server"</li>
+                      <li>عد للصفحة وجرب الاختبار مرة أخرى</li>
+                    </ol>
+                  </div>
+                  
+                  {/* حالة API */}
+                  {apiConfig.api_key && apiConfig.sender && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center">
+                        <CheckCircle className="h-4 w-4 text-green-600 ml-2" />
+                        <span className="text-sm text-green-700 font-medium">جاهز للاختبار والإرسال</span>
+                      </div>
+                    </div>
+                  )}
                </div>
+               
+               <div className="flex gap-3 mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsConfigOpen(false)}
+                    className="flex-1 border-slate-200 hover:border-slate-300"
+                  >
+                    إلغاء
+                  </Button>
+                  <Button
+                    onClick={testAPIConnection}
+                    disabled={isLoading || !apiConfig.api_key || !apiConfig.sender}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white disabled:opacity-50"
+                  >
+                    {isLoading ? 'جاري الاختبار...' : 'اختبار الاتصال'}
+                  </Button>
+                  <Button
+                    onClick={saveConfig}
+                    disabled={!apiConfig.api_key || !apiConfig.sender}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50"
+                  >
+                    حفظ
+                  </Button>
+                </div>
             </div>
           </div>
         )}
