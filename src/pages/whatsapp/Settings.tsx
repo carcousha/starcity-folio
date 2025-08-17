@@ -116,13 +116,35 @@ export default function Settings() {
     setApiStatus('testing');
 
     try {
-      // محاكاة اختبار الاتصال
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // اختبار الاتصال الحقيقي عبر Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      // محاكاة نجاح أو فشل (80% نجاح)
-      const isSuccess = Math.random() > 0.2;
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message?test-connection=true`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'text',
+          data: {
+            api_key: apiSettings.apiKey,
+            sender: apiSettings.sender,
+            number: '+971501234567', // رقم تجريبي
+            message: 'اختبار الاتصال',
+            footer: apiSettings.defaultFooter
+          }
+        })
+      });
+
+      const result = await response.json();
       
-      if (isSuccess) {
+      if (result.status && result.api_status === 'connected') {
         setApiStatus('success');
         toast({
           title: "تم الاتصال بنجاح",
@@ -132,11 +154,12 @@ export default function Settings() {
         setApiStatus('error');
         toast({
           title: "فشل في الاتصال",
-          description: "يرجى فحص مفتاح API أو رقم المرسل",
+          description: result.message || "يرجى فحص مفتاح API أو رقم المرسل",
           variant: "destructive"
         });
       }
     } catch (error) {
+      console.error('خطأ في اختبار الاتصال:', error);
       setApiStatus('error');
       toast({
         title: "خطأ في الاتصال",

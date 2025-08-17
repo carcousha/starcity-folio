@@ -1,6 +1,18 @@
-// مكتبة إرسال رسائل واتساب مع تجنب CORS
+// مكتبة إرسال رسائل واتساب عبر Edge Function
 export class WhatsAppSender {
   
+  private supabaseUrl: string;
+  private anonKey: string;
+
+  constructor() {
+    this.supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    this.anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!this.supabaseUrl || !this.anonKey) {
+      console.error('Supabase configuration missing');
+    }
+  }
+
   // إرسال رسالة نصية
   async sendTextMessage(data: {
     api_key: string;
@@ -8,22 +20,14 @@ export class WhatsAppSender {
     number: string;
     message: string;
     footer?: string;
-  }): Promise<{ status: boolean; message: string }> {
+  }): Promise<{ status: boolean; message: string; data?: any }> {
     try {
       console.log('إرسال رسالة نصية:', data);
       
-      // استخدام Supabase Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !anonKey) {
-        throw new Error('Supabase configuration missing');
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${anonKey}`,
+          'Authorization': `Bearer ${this.anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -47,7 +51,8 @@ export class WhatsAppSender {
       
       return {
         status: result.status,
-        message: result.message || 'تم إرسال الرسالة بنجاح'
+        message: result.message || 'تم إرسال الرسالة بنجاح',
+        data: result.data
       };
     } catch (error) {
       console.error('خطأ في إرسال الرسالة النصية:', error);
@@ -67,21 +72,14 @@ export class WhatsAppSender {
     url: string;
     caption?: string;
     footer?: string;
-  }): Promise<{ status: boolean; message: string }> {
+  }): Promise<{ status: boolean; message: string; data?: any }> {
     try {
       console.log('إرسال وسائط:', data);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !anonKey) {
-        throw new Error('Supabase configuration missing');
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${anonKey}`,
+          'Authorization': `Bearer ${this.anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -107,7 +105,8 @@ export class WhatsAppSender {
       
       return {
         status: result.status,
-        message: result.message || 'تم إرسال الوسائط بنجاح'
+        message: result.message || 'تم إرسال الوسائط بنجاح',
+        data: result.data
       };
     } catch (error) {
       console.error('خطأ في إرسال الوسائط:', error);
@@ -124,21 +123,14 @@ export class WhatsAppSender {
     sender: string;
     number: string;
     url: string;
-  }): Promise<{ status: boolean; message: string }> {
+  }): Promise<{ status: boolean; message: string; data?: any }> {
     try {
       console.log('إرسال ملصق:', data);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !anonKey) {
-        throw new Error('Supabase configuration missing');
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${anonKey}`,
+          'Authorization': `Bearer ${this.anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -161,7 +153,8 @@ export class WhatsAppSender {
       
       return {
         status: result.status,
-        message: result.message || 'تم إرسال الملصق بنجاح'
+        message: result.message || 'تم إرسال الملصق بنجاح',
+        data: result.data
       };
     } catch (error) {
       console.error('خطأ في إرسال الملصق:', error);
@@ -179,22 +172,15 @@ export class WhatsAppSender {
     number: string;
     name: string;
     option: string[];
-    countable: string;
-  }): Promise<{ status: boolean; message: string }> {
+    countable: boolean;
+  }): Promise<{ status: boolean; message: string; data?: any }> {
     try {
       console.log('إرسال استطلاع:', data);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !anonKey) {
-        throw new Error('Supabase configuration missing');
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${anonKey}`,
+          'Authorization': `Bearer ${this.anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -203,9 +189,9 @@ export class WhatsAppSender {
             api_key: data.api_key,
             sender: data.sender,
             number: data.number,
-            name: data.name,
-            option: data.option,
-            countable: data.countable
+            poll_name: data.name,
+            poll_options: data.option,
+            poll_countable: data.countable
           }
         })
       });
@@ -219,7 +205,8 @@ export class WhatsAppSender {
       
       return {
         status: result.status,
-        message: result.message || 'تم إرسال الاستطلاع بنجاح'
+        message: result.message || 'تم إرسال الاستطلاع بنجاح',
+        data: result.data
       };
     } catch (error) {
       console.error('خطأ في إرسال الاستطلاع:', error);
@@ -239,21 +226,14 @@ export class WhatsAppSender {
     button: any[];
     footer?: string;
     url?: string;
-  }): Promise<{ status: boolean; message: string }> {
+  }): Promise<{ status: boolean; message: string; data?: any }> {
     try {
       console.log('إرسال رسالة بأزرار:', data);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !anonKey) {
-        throw new Error('Supabase configuration missing');
-      }
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${anonKey}`,
+          'Authorization': `Bearer ${this.anonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -279,13 +259,109 @@ export class WhatsAppSender {
       
       return {
         status: result.status,
-        message: result.message || 'تم إرسال الرسالة بالأزرار بنجاح'
+        message: result.message || 'تم إرسال الرسالة بالأزرار بنجاح',
+        data: result.data
       };
     } catch (error) {
       console.error('خطأ في إرسال الرسالة بالأزرار:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال الرسالة'
+      };
+    }
+  }
+
+  // إرسال رسالة قائمة
+  async sendListMessage(data: {
+    api_key: string;
+    sender: string;
+    number: string;
+    message: string;
+    list: any[];
+    footer?: string;
+  }): Promise<{ status: boolean; message: string; data?: any }> {
+    try {
+      console.log('إرسال رسالة قائمة:', data);
+      
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'list',
+          data: {
+            api_key: data.api_key,
+            sender: data.sender,
+            number: data.number,
+            message: data.message,
+            list: data.list,
+            footer: data.footer || ''
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('استجابة API:', result);
+      
+      return {
+        status: result.status,
+        message: result.message || 'تم إرسال القائمة بنجاح',
+        data: result.data
+      };
+    } catch (error) {
+      console.error('خطأ في إرسال القائمة:', error);
+      return {
+        status: false,
+        message: 'حدث خطأ أثناء إرسال القائمة'
+      };
+    }
+  }
+
+  // اختبار الاتصال
+  async testConnection(): Promise<{ status: boolean; message: string; data?: any }> {
+    try {
+      console.log('اختبار الاتصال بـ WhatsApp API');
+      
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api?test-connection=true`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'text',
+          data: {
+            api_key: 'test',
+            sender: 'test',
+            number: '+971501234567',
+            message: 'اختبار الاتصال'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('نتيجة اختبار الاتصال:', result);
+      
+      return {
+        status: result.status,
+        message: result.message,
+        data: result.data
+      };
+    } catch (error) {
+      console.error('خطأ في اختبار الاتصال:', error);
+      return {
+        status: false,
+        message: 'حدث خطأ أثناء اختبار الاتصال'
       };
     }
   }
