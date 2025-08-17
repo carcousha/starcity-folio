@@ -13,7 +13,7 @@ export class WhatsAppSender {
       console.log('إرسال رسالة نصية:', data);
       
       // استخدام API المحلي
-      const response = await fetch('/api/whatsapp.js', {
+      const response = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ export class WhatsAppSender {
     try {
       console.log('إرسال وسائط:', data);
       
-      const response = await fetch('/api/whatsapp.js', {
+      const response = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ export class WhatsAppSender {
     try {
       console.log('إرسال ملصق:', data);
       
-      const response = await fetch('/api/whatsapp.js', {
+      const response = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ export class WhatsAppSender {
     try {
       console.log('إرسال استطلاع:', data);
       
-      const response = await fetch('/api/whatsapp.js', {
+      const response = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ export class WhatsAppSender {
     try {
       console.log('إرسال رسالة بأزرار:', data);
       
-      const response = await fetch('/api/whatsapp.js', {
+      const response = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
