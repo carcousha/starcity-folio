@@ -72,15 +72,16 @@ const Settings = lazy(() => import("./pages/Settings"));
 const SecurityAuditPage = lazy(() => import("./pages/SecurityAudit"));
 const WhatsAppSmart = lazy(() => import("./pages/crm/WhatsAppSmart"));
 const WhatsAppHome = lazy(() => import("./pages/whatsapp"));
-const WhatsAppSettings = lazy(() => import("./pages/whatsapp/Settings.tsx"));
-const WhatsAppLogs = lazy(() => import("./pages/whatsapp/Logs.tsx"));
-const WhatsAppReminders = lazy(() => import("./pages/whatsapp/Reminders.tsx"));
+const WhatsAppDashboard = lazy(() => import("./pages/whatsapp/Dashboard"));
+const WhatsAppSmartMessages = lazy(() => import("./pages/whatsapp/SmartMessages"));
 const WhatsAppTemplates = lazy(() => import("./pages/whatsapp/Templates"));
-const WhatsAppAPI = lazy(() => import("./pages/whatsapp/WhatsAppAPI"));
-const WhatsAppSmartModule = lazy(() => import("./pages/whatsapp/SmartModule"));
-const SmartDailyTasks = lazy(() => import("./pages/whatsapp/smart/DailyTasksPage"));
-const SmartExternalSuppliers = lazy(() => import("./pages/whatsapp/smart/ExternalSuppliersPage"));
-const SmartSettingsPage = lazy(() => import("./pages/whatsapp/smart/SmartSettingsPage"));
+const WhatsAppLogs = lazy(() => import("./pages/whatsapp/Logs"));
+const WhatsAppAutoReply = lazy(() => import("./pages/whatsapp/AutoReply"));
+const WhatsAppCampaigns = lazy(() => import("./pages/whatsapp/Campaigns"));
+const WhatsAppReports = lazy(() => import("./pages/whatsapp/Reports"));
+const WhatsAppSettings = lazy(() => import("./pages/whatsapp/Settings"));
+const WhatsAppQuickSend = lazy(() => import("./pages/whatsapp/QuickSend"));
+
 const AIIntelligenceHub = lazy(() => import("./components/ai"));
 const AIHubDashboard = lazy(() => import("./components/ai/AIHubDashboard"));
 
@@ -195,20 +196,7 @@ const AppProtector = () => {
                    </Suspense>
                  </ProtectedRoute>
                } />
-               <Route path="/whatsapp/templates" element={
-                 <ProtectedRoute requiredPermission="canManageStaff">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppTemplates />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/api" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppAPI />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
+
                <Route path="/crm/clients" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <Suspense fallback={<LoadingSpinner />}>
@@ -223,70 +211,78 @@ const AppProtector = () => {
                    </Suspense>
                  </ProtectedRoute>
                } />
-               {/* WhatsApp Module */}
-               <Route path="/whatsapp" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppHome />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/smart" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppSmart />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/smart-module" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppSmartModule />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/smart-module/tasks" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <SmartDailyTasks />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/smart-module/suppliers" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <SmartExternalSuppliers />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/smart-module/settings" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <SmartSettingsPage />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/settings" element={
-                 <ProtectedRoute requiredPermission="canManageStaff">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppSettings />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/logs" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppLogs />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
-               <Route path="/whatsapp/reminders" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <WhatsAppReminders />
-                   </Suspense>
-                 </ProtectedRoute>
-               } />
+                               {/* WhatsApp Module */}
+                <Route path="/whatsapp" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppHome />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/dashboard" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppDashboard />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/smart-messages" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppSmartMessages />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/templates" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppTemplates />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/logs" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppLogs />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/auto-reply" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppAutoReply />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/campaigns" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppCampaigns />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/reports" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppReports />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/settings" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppSettings />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/whatsapp/quick-send" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WhatsAppQuickSend />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
                <Route path="/crm/properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
                    <Suspense fallback={<LoadingSpinner />}>

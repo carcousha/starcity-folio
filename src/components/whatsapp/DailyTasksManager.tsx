@@ -1,408 +1,646 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Edit, Trash2, CheckCircle, Clock as ClockIcon, XCircle, Plus } from 'lucide-react';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
-import { whatsappSmartService, SmartTask } from '@/services/whatsappSmartService';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { 
+  Clock, 
+  Calendar, 
+  Users, 
+  MessageSquare, 
+  CheckCircle, 
+  XCircle, 
+  Plus,
+  Edit,
+  Trash2,
+  Play,
+  Pause,
+  Settings,
+  AlertCircle,
+  BarChart3
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+
+interface DailyTask {
+  id: string;
+  title: string;
+  description: string;
+  type: 'message' | 'campaign' | 'reminder' | 'followup';
+  status: 'pending' | 'in-progress' | 'completed' | 'failed';
+  priority: 'low' | 'medium' | 'high';
+  scheduledTime: string;
+  recipients: string[];
+  messageTemplate: string;
+  isRecurring: boolean;
+  recurringDays: string[];
+  lastExecuted?: string;
+  nextExecution?: string;
+  executionCount: number;
+  maxExecutions: number;
+}
 
 export default function DailyTasksManager() {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState<SmartTask[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showTaskDialog, setShowTaskDialog] = useState(false);
-  const [editingTask, setEditingTask] = useState<SmartTask | null>(null);
+  const [tasks, setTasks] = useState<DailyTask[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingTask, setEditingTask] = useState<DailyTask | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [taskForm, setTaskForm] = useState<{ 
-    title: string;
-    description: string;
-    task_type: SmartTask['task_type'];
-    scheduled_date: string;
-    reminder_time: string | null;
-  }>({
+  // نموذج إنشاء/تعديل المهمة
+  const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
-    task_type: 'whatsapp_message',
-    scheduled_date: format(new Date(), 'yyyy-MM-dd'),
-    reminder_time: '09:00'
+    type: 'message' as DailyTask['type'],
+    priority: 'medium' as DailyTask['priority'],
+    scheduledTime: '',
+    recipients: '',
+    messageTemplate: '',
+    isRecurring: false,
+    recurringDays: [] as string[],
+    maxExecutions: 1
   });
 
   useEffect(() => {
-    if (user) {
-      whatsappSmartService.setUserId(user.id);
-      loadTasks();
-    }
-  }, [user]);
+    loadTasks();
+  }, []);
 
   const loadTasks = async () => {
-    setLoading(true);
-    try {
-      const tasksData = await whatsappSmartService.loadDailyTasks();
-      setTasks(tasksData);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveTask = async () => {
-    try {
-      const taskData: Omit<SmartTask, 'id' | 'created_at' | 'updated_at'> = {
-        ...taskForm,
-        target_suppliers: [],
-        target_count: 0,
+    setIsLoading(true);
+    // محاكاة جلب البيانات
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const mockTasks: DailyTask[] = [
+      {
+        id: '1',
+        title: 'رسائل الترحيب للعملاء الجدد',
+        description: 'إرسال رسائل ترحيب للعملاء المسجلين حديثاً',
+        type: 'message',
         status: 'pending',
-        completed_at: null,
-      };
-
-      if (editingTask) {
-        const success = await whatsappSmartService.updateTaskStatus(editingTask.id, taskData.status);
-        if (success) {
-          // تحديث البيانات المحلية
-          setTasks(tasks.map(task => 
-            task.id === editingTask.id 
-              ? { ...task, ...taskData }
-              : task
-          ));
-        }
-      } else {
-        const taskId = await whatsappSmartService.addTask(taskData);
-        if (taskId) {
-          const newTask: SmartTask = {
-            id: taskId,
-            ...taskData,
-          };
-          setTasks([newTask, ...tasks]);
-        }
+        priority: 'high',
+        scheduledTime: '09:00',
+        recipients: ['+971501234567', '+971507654321'],
+        messageTemplate: 'مرحباً! نرحب بك في Starcity. كيف يمكننا مساعدتك اليوم؟',
+        isRecurring: true,
+        recurringDays: ['monday', 'wednesday', 'friday'],
+        executionCount: 0,
+        maxExecutions: 10,
+        nextExecution: '2024-01-15T09:00:00'
+      },
+      {
+        id: '2',
+        title: 'متابعة العملاء المحتملين',
+        description: 'متابعة مع العملاء المحتملين بعد أسبوع من أول اتصال',
+        type: 'followup',
+        status: 'in-progress',
+        priority: 'medium',
+        scheduledTime: '14:00',
+        recipients: ['+971509876543'],
+        messageTemplate: 'مرحباً! تذكرنا أنك مهتم بخدماتنا. هل تريد معرفة المزيد؟',
+        isRecurring: false,
+        recurringDays: [],
+        executionCount: 1,
+        maxExecutions: 1,
+        lastExecuted: '2024-01-14T14:00:00'
+      },
+      {
+        id: '3',
+        title: 'تذكير بالمواعيد',
+        description: 'تذكير العملاء بالمواعيد المحددة غداً',
+        type: 'reminder',
+        status: 'completed',
+        priority: 'low',
+        scheduledTime: '18:00',
+        recipients: ['+971501112223'],
+        messageTemplate: 'تذكير: لديك موعد غداً الساعة 10:00 صباحاً',
+        isRecurring: false,
+        recurringDays: [],
+        executionCount: 1,
+        maxExecutions: 1,
+        lastExecuted: '2024-01-14T18:00:00'
       }
-
-      setShowTaskDialog(false);
-      setEditingTask(null);
-      setTaskForm({
-        title: '',
-        description: '',
-        task_type: 'whatsapp_message',
-        scheduled_date: format(new Date(), 'yyyy-MM-dd'),
-        reminder_time: '09:00'
-      });
-    } catch (error) {
-      console.error('Error saving task:', error);
-    }
+    ];
+    
+    setTasks(mockTasks);
+    setIsLoading(false);
   };
 
-  const deleteTask = async (id: string) => {
-    try {
-      const success = await whatsappSmartService.deleteTask(id);
-      if (success) {
-        setTasks(tasks.filter(task => task.id !== id));
-      }
-    } catch (error) {
-      console.error('Error deleting task:', error);
-    }
+  const handleCreateTask = () => {
+    const newTask: DailyTask = {
+      id: Date.now().toString(),
+      ...taskForm,
+      status: 'pending',
+      executionCount: 0,
+      recipients: taskForm.recipients.split(',').map(r => r.trim()).filter(r => r),
+      nextExecution: taskForm.scheduledTime
+    };
+    
+    setTasks([...tasks, newTask]);
+    setShowCreateDialog(false);
+    resetForm();
   };
 
-  const updateTaskStatus = async (id: string, status: SmartTask['status']) => {
-    try {
-      const success = await whatsappSmartService.updateTaskStatus(id, status);
-      if (success) {
-        setTasks(tasks.map(task => 
-          task.id === id 
-            ? { ...task, status, completed_at: status === 'completed' ? new Date().toISOString() : null }
-            : task
-        ));
-      }
-    } catch (error) {
-      console.error('Error updating task status:', error);
-    }
+  const handleEditTask = () => {
+    if (!editingTask) return;
+    
+    const updatedTasks = tasks.map(task => 
+      task.id === editingTask.id 
+        ? { ...task, ...taskForm, recipients: taskForm.recipients.split(',').map(r => r.trim()).filter(r => r) }
+        : task
+    );
+    
+    setTasks(updatedTasks);
+    setEditingTask(null);
+    resetForm();
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'in_progress':
-        return <ClockIcon className="w-4 h-4 text-yellow-500" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return <ClockIcon className="w-4 h-4 text-gray-500" />;
-    }
+  const handleDeleteTask = (taskId: string) => {
+    setTasks(tasks.filter(task => task.id !== taskId));
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return '✅ تم';
-      case 'in_progress':
-        return '⏳ قيد التنفيذ';
-      case 'cancelled':
-        return '❌ ملغي';
-      default:
-        return '⏳ في الانتظار';
-    }
+  const handleStatusChange = (taskId: string, newStatus: DailyTask['status']) => {
+    setTasks(tasks.map(task => 
+      task.id === taskId ? { ...task, status: newStatus } : task
+    ));
   };
 
-  const getTaskTypeText = (type: string) => {
-    switch (type) {
-      case 'whatsapp_message':
-        return 'رسالة واتساب';
-      case 'follow_up':
-        return 'متابعة';
-      case 'meeting':
-        return 'اجتماع';
-      case 'other':
-        return 'أخرى';
-      default:
-        return type;
-    }
+  const resetForm = () => {
+    setTaskForm({
+      title: '',
+      description: '',
+      type: 'message',
+      priority: 'medium',
+      scheduledTime: '',
+      recipients: '',
+      messageTemplate: '',
+      isRecurring: false,
+      recurringDays: [],
+      maxExecutions: 1
+    });
+  };
+
+  const openEditDialog = (task: DailyTask) => {
+    setEditingTask(task);
+    setTaskForm({
+      title: task.title,
+      description: task.description,
+      type: task.type,
+      priority: task.priority,
+      scheduledTime: task.scheduledTime,
+      recipients: task.recipients.join(', '),
+      messageTemplate: task.messageTemplate,
+      isRecurring: task.isRecurring,
+      recurringDays: task.recurringDays,
+      maxExecutions: task.maxExecutions
+    });
   };
 
   const filteredTasks = tasks.filter(task => {
     const matchesStatus = filterStatus === 'all' || task.status === filterStatus;
+    const matchesType = filterType === 'all' || task.type === filterType;
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesStatus && matchesSearch;
+                         task.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesStatus && matchesType && matchesSearch;
   });
 
-  if (loading) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'in-progress': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'message': return <MessageSquare className="h-4 w-4" />;
+      case 'campaign': return <Users className="h-4 w-4" />;
+      case 'reminder': return <Clock className="h-4 w-4" />;
+      case 'followup': return <Calendar className="h-4 w-4" />;
+      default: return <MessageSquare className="h-4 w-4" />;
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">جاري التحميل...</div>
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>المهام اليومية</CardTitle>
-          <Button onClick={() => setShowTaskDialog(true)}>
-            <Plus className="w-4 h-4 ml-2" />
-            إضافة مهمة جديدة
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {/* فلاتر البحث */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <Input
-              placeholder="البحث في المهام..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-sm"
-            />
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="حالة المهمة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">الكل</SelectItem>
-                <SelectItem value="pending">في الانتظار</SelectItem>
-                <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                <SelectItem value="completed">مكتملة</SelectItem>
-                <SelectItem value="cancelled">ملغية</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-6">
+      {/* شريط الأدوات */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Input
+            placeholder="البحث في المهام..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-64"
+          />
+          
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="حالة المهمة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="pending">معلقة</SelectItem>
+              <SelectItem value="in-progress">قيد التنفيذ</SelectItem>
+              <SelectItem value="completed">مكتملة</SelectItem>
+              <SelectItem value="failed">فاشلة</SelectItem>
+            </SelectContent>
+          </Select>
 
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchQuery || filterStatus !== 'all' 
-                ? 'لا توجد مهام تطابق معايير البحث'
-                : 'لا توجد مهام لهذا اليوم'
-              }
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredTasks.map((task) => (
-                <div key={task.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      {getStatusIcon(task.status)}
-                      <div>
-                        <h3 className="font-semibold">{task.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {task.description}
-                        </p>
-                        <div className="flex items-center space-x-4 space-x-reverse mt-2">
-                          <Badge variant="outline">
-                            {getTaskTypeText(task.task_type)}
-                          </Badge>
-                          <Badge variant="outline">
-                            {task.target_count} مستهدف
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(task.scheduled_date), 'dd/MM/yyyy', { locale: ar })}
-                      </span>
-                      {task.reminder_time && (
-                        <Badge variant="secondary">
-                          {task.reminder_time}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm">{getStatusText(task.status)}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingTask(task);
-                          setTaskForm({
-                            title: task.title,
-                            description: task.description || '',
-                            task_type: task.task_type,
-                            scheduled_date: task.scheduled_date,
-                            reminder_time: task.reminder_time || '09:00'
-                          });
-                          setShowTaskDialog(true);
-                        }}
-                      >
-                        <Edit className="w-4 h-4 ml-2" />
-                        تعديل
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteTask(task.id)}
-                      >
-                        <Trash2 className="w-4 h-4 ml-2" />
-                        حذف
-                      </Button>
-                      {task.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                        >
-                          بدء التنفيذ
-                        </Button>
-                      )}
-                      {task.status === 'in_progress' && (
-                        <Button
-                          size="sm"
-                          onClick={() => updateTaskStatus(task.id, 'completed')}
-                        >
-                          إكمال
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="نوع المهمة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الأنواع</SelectItem>
+              <SelectItem value="message">رسالة</SelectItem>
+              <SelectItem value="campaign">حملة</SelectItem>
+              <SelectItem value="reminder">تذكير</SelectItem>
+              <SelectItem value="followup">متابعة</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      {/* حوار إضافة/تعديل المهمة */}
-      <Dialog open={showTaskDialog} onOpenChange={setShowTaskDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingTask ? 'تعديل المهمة' : 'إضافة مهمة جديدة'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="task_title">عنوان المهمة</Label>
-              <Input
-                id="task_title"
-                value={taskForm.title}
-                onChange={(e) => setTaskForm({
-                  ...taskForm,
-                  title: e.target.value
-                })}
-              />
-            </div>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 ml-2" />
+              مهمة جديدة
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>إنشاء مهمة يومية جديدة</DialogTitle>
+              <DialogDescription>
+                قم بإنشاء مهمة جديدة لإرسال رسائل تلقائية
+              </DialogDescription>
+            </DialogHeader>
             
-            <div>
-              <Label htmlFor="task_description">وصف المهمة</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">عنوان المهمة</Label>
+                <Input
+                  id="title"
+                  value={taskForm.title}
+                  onChange={(e) => setTaskForm({...taskForm, title: e.target.value})}
+                  placeholder="أدخل عنوان المهمة"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type">نوع المهمة</Label>
+                <Select value={taskForm.type} onValueChange={(value: any) => setTaskForm({...taskForm, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="message">رسالة</SelectItem>
+                    <SelectItem value="campaign">حملة</SelectItem>
+                    <SelectItem value="reminder">تذكير</SelectItem>
+                    <SelectItem value="followup">متابعة</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priority">الأولوية</Label>
+                <Select value={taskForm.priority} onValueChange={(value: any) => setTaskForm({...taskForm, priority: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">منخفضة</SelectItem>
+                    <SelectItem value="medium">متوسطة</SelectItem>
+                    <SelectItem value="high">عالية</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="scheduledTime">وقت التنفيذ</Label>
+                <Input
+                  id="scheduledTime"
+                  type="time"
+                  value={taskForm.scheduledTime}
+                  onChange={(e) => setTaskForm({...taskForm, scheduledTime: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">وصف المهمة</Label>
               <Textarea
-                id="task_description"
+                id="description"
                 value={taskForm.description}
-                onChange={(e) => setTaskForm({
-                  ...taskForm,
-                  description: e.target.value
-                })}
+                onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
+                placeholder="أدخل وصف المهمة"
                 rows={3}
               />
             </div>
-            
-            <div>
-              <Label htmlFor="task_type">نوع المهمة</Label>
-              <Select
-                value={taskForm.task_type}
-                onValueChange={(value: SmartTask['task_type']) => 
-                  setTaskForm({ ...taskForm, task_type: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="whatsapp_message">رسالة واتساب</SelectItem>
-                  <SelectItem value="follow_up">متابعة</SelectItem>
-                  <SelectItem value="meeting">اجتماع</SelectItem>
-                  <SelectItem value="other">أخرى</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="task_date">تاريخ التنفيذ</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="recipients">أرقام المستلمين (مفصولة بفواصل)</Label>
               <Input
-                id="task_date"
-                type="date"
-                value={taskForm.scheduled_date}
-                onChange={(e) => setTaskForm({
-                  ...taskForm,
-                  scheduled_date: e.target.value
-                })}
+                id="recipients"
+                value={taskForm.recipients}
+                onChange={(e) => setTaskForm({...taskForm, recipients: e.target.value})}
+                placeholder="+971501234567, +971507654321"
               />
             </div>
-            
-            <div>
-              <Label htmlFor="task_time">وقت التذكير</Label>
-              <Input
-                id="task_time"
-                type="time"
-                value={taskForm.reminder_time}
-                onChange={(e) => setTaskForm({
-                  ...taskForm,
-                  reminder_time: e.target.value
-                })}
+
+            <div className="space-y-2">
+              <Label htmlFor="messageTemplate">قالب الرسالة</Label>
+              <Textarea
+                id="messageTemplate"
+                value={taskForm.messageTemplate}
+                onChange={(e) => setTaskForm({...taskForm, messageTemplate: e.target.value})}
+                placeholder="أدخل نص الرسالة"
+                rows={4}
               />
             </div>
-            
-            <div className="flex justify-end space-x-2 space-x-reverse">
-              <Button variant="outline" onClick={() => setShowTaskDialog(false)}>
+
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Switch
+                id="isRecurring"
+                checked={taskForm.isRecurring}
+                onCheckedChange={(checked) => setTaskForm({...taskForm, isRecurring: checked})}
+              />
+              <Label htmlFor="isRecurring">مهمة متكررة</Label>
+            </div>
+
+            {taskForm.isRecurring && (
+              <div className="space-y-2">
+                <Label>أيام التكرار</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
+                    <Button
+                      key={day}
+                      variant={taskForm.recurringDays.includes(day) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        const newDays = taskForm.recurringDays.includes(day)
+                          ? taskForm.recurringDays.filter(d => d !== day)
+                          : [...taskForm.recurringDays, day];
+                        setTaskForm({...taskForm, recurringDays: newDays});
+                      }}
+                    >
+                      {day === 'sunday' && 'الأحد'}
+                      {day === 'monday' && 'الاثنين'}
+                      {day === 'tuesday' && 'الثلاثاء'}
+                      {day === 'wednesday' && 'الأربعاء'}
+                      {day === 'thursday' && 'الخميس'}
+                      {day === 'friday' && 'الجمعة'}
+                      {day === 'saturday' && 'السبت'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="maxExecutions">الحد الأقصى للتنفيذ</Label>
+              <Input
+                id="maxExecutions"
+                type="number"
+                min="1"
+                value={taskForm.maxExecutions}
+                onChange={(e) => setTaskForm({...taskForm, maxExecutions: parseInt(e.target.value)})}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 إلغاء
               </Button>
-              <Button onClick={saveTask}>
-                {editingTask ? 'تحديث' : 'إضافة'}
+              <Button onClick={handleCreateTask}>
+                إنشاء المهمة
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* قائمة المهام */}
+      <div className="space-y-4">
+        {filteredTasks.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6 text-center text-muted-foreground">
+              لا توجد مهام تطابق معايير البحث
+            </CardContent>
+          </Card>
+        ) : (
+          filteredTasks.map((task) => (
+            <Card key={task.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      {getTypeIcon(task.type)}
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">{task.title}</CardTitle>
+                      <p className="text-sm text-muted-foreground">{task.description}</p>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getStatusColor(task.status)}>
+                          {task.status === 'pending' && 'معلقة'}
+                          {task.status === 'in-progress' && 'قيد التنفيذ'}
+                          {task.status === 'completed' && 'مكتملة'}
+                          {task.status === 'failed' && 'فاشلة'}
+                        </Badge>
+                        <Badge className={getPriorityColor(task.priority)}>
+                          {task.priority === 'high' && 'عالية'}
+                          {task.priority === 'medium' && 'متوسطة'}
+                          {task.priority === 'low' && 'منخفضة'}
+                        </Badge>
+                        {task.isRecurring && (
+                          <Badge variant="outline">متكررة</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(task)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteTask(task.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>وقت التنفيذ: {task.scheduledTime}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>{task.recipients.length} مستلم</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">عدد التنفيذات: </span>
+                      <span className="font-medium">{task.executionCount}/{task.maxExecutions}</span>
+                    </div>
+                    {task.lastExecuted && (
+                      <div className="text-sm text-muted-foreground">
+                        آخر تنفيذ: {new Date(task.lastExecuted).toLocaleDateString('ar-SA')}
+                      </div>
+                    )}
+                    {task.nextExecution && (
+                      <div className="text-sm text-muted-foreground">
+                        التنفيذ التالي: {new Date(task.nextExecution).toLocaleDateString('ar-SA')}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">قالب الرسالة:</span>
+                      <p className="text-xs bg-gray-100 p-2 rounded mt-1">
+                        {task.messageTemplate.length > 50 
+                          ? `${task.messageTemplate.substring(0, 50)}...` 
+                          : task.messageTemplate}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStatusChange(task.id, 'in-progress')}
+                    disabled={task.status === 'completed' || task.status === 'failed'}
+                  >
+                    <Play className="h-4 w-4 ml-2" />
+                    بدء التنفيذ
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStatusChange(task.id, 'completed')}
+                    disabled={task.status === 'completed'}
+                  >
+                    <CheckCircle className="h-4 w-4 ml-2" />
+                    إكمال
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStatusChange(task.id, 'failed')}
+                    disabled={task.status === 'failed'}
+                  >
+                    <XCircle className="h-4 w-4 ml-2" />
+                    فشل
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* إحصائيات سريعة */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            ملخص المهام
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{tasks.length}</div>
+              <div className="text-sm text-muted-foreground">إجمالي المهام</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {tasks.filter(t => t.status === 'pending').length}
+              </div>
+              <div className="text-sm text-muted-foreground">معلقة</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {tasks.filter(t => t.status === 'completed').length}
+              </div>
+              <div className="text-sm text-muted-foreground">مكتملة</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {tasks.filter(t => t.status === 'failed').length}
+              </div>
+              <div className="text-sm text-muted-foreground">فاشلة</div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -115,7 +115,7 @@ export class AIEngine {
     maxPossibleScore += 100 * this.config.weights.features;
 
     // 6. مستوى الإلحاح (5%)
-    const urgencyScore = this.calculateUrgencyScore(client, property);
+          const urgencyScore = this.calculateUrgencyScoreForProperty(client, property);
     totalScore += urgencyScore * this.config.weights.urgency;
     maxPossibleScore += 100 * this.config.weights.urgency;
 
@@ -225,7 +225,7 @@ export class AIEngine {
     return totalChecks > 0 ? score / totalChecks : 70;
   }
 
-  private calculateUrgencyScore(client: Client, property: Property): number {
+  private calculateUrgencyScoreForProperty(client: Client, property: Property): number {
     const urgencyMultiplier = client.urgency_level / 5;
     return Math.round(70 + (urgencyMultiplier * 30));
   }
