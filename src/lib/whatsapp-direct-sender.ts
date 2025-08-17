@@ -184,7 +184,7 @@ class WhatsAppDirectSender {
       data: {
         api_key: apiKey,
         sender,
-        number: '+971501234567', // رقم اختبار
+        number: '+971522001189', // رقم المستخدم للاختبار
         message: 'اختبار الاتصال من StarCity Folio'
       }
     });
