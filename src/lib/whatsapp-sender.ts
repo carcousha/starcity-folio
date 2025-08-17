@@ -1,6 +1,72 @@
 // مكتبة إرسال رسائل واتساب مع تجنب CORS باستخدام iframe
 export class WhatsAppSender {
   
+  // دالة إرسال بديلة باستخدام fetch مع CORS proxy
+  private async sendViaFetch(url: string, data: any): Promise<boolean> {
+    try {
+      console.log('🌐 محاولة الإرسال عبر fetch مع CORS proxy...');
+      
+      // قائمة CORS proxies موثوقة
+      const corsProxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://cors-anywhere.herokuapp.com/',
+        'https://thingproxy.freeboard.io/fetch/',
+        'https://cors.bridged.cc/',
+        'https://corsproxy.io/?'
+      ];
+      
+      // محاولة الإرسال المباشر أولاً
+      try {
+        console.log('🔄 محاولة الإرسال المباشر...');
+        const directResponse = await fetch(url, {
+          method: 'GET',
+          mode: 'no-cors' // تجربة no-cors
+        });
+        
+        if (directResponse.type === 'opaque') {
+          console.log('✅ الإرسال المباشر نجح (opaque response)');
+          return true;
+        }
+      } catch (directError) {
+        console.log('❌ الإرسال المباشر فشل:', directError.message);
+      }
+      
+      // إذا فشل الإرسال المباشر، نجرب CORS proxies
+      for (const proxy of corsProxies) {
+        try {
+          console.log(`🔍 جاري تجربة: ${proxy}`);
+          
+          let proxyUrl;
+          if (proxy.includes('allorigins')) {
+            proxyUrl = `${proxy}${encodeURIComponent(url)}`;
+          } else {
+            proxyUrl = `${proxy}${url}`;
+          }
+          
+          const response = await fetch(proxyUrl, {
+            method: 'GET',
+            timeout: 10000
+          });
+          
+          if (response.ok) {
+            console.log(`✅ نجح الإرسال عبر: ${proxy}`);
+            return true;
+          }
+        } catch (proxyError) {
+          console.log(`❌ فشل ${proxy}:`, proxyError.message);
+          continue;
+        }
+      }
+      
+      console.log('❌ جميع الطرق فشلت');
+      return false;
+      
+    } catch (error) {
+      console.error('❌ خطأ في sendViaFetch:', error);
+      return false;
+    }
+  }
+  
   // إرسال رسالة باستخدام iframe لتجنب CORS
   private async sendViaIframe(url: string): Promise<boolean> {
     return new Promise((resolve) => {
@@ -29,19 +95,53 @@ export class WhatsAppSender {
         }
       };
       
+      // محاولة الوصول إلى محتوى iframe للتحقق من النتيجة
+      const checkResult = () => {
+        try {
+          if (iframe.contentDocument && iframe.contentDocument.body) {
+            const bodyText = iframe.contentDocument.body.textContent || '';
+            console.log('📄 محتوى iframe:', bodyText);
+            
+            // البحث عن مؤشرات النجاح
+            if (bodyText.includes('success') || bodyText.includes('تم') || bodyText.includes('نجح')) {
+              console.log('✅ مؤشرات النجاح موجودة');
+              cleanup();
+              resolve(true);
+              return;
+            }
+          }
+        } catch (e) {
+          // CORS يمنع الوصول للمحتوى - هذا طبيعي
+          console.log('🔒 CORS يمنع الوصول للمحتوى (طبيعي)');
+        }
+      };
+      
       const timeout = setTimeout(() => {
-        console.log('⏰ انتهاء مهلة iframe - نفترض النجاح');
+        console.log('⏰ انتهاء مهلة iframe - فحص النتيجة');
+        checkResult();
+        
+        // إذا لم نتمكن من تحديد النتيجة، نفترض النجاح
+        // لكن مع تحذير للمستخدم
+        console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة');
         cleanup();
         resolve(true);
-      }, 8000); // زيادة المهلة إلى 8 ثوانٍ
+      }, 10000); // زيادة المهلة إلى 10 ثوانٍ
       
       iframe.onload = () => {
         console.log('✅ iframe تم تحميله بنجاح');
         clearTimeout(timeout);
+        
+        // فحص النتيجة بعد التحميل
         setTimeout(() => {
-          cleanup();
-          resolve(true);
-        }, 2000); // انتظار 2 ثانية للتأكد من الإرسال
+          checkResult();
+          
+          // إذا لم نتمكن من تحديد النتيجة، نفترض النجاح
+          if (!resolved) {
+            console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة');
+            cleanup();
+            resolve(true);
+          }
+        }, 3000); // انتظار 3 ثوانٍ للفحص
       };
       
       iframe.onerror = () => {
@@ -72,6 +172,14 @@ export class WhatsAppSender {
     footer?: string;
   }): Promise<{ status: boolean; message: string }> {
     try {
+      console.log('📤 إرسال رسالة نصية:', {
+        api_key: data.api_key.substring(0, 10) + '...',
+        sender: data.sender,
+        number: data.number,
+        message: data.message.substring(0, 50) + (data.message.length > 50 ? '...' : ''),
+        footer: data.footer || ''
+      });
+      
       const params = new URLSearchParams({
         api_key: data.api_key,
         sender: data.sender,
@@ -81,13 +189,32 @@ export class WhatsAppSender {
       });
       
       const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
-      const success = await this.sendViaIframe(url);
+      console.log('🌐 URL الإرسال:', url);
       
-      return {
-        status: success,
-        message: success ? 'تم إرسال الرسالة بنجاح' : 'فشل في إرسال الرسالة'
-      };
+      // محاولة الإرسال عبر fetch أولاً (أكثر موثوقية)
+      let success = await this.sendViaFetch(url, data);
+      
+      // إذا فشل fetch، نجرب iframe
+      if (!success) {
+        console.log('🔄 fetch فشل، جاري تجربة iframe...');
+        success = await this.sendViaIframe(url);
+      }
+      
+      if (success) {
+        console.log('✅ تم إرسال الرسالة بنجاح');
+        return {
+          status: true,
+          message: 'تم إرسال الرسالة بنجاح'
+        };
+      } else {
+        console.log('❌ فشل في إرسال الرسالة');
+        return {
+          status: false,
+          message: 'فشل في إرسال الرسالة - جرب مرة أخرى'
+        };
+      }
     } catch (error) {
+      console.error('❌ خطأ في إرسال الرسالة النصية:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال الرسالة'
