@@ -246,6 +246,166 @@ export class WhatsAppSender {
       };
     }
   }
+
+  // إرسال رسالة قائمة
+  async sendListMessage(data: {
+    api_key: string;
+    sender: string;
+    number: string;
+    message: string;
+    list: any[];
+    footer?: string;
+  }): Promise<{ status: boolean; message: string }> {
+    try {
+      // للقوائم نحتاج POST أيضاً
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://app.x-growth.tech/send-list';
+      form.target = '_blank';
+      form.style.display = 'none';
+      
+      const fields = {
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || ''
+      };
+      
+      // إضافة الحقول العادية
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
+      
+      // إضافة القائمة
+      const listInput = document.createElement('input');
+      listInput.type = 'hidden';
+      listInput.name = 'list';
+      listInput.value = JSON.stringify(data.list);
+      form.appendChild(listInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+      
+      return {
+        status: true,
+        message: 'تم إرسال القائمة بنجاح'
+      };
+    } catch (error) {
+      return {
+        status: false,
+        message: 'حدث خطأ أثناء إرسال القائمة'
+      };
+    }
+  }
+
+  // إرسال رسالة موقع
+  async sendLocationMessage(data: {
+    api_key: string;
+    sender: string;
+    number: string;
+    latitude: number;
+    longitude: number;
+    name?: string;
+    address?: string;
+  }): Promise<{ status: boolean; message: string }> {
+    try {
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        latitude: data.latitude.toString(),
+        longitude: data.longitude.toString(),
+        name: data.name || '',
+        address: data.address || ''
+      });
+      
+      const url = `https://app.x-growth.tech/send-location?${params.toString()}`;
+      const success = await this.sendViaIframe(url);
+      
+      return {
+        status: success,
+        message: success ? 'تم إرسال الموقع بنجاح' : 'فشل في إرسال الموقع'
+      };
+    } catch (error) {
+      return {
+        status: false,
+        message: 'حدث خطأ أثناء إرسال الموقع'
+      };
+    }
+  }
+
+  // إرسال بطاقة اتصال
+  async sendVCardMessage(data: {
+    api_key: string;
+    sender: string;
+    number: string;
+    vcard: string;
+  }): Promise<{ status: boolean; message: string }> {
+    try {
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        vcard: data.vcard
+      });
+      
+      const url = `https://app.x-growth.tech/send-vcard?${params.toString()}`;
+      const success = await this.sendViaIframe(url);
+      
+      return {
+        status: success,
+        message: success ? 'تم إرسال بطاقة الاتصال بنجاح' : 'فشل في إرسال بطاقة الاتصال'
+      };
+    } catch (error) {
+      return {
+        status: false,
+        message: 'حدث خطأ أثناء إرسال بطاقة الاتصال'
+      };
+    }
+  }
+
+  // اختبار الاتصال - الدالة المفقودة!
+  async testConnection(data: {
+    api_key: string;
+    sender: string;
+  }): Promise<{ status: boolean; message: string; api_status: string }> {
+    try {
+      console.log('🔍 اختبار الاتصال بـ x-growth.tech...');
+      
+      // استخدام نقطة النهاية الصحيحة لاختبار الاتصال
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: '+971501234567',
+        message: 'اختبار الاتصال'
+      });
+      
+      const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+      console.log('🌐 URL الاختبار:', url);
+      
+      const success = await this.sendViaIframe(url);
+      console.log('✅ نتيجة الاختبار:', success);
+      
+      return {
+        status: success,
+        message: success ? 'تم الاتصال بنجاح' : 'فشل في الاتصال',
+        api_status: success ? 'connected' : 'disconnected'
+      };
+    } catch (error) {
+      console.error('❌ خطأ في اختبار الاتصال:', error);
+      return {
+        status: false,
+        message: 'حدث خطأ أثناء اختبار الاتصال',
+        api_status: 'error'
+      };
+    }
+  }
 }
 
 export const whatsappSender = new WhatsAppSender();
