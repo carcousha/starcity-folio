@@ -28,7 +28,8 @@ import {
   CreditCard,
   AlertTriangle,
   MessageSquare,
-  Send
+  Send,
+  Phone
 } from "lucide-react";
 
 import { 
@@ -67,10 +68,7 @@ export function AppSidebar() {
       console.log('CRM section detected');
       return 'crm';
     }
-    if (currentPath.startsWith('/whatsapp')) {
-      console.log('WhatsApp section detected');
-      return 'whatsapp';
-    }
+
     if (currentPath.startsWith('/accounting')) {
       console.log('Accounting section detected');
       return 'accounting';
@@ -86,6 +84,10 @@ export function AppSidebar() {
     if (currentPath.startsWith('/land-sales')) {
       console.log('Land Sales section detected');
       return 'land-sales';
+    }
+    if (currentPath.startsWith('/whatsapp')) {
+      console.log('WhatsApp section detected');
+      return 'whatsapp';
     }
     if (currentPath.startsWith('/employee/my-clients') || currentPath.startsWith('/employee/my-leads') || 
         currentPath.startsWith('/employee/my-properties') || currentPath.startsWith('/employee/my-tasks')) {
@@ -204,7 +206,7 @@ export function AppSidebar() {
     if (title === 'إدارة العلاقات العامة') return 'crm';
     if (title === 'إدارة الحسابات') return 'accounting';
     if (title === 'وحدة الإيجارات') return 'rental';
-    if (title === 'الواتساب') return 'whatsapp';
+
     if (title === '💼 العمليات') return 'operations';
     if (title === '💵 المالية') return 'finance';
     if (title === '🚗 الخدمات الإدارية') return 'admin-services';
@@ -261,22 +263,21 @@ export function AppSidebar() {
       hasSubmenu: false
     },
     { 
-      title: "الواتساب", 
+      title: "وحدة الواتساب", 
       url: "/whatsapp", 
-      icon: MessageSquare,
+      icon: Phone,
       hasSubmenu: true,
       submenu: [
-        { title: "لوحة التحكم", url: "/whatsapp/dashboard", icon: Home },
-        { title: "الرسائل الذكية", url: "/whatsapp/smart-messages", icon: Brain },
-        { title: "القوالب", url: "/whatsapp/templates", icon: FileText },
-        { title: "السجل", url: "/whatsapp/logs", icon: BarChart3 },
-        { title: "الرد التلقائي", url: "/whatsapp/auto-reply", icon: MessageSquare },
-        { title: "إنشاء حملة", url: "/whatsapp/campaigns", icon: Megaphone },
-        { title: "التقارير", url: "/whatsapp/reports", icon: PieChart },
-        { title: "الإرسال السريع", url: "/whatsapp/quick-send", icon: Send },
-        { title: "الإعدادات", url: "/whatsapp/settings", icon: Settings },
+        { title: "لوحة التحكم", url: "/whatsapp", icon: BarChart3 },
+        { title: "الإرسال السريع", url: "/whatsapp#quick-send", icon: Send },
+        { title: "جهات الاتصال", url: "/whatsapp#contacts", icon: Users },
+        { title: "الحملات الإعلانية", url: "/whatsapp#campaigns", icon: Target },
+        { title: "القوالب", url: "/whatsapp#templates", icon: FileText },
+        { title: "التقارير", url: "/whatsapp#reports", icon: BarChart3 },
+        { title: "الإعدادات", url: "/whatsapp#settings", icon: Settings },
       ]
     },
+
     { 
       title: "إدارة الحسابات", 
       url: "/accounting", 
@@ -481,9 +482,7 @@ export function AppSidebar() {
                               if (subItem.url.includes('/crm/owners')) {
                                 return checkPermission('crmAccess');
                               }
-                              if (subItem.url.includes('/whatsapp')) {
-                                return checkPermission('crmAccess');
-                              }
+
                               if (subItem.url.includes('/tasks')) {
                                 return checkPermission('crmAccess');
                               }

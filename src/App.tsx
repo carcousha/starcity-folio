@@ -70,15 +70,13 @@ const MyProperties = lazy(() => import("./pages/employee/MyProperties"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Settings = lazy(() => import("./pages/Settings"));
 const SecurityAuditPage = lazy(() => import("./pages/SecurityAudit"));
-const WhatsAppSmart = lazy(() => import("./pages/crm/WhatsAppSmart"));
-const WhatsAppHome = lazy(() => import("./pages/whatsapp"));
-// WhatsApp pages
-const WhatsAppDashboard = lazy(() => import("./pages/whatsapp/Dashboard"));
-const WhatsAppSettings = lazy(() => import("./pages/whatsapp/Settings"));
-const WhatsAppQuickSend = lazy(() => import("./pages/whatsapp/QuickSend"));
+
 
 const AIIntelligenceHub = lazy(() => import("./components/ai"));
 const AIHubDashboard = lazy(() => import("./components/ai/AIHubDashboard"));
+
+// WhatsApp Module
+const WhatsAppModule = lazy(() => import("./pages/whatsapp/index"));
 
 // Land Sales Module
 const LandSalesIndex = lazy(() => import("./pages/land-sales/index"));
@@ -206,35 +204,7 @@ const AppProtector = () => {
                    </Suspense>
                  </ProtectedRoute>
                } />
-                               {/* WhatsApp Module */}
-                <Route path="/whatsapp" element={
-                  <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <WhatsAppHome />
-                    </Suspense>
-                  </ProtectedRoute>
-                } />
-                 <Route path="/whatsapp/dashboard" element={
-                   <ProtectedRoute requiredPermission="crmAccess">
-                     <Suspense fallback={<LoadingSpinner />}>
-                       <WhatsAppDashboard />
-                     </Suspense>
-                   </ProtectedRoute>
-                 } />
-                 <Route path="/whatsapp/settings" element={
-                   <ProtectedRoute requiredPermission="crmAccess">
-                     <Suspense fallback={<LoadingSpinner />}>
-                       <WhatsAppSettings />
-                     </Suspense>
-                   </ProtectedRoute>
-                 } />
-                 <Route path="/whatsapp/quick-send" element={
-                   <ProtectedRoute requiredPermission="crmAccess">
-                     <Suspense fallback={<LoadingSpinner />}>
-                       <WhatsAppQuickSend />
-                     </Suspense>
-                   </ProtectedRoute>
-                 } />
+                               
 
                <Route path="/crm/properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
@@ -402,6 +372,15 @@ const AppProtector = () => {
                  </ProtectedRoute>
                } />
               
+              {/* WhatsApp Module Routes - Admin only */}
+              <Route path="/whatsapp/*" element={
+                <ProtectedRoute requiredPermission="canManageStaff">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <WhatsAppModule />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+
               {/* Land Sales Routes - Admin and Accountant */}
               <Route path="/land-sales/*" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
