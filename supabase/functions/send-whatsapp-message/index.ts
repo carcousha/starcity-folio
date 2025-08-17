@@ -1,9 +1,8 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
 interface WhatsAppMessageRequest {
@@ -25,190 +24,50 @@ interface WhatsAppMessageRequest {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      status: 200,
-      headers: corsHeaders 
-    })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { type, sender, number, message, footer, media_type, url, caption, name, option, countable, button, list }: WhatsAppMessageRequest = await req.json()
+    const { type, data } = await req.json()
     
-    // تحقق أساسي من البيانات
-    if (!type || !sender) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'نوع الرسالة والمرسل مطلوبان' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-    
-    // Get API key from Supabase secrets
-    const apiKey = Deno.env.get('X_GROWTH_API_KEY')
-    if (!apiKey) {
-      console.error('❌ X_GROWTH_API_KEY not found in environment')
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'API Key غير متوفر' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    console.log(`📤 إرسال رسالة ${type} من ${sender}${number ? ` إلى ${number}` : ' (اختبار)'}`)
-
     let apiUrl = ''
     let requestBody: any = {}
 
-    // Build request based on message type
     switch (type) {
       case 'text':
         apiUrl = 'https://app.x-growth.tech/send-message'
-        requestBody = {
-          api_key: apiKey,
-          sender,
-          number,
-          message,
-          footer: footer || ''
-        }
+        requestBody = { api_key: data.api_key, sender: data.sender, number: data.number, message: data.message, footer: data.footer || '' }
         break
-
       case 'media':
         apiUrl = 'https://app.x-growth.tech/send-media'
-        requestBody = {
-          api_key: apiKey,
-          sender,
-          number,
-          media_type,
-          url,
-          caption: caption || '',
-          footer: footer || ''
-        }
+        requestBody = { api_key: data.api_key, sender: data.sender, number: data.number, media_type: data.media_type, url: data.url, caption: data.caption || '', footer: data.footer || '' }
         break
-
       case 'sticker':
         apiUrl = 'https://app.x-growth.tech/send-sticker'
-        requestBody = {
-          api_key: apiKey,
-          sender,
-          number,
-          url
-        }
+        requestBody = { api_key: data.api_key, sender: data.sender, number: data.number, url: data.url }
         break
-
       case 'poll':
         apiUrl = 'https://app.x-growth.tech/send-poll'
-        requestBody = {
-          api_key: apiKey,
-          sender,
-          number,
-          name,
-          option,
-          countable
-        }
+        requestBody = { api_key: data.api_key, sender: data.sender, number: data.number, name: data.name, option: data.option, countable: data.countable }
         break
-
       case 'button':
         apiUrl = 'https://app.x-growth.tech/send-button'
-        requestBody = {
-          api_key: apiKey,
-          sender,
-          number,
-          message,
-          button,
-          footer: footer || '',
-          url: url || ''
-        }
+        requestBody = { api_key: data.api_key, sender: data.sender, number: data.number, message: data.message, button: data.button, footer: data.footer || '', url: data.url || '' }
         break
-
-      case 'list':
-        apiUrl = 'https://app.x-growth.tech/send-list'
-        requestBody = {
-          api_key: apiKey,
-          sender,
-          number,
-          message,
-          list,
-          footer: footer || ''
-        }
+      case 'channel':
+        apiUrl = 'https://app.x-growth.tech/send-text-channel'
+        requestBody = { api_key: data.api_key, sender: data.sender, url: data.url, message: data.message, footer: data.footer || '' }
         break
-
-      case 'test':
-        apiUrl = 'https://app.x-growth.tech/send-message'
-        requestBody = {
-          api_key: apiKey,
-          sender,
-          number: number || '+971501234567',
-          message: message || 'اختبار الاتصال من StarCity Folio'
-        }
-        console.log('🧪 اختبار الاتصال مع البيانات:', requestBody)
-        break
-
       default:
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            message: 'نوع الرسالة غير مدعوم' 
-          }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
+        throw new Error('نوع الرسالة غير مدعوم')
     }
 
-    console.log(`🌐 طلب إلى: ${apiUrl}`)
-    console.log(`📋 البيانات: ${JSON.stringify({...requestBody, api_key: '[مخفي]'})}`)
-
-    // Send request to x-growth API
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    const responseText = await response.text()
-    console.log(`📥 استجابة x-growth: ${response.status} - ${responseText.substring(0, 200)}`)
-
-    // Check if request was successful
-    const success = response.ok || responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')
+    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) })
+    const result = await response.json()
     
-    return new Response(
-      JSON.stringify({
-        success,
-        message: success ? 'تم إرسال الرسالة بنجاح' : 'فشل في إرسال الرسالة',
-        data: responseText,
-        status: response.status
-      }),
-      {
-        status: success ? 200 : 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
+    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.ok ? 200 : 400 })
 
   } catch (error) {
-    console.error('❌ خطأ في Edge Function:', error)
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: 'حدث خطأ في الخادم',
-        error: error.message 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    return new Response(JSON.stringify({ status: false, message: error.message || 'حدث خطأ في الخادم' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 })
   }
 })
