@@ -24,6 +24,7 @@ import {
   Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { whatsappSender } from '@/lib/whatsapp-sender';
 
 interface CampaignData {
   name: string;
@@ -151,18 +152,21 @@ export default function Campaigns() {
     let successCount = 0;
     let failedCount = 0;
 
-    // محاكاة إرسال الحملة
+    // إرسال الحملة الحقيقي عبر المكتبة الجديدة
     for (let i = 0; i < selectedRecipientsData.length; i++) {
       const recipient = selectedRecipientsData[i];
       
       try {
-        // محاكاة إرسال الرسالة
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // إرسال الرسالة الحقيقي
+        const result = await whatsappSender.sendTextMessage({
+          api_key: import.meta.env.VITE_WHATSAPP_API_KEY || 'demo_key',
+          sender: import.meta.env.VITE_WHATSAPP_SENDER || 'StarCity Folio',
+          number: recipient.phone,
+          message: campaignData.message,
+          footer: 'StarCity Folio'
+        });
         
-        // محاكاة نجاح أو فشل (90% نجاح)
-        const isSuccess = Math.random() > 0.1;
-        
-        if (isSuccess) {
+        if (result.status) {
           successCount++;
           setRecipients(prev => prev.map(r => 
             r.id === recipient.id ? { ...r, status: 'sent' } : r
@@ -177,7 +181,11 @@ export default function Campaigns() {
         // تحديث التقدم
         setCampaignProgress(((i + 1) / selectedRecipientsData.length) * 100);
         
+        // تأخير قصير بين الرسائل لتجنب التحميل الزائد
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
       } catch (error) {
+        console.error('خطأ في إرسال الرسالة:', error);
         failedCount++;
         setRecipients(prev => prev.map(r => 
           r.id === recipient.id ? { ...r, status: 'failed' } : r

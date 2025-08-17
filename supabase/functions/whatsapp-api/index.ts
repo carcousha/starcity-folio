@@ -109,13 +109,34 @@ serve(async (req) => {
 // دالة اختبار الاتصال
 async function testConnection(): Promise<Response> {
   try {
-    // اختبار الاتصال بـ WhatsApp Business API
-    const testResponse = await fetch('https://graph.facebook.com/v18.0/me', {
-      method: 'GET',
+    const apiKey = Deno.env.get('WHATSAPP_API_KEY');
+    const sender = Deno.env.get('WHATSAPP_SENDER');
+
+    if (!apiKey || !sender) {
+      return new Response(
+        JSON.stringify({ 
+          status: false, 
+          message: 'بيانات WhatsApp غير مكتملة',
+          api_status: 'error',
+          error: 'Missing API key or sender'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // اختبار الاتصال بـ x-growth.tech API
+    const testResponse = await fetch('https://app.x-growth.tech/api/whatsapp/test-connection', {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`,
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        api_key: apiKey,
+        sender: sender,
+        number: '+971501234567',
+        message: 'اختبار الاتصال'
+      })
     });
 
     if (testResponse.ok) {
@@ -123,28 +144,31 @@ async function testConnection(): Promise<Response> {
       return new Response(
         JSON.stringify({ 
           status: true, 
-          message: 'تم الاتصال بنجاح بـ WhatsApp Business API',
+          message: 'تم الاتصال بنجاح بـ x-growth.tech API',
           api_status: 'connected',
           business_info: data
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
+      const errorText = await testResponse.text();
+      console.error('x-growth.tech API Error:', errorText);
       return new Response(
         JSON.stringify({ 
           status: false, 
-          message: 'فشل في الاتصال بـ WhatsApp Business API',
+          message: 'فشل في الاتصال بـ x-growth.tech API',
           api_status: 'disconnected',
-          error: await testResponse.text()
+          error: errorText
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
+    console.error('Connection Test Error:', error);
     return new Response(
       JSON.stringify({ 
         status: false, 
-        message: 'خطأ في الاتصال بـ WhatsApp Business API',
+        message: 'خطأ في الاتصال بـ x-growth.tech API',
         api_status: 'error',
         error: error.toString()
       }),
@@ -156,29 +180,29 @@ async function testConnection(): Promise<Response> {
 // إرسال رسالة نصية
 async function sendTextMessage(data: any): Promise<WhatsAppResponse> {
   try {
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const apiKey = Deno.env.get('WHATSAPP_API_KEY');
+    const sender = Deno.env.get('WHATSAPP_SENDER');
 
-    if (!phoneNumberId || !accessToken) {
+    if (!apiKey || !sender) {
       return {
         status: false,
         message: 'بيانات WhatsApp غير مكتملة'
       };
     }
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    // إرسال الرسالة عبر x-growth.tech API
+    const response = await fetch('https://app.x-growth.tech/api/whatsapp/send-message', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: data.number,
-        type: 'text',
-        text: {
-          body: data.message || 'رسالة من Starcity Folio'
-        }
+        api_key: apiKey,
+        sender: sender,
+        number: data.number,
+        message: data.message || 'رسالة من Starcity Folio',
+        type: 'text'
       })
     });
 
@@ -209,30 +233,31 @@ async function sendTextMessage(data: any): Promise<WhatsAppResponse> {
 // إرسال رسالة وسائط
 async function sendMediaMessage(data: any): Promise<WhatsAppResponse> {
   try {
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const apiKey = Deno.env.get('WHATSAPP_API_KEY');
+    const sender = Deno.env.get('WHATSAPP_SENDER');
 
-    if (!phoneNumberId || !accessToken) {
+    if (!apiKey || !sender) {
       return {
         status: false,
         message: 'بيانات WhatsApp غير مكتملة'
       };
     }
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    // إرسال الوسائط عبر x-growth.tech API
+    const response = await fetch('https://app.x-growth.tech/send-media', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: data.number,
-        type: 'image',
-        image: {
-          link: data.url,
-          caption: data.caption || ''
-        }
+        api_key: apiKey,
+        sender: sender,
+        number: data.number,
+        media_type: data.media_type || 'image',
+        url: data.url,
+        caption: data.caption || '',
+        footer: data.footer || ''
       })
     });
 
@@ -263,29 +288,28 @@ async function sendMediaMessage(data: any): Promise<WhatsAppResponse> {
 // إرسال رسالة ملصق
 async function sendStickerMessage(data: any): Promise<WhatsAppResponse> {
   try {
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const apiKey = Deno.env.get('WHATSAPP_API_KEY');
+    const sender = Deno.env.get('WHATSAPP_SENDER');
 
-    if (!phoneNumberId || !accessToken) {
+    if (!apiKey || !sender) {
       return {
         status: false,
         message: 'بيانات WhatsApp غير مكتملة'
       };
     }
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    // إرسال الملصق عبر x-growth.tech API
+    const response = await fetch('https://app.x-growth.tech/send-sticker', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: data.number,
-        type: 'sticker',
-        sticker: {
-          link: data.url
-        }
+        api_key: apiKey,
+        sender: sender,
+        number: data.number,
+        url: data.url
       })
     });
 
@@ -316,38 +340,30 @@ async function sendStickerMessage(data: any): Promise<WhatsAppResponse> {
 // إرسال رسالة استطلاع
 async function sendPollMessage(data: any): Promise<WhatsAppResponse> {
   try {
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const apiKey = Deno.env.get('WHATSAPP_API_KEY');
+    const sender = Deno.env.get('WHATSAPP_SENDER');
 
-    if (!phoneNumberId || !accessToken) {
+    if (!apiKey || !sender) {
       return {
         status: false,
         message: 'بيانات WhatsApp غير مكتملة'
       };
     }
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    // إرسال الاستطلاع عبر x-growth.tech API
+    const response = await fetch('https://app.x-growth.tech/send-poll', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: data.number,
-        type: 'interactive',
-        interactive: {
-          type: 'poll',
-          body: {
-            text: data.poll_name || 'استطلاع'
-          },
-          action: {
-            options: (data.poll_options || []).map((option: string, index: number) => ({
-              id: `option_${index}`,
-              text: option
-            }))
-          }
-        }
+        api_key: apiKey,
+        sender: sender,
+        number: data.number,
+        name: data.poll_name || 'استطلاع',
+        option: data.poll_options || [],
+        countable: data.poll_countable ? 'true' : 'false'
       })
     });
 
@@ -378,41 +394,31 @@ async function sendPollMessage(data: any): Promise<WhatsAppResponse> {
 // إرسال رسالة بأزرار
 async function sendButtonMessage(data: any): Promise<WhatsAppResponse> {
   try {
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const apiKey = Deno.env.get('WHATSAPP_API_KEY');
+    const sender = Deno.env.get('WHATSAPP_SENDER');
 
-    if (!phoneNumberId || !accessToken) {
+    if (!apiKey || !sender) {
       return {
         status: false,
         message: 'بيانات WhatsApp غير مكتملة'
       };
     }
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    // إرسال الرسالة بالأزرار عبر x-growth.tech API
+    const response = await fetch('https://app.x-growth.tech/send-button', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: data.number,
-        type: 'interactive',
-        interactive: {
-          type: 'button',
-          body: {
-            text: data.message || 'رسالة مع أزرار'
-          },
-          action: {
-            buttons: (data.button || []).map((btn: any, index: number) => ({
-              type: 'reply',
-              reply: {
-                id: `btn_${index}`,
-                title: btn.title || `زر ${index + 1}`
-              }
-            }))
-          }
-        }
+        api_key: apiKey,
+        sender: sender,
+        number: data.number,
+        message: data.message || 'رسالة مع أزرار',
+        button: data.button || [],
+        footer: data.footer || '',
+        url: data.url || ''
       })
     });
 
@@ -443,45 +449,30 @@ async function sendButtonMessage(data: any): Promise<WhatsAppResponse> {
 // إرسال رسالة قائمة
 async function sendListMessage(data: any): Promise<WhatsAppResponse> {
   try {
-    const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+    const apiKey = Deno.env.get('WHATSAPP_API_KEY');
+    const sender = Deno.env.get('WHATSAPP_SENDER');
 
-    if (!phoneNumberId || !accessToken) {
+    if (!apiKey || !sender) {
       return {
         status: false,
         message: 'بيانات WhatsApp غير مكتملة'
       };
     }
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    // إرسال القائمة عبر x-growth.tech API
+    const response = await fetch('https://app.x-growth.tech/send-list', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: data.number,
-        type: 'interactive',
-        interactive: {
-          type: 'list',
-          body: {
-            text: data.message || 'قائمة خيارات'
-          },
-          action: {
-            button: 'اختر خياراً',
-            sections: [
-              {
-                title: 'الخيارات المتاحة',
-                rows: (data.list || []).map((item: any, index: number) => ({
-                  id: `item_${index}`,
-                  title: item.title || `عنوان ${index + 1}`,
-                  description: item.description || `وصف ${index + 1}`
-                }))
-              }
-            ]
-          }
-        }
+        api_key: apiKey,
+        sender: sender,
+        number: data.number,
+        message: data.message || 'قائمة خيارات',
+        list: data.list || [],
+        footer: data.footer || ''
       })
     });
 

@@ -25,6 +25,7 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { whatsappSender } from '@/lib/whatsapp-sender';
 
 interface ApiSettings {
   apiKey: string;
@@ -116,33 +117,11 @@ export default function Settings() {
     setApiStatus('testing');
 
     try {
-      // اختبار الاتصال الحقيقي عبر Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !anonKey) {
-        throw new Error('Supabase configuration missing');
-      }
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message?test-connection=true`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'text',
-          data: {
-            api_key: apiSettings.apiKey,
-            sender: apiSettings.sender,
-            number: '+971501234567', // رقم تجريبي
-            message: 'اختبار الاتصال',
-            footer: apiSettings.defaultFooter
-          }
-        })
+      // استخدام المكتبة الجديدة لاختبار الاتصال
+      const result = await whatsappSender.testConnection({
+        api_key: apiSettings.apiKey,
+        sender: apiSettings.sender
       });
-
-      const result = await response.json();
       
       if (result.status && result.api_status === 'connected') {
         setApiStatus('success');
