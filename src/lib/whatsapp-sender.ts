@@ -45,100 +45,43 @@ export class WhatsAppSender {
     }
   }
   
-  // إرسال رسالة باستخدام iframe لتجنب CORS
+  // إرسال رسالة باستخدام CORS Proxy (الحل الأكثر موثوقية)
   private async sendViaIframe(url: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      console.log('🚀 إنشاء iframe للإرسال:', url);
+    try {
+      console.log('🚀 محاولة الإرسال عبر CORS Proxy...');
       
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.style.width = '1px';
-      iframe.style.height = '1px';
-      iframe.style.position = 'absolute';
-      iframe.style.left = '-9999px';
-      iframe.src = url;
+      // استخدام CORS Proxy موثوق
+      const corsProxy = 'https://api.allorigins.win/raw?url=';
+      const proxyUrl = `${corsProxy}${encodeURIComponent(url)}`;
       
-      let resolved = false;
+      console.log('🌐 CORS Proxy URL:', proxyUrl);
       
-      const cleanup = () => {
-        if (!resolved) {
-          resolved = true;
-          try {
-            if (document.body.contains(iframe)) {
-              document.body.removeChild(iframe);
-            }
-          } catch (e) {
-            console.log('تنظيف iframe:', e);
-          }
-        }
-      };
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        timeout: 15000
+      });
       
-      // محاولة الوصول إلى محتوى iframe للتحقق من النتيجة
-      const checkResult = () => {
-        try {
-          if (iframe.contentDocument && iframe.contentDocument.body) {
-            const bodyText = iframe.contentDocument.body.textContent || '';
-            console.log('📄 محتوى iframe:', bodyText);
-            
-            // البحث عن مؤشرات النجاح
-            if (bodyText.includes('success') || bodyText.includes('تم') || bodyText.includes('نجح')) {
-              console.log('✅ مؤشرات النجاح موجودة');
-              cleanup();
-              resolve(true);
-              return;
-            }
-          }
-        } catch (e) {
-          // CORS يمنع الوصول للمحتوى - هذا طبيعي
-          console.log('🔒 CORS يمنع الوصول للمحتوى (طبيعي)');
-        }
-      };
-      
-      const timeout = setTimeout(() => {
-        console.log('⏰ انتهاء مهلة iframe - فحص النتيجة');
-        checkResult();
+      if (response.ok) {
+        const responseText = await response.text();
+        console.log('📥 استجابة من CORS Proxy:', responseText.substring(0, 200));
         
-        // إذا لم نتمكن من تحديد النتيجة، نفترض الفشل
-        // لأننا نريد التأكد من الإرسال الفعلي
-        console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة - نفترض الفشل');
-        cleanup();
-        resolve(false);
-      }, 10000); // زيادة المهلة إلى 10 ثوانٍ
-      
-      iframe.onload = () => {
-        console.log('✅ iframe تم تحميله بنجاح');
-        clearTimeout(timeout);
-        
-        // فحص النتيجة بعد التحميل
-        setTimeout(() => {
-          checkResult();
-          
-          // إذا لم نتمكن من تحديد النتيجة، نفترض الفشل
-          if (!resolved) {
-            console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة - نفترض الفشل');
-            cleanup();
-            resolve(false);
-          }
-        }, 3000); // انتظار 3 ثوانٍ للفحص
-      };
-      
-      iframe.onerror = () => {
-        console.log('❌ خطأ في iframe');
-        clearTimeout(timeout);
-        cleanup();
-        resolve(false);
-      };
-      
-      // إضافة iframe للصفحة
-      try {
-        document.body.appendChild(iframe);
-        console.log('📌 تم إضافة iframe للصفحة');
-      } catch (e) {
-        console.error('❌ خطأ في إضافة iframe:', e);
-        clearTimeout(timeout);
-        resolve(false);
+        // البحث عن مؤشرات النجاح
+        if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
+          console.log('✅ مؤشرات النجاح موجودة');
+          return true;
+        } else {
+          console.log('❌ لا توجد مؤشرات نجاح واضحة');
+          return false;
+        }
+      } else {
+        console.log('❌ CORS Proxy فشل:', response.status);
+        return false;
       }
-    });
+      
+    } catch (error) {
+      console.error('❌ خطأ في CORS Proxy:', error);
+      return false;
+    }
   }
 
   // إرسال رسالة نصية
@@ -169,14 +112,8 @@ export class WhatsAppSender {
       const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
       console.log('🌐 URL الإرسال:', url);
       
-      // محاولة الإرسال عبر fetch أولاً
-      let success = await this.sendViaFetch(url, data);
-      
-      // إذا فشل fetch، نستخدم iframe (الحل الرئيسي)
-      if (!success) {
-        console.log('🔄 fetch فشل، جاري استخدام iframe...');
-        success = await this.sendViaIframe(url);
-      }
+      // استخدام CORS Proxy مباشرة (الحل الأكثر موثوقية)
+      let success = await this.sendViaIframe(url);
       
       if (success) {
         console.log('✅ تم إرسال الرسالة بنجاح');
@@ -442,7 +379,7 @@ export class WhatsAppSender {
   }
 
   // اختبار الاتصال
-  async testConnection(data: {
+    async testConnection(data: {
     api_key: string;
     sender: string;
   }): Promise<{ status: boolean; message: string; api_status: string }> {
@@ -452,7 +389,7 @@ export class WhatsAppSender {
         api_key: data.api_key.substring(0, 10) + '...',
         sender: data.sender
       });
-
+  
       // استخدام نقطة النهاية الصحيحة لاختبار الاتصال
       const params = new URLSearchParams({
         api_key: data.api_key,
@@ -465,6 +402,7 @@ export class WhatsAppSender {
       const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
       console.log('🌐 URL الاختبار:', url);
       
+      // استخدام CORS Proxy مباشرة
       const success = await this.sendViaIframe(url);
       console.log('✅ نتيجة الاختبار:', success);
       
