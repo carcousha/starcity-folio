@@ -90,6 +90,8 @@ app.post('/api/whatsapp', async (req, res) => {
     console.log('بيانات الطلب:', requestBody);
 
     // إرسال الطلب إلى API الخارجي
+    console.log('محاولة الاتصال بـ:', apiUrl);
+    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -98,7 +100,22 @@ app.post('/api/whatsapp', async (req, res) => {
       body: JSON.stringify(requestBody)
     });
 
-    const result = await response.json();
+    console.log('استجابة HTTP:', response.status, response.statusText);
+    
+    let result;
+    try {
+      const responseText = await response.text();
+      console.log('نص الاستجابة:', responseText);
+      
+      if (responseText.trim()) {
+        result = JSON.parse(responseText);
+      } else {
+        result = { message: 'استجابة فارغة من API' };
+      }
+    } catch (parseError) {
+      console.error('خطأ في تحليل JSON:', parseError);
+      result = { message: 'استجابة غير صالحة من API' };
+    }
     
     console.log('استجابة API:', result);
 
