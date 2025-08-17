@@ -4159,6 +4159,164 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_activity_logs: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          description: string
+          id: string
+          metadata: Json | null
+          related_id: string | null
+          related_table: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          description: string
+          id?: string
+          metadata?: Json | null
+          related_id?: string | null
+          related_table?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          metadata?: Json | null
+          related_id?: string | null
+          related_table?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_campaigns: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          delivered_count: number | null
+          description: string | null
+          failed_count: number | null
+          id: string
+          message_content: Json
+          name: string
+          schedule_type: string
+          scheduled_at: string | null
+          sent_count: number | null
+          started_at: string | null
+          status: string
+          target_contacts: Json
+          target_filters: Json | null
+          template_id: string | null
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by: string
+          delivered_count?: number | null
+          description?: string | null
+          failed_count?: number | null
+          id?: string
+          message_content: Json
+          name: string
+          schedule_type: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          target_contacts: Json
+          target_filters?: Json | null
+          template_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          delivered_count?: number | null
+          description?: string | null
+          failed_count?: number | null
+          id?: string
+          message_content?: Json
+          name?: string
+          schedule_type?: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          target_contacts?: Json
+          target_filters?: Json | null
+          template_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_contacts: {
+        Row: {
+          address: string | null
+          contact_type: string
+          created_at: string | null
+          created_by: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          last_contact_date: string | null
+          name: string
+          notes: string | null
+          phone: string
+          tags: Json | null
+          updated_at: string | null
+          whatsapp_verified: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          contact_type: string
+          created_at?: string | null
+          created_by: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_contact_date?: string | null
+          name: string
+          notes?: string | null
+          phone: string
+          tags?: Json | null
+          updated_at?: string | null
+          whatsapp_verified?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          contact_type?: string
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_contact_date?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string
+          tags?: Json | null
+          updated_at?: string | null
+          whatsapp_verified?: boolean | null
+        }
+        Relationships: []
+      }
       whatsapp_message_logs: {
         Row: {
           client_id: string | null
@@ -4207,6 +4365,75 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_messages: {
+        Row: {
+          campaign_id: string | null
+          contact_id: string | null
+          content: Json
+          created_at: string | null
+          created_by: string
+          delivered_at: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string
+          message_type: string
+          phone: string
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          contact_id?: string | null
+          content: Json
+          created_at?: string | null
+          created_by: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_type: string
+          phone: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          contact_id?: string | null
+          content?: Json
+          created_at?: string | null
+          created_by?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_type?: string
+          phone?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_reminders: {
         Row: {
           created_at: string
@@ -4243,50 +4470,98 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_stats: {
+        Row: {
+          campaigns_count: number | null
+          contacts_added: number | null
+          created_at: string | null
+          id: string
+          stat_date: string
+          total_delivered: number | null
+          total_failed: number | null
+          total_read: number | null
+          total_sent: number | null
+        }
+        Insert: {
+          campaigns_count?: number | null
+          contacts_added?: number | null
+          created_at?: string | null
+          id?: string
+          stat_date: string
+          total_delivered?: number | null
+          total_failed?: number | null
+          total_read?: number | null
+          total_sent?: number | null
+        }
+        Update: {
+          campaigns_count?: number | null
+          contacts_added?: number | null
+          created_at?: string | null
+          id?: string
+          stat_date?: string
+          total_delivered?: number | null
+          total_failed?: number | null
+          total_read?: number | null
+          total_sent?: number | null
+        }
+        Relationships: []
+      }
       whatsapp_templates: {
         Row: {
           body: string
           category: string | null
+          content: Json | null
           created_at: string
           created_by: string | null
           footer: string | null
           header: string | null
           id: string
+          is_active: boolean | null
           is_default: boolean
           lang: string
+          message_type: string | null
           name: string
           stage: Database["public"]["Enums"]["whatsapp_stage"]
           updated_at: string
+          usage_count: number | null
           variables: Json
         }
         Insert: {
           body: string
           category?: string | null
+          content?: Json | null
           created_at?: string
           created_by?: string | null
           footer?: string | null
           header?: string | null
           id?: string
+          is_active?: boolean | null
           is_default?: boolean
           lang: string
+          message_type?: string | null
           name: string
           stage?: Database["public"]["Enums"]["whatsapp_stage"]
           updated_at?: string
+          usage_count?: number | null
           variables?: Json
         }
         Update: {
           body?: string
           category?: string | null
+          content?: Json | null
           created_at?: string
           created_by?: string | null
           footer?: string | null
           header?: string | null
           id?: string
+          is_active?: boolean | null
           is_default?: boolean
           lang?: string
+          message_type?: string | null
           name?: string
           stage?: Database["public"]["Enums"]["whatsapp_stage"]
           updated_at?: string
+          usage_count?: number | null
           variables?: Json
         }
         Relationships: []
