@@ -374,7 +374,7 @@ export default function SettingsManager() {
                   rows={3}
                 />
                 <p className="text-xs text-muted-foreground">
-                  يمكنك استخدام المتغيرات: {name} للاسم، {time} للوقت
+                  يمكنك استخدام المتغيرات: {"{ name }"} للاسم، {"{ time }"} للوقت
                 </p>
               </div>
 

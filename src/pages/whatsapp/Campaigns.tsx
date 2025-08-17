@@ -24,7 +24,7 @@ import {
   Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { whatsappSender } from '@/lib/whatsapp-sender';
+import { whatsappService } from '@/lib/whatsapp-service';
 
 interface CampaignData {
   name: string;
@@ -141,16 +141,15 @@ export default function Campaigns() {
       const recipient = selectedRecipientsData[i];
       
       try {
-        // إرسال الرسالة الحقيقي
-        const result = await whatsappSender.sendTextMessage({
-          api_key: import.meta.env.VITE_WHATSAPP_API_KEY || 'demo_key',
+        // إرسال الرسالة عبر الخدمة الجديدة  
+        const result = await whatsappService.sendTextMessage({
           sender: import.meta.env.VITE_WHATSAPP_SENDER || 'StarCity Folio',
           number: recipient.phone,
           message: campaignData.message,
           footer: 'StarCity Folio'
         });
         
-        if (result.status) {
+        if (result.success) {
           successCount++;
           setRecipients(prev => prev.map(r => 
             r.id === recipient.id ? { ...r, status: 'sent' } : r

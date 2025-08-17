@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { whatsappSender } from '@/lib/whatsapp-sender';
+import { whatsappService } from '@/lib/whatsapp-service';
 import { 
   Send, 
   MessageCircle, 
@@ -196,17 +196,16 @@ const WhatsAppAPI: React.FC = () => {
         console.log('🔄 جاري استخدام iframe...');
         
         try {
-          const result = await whatsappSender.testConnection({
-            api_key: apiConfig.api_key,
+          const result = await whatsappService.testConnection({
             sender: apiConfig.sender
           });
           
-          if (result.status) {
-            console.log('✅ اختبار الاتصال عبر iframe نجح:', result);
+          if (result.success) {
+            console.log('✅ اختبار الاتصال عبر Edge Function نجح:', result);
             testSuccess = true;
             toast({
               title: "✅ نجح الاختبار",
-              description: "API يعمل عبر iframe",
+              description: "API يعمل عبر Edge Function",
               variant: "default"
             });
           } else {
@@ -214,7 +213,7 @@ const WhatsAppAPI: React.FC = () => {
           }
         } catch (iframeError) {
           console.log('❌ فشل iframe:', iframeError.message);
-          throw new Error('فشل في اختبار الاتصال عبر iframe');
+          throw new Error('فشل في اختبار الاتصال عبر Edge Function');
         }
       }
       
@@ -249,16 +248,15 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      // استخدام المكتبة الجديدة لاستخدام iframe
-      const result = await whatsappSender.sendTextMessage({
-        api_key: apiConfig.api_key,
+      // استخدام الخدمة الجديدة لاستدعاء Edge Function
+      const result = await whatsappService.sendTextMessage({
         sender: apiConfig.sender,
         number: recipientNumber,
         message: messageText,
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      if (result.status) {
+      if (result.success) {
         console.log('✅ تم إرسال الرسالة بنجاح');
         
         // إضافة الرسالة إلى السجل
@@ -356,9 +354,8 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      // استخدام المكتبة الجديدة لاستخدام iframe
-      const result = await whatsappSender.sendMediaMessage({
-        api_key: apiConfig.api_key,
+      // استخدام الخدمة الجديدة لاستدعاء Edge Function  
+      const result = await whatsappService.sendMediaMessage({
         sender: apiConfig.sender,
         number: recipientNumber,
         media_type: mediaType,
@@ -367,7 +364,7 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      if (result.status) {
+      if (result.success) {
         console.log('✅ تم إرسال الوسائط بنجاح');
         
         // إضافة الرسالة إلى السجل
