@@ -696,7 +696,7 @@ export function LandTasks() {
               <div className="text-sm text-slate-600">
                 <div className="font-medium mb-2">نصائح للرسالة:</div>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>استخدم {name} لاسم الوسيط</li>
+                  <li>استخدم اسم الوسيط في الرسالة</li>
                   <li>اكتب رسالة واضحة ومختصرة</li>
                   <li>اذكر الهدف من الحملة بوضوح</li>
                   <li>أضف معلومات التواصل إذا لزم الأمر</li>
