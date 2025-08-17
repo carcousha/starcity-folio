@@ -74,9 +74,9 @@ export default function QuickSend() {
     setIsSuccess(false);
 
     try {
-      // إرسال الرسالة عبر الخدمة الجديدة
+      // إرسال الرسالة عبر Edge Function فقط
       const result = await whatsappService.sendTextMessage({
-        sender: import.meta.env.VITE_WHATSAPP_SENDER || 'StarCity Folio',
+        sender: 'StarCity Folio',
         number: cleanPhone,
         message: message,
         footer: 'StarCity Folio'
