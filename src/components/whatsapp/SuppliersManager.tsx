@@ -90,7 +90,7 @@ export default function SuppliersManager() {
   });
 
   useEffect(() => {
-    loadSuppliers();
+      loadSuppliers();
   }, []);
 
   const loadSuppliers = async () => {
@@ -187,9 +187,9 @@ export default function SuppliersManager() {
     if (!editingSupplier) return;
     
     const updatedSuppliers = suppliers.map(supplier => 
-      supplier.id === editingSupplier.id 
-        ? { ...supplier, ...supplierForm }
-        : supplier
+            supplier.id === editingSupplier.id 
+              ? { ...supplier, ...supplierForm }
+              : supplier
     );
     
     setSuppliers(updatedSuppliers);
@@ -214,14 +214,14 @@ export default function SuppliersManager() {
   };
 
   const resetForm = () => {
-    setSupplierForm({
-      name: '',
+      setSupplierForm({
+        name: '',
       shortName: '',
-      phone: '',
+        phone: '',
       email: '',
       company: '',
       category: 'other',
-      notes: '',
+        notes: '',
       address: '',
       whatsappEnabled: true,
       autoMessageEnabled: false,
@@ -319,30 +319,30 @@ export default function SuppliersManager() {
       {/* شريط الأدوات */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-4">
-          <Input
+            <Input
             placeholder="البحث في الموردين..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             className="w-64"
-          />
+            />
           
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40">
               <SelectValue placeholder="حالة المورد" />
-            </SelectTrigger>
-            <SelectContent>
+              </SelectTrigger>
+              <SelectContent>
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="active">نشط</SelectItem>
               <SelectItem value="inactive">غير نشط</SelectItem>
               <SelectItem value="pending">في الانتظار</SelectItem>
-            </SelectContent>
-          </Select>
+              </SelectContent>
+            </Select>
 
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40">
               <SelectValue placeholder="فئة المورد" />
-            </SelectTrigger>
-            <SelectContent>
+              </SelectTrigger>
+              <SelectContent>
               <SelectItem value="all">جميع الفئات</SelectItem>
               <SelectItem value="real_estate">عقارات</SelectItem>
               <SelectItem value="construction">بناء</SelectItem>
@@ -350,16 +350,16 @@ export default function SuppliersManager() {
               <SelectItem value="cleaning">نظافة</SelectItem>
               <SelectItem value="security">أمن</SelectItem>
               <SelectItem value="other">أخرى</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+              </SelectContent>
+            </Select>
+          </div>
 
         <div className="flex items-center gap-2">
           {selectedSuppliers.length > 0 && (
             <Button variant="outline" onClick={handleBulkMessage}>
               <MessageSquare className="h-4 w-4 ml-2" />
               رسالة جماعية ({selectedSuppliers.length})
-            </Button>
+                        </Button>
           )}
 
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -370,19 +370,19 @@ export default function SuppliersManager() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
-              <DialogHeader>
+          <DialogHeader>
                 <DialogTitle>إضافة مورد خارجي جديد</DialogTitle>
                 <DialogDescription>
                   قم بإضافة مورد جديد لإدارة التواصل معه
                 </DialogDescription>
-              </DialogHeader>
+          </DialogHeader>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">اسم المورد</Label>
-                  <Input
+              <Input
                     id="name"
-                    value={supplierForm.name}
+                value={supplierForm.name}
                     onChange={(e) => setSupplierForm({...supplierForm, name: e.target.value})}
                     placeholder="أدخل اسم المورد"
                   />
@@ -395,14 +395,14 @@ export default function SuppliersManager() {
                     value={supplierForm.shortName}
                     onChange={(e) => setSupplierForm({...supplierForm, shortName: e.target.value})}
                     placeholder="أدخل الاسم المختصر"
-                  />
-                </div>
-
+              />
+            </div>
+            
                 <div className="space-y-2">
                   <Label htmlFor="phone">رقم الهاتف</Label>
-                  <Input
+              <Input
                     id="phone"
-                    value={supplierForm.phone}
+                value={supplierForm.phone}
                     onChange={(e) => setSupplierForm({...supplierForm, phone: e.target.value})}
                     placeholder="+971501234567"
                   />
@@ -416,34 +416,34 @@ export default function SuppliersManager() {
                     value={supplierForm.email}
                     onChange={(e) => setSupplierForm({...supplierForm, email: e.target.value})}
                     placeholder="example@email.com"
-                  />
-                </div>
-
+              />
+            </div>
+            
                 <div className="space-y-2">
                   <Label htmlFor="company">اسم الشركة</Label>
-                  <Input
+              <Input
                     id="company"
                     value={supplierForm.company}
                     onChange={(e) => setSupplierForm({...supplierForm, company: e.target.value})}
                     placeholder="أدخل اسم الشركة"
-                  />
-                </div>
-
+              />
+            </div>
+            
                 <div className="space-y-2">
                   <Label htmlFor="category">فئة المورد</Label>
                   <Select value={supplierForm.category} onValueChange={(value: any) => setSupplierForm({...supplierForm, category: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                       <SelectItem value="real_estate">عقارات</SelectItem>
                       <SelectItem value="construction">بناء</SelectItem>
                       <SelectItem value="maintenance">صيانة</SelectItem>
                       <SelectItem value="cleaning">نظافة</SelectItem>
                       <SelectItem value="security">أمن</SelectItem>
                       <SelectItem value="other">أخرى</SelectItem>
-                    </SelectContent>
-                  </Select>
+                </SelectContent>
+              </Select>
                 </div>
               </div>
 
@@ -498,30 +498,30 @@ export default function SuppliersManager() {
                         placeholder="أدخل قالب الرسالة التلقائية"
                         rows={3}
                       />
-                    </div>
-
+            </div>
+            
                     <div className="space-y-2">
                       <Label htmlFor="contactFrequency">تكرار التواصل</Label>
                       <Select value={supplierForm.contactFrequency} onValueChange={(value: any) => setSupplierForm({...supplierForm, contactFrequency: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                           <SelectItem value="daily">يومياً</SelectItem>
                           <SelectItem value="weekly">أسبوعياً</SelectItem>
                           <SelectItem value="monthly">شهرياً</SelectItem>
                           <SelectItem value="quarterly">ربع سنوياً</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                </SelectContent>
+              </Select>
+            </div>
                   </>
                 )}
-              </div>
-
+            </div>
+            
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  إلغاء
-                </Button>
+                إلغاء
+              </Button>
                 <Button onClick={handleCreateSupplier}>
                   إضافة المورد
                 </Button>
@@ -592,9 +592,9 @@ export default function SuppliersManager() {
                       onClick={() => handleDeleteSupplier(supplier.id)}
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              </Button>
+            </div>
+          </div>
               </CardHeader>
               
               <CardContent>

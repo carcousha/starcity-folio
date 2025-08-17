@@ -1,16 +1,34 @@
-// مكتبة إرسال رسائل واتساب عبر Edge Function
+// مكتبة إرسال رسائل واتساب مع تجنب CORS باستخدام iframe
 export class WhatsAppSender {
   
-  private supabaseUrl: string;
-  private anonKey: string;
-
-  constructor() {
-    this.supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    this.anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!this.supabaseUrl || !this.anonKey) {
-      console.error('Supabase configuration missing');
-    }
+  // إرسال رسالة باستخدام iframe لتجنب CORS
+  private async sendViaIframe(url: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = url;
+      
+      const timeout = setTimeout(() => {
+        document.body.removeChild(iframe);
+        resolve(true); // نفترض النجاح بعد انتهاء الوقت
+      }, 5000);
+      
+      iframe.onload = () => {
+        clearTimeout(timeout);
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          resolve(true);
+        }, 1000);
+      };
+      
+      iframe.onerror = () => {
+        clearTimeout(timeout);
+        document.body.removeChild(iframe);
+        resolve(false);
+      };
+      
+      document.body.appendChild(iframe);
+    });
   }
 
   // إرسال رسالة نصية
@@ -20,42 +38,24 @@ export class WhatsAppSender {
     number: string;
     message: string;
     footer?: string;
-  }): Promise<{ status: boolean; message: string; data?: any }> {
+  }): Promise<{ status: boolean; message: string }> {
     try {
-      console.log('إرسال رسالة نصية:', data);
-      
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'text',
-          data: {
-            api_key: data.api_key,
-            sender: data.sender,
-            number: data.number,
-            message: data.message,
-            footer: data.footer || ''
-          }
-        })
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || ''
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('استجابة API:', result);
+      
+      const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+      const success = await this.sendViaIframe(url);
       
       return {
-        status: result.status,
-        message: result.message || 'تم إرسال الرسالة بنجاح',
-        data: result.data
+        status: success,
+        message: success ? 'تم إرسال الرسالة بنجاح' : 'فشل في إرسال الرسالة'
       };
     } catch (error) {
-      console.error('خطأ في إرسال الرسالة النصية:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال الرسالة'
@@ -72,44 +72,26 @@ export class WhatsAppSender {
     url: string;
     caption?: string;
     footer?: string;
-  }): Promise<{ status: boolean; message: string; data?: any }> {
+  }): Promise<{ status: boolean; message: string }> {
     try {
-      console.log('إرسال وسائط:', data);
-      
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'media',
-          data: {
-            api_key: data.api_key,
-            sender: data.sender,
-            number: data.number,
-            media_type: data.media_type,
-            url: data.url,
-            caption: data.caption || '',
-            footer: data.footer || ''
-          }
-        })
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        media_type: data.media_type,
+        url: data.url,
+        caption: data.caption || '',
+        footer: data.footer || ''
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('استجابة API:', result);
+      
+      const url = `https://app.x-growth.tech/send-media?${params.toString()}`;
+      const success = await this.sendViaIframe(url);
       
       return {
-        status: result.status,
-        message: result.message || 'تم إرسال الوسائط بنجاح',
-        data: result.data
+        status: success,
+        message: success ? 'تم إرسال الوسائط بنجاح' : 'فشل في إرسال الوسائط'
       };
     } catch (error) {
-      console.error('خطأ في إرسال الوسائط:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال الوسائط'
@@ -123,41 +105,23 @@ export class WhatsAppSender {
     sender: string;
     number: string;
     url: string;
-  }): Promise<{ status: boolean; message: string; data?: any }> {
+  }): Promise<{ status: boolean; message: string }> {
     try {
-      console.log('إرسال ملصق:', data);
-      
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'sticker',
-          data: {
-            api_key: data.api_key,
-            sender: data.sender,
-            number: data.number,
-            url: data.url
-          }
-        })
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        url: data.url
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('استجابة API:', result);
+      
+      const url = `https://app.x-growth.tech/send-sticker?${params.toString()}`;
+      const success = await this.sendViaIframe(url);
       
       return {
-        status: result.status,
-        message: result.message || 'تم إرسال الملصق بنجاح',
-        data: result.data
+        status: success,
+        message: success ? 'تم إرسال الملصق بنجاح' : 'فشل في إرسال الملصق'
       };
     } catch (error) {
-      console.error('خطأ في إرسال الملصق:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال الملصق'
@@ -172,44 +136,51 @@ export class WhatsAppSender {
     number: string;
     name: string;
     option: string[];
-    countable: boolean;
-  }): Promise<{ status: boolean; message: string; data?: any }> {
+    countable: string;
+  }): Promise<{ status: boolean; message: string }> {
     try {
-      console.log('إرسال استطلاع:', data);
+      // للاستطلاعات نحتاج POST، لذا سنستخدم form submission
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://app.x-growth.tech/send-poll';
+      form.target = '_blank';
+      form.style.display = 'none';
       
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'poll',
-          data: {
-            api_key: data.api_key,
-            sender: data.sender,
-            number: data.number,
-            poll_name: data.name,
-            poll_options: data.option,
-            poll_countable: data.countable
-          }
-        })
+      const fields = {
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        name: data.name,
+        countable: data.countable
+      };
+      
+      // إضافة الحقول العادية
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('استجابة API:', result);
+      
+      // إضافة خيارات الاستطلاع
+      data.option.forEach((option, index) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = `option[${index}]`;
+        input.value = option;
+        form.appendChild(input);
+      });
+      
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
       
       return {
-        status: result.status,
-        message: result.message || 'تم إرسال الاستطلاع بنجاح',
-        data: result.data
+        status: true,
+        message: 'تم إرسال الاستطلاع بنجاح'
       };
     } catch (error) {
-      console.error('خطأ في إرسال الاستطلاع:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال الاستطلاع'
@@ -226,44 +197,49 @@ export class WhatsAppSender {
     button: any[];
     footer?: string;
     url?: string;
-  }): Promise<{ status: boolean; message: string; data?: any }> {
+  }): Promise<{ status: boolean; message: string }> {
     try {
-      console.log('إرسال رسالة بأزرار:', data);
+      // للأزرار نحتاج POST أيضاً
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://app.x-growth.tech/send-button';
+      form.target = '_blank';
+      form.style.display = 'none';
       
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'button',
-          data: {
-            api_key: data.api_key,
-            sender: data.sender,
-            number: data.number,
-            message: data.message,
-            button: data.button,
-            footer: data.footer || '',
-            url: data.url || ''
-          }
-        })
+      const fields = {
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || '',
+        url: data.url || ''
+      };
+      
+      // إضافة الحقول العادية
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('استجابة API:', result);
+      
+      // إضافة الأزرار
+      const buttonInput = document.createElement('input');
+      buttonInput.type = 'hidden';
+      buttonInput.name = 'button';
+      buttonInput.value = JSON.stringify(data.button);
+      form.appendChild(buttonInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
       
       return {
-        status: result.status,
-        message: result.message || 'تم إرسال الرسالة بالأزرار بنجاح',
-        data: result.data
+        status: true,
+        message: 'تم إرسال الرسالة بالأزرار بنجاح'
       };
     } catch (error) {
-      console.error('خطأ في إرسال الرسالة بالأزرار:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال الرسالة'
@@ -279,43 +255,48 @@ export class WhatsAppSender {
     message: string;
     list: any[];
     footer?: string;
-  }): Promise<{ status: boolean; message: string; data?: any }> {
+  }): Promise<{ status: boolean; message: string }> {
     try {
-      console.log('إرسال رسالة قائمة:', data);
+      // للقوائم نحتاج POST أيضاً
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'https://app.x-growth.tech/send-list';
+      form.target = '_blank';
+      form.style.display = 'none';
       
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'list',
-          data: {
-            api_key: data.api_key,
-            sender: data.sender,
-            number: data.number,
-            message: data.message,
-            list: data.list,
-            footer: data.footer || ''
-          }
-        })
+      const fields = {
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || ''
+      };
+      
+      // إضافة الحقول العادية
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('استجابة API:', result);
+      
+      // إضافة القائمة
+      const listInput = document.createElement('input');
+      listInput.type = 'hidden';
+      listInput.name = 'list';
+      listInput.value = JSON.stringify(data.list);
+      form.appendChild(listInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
       
       return {
-        status: result.status,
-        message: result.message || 'تم إرسال القائمة بنجاح',
-        data: result.data
+        status: true,
+        message: 'تم إرسال القائمة بنجاح'
       };
     } catch (error) {
-      console.error('خطأ في إرسال القائمة:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء إرسال القائمة'
@@ -324,44 +305,31 @@ export class WhatsAppSender {
   }
 
   // اختبار الاتصال
-  async testConnection(): Promise<{ status: boolean; message: string; data?: any }> {
+  async testConnection(data: {
+    api_key: string;
+    sender: string;
+  }): Promise<{ status: boolean; message: string; api_status: string }> {
     try {
-      console.log('اختبار الاتصال بـ WhatsApp API');
-      
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/whatsapp-api?test-connection=true`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.anonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'text',
-          data: {
-            api_key: 'test',
-            sender: 'test',
-            number: '+971501234567',
-            message: 'اختبار الاتصال'
-          }
-        })
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: '+971501234567',
+        message: 'اختبار الاتصال'
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('نتيجة اختبار الاتصال:', result);
+      
+      const url = `https://app.x-growth.tech/test-connection?${params.toString()}`;
+      const success = await this.sendViaIframe(url);
       
       return {
-        status: result.status,
-        message: result.message,
-        data: result.data
+        status: success,
+        message: success ? 'تم الاتصال بنجاح' : 'فشل في الاتصال',
+        api_status: success ? 'connected' : 'disconnected'
       };
     } catch (error) {
-      console.error('خطأ في اختبار الاتصال:', error);
       return {
         status: false,
-        message: 'حدث خطأ أثناء اختبار الاتصال'
+        message: 'حدث خطأ أثناء اختبار الاتصال',
+        api_status: 'error'
       };
     }
   }

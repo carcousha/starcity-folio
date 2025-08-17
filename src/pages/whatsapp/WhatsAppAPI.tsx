@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { whatsappSender } from '@/lib/whatsapp-sender';
 import { 
   Send, 
   MessageCircle, 
@@ -283,154 +284,97 @@ const WhatsAppAPI: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const payload = {
+      console.log('🚀 بدء إرسال الرسالة النصية...');
+      console.log('📋 البيانات:', {
+        api_key: apiConfig.api_key.substring(0, 10) + '...',
+        sender: apiConfig.sender,
+        number: recipientNumber,
+        message: messageText.substring(0, 50) + (messageText.length > 50 ? '...' : ''),
+        footer: footer || 'Sent via WhatsApp API'
+      });
+
+      // استخدام المكتبة الجديدة لاستخدام iframe
+      const result = await whatsappSender.sendTextMessage({
         api_key: apiConfig.api_key,
         sender: apiConfig.sender,
         number: recipientNumber,
         message: messageText,
         footer: footer || 'Sent via WhatsApp API'
-      };
-
-      console.log('🚀 بدء إرسال الرسالة النصية...');
-      console.log('📋 البيانات:', {
-        api_key: payload.api_key.substring(0, 10) + '...',
-        sender: payload.sender,
-        number: payload.number,
-        message: payload.message.substring(0, 50) + (payload.message.length > 50 ? '...' : ''),
-        footer: payload.footer
       });
 
-      let response;
-      let success = false;
-      
-      // قائمة CORS Proxies محدثة ومرتبة حسب السرعة والموثوقية
-      const corsProxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://cors-anywhere.herokuapp.com/',
-        'https://thingproxy.freeboard.io/fetch/',
-        'https://cors.bridged.cc/',
-        'https://corsproxy.io/?',
-        'https://api.codetabs.com/v1/proxy?quest='
-      ];
-      
-      // محاولة الإرسال المباشر أولاً
-      try {
-        console.log('🔄 محاولة الإرسال المباشر...');
-        response = await fetch(`${apiConfig.base_url}/send-message`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
+      if (result.status) {
+        console.log('✅ تم إرسال الرسالة بنجاح');
         
-        if (response.ok) {
-          console.log('✅ نجح الإرسال المباشر');
-          success = true;
-        }
-      } catch (directError) {
-        console.log('❌ الإرسال المباشر فشل:', directError.message);
-      }
-      
-      // إذا فشل الإرسال المباشر، نجرب CORS Proxies
-      if (!success) {
-        console.log('🔄 جاري استخدام CORS Proxies...');
+        // إضافة الرسالة إلى السجل
+        const newMessage: MessageHistory = {
+          id: Date.now().toString(),
+          type: 'text',
+          recipient: recipientNumber,
+          message: messageText,
+          status: 'sent',
+          timestamp: new Date().toISOString(),
+          response: result
+        };
         
-        for (const proxy of corsProxies) {
-          try {
-            console.log(`🔍 جاري تجربة: ${proxy}`);
-            
-            let url;
-            if (proxy.includes('allorigins')) {
-              url = `${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`;
-            } else {
-              url = `${proxy}${apiConfig.base_url}/send-message`;
-            }
-            
-            response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(payload)
-            });
-            
-            if (response && response.ok) {
-              console.log(`✅ نجح الإرسال عبر: ${proxy}`);
-              success = true;
-              break;
-            }
-          } catch (proxyError) {
-            console.log(`❌ فشل ${proxy}:`, proxyError.message);
-            continue;
-          }
-        }
-      }
-      
-      if (!response || !success) {
-        throw new Error('فشل في الاتصال بجميع الطرق المتاحة');
-      }
-
-      // معالجة الاستجابة
-      const responseText = await response.text();
-      console.log('📥 استجابة الخادم:', responseText);
-      
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (jsonError) {
-        console.error('❌ فشل في تحليل JSON:', jsonError);
+        setMessageHistory(prev => [newMessage, ...prev]);
         
-        if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-          throw new Error('الخادم أعاد صفحة HTML بدلاً من JSON - تحقق من الرابط');
-        } else {
-          throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
-        }
-      }
-      
-      console.log('📊 النتيجة المحللة:', result);
-      
-      if (result.status === true) {
-        console.log('🎉 تم إرسال الرسالة بنجاح!');
-        addToHistory('text', recipientNumber, messageText, 'sent', result);
         toast({
-          title: "✅ تم الإرسال بنجاح",
-          description: "تم إرسال الرسالة النصية بنجاح",
-          variant: "default"
+          title: "تم الإرسال بنجاح",
+          description: result.message,
         });
-        clearTextForm();
+        
+        // مسح الحقول
+        setMessageText('');
+        setFooter('');
       } else {
-        const errorMsg = result.msg || result.message || 'خطأ غير معروف';
-        console.error('❌ فشل الإرسال:', errorMsg);
+        console.log('❌ فشل في إرسال الرسالة:', result.message);
         
-        // رسائل خطأ مفهومة
-        let userFriendlyError = errorMsg;
-        if (errorMsg.includes('api_key') || errorMsg.includes('sender')) {
-          userFriendlyError = 'API Key أو رقم المرسل غير صحيح - تحقق من الإعدادات';
-        } else if (errorMsg.includes('number') || errorMsg.includes('recipient')) {
-          userFriendlyError = 'رقم المستلم غير صحيح - تحقق من تنسيق الرقم';
-        } else if (errorMsg.includes('message')) {
-          userFriendlyError = 'نص الرسالة غير صحيح أو فارغ';
-        }
+        // إضافة الرسالة إلى السجل مع حالة الفشل
+        const newMessage: MessageHistory = {
+          id: Date.now().toString(),
+          type: 'text',
+          recipient: recipientNumber,
+          message: messageText,
+          status: 'failed',
+          timestamp: new Date().toISOString(),
+          response: result
+        };
         
-        addToHistory('text', recipientNumber, messageText, 'failed', result);
-        throw new Error(userFriendlyError);
+        setMessageHistory(prev => [newMessage, ...prev]);
+        
+        toast({
+          title: "فشل في الإرسال",
+          description: result.message,
+          variant: "destructive"
+        });
       }
-      
     } catch (error) {
-      console.error('❌ خطأ عام في إرسال الرسالة:', error);
-      addToHistory('text', recipientNumber, messageText, 'failed', { error: error.message });
+      console.error('❌ خطأ في إرسال الرسالة:', error);
+      
+      // إضافة الرسالة إلى السجل مع حالة الفشل
+      const newMessage: MessageHistory = {
+        id: Date.now().toString(),
+        type: 'text',
+        recipient: recipientNumber,
+        message: messageText,
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+        response: { error: error.message }
+      };
+      
+      setMessageHistory(prev => [newMessage, ...prev]);
+      
       toast({
-        title: "❌ فشل في الإرسال",
-        description: error.message,
+        title: "خطأ في الإرسال",
+        description: "حدث خطأ أثناء إرسال الرسالة",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
+      
+
 
   // إرسال رسالة وسائط
   const sendMediaMessage = async () => {
@@ -445,114 +389,94 @@ const WhatsAppAPI: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const payload = {
+      console.log('🚀 بدء إرسال الوسائط...');
+      console.log('📋 البيانات:', {
+        api_key: apiConfig.api_key.substring(0, 10) + '...',
+        sender: apiConfig.sender,
+        number: recipientNumber,
+        media_type: mediaType,
+        url: mediaUrl.substring(0, 50) + (mediaUrl.length > 50 ? '...' : ''),
+        caption: caption.substring(0, 30) + (caption.length > 30 ? '...' : ''),
+        footer: footer || 'Sent via WhatsApp API'
+      });
+
+      // استخدام المكتبة الجديدة لاستخدام iframe
+      const result = await whatsappSender.sendMediaMessage({
         api_key: apiConfig.api_key,
         sender: apiConfig.sender,
         number: recipientNumber,
         media_type: mediaType,
         url: mediaUrl,
-        caption: caption || messageText,
+        caption: caption || '',
         footer: footer || 'Sent via WhatsApp API'
-      };
+      });
 
-      // محاولة الإرسال المباشر أولاً
-      let response;
-      try {
-        console.log('🔄 محاولة الإرسال المباشر للوسائط...');
-        console.log('📤 Payload:', payload);
+      if (result.status) {
+        console.log('✅ تم إرسال الوسائط بنجاح');
         
-        response = await fetch(`${apiConfig.base_url}/send-media`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
+        // إضافة الرسالة إلى السجل
+        const newMessage: MessageHistory = {
+          id: Date.now().toString(),
+          type: 'media',
+          recipient: recipientNumber,
+          message: `وسائط: ${mediaType} - ${caption || 'بدون وصف'}`,
+          status: 'sent',
+          timestamp: new Date().toISOString(),
+          response: result
+        };
+        
+        setMessageHistory(prev => [newMessage, ...prev]);
+        
+        toast({
+          title: "تم الإرسال بنجاح",
+          description: result.message,
         });
         
-        console.log('✅ نجح الإرسال المباشر للوسائط');
-      } catch (directError) {
-        console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
+        // مسح الحقول
+        setMediaUrl('');
+        setCaption('');
+        setFooter('');
+      } else {
+        console.log('❌ فشل في إرسال الوسائط:', result.message);
         
-        // استخدام CORS Proxy كبديل
-        const corsProxies = [
-          'https://cors-anywhere.herokuapp.com/',
-          'https://api.allorigins.win/raw?url=',
-          'https://thingproxy.freeboard.io/fetch/'
-        ];
+        // إضافة الرسالة إلى السجل مع حالة الفشل
+        const newMessage: MessageHistory = {
+          id: Date.now().toString(),
+          type: 'media',
+          recipient: recipientNumber,
+          message: `وسائط: ${mediaType} - ${caption || 'بدون وصف'}`,
+          status: 'failed',
+          timestamp: new Date().toISOString(),
+          response: result
+        };
         
-        for (const proxy of corsProxies) {
-          try {
-            console.log(`جاري تجربة CORS Proxy للوسائط: ${proxy}`);
-            
-            if (proxy.includes('allorigins')) {
-              response = await fetch(`${proxy}${encodeURIComponent(apiConfig.base_url + '/send-media')}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              });
-            } else {
-              response = await fetch(`${proxy}${apiConfig.base_url}/send-media`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              });
-            }
-            
-            if (response && response.ok) {
-              console.log(`✅ نجح CORS Proxy للوسائط: ${proxy}`);
-              break;
-            }
-          } catch (proxyError) {
-            console.log(`فشل CORS Proxy ${proxy}:`, proxyError);
-            continue;
-          }
-        }
+        setMessageHistory(prev => [newMessage, ...prev]);
+        
+        toast({
+          title: "فشل في الإرسال",
+          description: result.message,
+          variant: "destructive"
+        });
       }
-      
-      if (!response) {
-        throw new Error('فشل في الاتصال بـ API');
-      }
-
-             // التحقق من أن الاستجابة صحيحة
-       let result;
-       try {
-         const responseText = await response.text();
-         console.log('استجابة API (Media):', responseText);
-         
-         // محاولة parsing JSON
-         try {
-           result = JSON.parse(responseText);
-         } catch (jsonError) {
-           console.error('فشل في parsing JSON (Media):', jsonError);
-           console.log('محتوى الاستجابة (Media):', responseText);
-           
-           // إذا كان HTML، نحاول استخراج رسالة خطأ
-           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
-           } else {
-             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
-           }
-         }
-         
-         if (result.status) {
-           addToHistory('media', recipientNumber, `${mediaType}: ${caption || messageText}`, 'sent', result);
-           toast({
-             title: "تم الإرسال",
-             description: "تم إرسال رسالة الوسائط بنجاح"
-           });
-           clearMediaForm();
-         } else {
-           throw new Error(result.msg || 'فشل في الإرسال');
-         }
-       } catch (parseError) {
-         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
-       }
     } catch (error) {
-      console.error('خطأ في إرسال رسالة الوسائط:', error);
-      addToHistory('media', recipientNumber, `${mediaType}: ${caption || messageText}`, 'failed', { error: error.message });
+      console.error('❌ خطأ في إرسال الوسائط:', error);
+      
+      // إضافة الرسالة إلى السجل مع حالة الفشل
+      const newMessage: MessageHistory = {
+        id: Date.now().toString(),
+        type: 'media',
+        recipient: recipientNumber,
+        message: `وسائط: ${mediaType} - ${caption || 'بدون وصف'}`,
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+        response: { error: error.message }
+      };
+      
+      setMessageHistory(prev => [newMessage, ...prev]);
+      
       toast({
         title: "خطأ في الإرسال",
-        description: `فشل في إرسال رسالة الوسائط: ${error.message}`,
+        description: "حدث خطأ أثناء إرسال الوسائط",
         variant: "destructive"
       });
     } finally {
