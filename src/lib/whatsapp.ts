@@ -55,19 +55,19 @@ export function findMissingPlaceholders(source: string, ctx: Record<string, any>
   return missing;
 }
 
-// بيانات تجريبية للمعاينة
+// دالة فارغة للمعاينة - سيتم إضافة البيانات الحقيقية لاحقاً
 export function mockContext(): Record<string, string> {
   return {
-    client_name: 'أحمد محمد',
-    phone: '+971501234567',
-    property_name: 'شقة فاخرة في الجرف',
-    property_type: 'سكني',
-    price: '450,000',
-    stage: 'Lead',
-    appointment_date: new Date().toLocaleDateString('ar-AE'),
-    appointment_time: '05:30 PM',
-    appointment_location: 'مكتب الشركة',
-    agent_name: 'موظف المبيعات'
+    client_name: '',
+    phone: '',
+    property_name: '',
+    property_type: '',
+    price: '',
+    stage: '',
+    appointment_date: '',
+    appointment_time: '',
+    appointment_location: '',
+    agent_name: ''
   };
 }
 

@@ -1,65 +1,43 @@
 // مكتبة إرسال رسائل واتساب مع تجنب CORS باستخدام iframe
 export class WhatsAppSender {
   
-  // دالة إرسال بديلة باستخدام fetch مع CORS proxy
+  // دالة إرسال بديلة باستخدام fetch مع CORS proxy موثوق
   private async sendViaFetch(url: string, data: any): Promise<boolean> {
     try {
       console.log('🌐 محاولة الإرسال عبر fetch مع CORS proxy...');
       
-      // قائمة CORS proxies موثوقة
-      const corsProxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://cors-anywhere.herokuapp.com/',
-        'https://thingproxy.freeboard.io/fetch/',
-        'https://cors.bridged.cc/',
-        'https://corsproxy.io/?'
-      ];
+      // CORS proxy موثوق واحد فقط
+      const corsProxy = 'https://api.allorigins.win/raw?url=';
       
-      // محاولة الإرسال المباشر أولاً
       try {
-        console.log('🔄 محاولة الإرسال المباشر...');
-        const directResponse = await fetch(url, {
+        console.log('🔄 محاولة الإرسال عبر CORS proxy...');
+        const proxyUrl = `${corsProxy}${encodeURIComponent(url)}`;
+        
+        const response = await fetch(proxyUrl, {
           method: 'GET',
-          mode: 'no-cors' // تجربة no-cors
+          timeout: 15000
         });
         
-        if (directResponse.type === 'opaque') {
-          console.log('✅ الإرسال المباشر نجح (opaque response)');
-          return true;
-        }
-      } catch (directError) {
-        console.log('❌ الإرسال المباشر فشل:', directError.message);
-      }
-      
-      // إذا فشل الإرسال المباشر، نجرب CORS proxies
-      for (const proxy of corsProxies) {
-        try {
-          console.log(`🔍 جاري تجربة: ${proxy}`);
+        if (response.ok) {
+          const responseText = await response.text();
+          console.log('📥 استجابة من CORS proxy:', responseText);
           
-          let proxyUrl;
-          if (proxy.includes('allorigins')) {
-            proxyUrl = `${proxy}${encodeURIComponent(url)}`;
-          } else {
-            proxyUrl = `${proxy}${url}`;
-          }
-          
-          const response = await fetch(proxyUrl, {
-            method: 'GET',
-            timeout: 10000
-          });
-          
-          if (response.ok) {
-            console.log(`✅ نجح الإرسال عبر: ${proxy}`);
+          // البحث عن مؤشرات النجاح
+          if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
+            console.log('✅ مؤشرات النجاح موجودة في الاستجابة');
             return true;
+          } else {
+            console.log('❌ لا توجد مؤشرات نجاح في الاستجابة');
+            return false;
           }
-        } catch (proxyError) {
-          console.log(`❌ فشل ${proxy}:`, proxyError.message);
-          continue;
+        } else {
+          console.log('❌ CORS proxy فشل:', response.status);
+          return false;
         }
+      } catch (proxyError) {
+        console.log('❌ خطأ في CORS proxy:', proxyError.message);
+        return false;
       }
-      
-      console.log('❌ جميع الطرق فشلت');
-      return false;
       
     } catch (error) {
       console.error('❌ خطأ في sendViaFetch:', error);
@@ -120,11 +98,11 @@ export class WhatsAppSender {
         console.log('⏰ انتهاء مهلة iframe - فحص النتيجة');
         checkResult();
         
-        // إذا لم نتمكن من تحديد النتيجة، نفترض النجاح
-        // لكن مع تحذير للمستخدم
-        console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة');
+        // إذا لم نتمكن من تحديد النتيجة، نفترض الفشل
+        // لأننا نريد التأكد من الإرسال الفعلي
+        console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة - نفترض الفشل');
         cleanup();
-        resolve(true);
+        resolve(false);
       }, 10000); // زيادة المهلة إلى 10 ثوانٍ
       
       iframe.onload = () => {
@@ -135,11 +113,11 @@ export class WhatsAppSender {
         setTimeout(() => {
           checkResult();
           
-          // إذا لم نتمكن من تحديد النتيجة، نفترض النجاح
+          // إذا لم نتمكن من تحديد النتيجة، نفترض الفشل
           if (!resolved) {
-            console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة');
+            console.log('⚠️ لم نتمكن من تحديد النتيجة بدقة - نفترض الفشل');
             cleanup();
-            resolve(true);
+            resolve(false);
           }
         }, 3000); // انتظار 3 ثوانٍ للفحص
       };
@@ -191,12 +169,12 @@ export class WhatsAppSender {
       const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
       console.log('🌐 URL الإرسال:', url);
       
-      // محاولة الإرسال عبر fetch أولاً (أكثر موثوقية)
+      // محاولة الإرسال عبر fetch أولاً
       let success = await this.sendViaFetch(url, data);
       
-      // إذا فشل fetch، نجرب iframe
+      // إذا فشل fetch، نستخدم iframe (الحل الرئيسي)
       if (!success) {
-        console.log('🔄 fetch فشل، جاري تجربة iframe...');
+        console.log('🔄 fetch فشل، جاري استخدام iframe...');
         success = await this.sendViaIframe(url);
       }
       
