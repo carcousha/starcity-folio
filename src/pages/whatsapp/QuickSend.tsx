@@ -8,8 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Phone, Send, Settings, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// استيراد مكتبة الواتساب الموجودة
-import whatsappSender from '@/lib/whatsapp-iframe-sender';
+// استيراد المكتبة الجديدة للإرسال المباشر
+import whatsappDirectSender from '@/lib/whatsapp-direct-sender';
 
 export default function QuickSend() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -93,7 +93,11 @@ export default function QuickSend() {
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
       
-      const result = await whatsappSender.sendMessage({
+      console.log('🔄 بدء إرسال الرسالة...');
+      console.log('📞 الرقم المنسق:', formattedPhone);
+      console.log('💬 الرسالة:', message);
+      
+      const result = await whatsappDirectSender.sendMessage({
         type: 'text',
         data: {
           api_key: apiSettings.apiKey,
@@ -103,6 +107,8 @@ export default function QuickSend() {
           footer: 'مرسل عبر StarCity Folio'
         }
       });
+
+      console.log('📊 نتيجة الإرسال:', result);
 
       if (result.status) {
         setLastResult({ success: true, message: 'تم إرسال الرسالة بنجاح!' });

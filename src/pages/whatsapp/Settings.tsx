@@ -9,8 +9,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 
-// استيراد مكتبة الواتساب للاختبار
-import whatsappSender from '@/lib/whatsapp-iframe-sender';
+// استيراد المكتبة الجديدة للاختبار
+import whatsappDirectSender from '@/lib/whatsapp-direct-sender';
 
 export default function Settings() {
   const [apiSettings, setApiSettings] = useState({
@@ -84,10 +84,16 @@ export default function Settings() {
     setTestResult(null);
 
     try {
-      const result = await whatsappSender.testConnection(
+      console.log('🔄 بدء اختبار الاتصال...');
+      console.log('🔑 API Key:', apiSettings.apiKey.substring(0, 10) + '...');
+      console.log('👤 المرسل:', apiSettings.sender);
+      
+      const result = await whatsappDirectSender.testConnection(
         apiSettings.apiKey,
         apiSettings.sender
       );
+
+      console.log('📊 نتيجة الاختبار:', result);
 
       if (result.status) {
         setTestResult({ 
