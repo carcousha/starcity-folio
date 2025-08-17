@@ -364,14 +364,13 @@ class WhatsAppService {
         }
       }
 
-      // إرسال الرسالة عبر API
+      // إرسال الرسالة عبر Edge Function
       const apiResponse = await this.sendToWhatsAppAPI({
         api_key: settings.api_key,
         sender: settings.sender_number,
         number: phoneNumber,
         message: messageContent,
-        footer: settings.default_footer,
-        ...this.prepareApiData(messageData)
+        footer: settings.default_footer
       });
 
       // حفظ الرسالة في قاعدة البيانات
@@ -379,13 +378,10 @@ class WhatsAppService {
         contact_id: contact?.id,
         template_id: template?.id,
         phone_number: phoneNumber,
-        message_type: messageData.message_type,
+        message_type: 'text', // تبسيط نوع الرسالة
         content: messageContent,
         media_url: messageData.media_url,
-        additional_data: {
-          buttons: messageData.buttons,
-          poll_options: messageData.poll_options
-        },
+        additional_data: {},
         status: apiResponse.status ? 'sent' : 'failed',
         api_response: apiResponse,
         error_message: apiResponse.status ? undefined : apiResponse.message,
@@ -567,18 +563,26 @@ class WhatsAppService {
 
   private async sendToWhatsAppAPI(data: SendMessageRequest): Promise<WhatsAppApiResponse> {
     try {
-      const endpoint = this.getApiEndpoint(data);
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
+      // استخدام Edge Function بدلاً من الاتصال المباشر
+      const { data: result, error } = await supabase.functions.invoke('whatsapp-enhanced', {
+        body: {
+          type: 'text', // سيتم تحديد النوع بناءً على البيانات
+          data: data
+        }
       });
 
-      const result = await response.json();
-      return result;
+      if (error) {
+        console.error('Edge Function Error:', error);
+        return {
+          status: false,
+          message: 'خطأ في خدمة الواتساب: ' + error.message
+        };
+      }
+
+      return result || {
+        status: false,
+        message: 'لم يتم استلام رد من الخدمة'
+      };
     } catch (error) {
       console.error('WhatsApp API Error:', error);
       return {
@@ -618,14 +622,25 @@ class WhatsAppService {
   }
 
   private async saveMessage(messageData: Partial<WhatsAppMessage>): Promise<WhatsAppMessage> {
+    // الحصول على المستخدم الحالي
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // الحصول على الملف الشخصي للمستخدم
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user?.id)
+      .single();
+
+    const messageWithUser = {
+      ...messageData,
+      created_by: profile?.id
+    };
+
     const { data, error } = await supabase
       .from('whatsapp_messages')
-      .insert([messageData])
-      .select(`
-        *,
-        contact:whatsapp_contacts(*),
-        template:whatsapp_templates(*)
-      `)
+      .insert([messageWithUser])
+      .select('*')
       .single();
 
     if (error) throw error;
