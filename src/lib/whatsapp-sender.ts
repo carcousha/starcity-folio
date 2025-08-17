@@ -4,30 +4,62 @@ export class WhatsAppSender {
   // إرسال رسالة باستخدام iframe لتجنب CORS
   private async sendViaIframe(url: string): Promise<boolean> {
     return new Promise((resolve) => {
+      console.log('🚀 إنشاء iframe للإرسال:', url);
+      
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
       iframe.src = url;
       
+      let resolved = false;
+      
+      const cleanup = () => {
+        if (!resolved) {
+          resolved = true;
+          try {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          } catch (e) {
+            console.log('تنظيف iframe:', e);
+          }
+        }
+      };
+      
       const timeout = setTimeout(() => {
-        document.body.removeChild(iframe);
-        resolve(true); // نفترض النجاح بعد انتهاء الوقت
-      }, 5000);
+        console.log('⏰ انتهاء مهلة iframe - نفترض النجاح');
+        cleanup();
+        resolve(true);
+      }, 8000); // زيادة المهلة إلى 8 ثوانٍ
       
       iframe.onload = () => {
+        console.log('✅ iframe تم تحميله بنجاح');
         clearTimeout(timeout);
         setTimeout(() => {
-          document.body.removeChild(iframe);
+          cleanup();
           resolve(true);
-        }, 1000);
+        }, 2000); // انتظار 2 ثانية للتأكد من الإرسال
       };
       
       iframe.onerror = () => {
+        console.log('❌ خطأ في iframe');
         clearTimeout(timeout);
-        document.body.removeChild(iframe);
+        cleanup();
         resolve(false);
       };
       
-      document.body.appendChild(iframe);
+      // إضافة iframe للصفحة
+      try {
+        document.body.appendChild(iframe);
+        console.log('📌 تم إضافة iframe للصفحة');
+      } catch (e) {
+        console.error('❌ خطأ في إضافة iframe:', e);
+        clearTimeout(timeout);
+        resolve(false);
+      }
     });
   }
 
@@ -310,6 +342,13 @@ export class WhatsAppSender {
     sender: string;
   }): Promise<{ status: boolean; message: string; api_status: string }> {
     try {
+      console.log('🔍 اختبار الاتصال بـ x-growth.tech...');
+      console.log('📋 البيانات:', {
+        api_key: data.api_key.substring(0, 10) + '...',
+        sender: data.sender
+      });
+
+      // استخدام نقطة النهاية الصحيحة لاختبار الاتصال
       const params = new URLSearchParams({
         api_key: data.api_key,
         sender: data.sender,
@@ -317,8 +356,12 @@ export class WhatsAppSender {
         message: 'اختبار الاتصال'
       });
       
-      const url = `https://app.x-growth.tech/test-connection?${params.toString()}`;
+      // استخدام send-message بدلاً من test-connection
+      const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+      console.log('🌐 URL الاختبار:', url);
+      
       const success = await this.sendViaIframe(url);
+      console.log('✅ نتيجة الاختبار:', success);
       
       return {
         status: success,
@@ -326,6 +369,7 @@ export class WhatsAppSender {
         api_status: success ? 'connected' : 'disconnected'
       };
     } catch (error) {
+      console.error('❌ خطأ في اختبار الاتصال:', error);
       return {
         status: false,
         message: 'حدث خطأ أثناء اختبار الاتصال',
