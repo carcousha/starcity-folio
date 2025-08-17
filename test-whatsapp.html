@@ -165,47 +165,7 @@
                     console.log('❌ الإرسال المباشر فشل:', directError.message);
                 }
                 
-                // إذا فشل الإرسال المباشر، نجرب CORS proxies
-                if (!success) {
-                    console.log('🔄 جاري استخدام CORS proxies...');
-                    
-                    const corsProxies = [
-                        'https://api.allorigins.win/raw?url=',
-                        'https://cors-anywhere.herokuapp.com/',
-                        'https://thingproxy.freeboard.io/fetch/',
-                        'https://cors.bridged.cc/',
-                        'https://corsproxy.io/?'
-                    ];
-                    
-                    for (const proxy of corsProxies) {
-                        try {
-                            console.log(`🔍 جاري تجربة: ${proxy}`);
-                            
-                            let proxyUrl;
-                            if (proxy.includes('allorigins')) {
-                                proxyUrl = `${proxy}${encodeURIComponent(url)}`;
-                            } else {
-                                proxyUrl = `${proxy}${url}`;
-                            }
-                            
-                            const proxyResponse = await fetch(proxyUrl, {
-                                method: 'GET',
-                                timeout: 10000
-                            });
-                            
-                            if (proxyResponse.ok) {
-                                console.log(`✅ نجح الإرسال عبر: ${proxy}`);
-                                success = true;
-                                break;
-                            }
-                        } catch (proxyError) {
-                            console.log(`❌ فشل ${proxy}:`, proxyError.message);
-                            continue;
-                        }
-                    }
-                }
-                
-                // إذا فشل كل شيء، نجرب iframe
+                // إذا فشل الإرسال المباشر، نستخدم iframe
                 if (!success) {
                     console.log('🔄 جاري استخدام iframe...');
                     success = await sendViaIframe(url);

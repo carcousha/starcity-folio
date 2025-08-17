@@ -61,25 +61,9 @@ export default function Campaigns() {
   const [campaignProgress, setCampaignProgress] = useState(0);
   const [isCampaignRunning, setIsCampaignRunning] = useState(false);
 
-  // محاكاة بيانات المستهدفين
+  // قائمة فارغة للمستهدفين - سيتم إضافتهم يدوياً
   useEffect(() => {
-    const mockRecipients: Recipient[] = [
-      // ملاك
-      { id: '1', name: 'أحمد محمد', phone: '+971501234567', type: 'owner', status: 'pending' },
-      { id: '2', name: 'فاطمة علي', phone: '+971507654321', type: 'owner', status: 'pending' },
-      { id: '3', name: 'محمد حسن', phone: '+971509876543', type: 'owner', status: 'pending' },
-      
-      // مسوقين
-      { id: '4', name: 'علي أحمد', phone: '+971501111111', type: 'marketer', status: 'pending' },
-      { id: '5', name: 'سارة محمد', phone: '+971502222222', type: 'marketer', status: 'pending' },
-      { id: '6', name: 'خالد علي', phone: '+971503333333', type: 'marketer', status: 'pending' },
-      
-      // عملاء
-      { id: '7', name: 'نورا أحمد', phone: '+971504444444', type: 'client', status: 'pending' },
-      { id: '8', name: 'عمر محمد', phone: '+971505555555', type: 'client', status: 'pending' },
-      { id: '9', name: 'ليلى علي', phone: '+971506666666', type: 'client', status: 'pending' },
-    ];
-    setRecipients(mockRecipients);
+    setRecipients([]);
   }, []);
 
   const targetGroupOptions = [

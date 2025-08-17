@@ -145,23 +145,15 @@ const WhatsAppAPI: React.FC = () => {
       const testPayload = {
         api_key: apiConfig.api_key,
         sender: apiConfig.sender,
-        number: '971501234567', // رقم اختبار
-        message: 'Test connection from WhatsApp API',
-        footer: 'Test via API'
+        number: '+971501234567', // رقم اختبار
+        message: 'اختبار الاتصال من WhatsApp API',
+        footer: 'اختبار عبر API'
       };
 
       let response;
       let testSuccess = false;
       
-      // قائمة CORS Proxies محدثة
-      const corsProxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://cors-anywhere.herokuapp.com/',
-        'https://thingproxy.freeboard.io/fetch/',
-        'https://cors.bridged.cc/',
-        'https://corsproxy.io/?',
-        'https://api.codetabs.com/v1/proxy?quest='
-      ];
+      // لا نستخدم CORS proxies - نستخدم iframe فقط
       
       // محاولة الإرسال المباشر أولاً
       try {
@@ -199,71 +191,35 @@ const WhatsAppAPI: React.FC = () => {
         console.log('❌ الاتصال المباشر فشل:', directError.message);
       }
       
-      // إذا فشل الاتصال المباشر، نجرب CORS Proxies
+      // إذا فشل الاتصال المباشر، نستخدم iframe
       if (!testSuccess) {
-        console.log('🔄 جاري تجربة CORS Proxies...');
+        console.log('🔄 جاري استخدام iframe...');
         
-        for (const proxy of corsProxies) {
-          try {
-            console.log(`🔍 جاري اختبار: ${proxy}`);
-            
-            let url;
-            if (proxy.includes('allorigins')) {
-              url = `${proxy}${encodeURIComponent(apiConfig.base_url + '/send-message')}`;
-            } else {
-              url = `${proxy}${apiConfig.base_url}/send-message`;
-            }
-            
-            response = await fetch(url, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify(testPayload)
+        try {
+          const result = await whatsappSender.testConnection({
+            api_key: apiConfig.api_key,
+            sender: apiConfig.sender
+          });
+          
+          if (result.status) {
+            console.log('✅ اختبار الاتصال عبر iframe نجح:', result);
+            testSuccess = true;
+            toast({
+              title: "✅ نجح الاختبار",
+              description: "API يعمل عبر iframe",
+              variant: "default"
             });
-            
-            if (response.ok) {
-              const responseText = await response.text();
-              console.log(`📥 استجابة من ${proxy}:`, responseText);
-              
-              let result;
-              try {
-                result = JSON.parse(responseText);
-              } catch (parseError) {
-                if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-                  throw new Error(`${proxy} أعاد HTML بدلاً من JSON`);
-                }
-                throw new Error(`استجابة غير صحيحة من ${proxy}`);
-              }
-              
-              console.log(`✅ نجح ${proxy}:`, result);
-              testSuccess = true;
-              
-              if (result.status) {
-                toast({
-                  title: "✅ نجح الاختبار",
-                  description: `API يعمل عبر CORS Proxy: ${proxy.replace('https://', '').split('/')[0]}`,
-                  variant: "default"
-                });
-              } else {
-                toast({
-                  title: "⚠️ مشكلة في البيانات",
-                  description: result.msg || "تحقق من API Key ورقم المرسل",
-                  variant: "destructive"
-                });
-              }
-              break;
-            }
-          } catch (proxyError) {
-            console.log(`❌ فشل ${proxy}:`, proxyError.message);
-            continue;
+          } else {
+            throw new Error(result.message);
           }
+        } catch (iframeError) {
+          console.log('❌ فشل iframe:', iframeError.message);
+          throw new Error('فشل في اختبار الاتصال عبر iframe');
         }
       }
       
       if (!testSuccess) {
-        throw new Error('جميع طرق الاتصال فشلت - تحقق من الاتصال بالإنترنت');
+        throw new Error('فشل في اختبار الاتصال - تحقق من API Key ورقم المرسل');
       }
       
     } catch (error) {
