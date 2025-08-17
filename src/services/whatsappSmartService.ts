@@ -536,18 +536,100 @@ class WhatsAppSmartService {
   // إرسال رسالة WhatsApp
   private async sendWhatsAppMessage(phone: string, message: string): Promise<boolean> {
     try {
-      // هنا يمكن إضافة منطق إرسال الرسالة عبر WhatsApp Business API
-      // حالياً نستخدم الرابط المباشر
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+      // استخدام Edge Function لإرسال الرسالة عبر WhatsApp API
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      // في التطبيق الحقيقي، يمكن استخدام window.open أو إرسال عبر API
-      console.log('Sending WhatsApp message:', { phone, message, url: whatsappUrl });
+      if (!supabaseUrl || !anonKey) {
+        console.error('Supabase configuration missing');
+        return false;
+      }
+
+      console.log('Sending message via WhatsApp API...');
       
-      return true;
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone,
+          message,
+          userId: this.userId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Edge Function error:', errorData);
+        return false;
+      }
+
+      const result = await response.json();
+      console.log('WhatsApp message sent successfully via API:', result);
+      
+      // تسجيل الرسالة في قاعدة البيانات
+      await this.logQuickMessage(phone, message);
+      
+      return result.success;
     } catch (error) {
-      console.error('Error sending WhatsApp message:', error);
+      console.error('Error sending WhatsApp message via API:', error);
       return false;
+    }
+  }
+
+  // دالة عامة لإرسال رسالة سريعة
+  async sendQuickMessage(phone: string, message: string): Promise<boolean> {
+    try {
+      // تنظيف رقم الهاتف
+      const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+      
+      // التحقق من صحة الرقم
+      const phoneRegex = /^\+[1-9]\d{1,14}$/;
+      if (!phoneRegex.test(cleanPhone)) {
+        throw new Error('Invalid phone number format');
+      }
+
+      // إرسال الرسالة
+      const success = await this.sendWhatsAppMessage(cleanPhone, message);
+      
+      if (success) {
+        // تسجيل الرسالة في السجل
+        await this.logQuickMessage(cleanPhone, message);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error sending quick message:', error);
+      return false;
+    }
+  }
+
+  // تسجيل الرسالة السريعة
+  private async logQuickMessage(phone: string, message: string): Promise<void> {
+    try {
+      // محاولة تسجيل الرسالة في قاعدة البيانات
+      const { error } = await supabase
+        .from('whatsapp_smart_logs')
+        .insert({
+          message_template: message,
+          message_sent: message,
+          phone_number: phone,
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          sent_by: this.userId || 'system'
+        });
+
+      if (error) {
+        console.error('Error logging quick message:', error);
+        // إذا فشل التسجيل، لا نوقف العملية
+      } else {
+        console.log('Message logged successfully in database');
+      }
+    } catch (err) {
+      console.error('Error logging quick message:', err);
+      // إذا فشل التسجيل، لا نوقف العملية
     }
   }
 

@@ -27,7 +27,8 @@ import {
   CheckCircle,
   CreditCard,
   AlertTriangle,
-  MessageSquare
+  MessageSquare,
+  Send
 } from "lucide-react";
 
 import { 
@@ -265,16 +266,15 @@ export function AppSidebar() {
       icon: MessageSquare,
       hasSubmenu: true,
       submenu: [
-        { title: "لوحة التحكم", url: "/whatsapp", icon: Home },
-        { title: "الإعدادات", url: "/whatsapp/settings", icon: Settings },
+        { title: "لوحة التحكم", url: "/whatsapp/dashboard", icon: Home },
+        { title: "الرسائل الذكية", url: "/whatsapp/smart-messages", icon: Brain },
         { title: "القوالب", url: "/whatsapp/templates", icon: FileText },
-        { title: "الذكّي", url: "/whatsapp/smart-module/tasks", icon: Brain, hasSubmenu: true, submenu: [
-          { title: "المهمات اليومية", url: "/whatsapp/smart-module/tasks", icon: Calendar },
-          { title: "الموردين الخارجيين", url: "/whatsapp/smart-module/suppliers", icon: Users },
-          { title: "الإعدادات الذكية", url: "/whatsapp/smart-module/settings", icon: Settings }
-        ] },
         { title: "السجل", url: "/whatsapp/logs", icon: BarChart3 },
-        { title: "التذكيرات", url: "/whatsapp/reminders", icon: Calendar, badge: waRemindersCount > 0 ? waRemindersCount : undefined },
+        { title: "الرد التلقائي", url: "/whatsapp/auto-reply", icon: MessageSquare },
+        { title: "إنشاء حملة", url: "/whatsapp/campaigns", icon: Megaphone },
+        { title: "التقارير", url: "/whatsapp/reports", icon: PieChart },
+        { title: "الإرسال السريع", url: "/whatsapp/quick-send", icon: Send },
+        { title: "الإعدادات", url: "/whatsapp/settings", icon: Settings },
       ]
     },
     { 

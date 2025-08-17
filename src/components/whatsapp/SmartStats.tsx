@@ -1,74 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { 
-  Users, 
-  ClipboardList, 
   MessageSquare, 
-  Clock, 
+  Users, 
+  TrendingUp, 
+  Clock,
   CheckCircle,
-  TrendingUp,
-  Send
+  XCircle,
+  AlertCircle,
+  BarChart3
 } from 'lucide-react';
-import { whatsappSmartService } from '@/services/whatsappSmartService';
-import { useAuth } from '@/hooks/useAuth';
 
-interface Stats {
-  totalSuppliers: number;
-  totalTasks: number;
-  messagesSentToday: number;
-  pendingTasks: number;
-  completedTasks: number;
+interface StatsData {
+  totalMessages: number;
+  deliveredMessages: number;
+  failedMessages: number;
+  pendingMessages: number;
+  activeCampaigns: number;
+  totalRecipients: number;
+  responseRate: number;
+  averageResponseTime: number;
 }
 
 export default function SmartStats() {
-  const { user } = useAuth();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [autoSending, setAutoSending] = useState(false);
+  const [stats, setStats] = useState<StatsData>({
+    totalMessages: 0,
+    deliveredMessages: 0,
+    failedMessages: 0,
+    pendingMessages: 0,
+    activeCampaigns: 0,
+    totalRecipients: 0,
+    responseRate: 0,
+    averageResponseTime: 0
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today');
 
   useEffect(() => {
-    if (user) {
-      whatsappSmartService.setUserId(user.id);
-      loadStats();
-    }
-  }, [user]);
+    // محاكاة جلب البيانات
+    const fetchStats = async () => {
+      setIsLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockStats: StatsData = {
+        totalMessages: 1247,
+        deliveredMessages: 1189,
+        failedMessages: 23,
+        pendingMessages: 35,
+        activeCampaigns: 8,
+        totalRecipients: 892,
+        responseRate: 78.5,
+        averageResponseTime: 2.3
+      };
+      
+      setStats(mockStats);
+      setIsLoading(false);
+    };
 
-  const loadStats = async () => {
-    setLoading(true);
-    try {
-      const statsData = await whatsappSmartService.getStats();
-      setStats(statsData);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    } finally {
-      setLoading(false);
-    }
+    fetchStats();
+  }, [timeRange]);
+
+  const getDeliveryRate = () => {
+    if (stats.totalMessages === 0) return 0;
+    return Math.round((stats.deliveredMessages / stats.totalMessages) * 100);
   };
 
-  const handleAutoSend = async () => {
-    setAutoSending(true);
-    try {
-      const messagesSent = await whatsappSmartService.sendAutoMessages();
-      if (messagesSent > 0) {
-        alert(`تم إرسال ${messagesSent} رسالة بنجاح`);
-        loadStats(); // إعادة تحميل الإحصائيات
-      } else {
-        alert('لا توجد رسائل مؤهلة للإرسال أو تم الوصول للحد اليومي');
-      }
-    } catch (error) {
-      console.error('Error sending auto messages:', error);
-      alert('حدث خطأ في إرسال الرسائل التلقائية');
-    } finally {
-      setAutoSending(false);
-    }
+  const getSuccessRate = () => {
+    if (stats.totalMessages === 0) return 0;
+    return Math.round((stats.deliveredMessages / (stats.deliveredMessages + stats.failedMessages)) * 100);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {[...Array(5)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(8)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="pb-2">
               <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -82,207 +91,211 @@ export default function SmartStats() {
     );
   }
 
-  if (!stats) {
-    return null;
-  }
-
-  const completionRate = stats.totalTasks > 0 
-    ? Math.round((stats.completedTasks / stats.totalTasks) * 100) 
-    : 0;
-
   return (
     <div className="space-y-6">
-      {/* صف الإحصائيات الرئيسية */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الموردين</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+      {/* شريط الفترة الزمنية */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">الإحصائيات الذكية</h3>
+        <div className="flex space-x-2 space-x-reverse">
+          {(['today', 'week', 'month'] as const).map((range) => (
+            <Button
+              key={range}
+              variant={timeRange === range ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTimeRange(range)}
+            >
+              {range === 'today' && 'اليوم'}
+              {range === 'week' && 'الأسبوع'}
+              {range === 'month' && 'الشهر'}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* الإحصائيات الرئيسية */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              إجمالي الرسائل
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalSuppliers}</div>
-            <p className="text-xs text-muted-foreground">
-              مورد نشط
+            <div className="text-2xl font-bold">{stats.totalMessages.toLocaleString()}</div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                {getDeliveryRate()}% تم التسليم
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              الرسائل المسلمة
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.deliveredMessages.toLocaleString()}
+            </div>
+            <Progress value={getSuccessRate()} className="mt-2" />
+            <p className="text-xs text-muted-foreground mt-1">
+              معدل النجاح: {getSuccessRate()}%
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي المهام</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-l-4 border-l-red-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <XCircle className="h-4 w-4" />
+              الرسائل الفاشلة
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              مهمة مخططة
-            </p>
+            <div className="text-2xl font-bold text-red-600">
+              {stats.failedMessages.toLocaleString()}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="destructive" className="text-xs">
+                {stats.failedMessages > 0 ? Math.round((stats.failedMessages / stats.totalMessages) * 100) : 0}%
+              </Badge>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">الرسائل اليوم</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-l-4 border-l-yellow-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              الرسائل المعلقة
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.messagesSentToday}</div>
-            <p className="text-xs text-muted-foreground">
-              رسالة مرسلة
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">المهام المعلقة</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              في الانتظار
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">المهام المكتملة</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.completedTasks}</div>
-            <p className="text-xs text-muted-foreground">
-              مكتملة
-            </p>
+            <div className="text-2xl font-bold text-yellow-600">
+              {stats.pendingMessages.toLocaleString()}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                في الانتظار
+              </Badge>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* صف الإجراءات السريعة */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* إحصائيات إضافية */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">معدل الإنجاز</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              إحصائيات المستلمين
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">نسبة الإنجاز</span>
-              <Badge variant="secondary">{completionRate}%</Badge>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">إجمالي المستلمين</span>
+              <span className="font-semibold">{stats.totalRecipients.toLocaleString()}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${completionRate}%` }}
-              ></div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">معدل الاستجابة</span>
+              <span className="font-semibold text-green-600">{stats.responseRate}%</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.completedTasks} من {stats.totalTasks} مهمة مكتملة
-            </p>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">متوسط وقت الاستجابة</span>
+              <span className="font-semibold">{stats.averageResponseTime} دقيقة</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">الحملات النشطة</span>
+              <span className="font-semibold text-blue-600">{stats.activeCampaigns}</span>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">الإرسال التلقائي</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              تحليل الأداء
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              <span className="text-sm">رسائل اليوم: {stats.messagesSentToday}</span>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>معدل التسليم</span>
+                <span>{getDeliveryRate()}%</span>
+              </div>
+              <Progress value={getDeliveryRate()} className="h-2" />
             </div>
-            <Button 
-              onClick={handleAutoSend}
-              disabled={autoSending}
-              className="w-full"
-              size="sm"
-            >
-              {autoSending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                  جاري الإرسال...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 ml-2" />
-                  إرسال تلقائي
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              إرسال رسائل للموردين المؤهلين
-            </p>
-          </CardContent>
-        </Card>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>معدل النجاح</span>
+                <span>{getSuccessRate()}%</span>
+              </div>
+              <Progress value={getSuccessRate()} className="h-2" />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>معدل الاستجابة</span>
+                <span>{stats.responseRate}%</span>
+              </div>
+              <Progress value={stats.responseRate} className="h-2" />
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">ملخص سريع</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">الموردين النشطين</span>
-              <Badge variant="outline">{stats.totalSuppliers}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">المهام المعلقة</span>
-              <Badge variant="destructive">{stats.pendingTasks}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm">الرسائل اليوم</span>
-              <Badge variant="default">{stats.messagesSentToday}</Badge>
-            </div>
             <div className="pt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={loadStats}
-              >
-                تحديث الإحصائيات
+              <Button variant="outline" className="w-full" size="sm">
+                <TrendingUp className="h-4 w-4 ml-2" />
+                عرض التقرير التفصيلي
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* رسائل التنبيه */}
-      {stats.pendingTasks > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <Clock className="h-5 w-5 text-orange-600" />
-              <div>
-                <p className="font-medium text-orange-800">
-                  لديك {stats.pendingTasks} مهمة معلقة تتطلب انتباهك
-                </p>
-                <p className="text-sm text-orange-600">
-                  راجع المهام اليومية لضمان عدم تفويت أي مواعيد مهمة
-                </p>
+      {/* تنبيهات وإشعارات */}
+      <Card className="border-l-4 border-l-orange-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-orange-600">
+            <AlertCircle className="h-5 w-5" />
+            تنبيهات مهمة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {stats.failedMessages > 20 && (
+              <div className="flex items-center gap-2 text-sm text-orange-600">
+                <AlertCircle className="h-4 w-4" />
+                عدد كبير من الرسائل الفاشلة - يرجى مراجعة الإعدادات
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {stats.messagesSentToday === 0 && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <MessageSquare className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="font-medium text-blue-800">
-                  لم يتم إرسال أي رسائل اليوم
-                </p>
-                <p className="text-sm text-blue-600">
-                  استخدم الإرسال التلقائي أو أرسل رسائل يدوياً للموردين
-                </p>
+            )}
+            {stats.pendingMessages > 50 && (
+              <div className="flex items-center gap-2 text-sm text-yellow-600">
+                <Clock className="h-4 w-4" />
+                رسائل معلقة كثيرة - قد تحتاج إلى زيادة معدل الإرسال
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            )}
+            {stats.responseRate < 50 && (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <Users className="h-4 w-4" />
+                معدل استجابة منخفض - قد تحتاج إلى تحسين توقيت الرسائل
+              </div>
+            )}
+            {stats.failedMessages <= 20 && stats.pendingMessages <= 50 && stats.responseRate >= 50 && (
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <CheckCircle className="h-4 w-4" />
+                جميع المؤشرات ضمن المعدل الطبيعي
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
