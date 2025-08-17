@@ -4832,6 +4832,10 @@ export type Database = {
           | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
         Returns: boolean
       }
+      import_existing_contacts: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       is_accountant: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -4895,6 +4899,16 @@ export type Database = {
           metadata?: Json
           severity?: string
           user_id_param?: string
+        }
+        Returns: string
+      }
+      log_whatsapp_activity: {
+        Args: {
+          p_activity_type: string
+          p_description: string
+          p_metadata?: Json
+          p_related_id?: string
+          p_related_table?: string
         }
         Returns: string
       }
@@ -4987,6 +5001,10 @@ export type Database = {
           stage_status_param?: string
         }
         Returns: boolean
+      }
+      update_whatsapp_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       validate_input_security: {
         Args: { input_text: string; input_type?: string }
