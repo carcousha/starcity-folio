@@ -450,17 +450,63 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       };
 
-      // استخدام CORS Proxy لحل مشكلة CORS
-      const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-      const apiUrl = `${apiConfig.base_url}/send-media`;
+      // محاولة الإرسال المباشر أولاً
+      let response;
+      try {
+        console.log('🔄 محاولة الإرسال المباشر للوسائط...');
+        console.log('📤 Payload:', payload);
+        
+        response = await fetch(`${apiConfig.base_url}/send-media`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        console.log('✅ نجح الإرسال المباشر للوسائط');
+      } catch (directError) {
+        console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
+        
+        // استخدام CORS Proxy كبديل
+        const corsProxies = [
+          'https://cors-anywhere.herokuapp.com/',
+          'https://api.allorigins.win/raw?url=',
+          'https://thingproxy.freeboard.io/fetch/'
+        ];
+        
+        for (const proxy of corsProxies) {
+          try {
+            console.log(`جاري تجربة CORS Proxy للوسائط: ${proxy}`);
+            
+            if (proxy.includes('allorigins')) {
+              response = await fetch(`${proxy}${encodeURIComponent(apiConfig.base_url + '/send-media')}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+            } else {
+              response = await fetch(`${proxy}${apiConfig.base_url}/send-media`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+            }
+            
+            if (response && response.ok) {
+              console.log(`✅ نجح CORS Proxy للوسائط: ${proxy}`);
+              break;
+            }
+          } catch (proxyError) {
+            console.log(`فشل CORS Proxy ${proxy}:`, proxyError);
+            continue;
+          }
+        }
+      }
       
-      const response = await fetch(`${corsProxy}${apiUrl}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      if (!response) {
+        throw new Error('فشل في الاتصال بـ API');
+      }
 
              // التحقق من أن الاستجابة صحيحة
        let result;
@@ -531,16 +577,38 @@ const WhatsAppAPI: React.FC = () => {
       };
 
       // استخدام CORS Proxy لحل مشكلة CORS
-      const corsProxy = 'https://cors-join.herokuapp.com/';
+      const corsProxy = 'https://cors-anywhere.herokuapp.com/';
       const apiUrl = `${apiConfig.base_url}/send-location`;
       
-      const response = await fetch(`${corsProxy}${apiUrl}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      // محاولة الإرسال المباشر أولاً
+      let response;
+      try {
+        console.log('🔄 محاولة الإرسال المباشر للموقع...');
+        
+        response = await fetch(`${apiConfig.base_url}/send-location`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        console.log('✅ نجح الإرسال المباشر للموقع');
+      } catch (directError) {
+        console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
+        
+        response = await fetch(`${corsProxy}${apiConfig.base_url}/send-location`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+      
+      if (!response) {
+        throw new Error('فشل في الاتصال بـ API');
+      }
 
              // التحقق من أن الاستجابة صحيحة
        let result;
@@ -614,13 +682,35 @@ const WhatsAppAPI: React.FC = () => {
       const corsProxy = 'https://cors-anywhere.herokuapp.com/';
       const apiUrl = `${apiConfig.base_url}/send-vcard`;
       
-      const response = await fetch(`${corsProxy}${apiUrl}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      // محاولة الإرسال المباشر أولاً
+      let response;
+      try {
+        console.log('🔄 محاولة الإرسال المباشر لـ VCard...');
+        
+        response = await fetch(`${apiConfig.base_url}/send-vcard`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        console.log('✅ نجح الإرسال المباشر لـ VCard');
+      } catch (directError) {
+        console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
+        
+        response = await fetch(`${corsProxy}${apiConfig.base_url}/send-vcard`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+      
+      if (!response) {
+        throw new Error('فشل في الاتصال بـ API');
+      }
 
              // التحقق من أن الاستجابة صحيحة
        let result;
