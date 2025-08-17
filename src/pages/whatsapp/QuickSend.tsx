@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Send, MessageSquare, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { whatsappSender } from '@/lib/whatsapp-sender';
+import { whatsappService } from '@/lib/whatsapp-service';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function QuickSend() {
@@ -74,16 +74,15 @@ export default function QuickSend() {
     setIsSuccess(false);
 
     try {
-      // إرسال الرسالة عبر المكتبة الجديدة
-      const result = await whatsappSender.sendTextMessage({
-        api_key: import.meta.env.VITE_WHATSAPP_API_KEY || 'demo_key',
+      // إرسال الرسالة عبر الخدمة الجديدة
+      const result = await whatsappService.sendTextMessage({
         sender: import.meta.env.VITE_WHATSAPP_SENDER || 'StarCity Folio',
         number: cleanPhone,
         message: message,
         footer: 'StarCity Folio'
       });
       
-      if (result.status) {
+      if (result.success) {
         setIsSuccess(true);
         setRecipient('');
         setMessage('');

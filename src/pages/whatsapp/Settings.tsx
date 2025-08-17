@@ -25,7 +25,7 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { whatsappSender } from '@/lib/whatsapp-sender';
+import { whatsappService } from '@/lib/whatsapp-service';
 
 interface ApiSettings {
   apiKey: string;
@@ -117,13 +117,12 @@ export default function Settings() {
     setApiStatus('testing');
 
     try {
-      // استخدام المكتبة الجديدة لاختبار الاتصال
-      const result = await whatsappSender.testConnection({
-        api_key: apiSettings.apiKey,
+      // استخدام الخدمة الجديدة لاختبار الاتصال
+      const result = await whatsappService.testConnection({
         sender: apiSettings.sender
       });
       
-      if (result.status && result.api_status === 'connected') {
+      if (result.success) {
         setApiStatus('success');
         toast({
           title: "تم الاتصال بنجاح",
@@ -133,7 +132,7 @@ export default function Settings() {
         setApiStatus('error');
         toast({
           title: "فشل في الاتصال",
-          description: result.message || "يرجى فحص مفتاح API أو رقم المرسل",
+          description: result.message || "يرجى فحص الإعدادات",
           variant: "destructive"
         });
       }
