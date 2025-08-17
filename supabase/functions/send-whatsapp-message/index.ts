@@ -8,7 +8,7 @@ const corsHeaders = {
 interface WhatsAppMessageRequest {
   type: 'text' | 'media' | 'sticker' | 'poll' | 'button' | 'list' | 'test'
   sender: string
-  number: string
+  number?: string
   message?: string
   footer?: string
   media_type?: string
@@ -30,6 +30,20 @@ serve(async (req) => {
   try {
     const { type, sender, number, message, footer, media_type, url, caption, name, option, countable, button, list }: WhatsAppMessageRequest = await req.json()
     
+    // تحقق أساسي من البيانات
+    if (!type || !sender) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'نوع الرسالة والمرسل مطلوبان' 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+    
     // Get API key from Supabase secrets
     const apiKey = Deno.env.get('X_GROWTH_API_KEY')
     if (!apiKey) {
@@ -46,7 +60,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`📤 إرسال رسالة ${type} إلى ${number}`)
+    console.log(`📤 إرسال رسالة ${type} من ${sender}${number ? ` إلى ${number}` : ' (اختبار)'}`)
 
     let apiUrl = ''
     let requestBody: any = {}
@@ -130,8 +144,9 @@ serve(async (req) => {
           api_key: apiKey,
           sender,
           number: number || '+971501234567',
-          message: message || 'اختبار الاتصال'
+          message: message || 'اختبار الاتصال من StarCity Folio'
         }
+        console.log('🧪 اختبار الاتصال مع البيانات:', requestBody)
         break
 
       default:

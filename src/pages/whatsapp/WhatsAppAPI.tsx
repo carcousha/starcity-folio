@@ -111,28 +111,33 @@ const WhatsAppAPI: React.FC = () => {
     setIsLoading(true);
     try {
       console.log('🔍 اختبار الاتصال عبر Edge Function...');
-      console.log('📱 Sender:', apiConfig.sender);
+      console.log('📱 المرسل:', apiConfig.sender);
       
       const result = await whatsappService.testConnection({
         sender: apiConfig.sender
       });
       
+      console.log('📥 نتيجة اختبار الاتصال:', result);
+      
       if (result.success) {
-        console.log('✅ اختبار الاتصال نجح:', result);
         toast({
           title: "✅ نجح الاختبار",
-          description: "Edge Function يعمل بشكل طبيعي",
+          description: "Edge Function والـ API يعملان بشكل طبيعي",
           variant: "default"
         });
       } else {
-        throw new Error(result.message);
+        toast({
+          title: "❌ فشل الاختبار",
+          description: result.message || "خطأ غير معروف",
+          variant: "destructive"
+        });
       }
       
     } catch (error) {
       console.error('❌ خطأ في اختبار الاتصال:', error);
       toast({
         title: "فشل في اختبار الاتصال",
-        description: error.message,
+        description: "تحقق من إعدادات Edge Function والـ API Key",
         variant: "destructive"
       });
     } finally {
