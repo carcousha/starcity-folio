@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Send, MessageSquare, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { whatsappServiceDirect } from '@/lib/whatsapp-service-direct';
+import whatsappSender from '@/lib/whatsapp-iframe-sender';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function QuickSend() {
@@ -74,15 +74,21 @@ export default function QuickSend() {
     setIsSuccess(false);
 
     try {
-      // إرسال الرسالة عبر Edge Function فقط
-      const result = await whatsappServiceDirect.sendTextMessage({
-        sender: 'StarCity Folio',
-        number: cleanPhone,
-        message: message,
-        footer: 'StarCity Folio'
-      });
+      // إرسال الرسالة عبر iframe
+      const messageData = {
+        type: 'text' as const,
+        data: {
+          api_key: 'api_key',
+          sender: 'StarCity Folio',
+          number: cleanPhone,
+          message: message,
+          footer: 'StarCity Folio'
+        }
+      };
       
-      if (result.success) {
+      const result = await whatsappSender.sendMessage(messageData);
+      
+      if (result.status) {
         setIsSuccess(true);
         setRecipient('');
         setMessage('');

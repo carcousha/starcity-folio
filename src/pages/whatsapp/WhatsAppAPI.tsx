@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { whatsappServiceDirect } from '@/lib/whatsapp-service-direct';
+import whatsappSender, { WhatsAppMessage } from '@/lib/whatsapp-iframe-sender';
 import { 
   Send, 
   MessageCircle, 
@@ -113,13 +113,11 @@ const WhatsAppAPI: React.FC = () => {
       console.log('🔍 اختبار الاتصال عبر Edge Function...');
       console.log('📱 المرسل:', apiConfig.sender);
       
-      const result = await whatsappServiceDirect.testConnection({
-        sender: apiConfig.sender
-      });
+      const result = await whatsappSender.testConnection('api_key', apiConfig.sender);
       
       console.log('📥 نتيجة اختبار الاتصال:', result);
       
-      if (result.success) {
+      if (result.status) {
         toast({
           title: "✅ نجح الاختبار",
           description: "Edge Function والـ API يعملان بشكل طبيعي",
@@ -159,15 +157,21 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      // استخدام Edge Function لإرسال الرسالة
-      const result = await whatsappServiceDirect.sendTextMessage({
-        sender: apiConfig.sender,
-        number: recipientNumber,
-        message: messageText,
-        footer: footer || 'Sent via WhatsApp API'
-      });
+      // استخدام iframe لإرسال الرسالة
+      const messageData: WhatsAppMessage = {
+        type: 'text',
+        data: {
+          api_key: 'api_key',
+          sender: apiConfig.sender,
+          number: recipientNumber,
+          message: messageText,
+          footer: footer || 'Sent via WhatsApp API'
+        }
+      };
+      
+      const result = await whatsappSender.sendMessage(messageData);
 
-      if (result.success) {
+      if (result.status) {
         console.log('✅ تم إرسال الرسالة بنجاح');
         
         // إضافة الرسالة إلى السجل
@@ -262,17 +266,23 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      // استخدام Edge Function لإرسال الوسائط
-      const result = await whatsappServiceDirect.sendMediaMessage({
-        sender: apiConfig.sender,
-        number: recipientNumber,
-        media_type: mediaType,
-        url: mediaUrl,
-        caption: caption || '',
-        footer: footer || 'Sent via WhatsApp API'
-      });
+      // استخدام iframe لإرسال الوسائط
+      const messageData: WhatsAppMessage = {
+        type: 'media',
+        data: {
+          api_key: 'api_key',
+          sender: apiConfig.sender,
+          number: recipientNumber,
+          media_type: mediaType,
+          url: mediaUrl,
+          caption: caption || '',
+          footer: footer || 'Sent via WhatsApp API'
+        }
+      };
+      
+      const result = await whatsappSender.sendMessage(messageData);
 
-      if (result.success) {
+      if (result.status) {
         console.log('✅ تم إرسال الوسائط بنجاح');
         
         // إضافة الرسالة إلى السجل

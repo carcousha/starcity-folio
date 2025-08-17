@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp API Bridge</title>
+</head>
+<body>
+    <script>
+        // Bridge for handling WhatsApp API calls without CORS issues
+        window.addEventListener('message', async (event) => {
+            // السماح للطلبات من نفس النطاق أو من iframe
+            const allowedOrigins = [window.location.origin, 'https://hrjyjemacsjoouobcgri.supabase.co'];
+            if (!allowedOrigins.includes(event.origin) && event.origin !== null) return;
+            
+            const { requestId, action, data } = event.data;
+            
+            try {
+                if (action === 'sendMessage') {
+                    const response = await sendWhatsAppMessage(data);
+                    event.source.postMessage({ requestId, response }, event.origin);
+                } else {
+                    throw new Error('Unknown action: ' + action);
+                }
+            } catch (error) {
+                event.source.postMessage({ requestId, error: error.message }, event.origin);
+            }
+        });
+
+        async function sendWhatsAppMessage(messageData) {
+            const { type, data } = messageData;
+            
+            let url;
+            let body = {
+                api_key: data.api_key,
+                sender: data.sender,
+                number: data.number
+            };
+
+            switch (type) {
+                case 'text':
+                    url = 'https://app.x-growth.tech/send-message';
+                    body.message = data.message;
+                    break;
+                    
+                case 'media':
+                    url = 'https://app.x-growth.tech/send-media';
+                    body.media_type = data.media_type;
+                    body.url = data.url;
+                    body.caption = data.caption;
+                    body.footer = data.footer;
+                    break;
+                    
+                case 'sticker':
+                    url = 'https://app.x-growth.tech/send-sticker';
+                    body.url = data.url;
+                    break;
+                    
+                case 'poll':
+                    url = 'https://app.x-growth.tech/send-poll';
+                    body.name = data.poll_name;
+                    body.option = data.poll_options;
+                    body.countable = data.poll_countable ? 'true' : 'false';
+                    break;
+                    
+                case 'button':
+                    url = 'https://app.x-growth.tech/send-button';
+                    body.message = data.message;
+                    body.button = data.button;
+                    body.footer = data.footer;
+                    body.url = data.url;
+                    break;
+                    
+                case 'list':
+                    url = 'https://app.x-growth.tech/send-list';
+                    body.message = data.message;
+                    body.list = data.list;
+                    body.footer = data.footer;
+                    break;
+                    
+                default:
+                    throw new Error('نوع الرسالة غير مدعوم');
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                return {
+                    status: true,
+                    message: 'تم إرسال الرسالة بنجاح',
+                    data: result
+                };
+            } else {
+                const error = await response.text();
+                return {
+                    status: false,
+                    message: 'فشل في إرسال الرسالة',
+                    error: error
+                };
+            }
+        }
+    </script>
+</body>
+</html>
