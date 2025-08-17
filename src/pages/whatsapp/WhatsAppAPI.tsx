@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { whatsappService } from '@/lib/whatsapp-service';
+import { whatsappServiceDirect } from '@/lib/whatsapp-service-direct';
 import { 
   Send, 
   MessageCircle, 
@@ -113,7 +113,7 @@ const WhatsAppAPI: React.FC = () => {
       console.log('🔍 اختبار الاتصال عبر Edge Function...');
       console.log('📱 المرسل:', apiConfig.sender);
       
-      const result = await whatsappService.testConnection({
+      const result = await whatsappServiceDirect.testConnection({
         sender: apiConfig.sender
       });
       
@@ -160,7 +160,7 @@ const WhatsAppAPI: React.FC = () => {
       });
 
       // استخدام Edge Function لإرسال الرسالة
-      const result = await whatsappService.sendTextMessage({
+      const result = await whatsappServiceDirect.sendTextMessage({
         sender: apiConfig.sender,
         number: recipientNumber,
         message: messageText,
@@ -263,7 +263,7 @@ const WhatsAppAPI: React.FC = () => {
       });
 
       // استخدام Edge Function لإرسال الوسائط
-      const result = await whatsappService.sendMediaMessage({
+      const result = await whatsappServiceDirect.sendMediaMessage({
         sender: apiConfig.sender,
         number: recipientNumber,
         media_type: mediaType,

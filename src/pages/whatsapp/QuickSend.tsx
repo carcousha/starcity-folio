@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Send, MessageSquare, Phone, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { whatsappService } from '@/lib/whatsapp-service';
+import { whatsappServiceDirect } from '@/lib/whatsapp-service-direct';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function QuickSend() {
@@ -75,7 +75,7 @@ export default function QuickSend() {
 
     try {
       // إرسال الرسالة عبر Edge Function فقط
-      const result = await whatsappService.sendTextMessage({
+      const result = await whatsappServiceDirect.sendTextMessage({
         sender: 'StarCity Folio',
         number: cleanPhone,
         message: message,
