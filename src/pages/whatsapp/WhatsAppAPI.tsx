@@ -27,9 +27,7 @@ import {
 } from "lucide-react";
 
 interface APIConfig {
-  api_key: string;
   sender: string;
-  base_url: string;
 }
 
 interface MessageHistory {
@@ -45,9 +43,7 @@ interface MessageHistory {
 const WhatsAppAPI: React.FC = () => {
   // حالة التكوين
   const [apiConfig, setApiConfig] = useState<APIConfig>({
-    api_key: '',
-    sender: '',
-    base_url: 'https://app.x-growth.tech'
+    sender: 'StarCity Folio'
   });
 
   // حالة الرسائل
@@ -69,29 +65,6 @@ const WhatsAppAPI: React.FC = () => {
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   
-  // حالة الأزرار
-  const [buttons, setButtons] = useState<Array<{
-    type: 'reply' | 'call' | 'url' | 'copy';
-    displayText: string;
-    phoneNumber?: string;
-    url?: string;
-    copyCode?: string;
-  }>>([]);
-  
-  // حالة القائمة
-  const [listName, setListName] = useState('');
-  const [listTitle, setListTitle] = useState('');
-  const [buttonText, setButtonText] = useState('');
-  const [sections, setSections] = useState<Array<{
-    title: string;
-    description: string;
-    rows: Array<{
-      title: string;
-      rowId: string;
-      description: string;
-    }>;
-  }>>([]);
-  
   // حالة عامة
   const [isLoading, setIsLoading] = useState(false);
   const [messageHistory, setMessageHistory] = useState<MessageHistory[]>([]);
@@ -107,10 +80,10 @@ const WhatsAppAPI: React.FC = () => {
 
   // حفظ التكوين
   const saveConfig = () => {
-    if (!apiConfig.api_key || !apiConfig.sender) {
+    if (!apiConfig.sender) {
       toast({
         title: "خطأ في التكوين",
-        description: "يرجى ملء API Key ورقم المرسل",
+        description: "يرجى ملء رقم المرسل",
         variant: "destructive"
       });
       return;
@@ -120,16 +93,16 @@ const WhatsAppAPI: React.FC = () => {
     setIsConfigOpen(false);
     toast({
       title: "تم حفظ التكوين",
-      description: "تم حفظ إعدادات API بنجاح"
+      description: "تم حفظ إعدادات المرسل بنجاح"
     });
   };
 
-  // اختبار الاتصال بالـ API
+  // اختبار الاتصال عبر Edge Function
   const testAPIConnection = async () => {
-    if (!apiConfig.api_key || !apiConfig.sender) {
+    if (!apiConfig.sender) {
       toast({
         title: "خطأ في التكوين",
-        description: "يرجى إدخال API Key ورقم المرسل أولاً",
+        description: "يرجى إدخال رقم المرسل أولاً",
         variant: "destructive"
       });
       return;
@@ -137,92 +110,26 @@ const WhatsAppAPI: React.FC = () => {
 
     setIsLoading(true);
     try {
-      console.log('🔍 اختبار الاتصال بالـ API...');
-      console.log('📋 API Key:', apiConfig.api_key.substring(0, 10) + '...');
+      console.log('🔍 اختبار الاتصال عبر Edge Function...');
       console.log('📱 Sender:', apiConfig.sender);
-      console.log('🌐 Base URL:', apiConfig.base_url);
       
-      const testPayload = {
-        api_key: apiConfig.api_key,
-        sender: apiConfig.sender,
-        number: '+971501234567', // رقم اختبار
-        message: 'اختبار الاتصال من WhatsApp API',
-        footer: 'اختبار عبر API'
-      };
-
-      let response;
-      let testSuccess = false;
+      const result = await whatsappService.testConnection({
+        sender: apiConfig.sender
+      });
       
-      // لا نستخدم CORS proxies - نستخدم iframe فقط
-      
-      // محاولة الإرسال المباشر أولاً
-      try {
-        console.log('🔄 محاولة الاتصال المباشر...');
-        response = await fetch(`${apiConfig.base_url}/send-message`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(testPayload)
+      if (result.success) {
+        console.log('✅ اختبار الاتصال نجح:', result);
+        toast({
+          title: "✅ نجح الاختبار",
+          description: "Edge Function يعمل بشكل طبيعي",
+          variant: "default"
         });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('✅ الاتصال المباشر نجح:', result);
-          testSuccess = true;
-          
-          if (result.status) {
-            toast({
-              title: "✅ نجح الاختبار",
-              description: "API يعمل بشكل طبيعي - الاتصال المباشر",
-              variant: "default"
-            });
-          } else {
-            toast({
-              title: "⚠️ مشكلة في البيانات",
-              description: result.msg || "تحقق من API Key ورقم المرسل",
-              variant: "destructive"
-            });
-          }
-          return;
-        }
-      } catch (directError) {
-        console.log('❌ الاتصال المباشر فشل:', directError.message);
-      }
-      
-      // إذا فشل الاتصال المباشر، نستخدم iframe
-      if (!testSuccess) {
-        console.log('🔄 جاري استخدام iframe...');
-        
-        try {
-          const result = await whatsappService.testConnection({
-            sender: apiConfig.sender
-          });
-          
-          if (result.success) {
-            console.log('✅ اختبار الاتصال عبر Edge Function نجح:', result);
-            testSuccess = true;
-            toast({
-              title: "✅ نجح الاختبار",
-              description: "API يعمل عبر Edge Function",
-              variant: "default"
-            });
-          } else {
-            throw new Error(result.message);
-          }
-        } catch (iframeError) {
-          console.log('❌ فشل iframe:', iframeError.message);
-          throw new Error('فشل في اختبار الاتصال عبر Edge Function');
-        }
-      }
-      
-      if (!testSuccess) {
-        throw new Error('فشل في اختبار الاتصال - تحقق من API Key ورقم المرسل');
+      } else {
+        throw new Error(result.message);
       }
       
     } catch (error) {
-      console.error('❌ خطأ عام في اختبار الاتصال:', error);
+      console.error('❌ خطأ في اختبار الاتصال:', error);
       toast({
         title: "فشل في اختبار الاتصال",
         description: error.message,
@@ -239,16 +146,15 @@ const WhatsAppAPI: React.FC = () => {
 
     setIsLoading(true);
     try {
-      console.log('🚀 بدء إرسال الرسالة النصية...');
+      console.log('🚀 بدء إرسال الرسالة النصية عبر Edge Function...');
       console.log('📋 البيانات:', {
-        api_key: apiConfig.api_key.substring(0, 10) + '...',
         sender: apiConfig.sender,
         number: recipientNumber,
         message: messageText.substring(0, 50) + (messageText.length > 50 ? '...' : ''),
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      // استخدام الخدمة الجديدة لاستدعاء Edge Function
+      // استخدام Edge Function لإرسال الرسالة
       const result = await whatsappService.sendTextMessage({
         sender: apiConfig.sender,
         number: recipientNumber,
@@ -327,8 +233,6 @@ const WhatsAppAPI: React.FC = () => {
       setIsLoading(false);
     }
   };
-      
-
 
   // إرسال رسالة وسائط
   const sendMediaMessage = async () => {
@@ -343,9 +247,8 @@ const WhatsAppAPI: React.FC = () => {
 
     setIsLoading(true);
     try {
-      console.log('🚀 بدء إرسال الوسائط...');
+      console.log('🚀 بدء إرسال الوسائط عبر Edge Function...');
       console.log('📋 البيانات:', {
-        api_key: apiConfig.api_key.substring(0, 10) + '...',
         sender: apiConfig.sender,
         number: recipientNumber,
         media_type: mediaType,
@@ -354,7 +257,7 @@ const WhatsAppAPI: React.FC = () => {
         footer: footer || 'Sent via WhatsApp API'
       });
 
-      // استخدام الخدمة الجديدة لاستدعاء Edge Function  
+      // استخدام Edge Function لإرسال الوسائط
       const result = await whatsappService.sendMediaMessage({
         sender: apiConfig.sender,
         number: recipientNumber,
@@ -437,216 +340,12 @@ const WhatsAppAPI: React.FC = () => {
     }
   };
 
-  // إرسال موقع
-  const sendLocationMessage = async () => {
-    if (!validateBasicFields() || !latitude || !longitude) {
-      toast({
-        title: "بيانات ناقصة",
-        description: "يرجى ملء جميع الحقول المطلوبة",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const payload = {
-        api_key: apiConfig.api_key,
-        sender: apiConfig.sender,
-        number: recipientNumber,
-        latitude: latitude,
-        longitude: longitude
-      };
-
-      // استخدام CORS Proxy لحل مشكلة CORS
-      const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-      const apiUrl = `${apiConfig.base_url}/send-location`;
-      
-      // محاولة الإرسال المباشر أولاً
-      let response;
-      try {
-        console.log('🔄 محاولة الإرسال المباشر للموقع...');
-        
-        response = await fetch(`${apiConfig.base_url}/send-location`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        
-        console.log('✅ نجح الإرسال المباشر للموقع');
-      } catch (directError) {
-        console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
-        
-        response = await fetch(`${corsProxy}${apiConfig.base_url}/send-location`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-      }
-      
-      if (!response) {
-        throw new Error('فشل في الاتصال بـ API');
-      }
-
-             // التحقق من أن الاستجابة صحيحة
-       let result;
-       try {
-         const responseText = await response.text();
-         console.log('استجابة API (Location):', responseText);
-         
-         // محاولة parsing JSON
-         try {
-           result = JSON.parse(responseText);
-         } catch (jsonError) {
-           console.error('فشل في parsing JSON (Location):', jsonError);
-           console.log('محتوى الاستجابة (Location):', responseText);
-           
-           // إذا كان HTML، نحاول استخراج رسالة خطأ
-           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
-           } else {
-             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
-           }
-         }
-         
-         if (result.status) {
-           addToHistory('location', recipientNumber, `موقع: ${latitude}, ${longitude}`, 'sent', result);
-           toast({
-             title: "تم الإرسال",
-             description: "تم إرسال الموقع بنجاح"
-           });
-           clearLocationForm();
-         } else {
-           throw new Error(result.msg || 'فشل في الإرسال');
-         }
-       } catch (parseError) {
-         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
-       }
-    } catch (error) {
-      console.error('خطأ في إرسال الموقع:', error);
-      addToHistory('location', recipientNumber, `موقع: ${latitude}, ${longitude}`, 'failed', { error: error.message });
-      toast({
-        title: "خطأ في الإرسال",
-        description: `فشل في إرسال الموقع: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // إرسال VCard
-  const sendVCardMessage = async () => {
-    if (!validateBasicFields() || !contactName || !contactPhone) {
-      toast({
-        title: "بيانات ناقصة",
-        description: "يرجى ملء جميع الحقول المطلوبة",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const payload = {
-        api_key: apiConfig.api_key,
-        sender: apiConfig.sender,
-        number: recipientNumber,
-        name: contactName,
-        phone: contactPhone
-      };
-
-      // استخدام CORS Proxy لحل مشكلة CORS
-      const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-      const apiUrl = `${apiConfig.base_url}/send-vcard`;
-      
-      // محاولة الإرسال المباشر أولاً
-      let response;
-      try {
-        console.log('🔄 محاولة الإرسال المباشر لـ VCard...');
-        
-        response = await fetch(`${apiConfig.base_url}/send-vcard`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        
-        console.log('✅ نجح الإرسال المباشر لـ VCard');
-      } catch (directError) {
-        console.log('محاولة مباشرة فشلت، جاري استخدام CORS Proxy...');
-        
-        response = await fetch(`${corsProxy}${apiConfig.base_url}/send-vcard`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-      }
-      
-      if (!response) {
-        throw new Error('فشل في الاتصال بـ API');
-      }
-
-             // التحقق من أن الاستجابة صحيحة
-       let result;
-       try {
-         const responseText = await response.text();
-         console.log('استجابة API (VCard):', responseText);
-         
-         // محاولة parsing JSON
-         try {
-           result = JSON.parse(responseText);
-         } catch (jsonError) {
-           console.error('فشل في parsing JSON (VCard):', jsonError);
-           console.log('محتوى الاستجابة (VCard):', responseText);
-           
-           // إذا كان HTML، نحاول استخراج رسالة خطأ
-           if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-             throw new Error('CORS Proxy أعاد HTML بدلاً من JSON. يرجى تفعيل CORS Proxy أولاً');
-           } else {
-             throw new Error(`استجابة غير صحيحة: ${responseText.substring(0, 100)}`);
-           }
-         }
-         
-         if (result.status) {
-           addToHistory('vcard', recipientNumber, `جهة اتصال: ${contactName}`, 'sent', result);
-           toast({
-             title: "تم الإرسال",
-             description: "تم إرسال VCard بنجاح"
-           });
-           clearVCardForm();
-         } else {
-           throw new Error(result.msg || 'فشل في الإرسال');
-         }
-       } catch (parseError) {
-         throw new Error(`خطأ في معالجة الاستجابة: ${parseError.message}`);
-       }
-    } catch (error) {
-      console.error('خطأ في إرسال VCard:', error);
-      addToHistory('vcard', recipientNumber, `جهة اتصال: ${contactName}`, 'failed', { error: error.message });
-      toast({
-        title: "خطأ في الإرسال",
-        description: `فشل في إرسال VCard: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // دوال مساعدة
   const validateBasicFields = (): boolean => {
-    if (!apiConfig.api_key || !apiConfig.sender) {
+    if (!apiConfig.sender) {
       toast({
         title: "❌ خطأ في التكوين",
-        description: "يرجى إدخال API Key ورقم المرسل في الإعدادات أولاً",
+        description: "يرجى إدخال رقم المرسل في الإعدادات أولاً",
         variant: "destructive"
       });
       return false;
@@ -661,7 +360,7 @@ const WhatsAppAPI: React.FC = () => {
       return false;
     }
 
-    if (!messageText) {
+    if (!messageText && messageType === 'text') {
       toast({
         title: "❌ بيانات ناقصة", 
         description: "يرجى كتابة نص الرسالة",
@@ -698,35 +397,6 @@ const WhatsAppAPI: React.FC = () => {
     setMessageHistory(prev => [newMessage, ...prev.slice(0, 49)]); // الاحتفاظ بـ 50 رسالة فقط
   };
 
-  const clearTextForm = () => {
-    setRecipientNumber('');
-    setMessageText('');
-    setFooter('');
-  };
-
-  const clearMediaForm = () => {
-    setRecipientNumber('');
-    setMessageText('');
-    setFooter('');
-    setMediaUrl('');
-    setMediaType('image');
-    setCaption('');
-  };
-
-  const clearLocationForm = () => {
-    setRecipientNumber('');
-    setMessageText('');
-    setLatitude('');
-    setLongitude('');
-  };
-
-  const clearVCardForm = () => {
-    setRecipientNumber('');
-    setMessageText('');
-    setContactName('');
-    setContactPhone('');
-  };
-
   const getMessageTypeIcon = (type: string) => {
     switch (type) {
       case 'text': return <MessageCircle className="h-4 w-4" />;
@@ -758,19 +428,19 @@ const WhatsAppAPI: React.FC = () => {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
                 WhatsApp API
               </h1>
-              <p className="text-slate-600 text-lg">إرسال رسائل WhatsApp عبر API من x-growth.tech</p>
-              {!apiConfig.api_key || !apiConfig.sender ? (
+              <p className="text-slate-600 text-lg">إرسال رسائل WhatsApp عبر Edge Function الآمن</p>
+              {!apiConfig.sender ? (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
                   <p className="text-yellow-800 text-sm font-medium flex items-center">
                     <AlertCircle className="h-4 w-4 ml-2" />
-                    يرجى تكوين API Key ورقم المرسل أولاً لبدء الإرسال
+                    يرجى تكوين رقم المرسل أولاً لبدء الإرسال
                   </p>
                 </div>
               ) : (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
                   <p className="text-green-800 text-sm font-medium flex items-center">
                     <CheckCircle className="h-4 w-4 ml-2" />
-                    تم تكوين API بنجاح - يمكنك البدء في إرسال الرسائل
+                    تم تكوين المرسل بنجاح - يمكنك البدء في إرسال الرسائل عبر Edge Function الآمن
                   </p>
                 </div>
               )}
@@ -779,7 +449,7 @@ const WhatsAppAPI: React.FC = () => {
             <div className="flex gap-3">
               <Button
                 onClick={testAPIConnection}
-                disabled={isLoading || !apiConfig.api_key || !apiConfig.sender}
+                disabled={isLoading || !apiConfig.sender}
                 variant="outline"
                 className="px-6 py-3 h-12 rounded-xl border-2 border-green-200 hover:border-green-300 transition-all duration-200"
               >
@@ -791,7 +461,7 @@ const WhatsAppAPI: React.FC = () => {
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 h-12 rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 hover:scale-105"
               >
                 <Settings className="h-5 w-5 ml-2" />
-                إعدادات API
+                إعدادات المرسل
               </Button>
             </div>
           </div>
@@ -816,7 +486,7 @@ const WhatsAppAPI: React.FC = () => {
                     id="recipient"
                     value={recipientNumber}
                     onChange={(e) => setRecipientNumber(e.target.value)}
-                    placeholder="+971585700181"
+                    placeholder="+971501234567"
                     className="border-green-200 focus:border-green-500 focus:ring-green-500/20"
                   />
                 </div>
@@ -932,116 +602,6 @@ const WhatsAppAPI: React.FC = () => {
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Location Message */}
-            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-700">
-                  <MapPin className="h-5 w-5" />
-                  إرسال موقع
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="latitude">خط العرض</Label>
-                    <Input
-                      id="latitude"
-                      value={latitude}
-                      onChange={(e) => setLatitude(e.target.value)}
-                      placeholder="24.121231"
-                      type="number"
-                      step="any"
-                      className="border-purple-200 focus:border-purple-500 focus:ring-purple-500/20"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="longitude">خط الطول</Label>
-                    <Input
-                      id="longitude"
-                      value={longitude}
-                      onChange={(e) => setLongitude(e.target.value)}
-                      placeholder="55.1121221"
-                      type="number"
-                      step="any"
-                      className="border-purple-200 focus:border-purple-500 focus:ring-purple-500/20"
-                    />
-                  </div>
-                </div>
-                
-                <Button
-                  onClick={sendLocationMessage}
-                  disabled={isLoading || !recipientNumber || !latitude || !longitude}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white h-12 rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                      جاري الإرسال...
-                    </div>
-                  ) : (
-                    <>
-                      <MapPin className="h-4 w-4 ml-2" />
-                      إرسال الموقع
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* VCard Message */}
-            <Card className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-orange-700">
-                  <User className="h-5 w-5" />
-                  إرسال جهة اتصال
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="contactName">اسم جهة الاتصال</Label>
-                    <Input
-                      id="contactName"
-                      value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                      placeholder="أحمد محمد"
-                      className="border-orange-200 focus:border-orange-500 focus:ring-orange-500/20"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="contactPhone">رقم الهاتف</Label>
-                    <Input
-                      id="contactPhone"
-                      value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value)}
-                      placeholder="+971585700181"
-                      className="border-orange-200 focus:border-orange-500 focus:ring-orange-500/20"
-                    />
-                  </div>
-                </div>
-                
-                <Button
-                  onClick={sendVCardMessage}
-                  disabled={isLoading || !recipientNumber || !contactName || !contactPhone}
-                  className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white h-12 rounded-xl shadow-lg shadow-orange-500/25 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                      جاري الإرسال...
-                    </div>
-                  ) : (
-                    <>
-                      <User className="h-4 w-4 ml-2" />
-                      إرسال جهة الاتصال
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Message History */}
@@ -1059,7 +619,7 @@ const WhatsAppAPI: React.FC = () => {
                     <div className="text-center py-8 text-slate-500">
                       <MessageCircle className="h-16 w-16 mx-auto text-slate-300 mb-4" />
                       <p>لا توجد رسائل مرسلة بعد</p>
-                      <p className="text-sm">ابدأ بإرسال رسالة لرؤية السجل</p>
+                      <p className="text-sm">ابدأ بإرسال رسالة عبر Edge Function الآمن</p>
                     </div>
                   ) : (
                     messageHistory.map((msg) => (
@@ -1104,113 +664,77 @@ const WhatsAppAPI: React.FC = () => {
         {isConfigOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-              <h3 className="text-xl font-bold text-slate-800 mb-4">إعدادات API</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-4">إعدادات المرسل</h3>
               
-                             <div className="space-y-4">
-                 <div className="space-y-2">
-                   <Label htmlFor="apiKey">API Key</Label>
-                   <Input
-                     id="apiKey"
-                     value={apiConfig.api_key}
-                     onChange={(e) => setApiConfig(prev => ({ ...prev, api_key: e.target.value }))}
-                     placeholder="أدخل API Key الخاص بك"
-                     className="border-slate-200 focus:border-green-500 focus:ring-green-500/20"
-                   />
-                   <p className="text-xs text-slate-500">API Key: yQ9Ijpt3Zgd3dI5aVAGw12Y5z3fMFG</p>
-                 </div>
-                
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="sender">رقم المرسل</Label>
                   <Input
                     id="sender"
                     value={apiConfig.sender}
                     onChange={(e) => setApiConfig(prev => ({ ...prev, sender: e.target.value }))}
-                    placeholder="+971585700181"
+                    placeholder="StarCity Folio"
                     className="border-slate-200 focus:border-green-500 focus:ring-green-500/20"
                   />
+                  <p className="text-xs text-slate-500">اسم المرسل الذي سيظهر في الرسائل</p>
                 </div>
                 
-                                 <div className="space-y-2">
-                   <Label htmlFor="baseUrl">رابط API الأساسي</Label>
-                   <Input
-                     id="baseUrl"
-                     value={apiConfig.base_url}
-                     onChange={(e) => setApiConfig(prev => ({ ...prev, base_url: e.target.value }))}
-                     placeholder="https://app.x-growth.tech"
-                     className="border-slate-200 focus:border-green-500 focus:ring-green-500/20"
-                   />
-                 </div>
-                 
-                  {/* إرشادات التكوين */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                    <h4 className="font-medium text-green-800 mb-3 flex items-center">
-                      <CheckCircle className="h-4 w-4 ml-2" />
-                      متطلبات التكوين
-                    </h4>
-                    <div className="space-y-2 text-sm text-green-700">
-                      <div className="flex items-start">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
-                        <span><strong>API Key:</strong> احصل عليه من لوحة تحكم x-growth.tech</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
-                        <span><strong>رقم المرسل:</strong> رقم الواتساب المسجل في الخدمة (بدون +)</span>
-                      </div>
-                      <div className="flex items-start">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
-                        <span><strong>مثال رقم صحيح:</strong> 971585700181</span>
-                      </div>
+                {/* إرشادات التكوين */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-medium text-green-800 mb-3 flex items-center">
+                    <CheckCircle className="h-4 w-4 ml-2" />
+                    معلومات مهمة
+                  </h4>
+                  <div className="space-y-2 text-sm text-green-700">
+                    <div className="flex items-start">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
+                      <span>API Key محفوظ بأمان في الخادم</span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
+                      <span>الإرسال يتم عبر Edge Function الآمن</span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mt-2 ml-2 flex-shrink-0"></span>
+                      <span>لا توجد مشاكل CORS أو تسريب مفاتيح</span>
                     </div>
                   </div>
-                  
-                  {/* مساعدة CORS */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <h4 className="font-medium text-blue-800 mb-2 flex items-center">
-                      <AlertCircle className="h-4 w-4 ml-2" />
-                      حل مشكلة CORS
-                    </h4>
-                    <p className="text-sm text-blue-700 mb-2">إذا فشل الاختبار بسبب CORS:</p>
-                    <ol className="text-xs text-blue-600 space-y-1 list-decimal list-inside">
-                      <li>افتح: <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">cors-anywhere.herokuapp.com/corsdemo</a></li>
-                      <li>اضغط: "Request temporary access to the demo server"</li>
-                      <li>عد للصفحة وجرب الاختبار مرة أخرى</li>
-                    </ol>
-                  </div>
-                  
-                  {/* حالة API */}
-                  {apiConfig.api_key && apiConfig.sender && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-600 ml-2" />
-                        <span className="text-sm text-green-700 font-medium">جاهز للاختبار والإرسال</span>
-                      </div>
-                    </div>
-                  )}
-               </div>
-               
-               <div className="flex gap-3 mt-6">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsConfigOpen(false)}
-                    className="flex-1 border-slate-200 hover:border-slate-300"
-                  >
-                    إلغاء
-                  </Button>
-                  <Button
-                    onClick={testAPIConnection}
-                    disabled={isLoading || !apiConfig.api_key || !apiConfig.sender}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white disabled:opacity-50"
-                  >
-                    {isLoading ? 'جاري الاختبار...' : 'اختبار الاتصال'}
-                  </Button>
-                  <Button
-                    onClick={saveConfig}
-                    disabled={!apiConfig.api_key || !apiConfig.sender}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50"
-                  >
-                    حفظ
-                  </Button>
                 </div>
+                
+                {/* حالة API */}
+                {apiConfig.sender && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-600 ml-2" />
+                      <span className="text-sm text-green-700 font-medium">جاهز للاختبار والإرسال</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsConfigOpen(false)}
+                  className="flex-1 border-slate-200 hover:border-slate-300"
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={testAPIConnection}
+                  disabled={isLoading || !apiConfig.sender}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white disabled:opacity-50"
+                >
+                  {isLoading ? 'جاري الاختبار...' : 'اختبار الاتصال'}
+                </Button>
+                <Button
+                  onClick={saveConfig}
+                  disabled={!apiConfig.sender}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50"
+                >
+                  حفظ
+                </Button>
+              </div>
             </div>
           </div>
         )}
