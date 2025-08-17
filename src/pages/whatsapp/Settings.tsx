@@ -15,7 +15,7 @@ import whatsappDirectSender from '@/lib/whatsapp-direct-sender';
 export default function Settings() {
   const [apiSettings, setApiSettings] = useState({
     apiKey: '',
-    sender: 'StarCity Folio',
+    sender: '+971522001189',
     baseUrl: 'https://app.x-growth.tech'
   });
   
@@ -26,7 +26,7 @@ export default function Settings() {
   // تحميل الإعدادات المحفوظة عند بدء التطبيق
   useEffect(() => {
     const savedApiKey = localStorage.getItem('whatsapp_api_key') || '';
-    const savedSender = localStorage.getItem('whatsapp_sender') || 'StarCity Folio';
+    const savedSender = localStorage.getItem('whatsapp_sender') || '+971522001189';
     const savedBaseUrl = localStorage.getItem('whatsapp_base_url') || 'https://app.x-growth.tech';
     
     setApiSettings({
@@ -190,15 +190,16 @@ export default function Settings() {
                   </div>
 
                   <div>
-                    <Label htmlFor="sender">اسم المرسل</Label>
+                    <Label htmlFor="sender">رقم المرسل</Label>
                     <Input
                       id="sender"
                       value={apiSettings.sender}
                       onChange={(e) => setApiSettings({...apiSettings, sender: e.target.value})}
-                      placeholder="StarCity Folio"
+                      placeholder="+971522001189"
+                      dir="ltr"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      الاسم الذي سيظهر كمرسل للرسائل
+                      رقم الهاتف الذي سيظهر كمرسل للرسائل (بالصيغة الدولية)
                     </p>
                   </div>
                 </div>
