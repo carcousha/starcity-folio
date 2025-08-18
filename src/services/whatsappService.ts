@@ -592,10 +592,19 @@ class WhatsAppService {
     try {
       console.log('Sending to WhatsApp API:', data);
       
-      // محاولة الاتصال المباشر بـ API
-      const apiUrl = 'https://app.x-growth.tech/api/v1/send-message';
+      // تجربة عدة تنسيقات مختلفة لـ API
+      const apiUrls = [
+        'https://app.x-growth.tech/api/v1/send-message',
+        'https://app.x-growth.tech/api/send-message',
+        'https://app.x-growth.tech/send-message',
+        'https://api.x-growth.tech/v1/send-message'
+      ];
       
-      const response = await fetch(apiUrl, {
+      let apiUrl = apiUrls[0];
+      
+      // تنسيق 1: التنسيق الحالي
+      console.log('Trying format 1:', data);
+      let response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -604,12 +613,57 @@ class WhatsAppService {
         body: JSON.stringify(data)
       });
 
+      // إذا فشل، جرب تنسيق 2
+      if (!response.ok || response.status >= 400) {
+        console.log('Format 1 failed, trying format 2');
+        const format2Data = {
+          apikey: data.api_key,
+          to: data.number,
+          text: data.message,
+          from: data.sender
+        };
+        console.log('Trying format 2:', format2Data);
+        
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(format2Data)
+        });
+      }
+
+      // إذا فشل، جرب تنسيق 3
+      if (!response.ok || response.status >= 400) {
+        console.log('Format 2 failed, trying format 3');
+        const format3Data = {
+          key: data.api_key,
+          phone: data.number,
+          message: data.message,
+          sender: data.sender
+        };
+        console.log('Trying format 3:', format3Data);
+        
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(format3Data)
+        });
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
       console.log('API Response:', result);
+      
+      // فحص مفصل للاستجابة
+      alert(`API Response: ${JSON.stringify(result, null, 2)}`);
 
       return {
         status: result.success || result.status || false,
