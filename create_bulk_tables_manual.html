@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء جداول الإرسال الجماعي - الطريقة اليدوية</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .method {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .method h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .method.success {
+            border-color: #10b981;
+            background-color: #d1fae5;
+        }
+        .method.error {
+            border-color: #ef4444;
+            background-color: #fee2e2;
+        }
+        .code-block {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .button {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #1d4ed8;
+        }
+        .button.success {
+            background-color: #10b981;
+        }
+        .button.error {
+            background-color: #ef4444;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            border-left: 4px solid #2563eb;
+        }
+        .step h4 {
+            margin: 0 0 10px 0;
+            color: #374151;
+        }
+        .step ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .step li {
+            margin: 5px 0;
+            color: #6b7280;
+        }
+        .warning {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .success-message {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 إنشاء جداول الإرسال الجماعي - الطريقة اليدوية</h1>
+        
+        <div class="warning">
+            <strong>⚠️ تنبيه:</strong> الطريقة السابقة فشلت بسبب عدم وجود دالة `exec_sql` في Supabase. 
+            سنستخدم الطريقة اليدوية عبر Supabase Dashboard.
+        </div>
+
+        <div class="method success">
+            <h3>✅ الطريقة الأولى: عبر Supabase Dashboard (موصى بها)</h3>
+            
+            <div class="step">
+                <h4>الخطوات:</h4>
+                <ol>
+                    <li>اذهب إلى <a href="https://supabase.com/dashboard" target="_blank">Supabase Dashboard</a></li>
+                    <li>اختر مشروعك (StarCity Folio)</li>
+                    <li>اذهب إلى "SQL Editor" من القائمة الجانبية</li>
+                    <li>اضغط على "New Query"</li>
+                    <li>انسخ الكود التالي والصقه في المحرر:</li>
+                </ol>
+            </div>
+
+            <button class="button" onclick="copySQLCode()">نسخ كود SQL</button>
+            <button class="button" onclick="downloadSQLFile()">تحميل ملف SQL</button>
+
+            <div class="code-block" id="sqlCode">
+-- ===== إنشاء جداول الإرسال الجماعي =====
+-- قم بنسخ هذا الكود ولصقه في Supabase SQL Editor
+
+-- إنشاء جدول الرسائل الجماعية
+CREATE TABLE IF NOT EXISTS whatsapp_bulk_messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    message_content TEXT NOT NULL,
+    message_type VARCHAR(50) DEFAULT 'text' CHECK (message_type IN ('text', 'media', 'button', 'poll')),
+    media_url TEXT,
+    media_type VARCHAR(50),
+    button_text VARCHAR(255),
+    button_url TEXT,
+    poll_options JSONB,
+    template_id UUID,
+    
+    -- إعدادات المستلمين
+    recipient_type VARCHAR(50) DEFAULT 'all' CHECK (recipient_type IN ('all', 'by_type', 'by_company', 'by_tags', 'custom')),
+    recipient_filters JSONB,
+    custom_recipients JSONB,
+    
+    -- إعدادات الإرسال
+    send_type VARCHAR(50) DEFAULT 'immediate' CHECK (send_type IN ('immediate', 'scheduled', 'gradual')),
+    scheduled_at TIMESTAMP WITH TIME ZONE,
+    gradual_settings JSONB,
+    
+    -- الحالة والتقدم
+    status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'queued', 'sending', 'completed', 'paused', 'cancelled')),
+    total_recipients INTEGER DEFAULT 0,
+    sent_count INTEGER DEFAULT 0,
+    failed_count INTEGER DEFAULT 0,
+    success_rate DECIMAL(5,2) DEFAULT 0,
+    
+    -- التواريخ
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- إنشاء جدول مستلمي الرسائل الجماعية
+CREATE TABLE IF NOT EXISTS whatsapp_bulk_message_recipients (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    bulk_message_id UUID REFERENCES whatsapp_bulk_messages(id) ON DELETE CASCADE,
+    contact_id UUID,
+    phone_number VARCHAR(20) NOT NULL,
+    
+    -- حالة الإرسال
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'retrying')),
+    sent_at TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    retry_count INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 3,
+    
+    -- بيانات الرسالة الفعلية
+    message_id UUID,
+    personalized_content TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- إنشاء فهارس لتحسين الأداء
+CREATE INDEX IF NOT EXISTS idx_bulk_messages_status ON whatsapp_bulk_messages(status);
+CREATE INDEX IF NOT EXISTS idx_bulk_messages_scheduled_at ON whatsapp_bulk_messages(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_bulk_message_recipients_bulk_id ON whatsapp_bulk_message_recipients(bulk_message_id);
+CREATE INDEX IF NOT EXISTS idx_bulk_message_recipients_status ON whatsapp_bulk_message_recipients(status);
+CREATE INDEX IF NOT EXISTS idx_bulk_message_recipients_phone ON whatsapp_bulk_message_recipients(phone_number);
+
+-- إنشاء دالة لتحديث updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- إنشاء triggers لتحديث updated_at
+DROP TRIGGER IF EXISTS update_whatsapp_bulk_messages_updated_at ON whatsapp_bulk_messages;
+CREATE TRIGGER update_whatsapp_bulk_messages_updated_at 
+    BEFORE UPDATE ON whatsapp_bulk_messages 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_whatsapp_bulk_message_recipients_updated_at ON whatsapp_bulk_message_recipients;
+CREATE TRIGGER update_whatsapp_bulk_message_recipients_updated_at 
+    BEFORE UPDATE ON whatsapp_bulk_message_recipients 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- إنشاء دالة لحساب نسبة النجاح
+CREATE OR REPLACE FUNCTION calculate_bulk_message_success_rate(bulk_msg_id UUID)
+RETURNS DECIMAL(5,2) AS $$
+DECLARE
+    total_count INTEGER;
+    sent_count INTEGER;
+    success_rate DECIMAL(5,2);
+BEGIN
+    SELECT COUNT(*) INTO total_count
+    FROM whatsapp_bulk_message_recipients
+    WHERE bulk_message_id = bulk_msg_id;
+    
+    SELECT COUNT(*) INTO sent_count
+    FROM whatsapp_bulk_message_recipients
+    WHERE bulk_message_id = bulk_msg_id AND status = 'sent';
+    
+    IF total_count > 0 THEN
+        success_rate = (sent_count::DECIMAL / total_count::DECIMAL) * 100;
+    ELSE
+        success_rate = 0;
+    END IF;
+    
+    RETURN success_rate;
+END;
+$$ LANGUAGE plpgsql;
+
+-- إنشاء دالة لتحديث إحصائيات الرسالة الجماعية
+CREATE OR REPLACE FUNCTION update_bulk_message_stats(bulk_msg_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    total_recipients INTEGER;
+    sent_count INTEGER;
+    failed_count INTEGER;
+    success_rate DECIMAL(5,2);
+BEGIN
+    SELECT COUNT(*) INTO total_recipients
+    FROM whatsapp_bulk_message_recipients
+    WHERE bulk_message_id = bulk_msg_id;
+    
+    SELECT COUNT(*) INTO sent_count
+    FROM whatsapp_bulk_message_recipients
+    WHERE bulk_message_id = bulk_msg_id AND status = 'sent';
+    
+    SELECT COUNT(*) INTO failed_count
+    FROM whatsapp_bulk_message_recipients
+    WHERE bulk_message_id = bulk_msg_id AND status = 'failed';
+    
+    success_rate = calculate_bulk_message_success_rate(bulk_msg_id);
+    
+    UPDATE whatsapp_bulk_messages
+    SET 
+        total_recipients = total_recipients,
+        sent_count = sent_count,
+        failed_count = failed_count,
+        success_rate = success_rate,
+        updated_at = NOW()
+    WHERE id = bulk_msg_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- إنشاء trigger لتحديث الإحصائيات عند تغيير حالة المستلم
+CREATE OR REPLACE FUNCTION trigger_update_bulk_message_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM update_bulk_message_stats(NEW.bulk_message_id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_bulk_message_stats_trigger ON whatsapp_bulk_message_recipients;
+CREATE TRIGGER update_bulk_message_stats_trigger
+    AFTER INSERT OR UPDATE ON whatsapp_bulk_message_recipients
+    FOR EACH ROW EXECUTE FUNCTION trigger_update_bulk_message_stats();
+
+-- إعداد RLS (Row Level Security)
+ALTER TABLE whatsapp_bulk_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE whatsapp_bulk_message_recipients ENABLE ROW LEVEL SECURITY;
+
+-- حذف السياسات القديمة إذا وجدت
+DROP POLICY IF EXISTS "Enable read access for all users" ON whatsapp_bulk_messages;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON whatsapp_bulk_messages;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON whatsapp_bulk_messages;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON whatsapp_bulk_messages;
+
+DROP POLICY IF EXISTS "Enable read access for all users" ON whatsapp_bulk_message_recipients;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON whatsapp_bulk_message_recipients;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON whatsapp_bulk_message_recipients;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON whatsapp_bulk_message_recipients;
+
+-- سياسات RLS للرسائل الجماعية
+CREATE POLICY "Enable read access for all users" ON whatsapp_bulk_messages
+    FOR SELECT USING (true);
+
+CREATE POLICY "Enable insert for authenticated users" ON whatsapp_bulk_messages
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Enable update for authenticated users" ON whatsapp_bulk_messages
+    FOR UPDATE USING (true);
+
+CREATE POLICY "Enable delete for authenticated users" ON whatsapp_bulk_messages
+    FOR DELETE USING (true);
+
+-- سياسات RLS لمستلمي الرسائل الجماعية
+CREATE POLICY "Enable read access for all users" ON whatsapp_bulk_message_recipients
+    FOR SELECT USING (true);
+
+CREATE POLICY "Enable insert for authenticated users" ON whatsapp_bulk_message_recipients
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Enable update for authenticated users" ON whatsapp_bulk_message_recipients
+    FOR UPDATE USING (true);
+
+CREATE POLICY "Enable delete for authenticated users" ON whatsapp_bulk_message_recipients
+    FOR DELETE USING (true);
+
+-- رسالة نجاح
+SELECT '✅ تم إنشاء جداول الإرسال الجماعي بنجاح!' as result;
+            </div>
+
+            <div class="step">
+                <h4>بعد تنفيذ الكود:</h4>
+                <ol>
+                    <li>اضغط على "Run" لتنفيذ الكود</li>
+                    <li>انتظر حتى تظهر رسالة النجاح</li>
+                    <li>عد إلى التطبيق واختبر صفحة الإرسال الجماعي</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="method">
+            <h3>🔧 الطريقة الثانية: اختبار الاتصال</h3>
+            <p>بعد إنشاء الجداول، يمكنك اختبار الاتصال:</p>
+            <button class="button" onclick="testConnection()">اختبار الاتصال</button>
+            <div id="testResult"></div>
+        </div>
+
+        <div class="method">
+            <h3>📋 الطريقة الثالثة: فحص الجداول</h3>
+            <p>للتحقق من وجود الجداول:</p>
+            <button class="button" onclick="checkTables()">فحص الجداول</button>
+            <div id="checkResult"></div>
+        </div>
+
+        <div id="successMessage" class="success-message" style="display: none;">
+            ✅ تم إنشاء الجداول بنجاح! يمكنك الآن استخدام وحدة الإرسال الجماعي.
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://hrjyjemacsjoouobcgri.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk';
+
+        function copySQLCode() {
+            const sqlCode = document.getElementById('sqlCode').textContent;
+            navigator.clipboard.writeText(sqlCode).then(() => {
+                alert('✅ تم نسخ كود SQL إلى الحافظة!');
+            }).catch(() => {
+                alert('❌ فشل في النسخ. يرجى النسخ يدوياً.');
+            });
+        }
+
+        function downloadSQLFile() {
+            const sqlCode = document.getElementById('sqlCode').textContent;
+            const blob = new Blob([sqlCode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'create_bulk_tables.sql';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '<p>جاري الاختبار...</p>';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_bulk_messages?select=count`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (response.ok) {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ الاتصال ناجح! الجداول موجودة.</p>';
+                    document.getElementById('successMessage').style.display = 'block';
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ فشل في الاتصال. Status: ${response.status}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ خطأ في الاتصال: ${error.message}</p>`;
+            }
+        }
+
+        async function checkTables() {
+            const resultDiv = document.getElementById('checkResult');
+            resultDiv.innerHTML = '<p>جاري الفحص...</p>';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_bulk_messages?select=*&limit=1`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (response.ok) {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ جدول whatsapp_bulk_messages موجود</p>';
+                    
+                    // فحص الجدول الثاني
+                    const response2 = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_bulk_message_recipients?select=*&limit=1`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'apikey': SUPABASE_ANON_KEY
+                        }
+                    });
+
+                    if (response2.ok) {
+                        resultDiv.innerHTML += '<p style="color: green;">✅ جدول whatsapp_bulk_message_recipients موجود</p>';
+                        document.getElementById('successMessage').style.display = 'block';
+                    } else {
+                        resultDiv.innerHTML += '<p style="color: red;">❌ جدول whatsapp_bulk_message_recipients غير موجود</p>';
+                    }
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ الجداول غير موجودة. Status: ${response.status}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ خطأ في الفحص: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

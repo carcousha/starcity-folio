@@ -9,6 +9,7 @@ import WhatsAppDashboard from './Dashboard';
 import WhatsAppContacts from './Contacts';
 import WhatsAppCampaigns from './Campaigns';
 import WhatsAppQuickSend from './QuickSend';
+import WhatsAppBulkSend from './BulkSend';
 import WhatsAppTemplates from './Templates';
 import WhatsAppReports from './Reports';
 import WhatsAppSettings from './Settings';
@@ -24,6 +25,9 @@ export default function WhatsAppModule() {
       
       {/* Quick Send */}
       <Route path="/quick-send" element={<WhatsAppQuickSend />} />
+      
+      {/* Bulk Send */}
+      <Route path="/bulk-send" element={<WhatsAppBulkSend />} />
       
       {/* Contacts */}
       <Route path="/contacts" element={<WhatsAppContacts />} />

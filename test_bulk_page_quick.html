@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار سريع - صفحة الإرسال الجماعي</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .test-section h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .button {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #1d4ed8;
+        }
+        .button.success {
+            background-color: #10b981;
+        }
+        .button.error {
+            background-color: #ef4444;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .result.success {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .result.error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            border-left: 4px solid #2563eb;
+        }
+        .step h4 {
+            margin: 0 0 5px 0;
+            color: #374151;
+        }
+        .step p {
+            margin: 0;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار سريع - صفحة الإرسال الجماعي</h1>
+        
+        <div class="test-section">
+            <h3>1. اختبار قاعدة البيانات</h3>
+            <button class="button" onclick="testDatabase()">اختبار قاعدة البيانات</button>
+            <div id="databaseResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. اختبار التطبيق الرئيسي</h3>
+            <button class="button" onclick="testMainApp()">اختبار التطبيق</button>
+            <div id="appResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. اختبار صفحة الإرسال الجماعي</h3>
+            <button class="button" onclick="testBulkPage()">اختبار الصفحة</button>
+            <div id="bulkPageResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. خطوات التجربة</h3>
+            
+            <div class="step">
+                <h4>الخطوة 1: إنشاء الجداول</h4>
+                <p>إذا فشل اختبار قاعدة البيانات، اتبع الخطوات في `create_bulk_tables_manual.html`</p>
+            </div>
+
+            <div class="step">
+                <h4>الخطوة 2: فتح التطبيق</h4>
+                <p>افتح <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></p>
+            </div>
+
+            <div class="step">
+                <h4>الخطوة 3: الوصول للصفحة</h4>
+                <p>اذهب إلى: وحدة الواتساب → الإرسال الجماعي</p>
+            </div>
+
+            <div class="step">
+                <h4>الخطوة 4: إنشاء رسالة تجريبية</h4>
+                <p>اضغط "إنشاء رسالة جديدة" واملأ البيانات التالية:</p>
+                <ul>
+                    <li>اسم الرسالة: "رسالة اختبار"</li>
+                    <li>المحتوى: "هذه رسالة اختبار من وحدة الإرسال الجماعي"</li>
+                    <li>نوع الرسالة: نص</li>
+                    <li>نوع المستلمين: جميع جهات الاتصال</li>
+                    <li>نوع الإرسال: فوري</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h4>الخطوة 5: اختبار الوظائف</h4>
+                <p>جرب الوظائف التالية:</p>
+                <ul>
+                    <li>إنشاء رسالة جديدة</li>
+                    <li>تغيير نوع المستلمين</li>
+                    <li>تغيير نوع الإرسال</li>
+                    <li>عرض الإحصائيات</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. روابط مفيدة</h3>
+            <button class="button" onclick="openApp()">فتح التطبيق</button>
+            <button class="button" onclick="openCreateTables()">إنشاء الجداول</button>
+            <button class="button" onclick="openTestGuide()">دليل الاختبار</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://hrjyjemacsjoouobcgri.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk';
+
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${isSuccess ? 'success' : 'error'}">${message}</div>`;
+        }
+
+        async function testDatabase() {
+            showResult('databaseResult', 'جاري الاختبار...', true);
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_bulk_messages?select=count`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (response.ok) {
+                    showResult('databaseResult', '✅ قاعدة البيانات تعمل بشكل صحيح!\n\nالجداول موجودة ويمكن استخدام وحدة الإرسال الجماعي.', true);
+                } else {
+                    showResult('databaseResult', `❌ فشل في الاتصال بقاعدة البيانات\n\nStatus: ${response.status}\n\nيجب إنشاء الجداول أولاً.`, false);
+                }
+            } catch (error) {
+                showResult('databaseResult', `❌ خطأ في الاتصال:\n\n${error.message}\n\nتأكد من إنشاء الجداول.`, false);
+            }
+        }
+
+        async function testMainApp() {
+            showResult('appResult', 'جاري الاختبار...', true);
+            
+            try {
+                const response = await fetch('http://localhost:5173', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    showResult('appResult', '✅ التطبيق الرئيسي يعمل بشكل صحيح!\n\nيمكنك الآن فتح التطبيق واختبار صفحة الإرسال الجماعي.', true);
+                } else {
+                    showResult('appResult', `❌ التطبيق الرئيسي لا يعمل\n\nStatus: ${response.status}\n\nتأكد من تشغيل npm run dev`, false);
+                }
+            } catch (error) {
+                showResult('appResult', `❌ خطأ في الاتصال بالتطبيق:\n\n${error.message}\n\nتأكد من تشغيل التطبيق على المنفذ 5173`, false);
+            }
+        }
+
+        async function testBulkPage() {
+            showResult('bulkPageResult', 'جاري الاختبار...', true);
+            
+            try {
+                const response = await fetch('http://localhost:5173/whatsapp/bulk-send', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    showResult('bulkPageResult', '✅ صفحة الإرسال الجماعي تعمل بشكل صحيح!\n\nيمكنك الآن استخدام جميع الوظائف.', true);
+                } else {
+                    showResult('bulkPageResult', `❌ صفحة الإرسال الجماعي لا تعمل\n\nStatus: ${response.status}\n\nتأكد من إنشاء الجداول أولاً.`, false);
+                }
+            } catch (error) {
+                showResult('bulkPageResult', `❌ خطأ في الاتصال بصفحة الإرسال الجماعي:\n\n${error.message}\n\nتأكد من إنشاء الجداول وتشغيل التطبيق.`, false);
+            }
+        }
+
+        function openApp() {
+            window.open('http://localhost:5173', '_blank');
+        }
+
+        function openCreateTables() {
+            window.open('create_bulk_tables_manual.html', '_blank');
+        }
+
+        function openTestGuide() {
+            window.open('TESTING_GUIDE.md', '_blank');
+        }
+
+        // اختبار تلقائي عند تحميل الصفحة
+        window.onload = function() {
+            setTimeout(() => {
+                testDatabase();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>
