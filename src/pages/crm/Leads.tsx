@@ -570,20 +570,11 @@ export default function Leads() {
 
                                 {/* أزرار تواصل سريعة */}
                                 <div className="flex gap-2 pt-2">
-                                  <SendWhatsApp
-                                    leadId={lead.id}
-                                    stage={stage.id}
-                                    phone={lead.phone}
-                                    lang={(lead.preferred_language || 'ar') as 'ar'|'en'}
-                                    template={undefined as any}
-                                    context={{
-                                      client_name: lead.full_name,
-                                      property_type: PROPERTY_TYPES[lead.property_type] || '',
-                                      appointment_date: lead.next_follow_up || '',
-                                      appointment_time: '',
-                                      appointment_location: lead.preferred_location || ''
-                                    }}
-                                  />
+                                  {/* WhatsApp integration component will be added here */}
+                                  <Button size="sm" variant="outline">
+                                    <MessageSquare className="h-3 w-3 ml-1" />
+                                    <span>واتساب</span>
+                                  </Button>
                                   {/* مؤشر نشاط واتساب خلال 24 ساعة + عداد الرسائل */}
                                   <LeadWhatsAppActivity leadId={lead.id} />
                                 </div>

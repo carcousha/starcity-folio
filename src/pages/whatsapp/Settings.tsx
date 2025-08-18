@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 import { whatsappService } from '@/services/whatsappService';
-import { WhatsAppSettings } from '@/types/whatsapp';
+import type { WhatsAppSettings } from '@/types/whatsapp';
 
 interface SettingsState {
   settings: WhatsAppSettings | null;
