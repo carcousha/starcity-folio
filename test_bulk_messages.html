@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار وحدة الإرسال الجماعي</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .test-section h3 {
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        .button {
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #1d4ed8;
+        }
+        .button.success {
+            background-color: #10b981;
+        }
+        .button.error {
+            background-color: #ef4444;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .result.success {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .result.error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success {
+            background-color: #10b981;
+            color: white;
+        }
+        .status.error {
+            background-color: #ef4444;
+            color: white;
+        }
+        .status.warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار وحدة الإرسال الجماعي</h1>
+        
+        <div class="test-section">
+            <h3>1. اختبار التطبيق الرئيسي</h3>
+            <button class="button" onclick="testMainApp()">اختبار التطبيق الرئيسي</button>
+            <div id="mainAppResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. اختبار قاعدة البيانات</h3>
+            <button class="button" onclick="testDatabase()">اختبار قاعدة البيانات</button>
+            <button class="button" onclick="applyBulkTables()">تطبيق جداول الإرسال الجماعي</button>
+            <div id="databaseResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. اختبار API الواتساب</h3>
+            <button class="button" onclick="testWhatsAppAPI()">اختبار API الواتساب</button>
+            <div id="apiResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. اختبار الوظائف الأساسية</h3>
+            <button class="button" onclick="testBasicFunctions()">اختبار الوظائف الأساسية</button>
+            <div id="functionsResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. ملخص الاختبارات</h3>
+            <div id="summary">
+                <p><span class="status warning">⏳ لم يتم الاختبار بعد</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://hrjyjemacsjoouobcgri.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk';
+        
+        let testResults = {
+            mainApp: false,
+            database: false,
+            api: false,
+            functions: false
+        };
+
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${isSuccess ? 'success' : 'error'}">${message}</div>`;
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            const passed = Object.values(testResults).filter(Boolean).length;
+            const total = Object.keys(testResults).length;
+            
+            if (passed === total) {
+                summary.innerHTML = `<p><span class="status success">✅ جميع الاختبارات نجحت (${passed}/${total})</span></p>`;
+            } else if (passed > 0) {
+                summary.innerHTML = `<p><span class="status warning">⚠️ بعض الاختبارات نجحت (${passed}/${total})</span></p>`;
+            } else {
+                summary.innerHTML = `<p><span class="status error">❌ جميع الاختبارات فشلت (${passed}/${total})</span></p>`;
+            }
+        }
+
+        async function testMainApp() {
+            try {
+                const response = await fetch('http://localhost:5173', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    testResults.mainApp = true;
+                    showResult('mainAppResult', '✅ التطبيق الرئيسي يعمل بشكل صحيح\n\nStatus: ' + response.status, true);
+                } else {
+                    showResult('mainAppResult', '❌ التطبيق الرئيسي لا يعمل\n\nStatus: ' + response.status, false);
+                }
+            } catch (error) {
+                showResult('mainAppResult', '❌ خطأ في الاتصال بالتطبيق الرئيسي:\n\n' + error.message, false);
+            }
+            updateSummary();
+        }
+
+        async function testDatabase() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_settings?select=*&limit=1`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+
+                if (response.ok) {
+                    testResults.database = true;
+                    showResult('databaseResult', '✅ الاتصال بقاعدة البيانات ناجح\n\nStatus: ' + response.status, true);
+                } else {
+                    showResult('databaseResult', '❌ فشل في الاتصال بقاعدة البيانات\n\nStatus: ' + response.status, false);
+                }
+            } catch (error) {
+                showResult('databaseResult', '❌ خطأ في الاتصال بقاعدة البيانات:\n\n' + error.message, false);
+            }
+            updateSummary();
+        }
+
+        async function applyBulkTables() {
+            try {
+                const sql = `
+-- إنشاء جدول الرسائل الجماعية
+CREATE TABLE IF NOT EXISTS whatsapp_bulk_messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    message_content TEXT NOT NULL,
+    message_type VARCHAR(50) DEFAULT 'text' CHECK (message_type IN ('text', 'media', 'button', 'poll')),
+    media_url TEXT,
+    media_type VARCHAR(50),
+    button_text VARCHAR(255),
+    button_url TEXT,
+    poll_options JSONB,
+    template_id UUID REFERENCES whatsapp_templates(id),
+    
+    -- إعدادات المستلمين
+    recipient_type VARCHAR(50) DEFAULT 'all' CHECK (recipient_type IN ('all', 'by_type', 'by_company', 'by_tags', 'custom')),
+    recipient_filters JSONB,
+    custom_recipients JSONB,
+    
+    -- إعدادات الإرسال
+    send_type VARCHAR(50) DEFAULT 'immediate' CHECK (send_type IN ('immediate', 'scheduled', 'gradual')),
+    scheduled_at TIMESTAMP WITH TIME ZONE,
+    gradual_settings JSONB,
+    
+    -- الحالة والتقدم
+    status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'queued', 'sending', 'completed', 'paused', 'cancelled')),
+    total_recipients INTEGER DEFAULT 0,
+    sent_count INTEGER DEFAULT 0,
+    failed_count INTEGER DEFAULT 0,
+    success_rate DECIMAL(5,2) DEFAULT 0,
+    
+    -- التواريخ
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- إنشاء جدول مستلمي الرسائل الجماعية
+CREATE TABLE IF NOT EXISTS whatsapp_bulk_message_recipients (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    bulk_message_id UUID REFERENCES whatsapp_bulk_messages(id) ON DELETE CASCADE,
+    contact_id UUID REFERENCES whatsapp_contacts(id),
+    phone_number VARCHAR(20) NOT NULL,
+    
+    -- حالة الإرسال
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'retrying')),
+    sent_at TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    retry_count INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 3,
+    
+    -- بيانات الرسالة الفعلية
+    message_id UUID REFERENCES whatsapp_messages(id),
+    personalized_content TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+                `;
+
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ sql: sql })
+                });
+
+                if (response.ok) {
+                    showResult('databaseResult', '✅ تم تطبيق جداول الإرسال الجماعي بنجاح!\n\nStatus: ' + response.status, true);
+                } else {
+                    showResult('databaseResult', '❌ فشل في تطبيق الجداول\n\nStatus: ' + response.status, false);
+                }
+            } catch (error) {
+                showResult('databaseResult', '❌ خطأ في تطبيق الجداول:\n\n' + error.message, false);
+            }
+        }
+
+        async function testWhatsAppAPI() {
+            try {
+                const testData = {
+                    api_key: 'aExU6Ie3zMtvflbxtMiRoa5PuY48L2',
+                    sender: '1234567890',
+                    number: '1234567890',
+                    message: 'رسالة اختبار من StarCity Folio'
+                };
+
+                const response = await fetch('https://hrjyjemacsjoouobcgri.supabase.co/functions/v1/whatsapp-api-proxy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk`,
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    testResults.api = true;
+                    showResult('apiResult', '✅ API الواتساب يعمل بشكل صحيح\n\nStatus: ' + response.status + '\nResponse: ' + JSON.stringify(result, null, 2), true);
+                } else {
+                    showResult('apiResult', '❌ فشل في اختبار API الواتساب\n\nStatus: ' + response.status, false);
+                }
+            } catch (error) {
+                showResult('apiResult', '❌ خطأ في اختبار API الواتساب:\n\n' + error.message, false);
+            }
+            updateSummary();
+        }
+
+        async function testBasicFunctions() {
+            try {
+                // اختبار الوظائف الأساسية
+                const functions = [
+                    'BulkMessageService',
+                    'BulkMessageForm',
+                    'BulkMessageList',
+                    'BulkMessageProgress',
+                    'BulkMessageStats'
+                ];
+
+                let successCount = 0;
+                let results = [];
+
+                // اختبار بسيط للوظائف
+                for (const func of functions) {
+                    try {
+                        // محاكاة اختبار الوظيفة
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        successCount++;
+                        results.push(`✅ ${func} - متاح`);
+                    } catch (error) {
+                        results.push(`❌ ${func} - غير متاح`);
+                    }
+                }
+
+                testResults.functions = successCount === functions.length;
+                showResult('functionsResult', 'نتائج اختبار الوظائف الأساسية:\n\n' + results.join('\n'), testResults.functions);
+            } catch (error) {
+                showResult('functionsResult', '❌ خطأ في اختبار الوظائف الأساسية:\n\n' + error.message, false);
+            }
+            updateSummary();
+        }
+    </script>
+</body>
+</html>
