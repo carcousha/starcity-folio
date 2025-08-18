@@ -23,7 +23,7 @@ import {
   Trash2,
   Play,
   Pause,
-  Stop,
+  Square,
   Users,
   Send,
   CheckCircle,

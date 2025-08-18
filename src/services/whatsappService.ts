@@ -563,31 +563,37 @@ class WhatsAppService {
 
   private async sendToWhatsAppAPI(data: SendMessageRequest): Promise<WhatsAppApiResponse> {
     try {
-      // استخدام Edge Function بدلاً من الاتصال المباشر
-      const { data: result, error } = await supabase.functions.invoke('whatsapp-enhanced', {
-        body: {
-          type: 'text', // سيتم تحديد النوع بناءً على البيانات
-          data: data
-        }
+      console.log('Sending to WhatsApp API:', data);
+      
+      // محاولة الاتصال المباشر بـ API
+      const apiUrl = 'https://app.x-growth.tech/api/v1/send-message';
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(data)
       });
 
-      if (error) {
-        console.error('Edge Function Error:', error);
-        return {
-          status: false,
-          message: 'خطأ في خدمة الواتساب: ' + error.message
-        };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return result || {
-        status: false,
-        message: 'لم يتم استلام رد من الخدمة'
+      const result = await response.json();
+      console.log('API Response:', result);
+
+      return {
+        status: result.success || result.status || false,
+        message: result.message || 'تم إرسال الرسالة بنجاح'
       };
+
     } catch (error) {
       console.error('WhatsApp API Error:', error);
       return {
         status: false,
-        message: 'خطأ في الاتصال بخدمة الواتساب'
+        message: 'فشل في إرسال الرسالة: ' + (error instanceof Error ? error.message : 'خطأ غير معروف')
       };
     }
   }
@@ -720,17 +726,23 @@ class WhatsAppService {
   }
 
   private async getRecentActivity(): Promise<WhatsAppMessage[]> {
-    const { data } = await supabase
-      .from('whatsapp_messages')
-      .select(`
-        *,
-        contact:whatsapp_contacts(*),
-        template:whatsapp_templates(*)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(10);
+    try {
+      const { data, error } = await supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    return data || [];
+      if (error) {
+        console.error('Error getting recent activity:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error getting recent activity:', error);
+      return [];
+    }
   }
 
   private async getTargetContacts(targetAudience: any): Promise<WhatsAppContact[]> {
