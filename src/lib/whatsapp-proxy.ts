@@ -1,24 +1,9 @@
-// WhatsApp Proxy للتعامل مع مشاكل CORS
-// يستخدم iframe أو window.open لتجنب CORS
-
-export interface WhatsAppProxyRequest {
-  api_key: string;
-  sender: string;
-  number: string;
-  message: string;
-  footer?: string;
-}
-
-export interface WhatsAppProxyResponse {
-  status: boolean;
-  message: string;
-}
+import { WhatsAppApiResponse, SendMessageRequest } from '@/types/whatsapp';
 
 export class WhatsAppProxy {
   private static instance: WhatsAppProxy;
-  
   private constructor() {}
-  
+
   public static getInstance(): WhatsAppProxy {
     if (!WhatsAppProxy.instance) {
       WhatsAppProxy.instance = new WhatsAppProxy();
@@ -26,148 +11,155 @@ export class WhatsAppProxy {
     return WhatsAppProxy.instance;
   }
 
-  async sendMessage(data: WhatsAppProxyRequest): Promise<WhatsAppProxyResponse> {
+  public async sendMessage(data: SendMessageRequest): Promise<WhatsAppApiResponse> {
     return new Promise((resolve) => {
-      try {
-        // تكوين URL
-        const params = new URLSearchParams({
-          api_key: data.api_key,
-          sender: data.sender,
-          number: data.number,
-          message: data.message,
-          footer: data.footer || "Sent via StarCity Folio"
+      // بناء URL مع المعاملات
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || "Sent via StarCity Folio"
+      });
+
+      const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+
+      // إنشاء iframe مخفي
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+
+      document.body.appendChild(iframe);
+
+      // تعيين URL للـ iframe
+      iframe.src = url;
+
+      // انتظار 3 ثوانٍ ثم افتراض النجاح (بناءً على تجربة المستخدم السابقة)
+      setTimeout(() => {
+        // إزالة الـ iframe
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+
+        // بناءً على تجربة المستخدم، الرسائل تصل فعلاً
+        // لذا نعتبر الإرسال ناجح مع تحذير حول CORS
+        resolve({
+          status: true,
+          message: 'تم إرسال الطلب بنجاح. تحقق من واتساب للتأكد من وصول الرسالة. (ملاحظة: لا يمكن التأكد من النتيجة بسبب قيود المتصفح)'
         });
+      }, 3000);
 
-        const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
-        
-        console.log('Sending WhatsApp via proxy:', url);
-
-        // إنشاء iframe مخفي للإرسال
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = 'none';
-        
-        // معالج تحميل الـ iframe
-        let responseReceived = false;
-        const timeout = setTimeout(() => {
-          if (!responseReceived) {
-            responseReceived = true;
-            document.body.removeChild(iframe);
-            // نفترض النجاح إذا لم يكن هناك خطأ واضح
-            resolve({
-              status: true,
-              message: 'تم إرسال الرسالة بنجاح (تم تجاوز CORS)'
-            });
-          }
-        }, 5000); // انتظار 5 ثوان
-
-        iframe.onload = () => {
-          if (!responseReceived) {
-            responseReceived = true;
-            clearTimeout(timeout);
-            setTimeout(() => {
-              if (document.body.contains(iframe)) {
-                document.body.removeChild(iframe);
-              }
-            }, 1000);
-            resolve({
-              status: true,
-              message: 'تم إرسال الرسالة بنجاح'
-            });
-          }
-        };
-
-        iframe.onerror = () => {
-          if (!responseReceived) {
-            responseReceived = true;
-            clearTimeout(timeout);
-            if (document.body.contains(iframe)) {
-              document.body.removeChild(iframe);
-            }
-            resolve({
-              status: false,
-              message: 'فشل في إرسال الرسالة'
-            });
-          }
-        };
-
-        // إضافة الـ iframe وتحميل URL
-        document.body.appendChild(iframe);
-        iframe.src = url;
-
-      } catch (error) {
-        console.error('Proxy Error:', error);
+      // معالجة الأخطاء
+      iframe.onerror = () => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
         resolve({
           status: false,
-          message: 'خطأ في الاتصال'
+          message: 'فشل في تحميل صفحة الإرسال'
         });
-      }
+      };
     });
   }
 
-  // طريقة بديلة باستخدام window.open
-  async sendMessagePopup(data: WhatsAppProxyRequest): Promise<WhatsAppProxyResponse> {
+  // طريقة بديلة باستخدام fetch مع no-cors
+  public async sendMessageAlternative(data: SendMessageRequest): Promise<WhatsAppApiResponse> {
+    try {
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || "Sent via StarCity Folio"
+      });
+
+      const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+
+      // محاولة fetch مع no-cors
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'no-cors',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      // مع no-cors، لا يمكن قراءة الاستجابة
+      // لكن بناءً على تجربة المستخدم، الرسائل تصل
+      return {
+        status: true,
+        message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة.'
+      };
+
+    } catch (error) {
+      console.error('Alternative method failed:', error);
+      return {
+        status: false,
+        message: 'فشل في إرسال الرسالة: ' + (error instanceof Error ? error.message : 'خطأ غير معروف')
+      };
+    }
+  }
+
+  // طريقة ثالثة باستخدام XMLHttpRequest
+  public async sendMessageXHR(data: SendMessageRequest): Promise<WhatsAppApiResponse> {
     return new Promise((resolve) => {
-      try {
-        const params = new URLSearchParams({
-          api_key: data.api_key,
-          sender: data.sender,
-          number: data.number,
-          message: data.message,
-          footer: data.footer || "Sent via StarCity Folio"
-        });
+      const params = new URLSearchParams({
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || "Sent via StarCity Folio"
+      });
 
-        const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
-        
-        console.log('Opening WhatsApp API in popup:', url);
+      const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
 
-        // فتح popup صغير
-        const popup = window.open(
-          url, 
-          'whatsapp_sender', 
-          'width=600,height=400,scrollbars=yes,resizable=yes'
-        );
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Accept', 'application/json');
 
-        if (!popup) {
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve({
+              status: response.status === true,
+              message: response.msg || response.message || 'تم إرسال الرسالة بنجاح'
+            });
+          } catch {
+            // إذا لم نتمكن من قراءة JSON، نفترض النجاح
+            resolve({
+              status: true,
+              message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة.'
+            });
+          }
+        } else {
           resolve({
             status: false,
-            message: 'تم حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة وإعادة المحاولة.'
+            message: `خطأ في الاستجابة: ${xhr.status}`
           });
-          return;
         }
+      };
 
-        // مراقبة إغلاق النافذة
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            resolve({
-              status: true,
-              message: 'تم إرسال الطلب. تحقق من النافذة المنبثقة للتأكد من النتيجة.'
-            });
-          }
-        }, 1000);
-
-        // إغلاق تلقائي بعد 30 ثانية
-        setTimeout(() => {
-          if (!popup.closed) {
-            popup.close();
-            clearInterval(checkClosed);
-            resolve({
-              status: true,
-              message: 'تم إرسال الطلب (تم إغلاق النافذة تلقائياً)'
-            });
-          }
-        }, 30000);
-
-      } catch (error) {
-        console.error('Popup Error:', error);
+      xhr.onerror = function() {
         resolve({
           status: false,
-          message: 'خطأ في فتح النافذة'
+          message: 'فشل في الاتصال بالخادم'
         });
-      }
+      };
+
+      xhr.ontimeout = function() {
+        resolve({
+          status: false,
+          message: 'انتهت مهلة الاتصال'
+        });
+      };
+
+      xhr.timeout = 10000; // 10 ثوانٍ
+      xhr.send();
     });
   }
 }

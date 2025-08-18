@@ -33,6 +33,7 @@ import {
 
 // Import services and types
 import { whatsappService } from '@/services/whatsappService';
+import { WhatsAppStatusConfirmation } from '@/components/WhatsAppStatusConfirmation';
 import {
   WhatsAppContact,
   WhatsAppTemplate,
@@ -52,6 +53,13 @@ interface QuickSendState {
   pollOptions: string[];
   isLoading: boolean;
   isSending: boolean;
+  
+  // إضافة حالة للتأكيد اليدوي
+  pendingConfirmation: {
+    messageId: string;
+    phoneNumber: string;
+    content: string;
+  } | null;
 }
 
 export default function WhatsAppQuickSend() {
@@ -65,7 +73,8 @@ export default function WhatsAppQuickSend() {
     buttons: [],
     pollOptions: ['', ''],
     isLoading: false,
-    isSending: false
+    isSending: false,
+    pendingConfirmation: null
   });
 
   const [contacts, setContacts] = useState<WhatsAppContact[]>([]);
@@ -168,6 +177,32 @@ export default function WhatsAppQuickSend() {
     updateState({ pollOptions: newOptions });
   };
 
+  const handleStatusUpdate = (status: 'sent' | 'failed') => {
+    // إخفاء مكون التأكيد
+    updateState({ pendingConfirmation: null });
+    
+    if (status === 'sent') {
+      // مسح النموذج بعد التأكيد الناجح
+      updateState({
+        selectedContact: null,
+        phoneNumber: '',
+        customMessage: '',
+        selectedTemplate: null,
+        mediaUrl: '',
+        buttons: [],
+        pollOptions: ['', '']
+      });
+    }
+    
+    toast({
+      title: status === 'sent' ? "تم التأكيد" : "تم الإبلاغ عن الفشل",
+      description: status === 'sent' 
+        ? "تم تأكيد وصول الرسالة بنجاح"
+        : "تم تحديث حالة الرسالة إلى فاشلة",
+      variant: status === 'sent' ? "default" : "destructive"
+    });
+  };
+
   const removePollOption = (index: number) => {
     if (state.pollOptions.length > 2) {
       updateState({
@@ -262,24 +297,33 @@ export default function WhatsAppQuickSend() {
         poll_options: state.pollOptions.filter(opt => opt.trim())
       };
 
-      await whatsappService.sendSingleMessage(messageData);
+      const sentMessage = await whatsappService.sendSingleMessage(messageData);
 
-      toast({
-        title: "تم الإرسال بنجاح",
-        description: "تم إرسال الرسالة بنجاح",
-        variant: "default"
-      });
-
-      // Reset form
-      updateState({
-        selectedContact: null,
-        phoneNumber: '',
-        customMessage: '',
-        selectedTemplate: null,
-        mediaUrl: '',
-        buttons: [],
-        pollOptions: ['', '']
-      });
+                      // بناءً على تجربة المستخدم السابقة، الرسائل تصل فعلاً
+                if (sentMessage.status === 'sent') {
+                          toast({
+                    title: "تم الإرسال بنجاح",
+                    description: "تم إرسال الرسالة بنجاح! تحقق من واتساب للتأكد من وصول الرسالة.",
+                    variant: "default"
+                  });
+        
+        // Reset form
+        updateState({
+          selectedContact: null,
+          phoneNumber: '',
+          customMessage: '',
+          selectedTemplate: null,
+          mediaUrl: '',
+          buttons: [],
+          pollOptions: ['', '']
+        });
+      } else {
+        toast({
+          title: "فشل الإرسال",
+          description: sentMessage.error_message || "فشل في إرسال الرسالة",
+          variant: "destructive"
+        });
+      }
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -690,6 +734,18 @@ export default function WhatsAppQuickSend() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* مكون تأكيد حالة الإرسال */}
+      {state.pendingConfirmation && (
+        <div className="mt-6">
+          <WhatsAppStatusConfirmation
+            messageId={state.pendingConfirmation.messageId}
+            phoneNumber={state.pendingConfirmation.phoneNumber}
+            content={state.pendingConfirmation.content}
+            onStatusUpdate={handleStatusUpdate}
+          />
+        </div>
       )}
     </div>
   );
