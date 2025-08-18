@@ -592,90 +592,127 @@ class WhatsAppService {
     try {
       console.log('Sending to WhatsApp API:', data);
       
-      // تجربة عدة تنسيقات مختلفة لـ API
-      const apiUrls = [
-        'https://app.x-growth.tech/api/v1/send-message',
-        'https://app.x-growth.tech/api/send-message',
-        'https://app.x-growth.tech/send-message',
-        'https://api.x-growth.tech/v1/send-message'
-      ];
+      // استخدام التنسيق الصحيح حسب التوثيق
+      const correctData = {
+        api_key: data.api_key,
+        sender: data.sender,
+        number: data.number,
+        message: data.message,
+        footer: data.footer || "Sent via StarCity Folio"
+      };
+
+      console.log('Sending correct format:', correctData);
+
+      // تحقق من عدم إرسال رسالة لنفس الرقم
+      if (correctData.sender === correctData.number) {
+        return {
+          status: false,
+          message: 'لا يمكن إرسال رسالة لنفس رقم المرسل. يرجى اختيار رقم مختلف للمستقبل.'
+        };
+      }
+
+      // استخدام الـ endpoint الصحيح
+      const apiUrl = 'https://app.x-growth.tech/send-message';
       
-      let apiUrl = apiUrls[0];
-      
-      // تنسيق 1: التنسيق الحالي
-      console.log('Trying format 1:', data);
-      let response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(data)
+      // أولاً: جرب POST
+      try {
+        let response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify(correctData)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('POST API Response:', result);
+          
+          return {
+            status: result.status === true || result.status === 'true',
+            message: result.msg || result.message || 'تم إرسال الرسالة بنجاح'
+          };
+        }
+      } catch (postError) {
+        console.log('POST failed due to CORS, trying GET:', postError);
+      }
+
+      // ثانياً: جرب GET لتجنب CORS
+      const urlParams = new URLSearchParams({
+        api_key: correctData.api_key,
+        sender: correctData.sender,
+        number: correctData.number,
+        message: correctData.message,
+        footer: correctData.footer
       });
 
-      // إذا فشل، جرب تنسيق 2
-      if (!response.ok || response.status >= 400) {
-        console.log('Format 1 failed, trying format 2');
-        const format2Data = {
-          apikey: data.api_key,
-          to: data.number,
-          text: data.message,
-          from: data.sender
-        };
-        console.log('Trying format 2:', format2Data);
-        
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(format2Data)
-        });
-      }
+      const getUrl = `${apiUrl}?${urlParams.toString()}`;
+      console.log('Trying GET request:', getUrl);
 
-      // إذا فشل، جرب تنسيق 3
-      if (!response.ok || response.status >= 400) {
-        console.log('Format 2 failed, trying format 3');
-        const format3Data = {
-          key: data.api_key,
-          phone: data.number,
-          message: data.message,
-          sender: data.sender
-        };
-        console.log('Trying format 3:', format3Data);
-        
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(format3Data)
-        });
-      }
+      let response = await fetch(getUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('API Response:', result);
+      console.log('GET API Response:', result);
       
-      // فحص مفصل للاستجابة
-      alert(`API Response: ${JSON.stringify(result, null, 2)}`);
-
       return {
-        status: result.success || result.status || false,
-        message: result.message || 'تم إرسال الرسالة بنجاح'
+        status: result.status === true || result.status === 'true',
+        message: result.msg || result.message || 'تم إرسال الرسالة بنجاح'
       };
 
     } catch (error) {
-      console.error('WhatsApp API Error:', error);
-      return {
-        status: false,
-        message: 'فشل في إرسال الرسالة: ' + (error instanceof Error ? error.message : 'خطأ غير معروف')
-      };
+      console.error('Direct API failed, using CORS bypass:', error);
+      
+      // استخدام الـ Proxy لتجاوز CORS
+      try {
+        const { WhatsAppProxy } = await import('@/lib/whatsapp-proxy');
+        const proxy = WhatsAppProxy.getInstance();
+        
+        // تشخيص مفصل
+        console.log('Using proxy with data:', {
+          api_key: data.api_key.substring(0, 8) + '...',
+          sender: data.sender,
+          number: data.number,
+          message: data.message.substring(0, 30) + '...'
+        });
+
+        // تحقق من صحة البيانات
+        if (data.sender === data.number) {
+          console.warn('Warning: Sender and recipient are the same number');
+          return {
+            status: false,
+            message: 'لا يمكن إرسال رسالة لنفس رقم المرسل. يرجى اختيار رقم مختلف للمستقبل.'
+          };
+        }
+
+        const proxyResult = await proxy.sendMessage({
+          api_key: data.api_key,
+          sender: data.sender,
+          number: data.number,
+          message: data.message,
+          footer: data.footer
+        });
+
+        console.log('Proxy result:', proxyResult);
+        return proxyResult;
+
+      } catch (proxyError) {
+        console.error('Proxy method failed:', proxyError);
+        return {
+          status: false,
+          message: 'فشل في إرسال الرسالة. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.'
+        };
+      }
     }
   }
 
