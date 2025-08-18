@@ -622,28 +622,17 @@ class WhatsAppService {
   }
 
   private async saveMessage(messageData: Partial<WhatsAppMessage>): Promise<WhatsAppMessage> {
-    // الحصول على المستخدم الحالي
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // الحصول على الملف الشخصي للمستخدم
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user?.id)
-      .single();
-
-    const messageWithUser = {
-      ...messageData,
-      created_by: profile?.id
-    };
-
+    // تبسيط - حفظ الرسالة بدون created_by
     const { data, error } = await supabase
       .from('whatsapp_messages')
-      .insert([messageWithUser])
+      .insert([messageData])
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error saving message:', error);
+      throw error;
+    }
     return data;
   }
 
