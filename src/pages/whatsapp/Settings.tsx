@@ -173,7 +173,7 @@ export default function WhatsAppSettings() {
     try {
       updateState({ isTesting: true, testResult: null });
       
-      // اختبار مبسط - يمكن تطويره لاحقاً
+      // اختبار البيانات المطلوبة
       if (!state.formData.api_key.trim() || !state.formData.sender_number.trim()) {
         updateState({
           testResult: {
@@ -184,31 +184,71 @@ export default function WhatsAppSettings() {
         return;
       }
 
-      // محاكاة اختبار الاتصال
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // في التطبيق الفعلي، هنا سيتم إرسال طلب اختبار للـ API
-      const testSuccess = Math.random() > 0.3; // محاكاة نجاح 70%
-      
-      updateState({
-        testResult: {
-          success: testSuccess,
-          message: testSuccess 
-            ? "تم الاتصال بنجاح! الإعدادات صحيحة."
-            : "فشل في الاتصال. تحقق من مفتاح API ورقم المرسل."
-        }
-      });
-      
-      if (testSuccess) {
-        toast({
-          title: "نجح الاختبار",
-          description: "تم التحقق من الإعدادات بنجاح",
-          variant: "default"
+      // اختبار حقيقي مع API
+      try {
+        const testData = {
+          api_key: state.formData.api_key.trim(),
+          sender: state.formData.sender_number.trim(),
+          number: state.formData.sender_number.trim(), // إرسال لنفس الرقم كاختبار
+          message: "رسالة اختبار من StarCity Folio"
+        };
+
+        console.log('Testing connection with:', testData);
+
+        const response = await fetch('https://app.x-growth.tech/api/v1/send-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(testData)
         });
-      } else {
+
+        console.log('Test response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('Test API response:', result);
+        
+        const testSuccess = result.success || result.status || false;
+        
+        updateState({
+          testResult: {
+            success: testSuccess,
+            message: testSuccess 
+              ? "تم الاتصال بنجاح! الإعدادات صحيحة والـ API يعمل."
+              : `فشل الاختبار: ${result.message || 'خطأ غير معروف'}`
+          }
+        });
+        
+        if (testSuccess) {
+          toast({
+            title: "نجح الاختبار",
+            description: "تم التحقق من الإعدادات بنجاح",
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "فشل الاختبار",
+            description: result.message || "تحقق من صحة الإعدادات",
+            variant: "destructive"
+          });
+        }
+      } catch (apiError) {
+        console.error('API test error:', apiError);
+        updateState({
+          testResult: {
+            success: false,
+            message: `خطأ في الاتصال بـ API: ${apiError instanceof Error ? apiError.message : 'خطأ غير معروف'}`
+          }
+        });
+        
         toast({
           title: "فشل الاختبار",
-          description: "تحقق من صحة الإعدادات",
+          description: "خطأ في الاتصال بخدمة الواتساب",
           variant: "destructive"
         });
       }
@@ -219,6 +259,12 @@ export default function WhatsAppSettings() {
           success: false,
           message: "حدث خطأ أثناء اختبار الاتصال"
         }
+      });
+      
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء اختبار الاتصال",
+        variant: "destructive"
       });
     } finally {
       updateState({ isTesting: false });
