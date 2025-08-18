@@ -268,13 +268,13 @@ export function AppSidebar() {
       icon: Phone,
       hasSubmenu: true,
       submenu: [
-        { title: "لوحة التحكم", url: "/whatsapp", icon: BarChart3 },
-        { title: "الإرسال السريع", url: "/whatsapp#quick-send", icon: Send },
-        { title: "جهات الاتصال", url: "/whatsapp#contacts", icon: Users },
-        { title: "الحملات الإعلانية", url: "/whatsapp#campaigns", icon: Target },
-        { title: "القوالب", url: "/whatsapp#templates", icon: FileText },
-        { title: "التقارير", url: "/whatsapp#reports", icon: BarChart3 },
-        { title: "الإعدادات", url: "/whatsapp#settings", icon: Settings },
+        { title: "لوحة التحكم", url: "/whatsapp/dashboard", icon: BarChart3 },
+        { title: "الإرسال السريع", url: "/whatsapp/quick-send", icon: Send },
+        { title: "جهات الاتصال", url: "/whatsapp/contacts", icon: Users },
+        { title: "الحملات الإعلانية", url: "/whatsapp/campaigns", icon: Target },
+        { title: "القوالب", url: "/whatsapp/templates", icon: FileText },
+        { title: "التقارير", url: "/whatsapp/reports", icon: BarChart3 },
+        { title: "الإعدادات", url: "/whatsapp/settings", icon: Settings },
       ]
     },
 

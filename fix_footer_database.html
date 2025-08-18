@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إصلاح قاعدة البيانات - إزالة التذييل</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #dc3545;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #c82333;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 إصلاح قاعدة البيانات</h1>
+        <p>هذا الملف يصلح مشكلة "Sent via StarCity Folio" في قاعدة البيانات.</p>
+        
+        <button onclick="fixDatabase()">🔧 إصلاح قاعدة البيانات</button>
+        <button onclick="checkSettings()">👁️ عرض الإعدادات الحالية</button>
+        <button onclick="clearResults()">🗑️ مسح النتائج</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://hrjyjemacsjoouobcgri.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk';
+
+        async function fixDatabase() {
+            showResult('جاري إصلاح قاعدة البيانات...', 'info');
+            
+            try {
+                // تحديث الإعدادات لإزالة التذييل
+                const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_settings`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'apikey': SUPABASE_KEY,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        default_footer: ''
+                    })
+                });
+
+                if (!updateResponse.ok) {
+                    throw new Error(`خطأ في التحديث: ${updateResponse.status}`);
+                }
+
+                showResult('✅ تم إصلاح قاعدة البيانات بنجاح!\n\nتم إزالة "Sent via StarCity Folio" من جميع الإعدادات.', 'success');
+                
+            } catch (error) {
+                console.error('Database fix error:', error);
+                showResult(`❌ خطأ في إصلاح قاعدة البيانات:\n\n${error.message}`, 'error');
+            }
+        }
+
+        async function checkSettings() {
+            showResult('جاري جلب الإعدادات...', 'info');
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_settings?select=*`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'apikey': SUPABASE_KEY
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`خطأ في جلب البيانات: ${response.status}`);
+                }
+
+                const settings = await response.json();
+                
+                let resultText = '📋 الإعدادات الحالية:\n\n';
+                
+                if (settings.length === 0) {
+                    resultText += 'لا توجد إعدادات في قاعدة البيانات.';
+                } else {
+                    settings.forEach((setting, index) => {
+                        resultText += `إعداد ${index + 1}:\n`;
+                        resultText += `• ID: ${setting.id}\n`;
+                        resultText += `• API Key: ${setting.api_key ? setting.api_key.substring(0, 8) + '...' : 'غير محدد'}\n`;
+                        resultText += `• رقم المرسل: ${setting.sender_number || 'غير محدد'}\n`;
+                        resultText += `• التذييل: "${setting.default_footer || '(فارغ)'}"\n`;
+                        resultText += `• مفعل: ${setting.is_active ? 'نعم' : 'لا'}\n`;
+                        resultText += `• آخر تحديث: ${setting.updated_at || 'غير محدد'}\n\n`;
+                    });
+                }
+                
+                showResult(resultText, 'success');
+                
+            } catch (error) {
+                console.error('Check settings error:', error);
+                showResult(`❌ خطأ في جلب الإعدادات:\n\n${error.message}`, 'error');
+            }
+        }
+
+        function showResult(text, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = text;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+
+        function clearResults() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

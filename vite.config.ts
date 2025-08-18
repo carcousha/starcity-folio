@@ -8,6 +8,26 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: true,
     port: 5173,
+    hmr: {
+      overlay: false, // إيقاف overlay الأخطاء
+      port: 5173, // تحديد منفذ HMR
+    },
+    watch: {
+      usePolling: false, // إيقاف polling لتجنب التحميل المتكرر
+      ignored: ['**/node_modules/**', '**/dist/**'], // تجاهل الملفات غير المهمة
+    },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom'], // تحسين التبعيات
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
   },
   plugins: [
     react(),

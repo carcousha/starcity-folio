@@ -38,19 +38,48 @@ export class WhatsAppProxy {
       // تعيين URL للـ iframe
       iframe.src = url;
 
-      // انتظار 3 ثوانٍ ثم افتراض النجاح (بناءً على تجربة المستخدم السابقة)
+      // انتظار 3 ثوانٍ ثم محاولة قراءة النتيجة
       setTimeout(() => {
         // إزالة الـ iframe
         if (document.body.contains(iframe)) {
           document.body.removeChild(iframe);
         }
 
-        // بناءً على تجربة المستخدم، الرسائل تصل فعلاً
-        // لذا نعتبر الإرسال ناجح مع تحذير حول CORS
-        resolve({
-          status: true,
-          message: 'تم إرسال الطلب بنجاح. تحقق من واتساب للتأكد من وصول الرسالة. (ملاحظة: لا يمكن التأكد من النتيجة بسبب قيود المتصفح)'
-        });
+        // محاولة الحصول على نتيجة حقيقية من الـ API
+        try {
+          // محاولة قراءة النتيجة من الـ iframe إذا أمكن
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            const responseText = iframeDoc.body?.textContent || '';
+            console.log('API Response:', responseText);
+            
+            // التحقق من وجود كلمات تشير إلى النجاح
+            if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
+              resolve({
+                status: true,
+                message: 'تم إرسال الرسالة بنجاح! تحقق من واتساب للتأكد من وصول الرسالة.'
+              });
+            } else {
+              resolve({
+                status: false,
+                message: 'فشل في إرسال الرسالة. تحقق من الإعدادات ورقم الهاتف.'
+              });
+            }
+          } else {
+            // إذا لم نتمكن من قراءة النتيجة، نفترض النجاح مع تحذير
+            resolve({
+              status: true,
+              message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة. (ملاحظة: لا يمكن التأكد من النتيجة بسبب قيود المتصفح)'
+            });
+          }
+        } catch (readError) {
+          console.log('Could not read iframe response:', readError);
+          // إذا لم نتمكن من قراءة النتيجة، نفترض النجاح مع تحذير
+          resolve({
+            status: true,
+            message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة. (ملاحظة: لا يمكن التأكد من النتيجة بسبب قيود المتصفح)'
+          });
+        }
       }, 3000);
 
       // معالجة الأخطاء
@@ -61,6 +90,97 @@ export class WhatsAppProxy {
         resolve({
           status: false,
           message: 'فشل في تحميل صفحة الإرسال'
+        });
+      };
+    });
+  }
+
+  // طريقة جديدة لاختبار الاتصال بالـ API
+  public async testConnection(apiKey: string, senderNumber: string): Promise<WhatsAppApiResponse> {
+    return new Promise((resolve) => {
+      console.log('Testing API connection...');
+      
+      // إنشاء URL اختبار
+      const testParams = new URLSearchParams({
+        api_key: apiKey,
+        sender: senderNumber,
+        number: senderNumber, // إرسال لنفس الرقم كاختبار
+        message: "رسالة اختبار من StarCity Folio - " + new Date().toISOString(),
+        footer: "Test Message"
+      });
+
+      const testUrl = `https://app.x-growth.tech/send-message?${testParams.toString()}`;
+      console.log('Test URL:', testUrl);
+
+      // إنشاء iframe للاختبار
+      const testIframe = document.createElement('iframe');
+      testIframe.style.display = 'none';
+      testIframe.style.width = '0';
+      testIframe.style.height = '0';
+      testIframe.style.border = 'none';
+      testIframe.style.position = 'absolute';
+      testIframe.style.left = '-9999px';
+
+      document.body.appendChild(testIframe);
+
+      // تعيين URL للاختبار
+      testIframe.src = testUrl;
+
+      // انتظار 5 ثوانٍ للاختبار
+      setTimeout(() => {
+        // إزالة الـ iframe
+        if (document.body.contains(testIframe)) {
+          document.body.removeChild(testIframe);
+        }
+
+        // محاولة قراءة النتيجة
+        try {
+          const iframeDoc = testIframe.contentDocument || testIframe.contentWindow?.document;
+          if (iframeDoc) {
+            const responseText = iframeDoc.body?.textContent || '';
+            console.log('Test API Response:', responseText);
+            
+            // تحليل النتيجة
+            if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
+              resolve({
+                status: true,
+                message: '✅ تم الاتصال بنجاح! الإعدادات صحيحة والـ API يعمل. تحقق من واتساب للتأكد من وصول رسالة الاختبار.'
+              });
+            } else if (responseText.includes('error') || responseText.includes('فشل') || responseText.includes('خطأ')) {
+              resolve({
+                status: false,
+                message: `❌ فشل في الاتصال: ${responseText}`
+              });
+            } else {
+              // إذا لم نتمكن من تحديد النتيجة
+              resolve({
+                status: false,
+                message: '⚠️ لا يمكن تحديد نتيجة الاختبار. تحقق من الإعدادات ورقم الهاتف.'
+              });
+            }
+          } else {
+            resolve({
+              status: false,
+              message: '⚠️ لا يمكن قراءة نتيجة الاختبار. تحقق من الإعدادات ورقم الهاتف.'
+            });
+          }
+        } catch (error) {
+          console.error('Test connection error:', error);
+          resolve({
+            status: false,
+            message: '❌ فشل في اختبار الاتصال. تحقق من الإعدادات ورقم الهاتف.'
+          });
+        }
+      }, 5000);
+
+      // معالجة أخطاء الـ iframe
+      testIframe.onerror = () => {
+        if (document.body.contains(testIframe)) {
+          document.body.removeChild(testIframe);
+        }
+        resolve({
+          status: false,
+          message: '❌ فشل في تحميل صفحة الاختبار. تحقق من الاتصال بالإنترنت.'
         });
       };
     });
