@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار API الواتساب مباشرة</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .note {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 اختبار API الواتساب مباشرة</h1>
+        <p>هذا الاختبار يتحقق من الاتصال بـ API الواتساب ويظهر النتائج الحقيقية</p>
+        
+        <div class="note">
+            <strong>💡 ملاحظة مهمة:</strong> هذا الاختبار سيرسل رسالة حقيقية لواتساب. تأكد من صحة البيانات قبل الإرسال.
+        </div>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label for="apiKey">مفتاح API:</label>
+                <input type="password" id="apiKey" value="aExU6Ie3zMtvflbxtMiRoa5PuY48L2" required>
+            </div>
+
+            <div class="form-group">
+                <label for="senderNumber">رقم المرسل:</label>
+                <input type="text" id="senderNumber" placeholder="971501234567" required>
+            </div>
+
+            <div class="form-group">
+                <label for="receiverNumber">رقم المستقبل:</label>
+                <input type="text" id="receiverNumber" placeholder="971501234567" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">الرسالة:</label>
+                <textarea id="message" rows="4" placeholder="اكتب رسالة الاختبار هنا...">رسالة اختبار من StarCity Folio - اختبار مباشر للـ API</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="footer">التذييل:</label>
+                <input type="text" id="footer" value="Test Message from StarCity Folio">
+            </div>
+
+            <button type="button" onclick="testDirectAPI()" id="testBtn">
+                🚀 اختبار API مباشرة
+            </button>
+            
+            <button type="button" onclick="testWithFetch()" id="fetchBtn">
+                🌐 اختبار بـ Fetch
+            </button>
+            
+            <button type="button" onclick="testWithXHR()" id="xhrBtn">
+                📡 اختبار بـ XMLHttpRequest
+            </button>
+            
+            <button type="button" onclick="clearResults()">
+                🗑️ مسح النتائج
+            </button>
+        </form>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<strong>${title}</strong>\n${content}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function setLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            if (isLoading) {
+                button.innerHTML = '<span class="loading"></span> جاري الاختبار...';
+                button.disabled = true;
+            } else {
+                button.innerHTML = button.innerHTML.replace('<span class="loading"></span> جاري الاختبار...', '');
+                button.disabled = false;
+            }
+        }
+
+        async function testDirectAPI() {
+            const apiKey = document.getElementById('apiKey').value;
+            const senderNumber = document.getElementById('senderNumber').value;
+            const receiverNumber = document.getElementById('receiverNumber').value;
+            const message = document.getElementById('message').value;
+            const footer = document.getElementById('footer').value;
+
+            if (!apiKey || !senderNumber || !receiverNumber || !message) {
+                addResult('❌ خطأ في البيانات', 'يرجى ملء جميع الحقول المطلوبة', 'error');
+                return;
+            }
+
+            setLoading('testBtn', true);
+            addResult('🚀 بدء الاختبار المباشر', `API Key: ${apiKey.substring(0, 8)}...\nSender: ${senderNumber}\nReceiver: ${receiverNumber}\nMessage: ${message.substring(0, 50)}...`, 'info');
+
+            try {
+                // بناء URL
+                const params = new URLSearchParams({
+                    api_key: apiKey,
+                    sender: senderNumber,
+                    number: receiverNumber,
+                    message: message,
+                    footer: footer
+                });
+
+                const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+                addResult('🔗 URL المُنشأ', url, 'info');
+
+                // إنشاء iframe مخفي
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = 'none';
+                iframe.style.position = 'absolute';
+                iframe.style.left = '-9999px';
+
+                document.body.appendChild(iframe);
+
+                // تعيين URL
+                iframe.src = url;
+                addResult('📤 تم إرسال الطلب', 'تم فتح الـ iframe وإرسال الطلب...', 'info');
+
+                // انتظار النتيجة
+                setTimeout(() => {
+                    try {
+                        // محاولة قراءة النتيجة
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                        if (iframeDoc) {
+                            const responseText = iframeDoc.body?.textContent || '';
+                            const responseHTML = iframeDoc.body?.innerHTML || '';
+                            
+                            addResult('📥 استجابة الـ API', `Response Text: ${responseText}\n\nResponse HTML: ${responseHTML}`, 'info');
+                            
+                            // تحليل النتيجة
+                            if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
+                                addResult('✅ نجح الإرسال', 'تم إرسال الرسالة بنجاح! تحقق من واتساب.', 'success');
+                            } else if (responseText.includes('error') || responseText.includes('فشل') || responseText.includes('خطأ')) {
+                                addResult('❌ فشل الإرسال', `فشل في إرسال الرسالة: ${responseText}`, 'error');
+                            } else {
+                                addResult('⚠️ نتيجة غير واضحة', 'لا يمكن تحديد نتيجة الإرسال. تحقق من واتساب يدوياً.', 'warning');
+                            }
+                        } else {
+                            addResult('⚠️ لا يمكن قراءة النتيجة', 'لم نتمكن من قراءة استجابة الـ API بسبب قيود CORS', 'warning');
+                        }
+                    } catch (readError) {
+                        addResult('❌ خطأ في قراءة النتيجة', `Error: ${readError.message}`, 'error');
+                    } finally {
+                        // إزالة الـ iframe
+                        if (document.body.contains(iframe)) {
+                            document.body.removeChild(iframe);
+                        }
+                        setLoading('testBtn', false);
+                    }
+                }, 5000);
+
+            } catch (error) {
+                addResult('❌ خطأ في الاختبار', `Error: ${error.message}`, 'error');
+                setLoading('testBtn', false);
+            }
+        }
+
+        async function testWithFetch() {
+            const apiKey = document.getElementById('apiKey').value;
+            const senderNumber = document.getElementById('senderNumber').value;
+            const receiverNumber = document.getElementById('receiverNumber').value;
+            const message = document.getElementById('message').value;
+            const footer = document.getElementById('footer').value;
+
+            setLoading('fetchBtn', true);
+            addResult('🌐 بدء اختبار Fetch', 'جاري اختبار الاتصال بـ Fetch...', 'info');
+
+            try {
+                const params = new URLSearchParams({
+                    api_key: apiKey,
+                    sender: senderNumber,
+                    number: receiverNumber,
+                    message: message,
+                    footer: footer
+                });
+
+                const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+                
+                // محاولة بـ fetch مع no-cors
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+
+                addResult('📡 استجابة Fetch', `Status: ${response.status}\nType: ${response.type}\nOK: ${response.ok}`, 'info');
+                
+                if (response.type === 'opaque') {
+                    addResult('⚠️ استجابة معتمة', 'الاستجابة معتمة بسبب CORS. لا يمكن قراءة المحتوى.', 'warning');
+                } else {
+                    const text = await response.text();
+                    addResult('📥 محتوى الاستجابة', text, 'info');
+                }
+
+            } catch (error) {
+                addResult('❌ خطأ في Fetch', `Error: ${error.message}`, 'error');
+            } finally {
+                setLoading('fetchBtn', false);
+            }
+        }
+
+        function testWithXHR() {
+            const apiKey = document.getElementById('apiKey').value;
+            const senderNumber = document.getElementById('senderNumber').value;
+            const receiverNumber = document.getElementById('receiverNumber').value;
+            const message = document.getElementById('message').value;
+            const footer = document.getElementById('footer').value;
+
+            setLoading('xhrBtn', true);
+            addResult('📡 بدء اختبار XMLHttpRequest', 'جاري اختبار الاتصال بـ XMLHttpRequest...', 'info');
+
+            const params = new URLSearchParams({
+                api_key: apiKey,
+                sender: senderNumber,
+                number: receiverNumber,
+                message: message,
+                footer: footer
+            });
+
+            const url = `https://app.x-growth.tech/send-message?${params.toString()}`;
+            
+            const xhr = new XMLHttpRequest();
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    addResult('📥 استجابة XMLHttpRequest', 
+                        `Status: ${xhr.status}\nStatus Text: ${xhr.statusText}\nResponse: ${xhr.responseText}`, 
+                        xhr.status === 200 ? 'success' : 'error'
+                    );
+                    setLoading('xhrBtn', false);
+                }
+            };
+            
+            xhr.onerror = function() {
+                addResult('❌ خطأ في XMLHttpRequest', 'حدث خطأ في الاتصال', 'error');
+                setLoading('xhrBtn', false);
+            };
+            
+            xhr.open('GET', url, true);
+            xhr.send();
+        }
+
+        // تحميل البيانات الافتراضية
+        window.onload = function() {
+            if (!document.getElementById('senderNumber').value) {
+                document.getElementById('senderNumber').value = '971501234567';
+            }
+            if (!document.getElementById('receiverNumber').value) {
+                document.getElementById('receiverNumber').value = '971501234567';
+            }
+        };
+    </script>
+</body>
+</html>

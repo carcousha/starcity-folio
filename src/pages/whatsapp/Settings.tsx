@@ -51,7 +51,7 @@ interface SettingsState {
 const initialFormData = {
   api_key: 'aExU6Ie3zMtvflbxtMiRoa5PuY48L2',
   sender_number: '',
-  default_footer: 'Sent via StarCity Folio',
+  default_footer: '',
   daily_limit: 1000,
   rate_limit_per_minute: 10,
   is_active: true
@@ -189,47 +189,48 @@ export default function WhatsAppSettings() {
         const testData = {
           api_key: state.formData.api_key.trim(),
           sender: state.formData.sender_number.trim(),
-          number: state.formData.sender_number.trim(), // إرسال لنفس الرقم كاختبار
+          number: state.formData.sender_number.trim(),
           message: "رسالة اختبار من StarCity Folio"
         };
 
         console.log('Testing connection with:', testData);
 
-        // استخدام الطريقة المحسنة بناءً على تجربة المستخدم
-        const { WhatsAppProxy } = await import('@/lib/whatsapp-proxy');
-        const proxy = WhatsAppProxy.getInstance();
-
-        const proxyResult = await proxy.sendMessage({
-          api_key: testData.api_key,
-          sender: testData.sender,
-          number: testData.number,
-          message: testData.message,
-          footer: "Test Message"
+        // استخدام الـ Edge Function للاختبار
+        const response = await fetch('https://hrjyjemacsjoouobcgri.supabase.co/functions/v1/whatsapp-api-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk`,
+          },
+          body: JSON.stringify(testData)
         });
 
-        // بناءً على تجربة المستخدم، الرسائل تصل فعلاً
-        // نفترض النجاح بناءً على التجربة
-        const testSuccess = true;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const testSuccess = result.status;
         
         updateState({
           testResult: {
             success: testSuccess,
             message: testSuccess 
               ? "تم الاتصال بنجاح! الإعدادات صحيحة والـ API يعمل. تحقق من واتساب للتأكد من وصول رسالة الاختبار."
-              : `فشل الاختبار: ${proxyResult.message || 'خطأ غير معروف'}`
+              : `فشل الاختبار: ${result.message || 'خطأ غير معروف'}`
           }
         });
         
         if (testSuccess) {
           toast({
-            title: "نجح الاختبار",
-            description: "تم التحقق من الإعدادات بنجاح! تحقق من واتساب للتأكد من وصول رسالة الاختبار.",
+            title: "✅ نجح الاختبار",
+            description: result.message || "تم التحقق من الإعدادات بنجاح! تحقق من واتساب للتأكد من وصول رسالة الاختبار.",
             variant: "default"
           });
         } else {
           toast({
-            title: "فشل الاختبار",
-            description: proxyResult.message || "تحقق من صحة الإعدادات",
+            title: "❌ فشل الاختبار",
+            description: result.message || "تحقق من صحة الإعدادات ورقم الهاتف",
             variant: "destructive"
           });
         }

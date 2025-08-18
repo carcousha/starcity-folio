@@ -372,19 +372,21 @@ class WhatsAppService {
         message: messageContent
       };
 
-      // إضافة footer إذا كان متوفراً
-      if (settings.default_footer) {
-        apiData.footer = settings.default_footer;
+      // إضافة footer فقط إذا كان متوفراً وغير فارغ وليس "Sent via StarCity Folio"
+      if (settings.default_footer && 
+          settings.default_footer.trim() && 
+          !settings.default_footer.includes('StarCity Folio')) {
+        apiData.footer = settings.default_footer.trim();
       }
 
       // إضافة الوسائط حسب نوع الرسالة
       if (messageData.media_url && messageData.message_type !== 'text') {
         apiData.url = messageData.media_url;
-        apiData.type = this.detectMediaType(messageData.media_url);
+        apiData.media_type = this.detectMediaType(messageData.media_url);
       }
 
       // إضافة الأزرار للرسائل التفاعلية
-      if (messageData.buttons && messageData.buttons.length > 0 && messageData.message_type === 'interactive') {
+      if (messageData.buttons && messageData.buttons.length > 0 && messageData.message_type === 'button') {
         apiData.button = messageData.buttons;
       }
 
@@ -590,51 +592,31 @@ class WhatsAppService {
 
   private async sendToWhatsAppAPI(data: SendMessageRequest): Promise<WhatsAppApiResponse> {
     try {
-      console.log('Sending to WhatsApp API:', data);
+      console.log('Sending to WhatsApp API via Edge Function:', data);
 
-      // تحقق من عدم إرسال رسالة لنفس الرقم
-      if (data.sender === data.number) {
-        return {
-          status: false,
-          message: 'لا يمكن إرسال رسالة لنفس رقم المرسل. يرجى اختيار رقم مختلف للمستقبل.'
-        };
+      const response = await fetch(`https://hrjyjemacsjoouobcgri.supabase.co/functions/v1/whatsapp-api-proxy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk`,
+        },
+        body: JSON.stringify(data)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      // استخدام الـ Proxy المحسن بناءً على تجربة المستخدم السابقة
-      const { WhatsAppProxy } = await import('@/lib/whatsapp-proxy');
-      const proxy = WhatsAppProxy.getInstance();
-
-      console.log('Using enhanced proxy with data:', {
-        api_key: data.api_key.substring(0, 8) + '...',
-        sender: data.sender,
-        number: data.number,
-        message: data.message.substring(0, 30) + '...'
-      });
-
-      // استخدام الطريقة المحسنة التي تعتمد على تجربة المستخدم
-      const proxyResult = await proxy.sendMessage({
-        api_key: data.api_key,
-        sender: data.sender,
-        number: data.number,
-        message: data.message,
-        footer: data.footer
-      });
-
-      console.log('Enhanced proxy result:', proxyResult);
-
-      // بناءً على تجربة المستخدم، الرسائل تصل فعلاً
-      // لذا نعتبر الإرسال ناجح مع رسالة واضحة
-      return {
-        status: true,
-        message: 'تم إرسال الرسالة بنجاح! تحقق من واتساب للتأكد من وصول الرسالة. (ملاحظة: قد تظهر أخطاء CORS في الاختبارات لكن الرسائل تصل فعلاً)'
-      };
-
+      const result = await response.json()
+      console.log('Edge Function result:', result)
+      
+      return result
     } catch (error) {
-      console.error('Enhanced proxy method failed:', error);
+      console.error('WhatsApp API Error:', error)
       return {
         status: false,
-        message: 'فشل في إرسال الرسالة: ' + (error instanceof Error ? error.message : 'خطأ غير معروف')
-      };
+        message: `خطأ في الاتصال: ${error.message}`
+      }
     }
   }
 
