@@ -364,21 +364,48 @@ class WhatsAppService {
         }
       }
 
-      // إرسال الرسالة عبر Edge Function
-      const apiResponse = await this.sendToWhatsAppAPI({
+      // إعداد بيانات API
+      const apiData: SendMessageRequest = {
         api_key: settings.api_key,
         sender: settings.sender_number,
         number: phoneNumber,
-        message: messageContent,
-        footer: settings.default_footer
-      });
+        message: messageContent
+      };
+
+      // إضافة footer إذا كان متوفراً
+      if (settings.default_footer) {
+        apiData.footer = settings.default_footer;
+      }
+
+      // إضافة الوسائط حسب نوع الرسالة
+      if (messageData.media_url && messageData.message_type !== 'text') {
+        apiData.url = messageData.media_url;
+        apiData.type = this.detectMediaType(messageData.media_url);
+      }
+
+      // إضافة الأزرار للرسائل التفاعلية
+      if (messageData.buttons && messageData.buttons.length > 0 && messageData.message_type === 'interactive') {
+        apiData.button = messageData.buttons;
+      }
+
+      // إضافة خيارات الاستطلاع
+      if (messageData.poll_options && messageData.poll_options.length > 0 && messageData.message_type === 'poll') {
+        apiData.option = messageData.poll_options;
+        apiData.name = 'استطلاع رأي';
+        apiData.countable = '1';
+      }
+
+      console.log('Sending API data:', apiData);
+
+      // إرسال الرسالة عبر API
+      const apiResponse = await this.sendToWhatsAppAPI(apiData);
 
       // حفظ الرسالة في قاعدة البيانات
       const messageRecord = await this.saveMessage({
         contact_id: contact?.id,
         template_id: template?.id,
         phone_number: phoneNumber,
-        message_type: 'text', // تبسيط نوع الرسالة
+        message_type: messageData.message_type,
         content: messageContent,
         media_url: messageData.media_url,
         additional_data: {},
