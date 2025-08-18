@@ -101,14 +101,9 @@ export const StarcityHomeMockup = () => {
       if (!profile?.user_id) return [];
       
       const { data } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          task_assignments!inner (
-            assigned_to
-          )
-        `)
-        .eq('task_assignments.assigned_to', profile.user_id)
+        .from('daily_tasks')
+        .select('*')
+        .eq('employee_id', profile.user_id)
         .eq('due_date', new Date().toISOString().split('T')[0])
         .order('created_at', { ascending: false })
         .limit(6);
