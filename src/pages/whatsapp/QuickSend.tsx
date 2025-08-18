@@ -237,6 +237,17 @@ export default function WhatsAppQuickSend() {
       return;
     }
 
+    // تحقق إضافي من عدم إرسال لنفس الرقم
+    const settings = await whatsappService.getSettings();
+    if (settings && settings.sender_number === state.phoneNumber) {
+      toast({
+        title: "خطأ في الرقم",
+        description: "لا يمكن إرسال رسالة لنفس رقم المرسل. يرجى اختيار رقم مختلف.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     updateState({ isSending: true });
 
     try {
