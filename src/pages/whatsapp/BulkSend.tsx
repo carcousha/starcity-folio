@@ -186,7 +186,7 @@ export default function BulkSend() {
 
             <BulkMessageList
               filter="all"
-              onMessageSelect={handleMessageSelect}
+              onMessageSelect={(message) => handleMessageSelect(message.id)}
               onRefresh={handleRefresh}
             />
           </div>

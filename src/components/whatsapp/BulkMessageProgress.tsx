@@ -25,8 +25,8 @@ import {
 import { 
   Play, 
   Pause, 
-  Stop, 
-  RefreshCw, 
+  StopCircle, 
+  RefreshCw,
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -181,7 +181,7 @@ export const BulkMessageProgress: React.FC<BulkMessageProgressProps> = ({
       case 'paused':
         return <Pause className="h-4 w-4 text-yellow-500" />;
       case 'cancelled':
-        return <Stop className="h-4 w-4 text-red-500" />;
+        return <StopCircle className="h-4 w-4 text-red-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
@@ -427,7 +427,7 @@ export const BulkMessageProgress: React.FC<BulkMessageProgressProps> = ({
               
               {(progressData.status === 'draft' || progressData.status === 'queued' || progressData.status === 'sending') && (
                 <Button onClick={() => handleAction('stop')} variant="destructive" className="w-full">
-                  <Stop className="h-4 w-4 mr-2" />
+                  <StopCircle className="h-4 w-4 mr-2" />
                   إيقاف
                 </Button>
               )}

@@ -76,7 +76,7 @@ export function LandBrokers() {
     retry: 2,
     retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 دقائق
-    cacheTime: 10 * 60 * 1000, // 10 دقائق
+    gcTime: 10 * 60 * 1000, // 10 دقائق
     refetchOnWindowFocus: false,
     refetchOnMount: false
   });
