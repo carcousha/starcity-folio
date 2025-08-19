@@ -52,7 +52,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { BulkMessageService } from '@/services/bulkMessageService';
+import { bulkMessageService } from '@/services/bulkMessageService';
 
 interface BulkMessage {
   id: string;
@@ -98,10 +98,7 @@ export const BulkMessageList: React.FC<BulkMessageListProps> = ({
   const loadMessages = async () => {
     setIsLoading(true);
     try {
-      const bulkMessageService = new BulkMessageService();
-      const messagesData = await bulkMessageService.getBulkMessages({ 
-        status: filter as 'all' | 'draft' | 'queued' | 'sending' | 'completed' | 'paused' | 'cancelled'
-      });
+      const messagesData = await bulkMessageService.getBulkMessages({ status: filter });
       setMessages(messagesData);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -113,8 +110,6 @@ export const BulkMessageList: React.FC<BulkMessageListProps> = ({
 
   const handleAction = async (messageId: string, action: string) => {
     try {
-      const bulkMessageService = new BulkMessageService();
-      
       switch (action) {
         case 'start':
           await bulkMessageService.startBulkMessage(messageId);

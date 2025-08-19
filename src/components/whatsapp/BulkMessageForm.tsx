@@ -13,8 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, Clock, Users, Filter, Settings, MessageSquare, Image, Link, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import { BulkMessageService } from '@/services/bulkMessageService';
-import { WhatsAppService } from '@/services/whatsappService';
+import { bulkMessageService } from '@/services/bulkMessageService';
+import { whatsappService } from '@/services/whatsappService';
 
 interface BulkMessageFormProps {
   onMessageCreated?: (messageId: string) => void;
@@ -115,7 +115,6 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
 
   const loadContacts = async () => {
     try {
-      const whatsappService = new WhatsAppService();
       const contactsData = await whatsappService.getContacts();
       // Map WhatsAppContact to Contact interface
       const mappedContacts = contactsData.map(contact => ({
@@ -135,7 +134,6 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
 
   const loadTemplates = async () => {
     try {
-      const whatsappService = new WhatsAppService();
       const templatesData = await whatsappService.getTemplates();
       // Map WhatsAppTemplate to Template interface
       const mappedTemplates = templatesData.map(template => ({
@@ -274,8 +272,6 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
     setIsLoading(true);
 
     try {
-      const bulkMessageService = new BulkMessageService();
-      
       // الحصول على جهات الاتصال المفلترة
       const filteredContacts = getFilteredContacts();
       

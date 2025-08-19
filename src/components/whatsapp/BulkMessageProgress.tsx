@@ -23,10 +23,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { 
-  Play, 
-  Pause, 
-  StopCircle, 
-  RefreshCw,
+    Play, 
+  Pause,
+  StopCircle,
+  RefreshCw, 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -41,7 +41,7 @@ import {
   Activity
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { BulkMessageService } from '@/services/bulkMessageService';
+import { bulkMessageService } from '@/services/bulkMessageService';
 
 interface BulkMessageProgressProps {
   messageId: string;
@@ -95,7 +95,6 @@ export const BulkMessageProgress: React.FC<BulkMessageProgressProps> = ({
 
   const loadProgress = async () => {
     try {
-      const bulkMessageService = new BulkMessageService();
       const data = await bulkMessageService.getBulkMessageProgress(messageId);
       setProgressData(data);
       
@@ -112,8 +111,6 @@ export const BulkMessageProgress: React.FC<BulkMessageProgressProps> = ({
 
   const handleAction = async (action: string) => {
     try {
-      const bulkMessageService = new BulkMessageService();
-      
       switch (action) {
         case 'start':
           await bulkMessageService.startBulkMessage(messageId);
@@ -427,7 +424,7 @@ export const BulkMessageProgress: React.FC<BulkMessageProgressProps> = ({
               
               {(progressData.status === 'draft' || progressData.status === 'queued' || progressData.status === 'sending') && (
                 <Button onClick={() => handleAction('stop')} variant="destructive" className="w-full">
-                  <StopCircle className="h-4 w-4 mr-2" />
+                  <Stop className="h-4 w-4 mr-2" />
                   إيقاف
                 </Button>
               )}

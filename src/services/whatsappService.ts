@@ -881,4 +881,6 @@ class WhatsAppService {
 
 // تصدير instance واحد من الخدمة
 export const whatsappService = new WhatsAppService();
+
+// تصدير الكلاس أيضاً للاستخدام المباشر
 export { WhatsAppService };

@@ -540,7 +540,7 @@ class BulkMessageService {
 
   // ===== الإحصائيات =====
 
-  async getBulkMessageStats(): Promise<any> {
+  async getBulkMessageStats(): Promise<BulkMessageStats> {
     try {
       const [
         totalBulkMessages,
@@ -573,10 +573,7 @@ class BulkMessageService {
         total_failed: totalFailed,
         average_success_rate: averageSuccessRate,
         today_sent: todaySent,
-        today_failed: todayFailed,
-        avg_delivery_time: 5,
-        peak_hour: '10:00 ص',
-        most_active_day: 'الثلاثاء'
+        today_failed: todayFailed
       };
     } catch (error) {
       console.error('Error fetching bulk message stats:', error);
@@ -590,10 +587,7 @@ class BulkMessageService {
         total_failed: 0,
         average_success_rate: 0,
         today_sent: 0,
-        today_failed: 0,
-        avg_delivery_time: 5,
-        peak_hour: '10:00 ص',
-        most_active_day: 'الثلاثاء'
+        today_failed: 0
       };
     }
   }
@@ -764,54 +758,10 @@ class BulkMessageService {
     
     return cleaned;
   }
-
-  // Mock methods for components - will be implemented when tables exist
-  async getBulkMessageProgress(messageId: string): Promise<any> {
-    const message = await this.getBulkMessageById(messageId);
-    if (!message) throw new Error('Bulk message not found');
-    
-    return {
-      id: message.id,
-      name: message.name,
-      status: message.status,
-      total_recipients: message.total_recipients || 0,
-      sent_count: 0,
-      failed_count: 0,
-      success_rate: 0,
-      started_at: message.created_at,
-      current_batch: 1,
-      total_batches: 1,
-      recipients: []
-    };
-  }
-
-  async retryFailedRecipients(messageId: string): Promise<void> {
-    console.log('Retrying failed recipients for message:', messageId);
-    // Will be implemented when database tables exist
-  }
-
-  async addRecipients(messageId: string, recipients: any[]): Promise<void> {
-    console.log('Adding recipients for message:', messageId, recipients);
-    // Will be implemented when database tables exist
-  }
-
-  async duplicateBulkMessage(messageId: string): Promise<BulkMessage> {
-    const original = await this.getBulkMessageById(messageId);
-    if (!original) throw new Error('Message not found');
-    
-    const duplicated = {
-      ...original,
-      name: `${original.name} - نسخة`,
-      status: 'draft',
-      created_at: new Date().toISOString(),
-      started_at: null,
-      completed_at: null
-    };
-    
-    return this.createBulkMessage(duplicated as any);
-  }
 }
 
 // تصدير instance واحد من الخدمة
 export const bulkMessageService = new BulkMessageService();
+
+// تصدير الكلاس أيضاً للاستخدام المباشر
 export { BulkMessageService };
