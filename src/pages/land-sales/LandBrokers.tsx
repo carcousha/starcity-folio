@@ -464,6 +464,29 @@ export function LandBrokers() {
     setSelectedBrokers(new Set());
   }, []);
 
+  // دالة مساعدة لتنظيف أرقام الهواتف
+  const cleanPhoneNumber = useCallback((phone: string): string => {
+    if (!phone) return '';
+    
+    // إزالة المسافات والرموز غير المرغوبة
+    let cleanPhone = phone
+      .replace(/\s+/g, '') // إزالة المسافات
+      .replace(/[^\d]/g, '') // إزالة كل شيء ما عدا الأرقام
+      .replace(/^\+/, ''); // إزالة + من البداية
+    
+    // إزالة الصفر من البداية إذا كان موجوداً
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = cleanPhone.substring(1);
+    }
+    
+    // إضافة كود الدولة إذا لم يكن موجوداً
+    if (!cleanPhone.startsWith('971')) {
+      cleanPhone = '971' + cleanPhone;
+    }
+    
+    return cleanPhone;
+  }, []);
+
   const getSelectedBrokersData = () => {
     return brokers.filter(broker => selectedBrokers.has(broker.id));
   };
@@ -488,7 +511,7 @@ export function LandBrokers() {
       const phoneNumbers = selectedData
         .map(broker => broker.whatsapp_number || broker.phone)
         .filter(phone => phone)
-        .map(phone => phone.replace(/[^0-9]/g, ''))
+        .map(phone => cleanPhoneNumber(phone))
         .join(',');
       
       if (phoneNumbers) {
@@ -517,9 +540,11 @@ export function LandBrokers() {
         });
         
         // التحقق من إعدادات الواتساب أولاً
-        const { WhatsAppService } = await import('@/services/whatsappService');
-        const whatsappService = new WhatsAppService();
+        const { whatsappService } = await import('@/services/whatsappService');
+        console.log('WhatsAppService imported successfully');
+        
         const settings = await whatsappService.getSettings();
+        console.log('WhatsApp settings:', settings);
         
         if (!settings || !settings.api_key || !settings.sender_number) {
           // إذا لم تكن إعدادات API متوفرة، استخدم wa.me
@@ -532,7 +557,7 @@ export function LandBrokers() {
           const phoneNumbers = selectedData
             .map(broker => broker.whatsapp_number || broker.phone)
             .filter(phone => phone)
-            .map(phone => phone.replace(/[^0-9]/g, ''))
+            .map(phone => cleanPhoneNumber(phone))
             .join(',');
           
           if (phoneNumbers) {
@@ -554,24 +579,33 @@ export function LandBrokers() {
         }
         
         // إرسال الرسائل باستخدام API الواتساب
+        console.log('إرسال الرسائل لـ:', selectedData.length, 'وسيط');
+        
         const results = await Promise.allSettled(
           selectedData.map(async (broker) => {
             const phoneNumber = broker.whatsapp_number || broker.phone;
             if (!phoneNumber) {
+              console.log(`لا يوجد رقم واتساب لـ: ${broker.name}`);
               return { broker, success: false, error: 'لا يوجد رقم واتساب' };
             }
+            
+            // تنظيف الرقم باستخدام الدالة المساعدة
+            const cleanPhone = cleanPhoneNumber(phoneNumber);
+            
+            console.log(`إرسال رسالة لـ: ${broker.name} - الرقم الأصلي: "${phoneNumber}" - الرقم المنظف: "${cleanPhone}"`);
             
             try {
               // إرسال الرسالة
               const result = await whatsappService.sendSingleMessage({
-                phone_number: phoneNumber,
+                phone_number: cleanPhone,
                 custom_message: message,
                 message_type: 'text'
               });
               
+              console.log(`تم إرسال الرسالة بنجاح لـ: ${broker.name}`, result);
               return { broker, success: true, result };
             } catch (error) {
-              console.error(`Error sending to ${broker.name}:`, error);
+              console.error(`خطأ في إرسال رسالة لـ ${broker.name}:`, error);
               return { broker, success: false, error: error.message };
             }
           })
@@ -581,7 +615,21 @@ export function LandBrokers() {
         const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
         const failed = results.length - successful;
         
+        console.log('نتائج الإرسال:', {
+          total: results.length,
+          successful,
+          failed,
+          results: results.map(r => r.status === 'fulfilled' ? r.value : r.reason)
+        });
+        
         // إظهار النتيجة
+        console.log('Final results summary:', {
+          total: results.length,
+          successful,
+          failed,
+          successRate: `${((successful / results.length) * 100).toFixed(1)}%`
+        });
+        
         if (successful > 0) {
           toast({
             title: "تم الإرسال بنجاح",
@@ -2190,6 +2238,24 @@ export function LandBrokers() {
                       ? 'إرسال مباشر عبر API الواتساب المدمج (يتطلب إعدادات)' 
                       : 'فتح WhatsApp Web مع الرسالة جاهزة (لا يتطلب إعدادات)'
                     }
+                  </div>
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      onClick={() => window.open('/test_whatsapp_send.html', '_blank')}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      🧪 اختبار الإرسال
+                    </Button>
+                    <Button
+                      onClick={() => window.open('/debug_whatsapp_settings.html', '_blank')}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      🔧 فحص الإعدادات
+                    </Button>
                   </div>
                   {sendMethod === 'api' && (
                     <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">

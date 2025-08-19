@@ -7,19 +7,19 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: true,
-    port: 8080,
+    port: 5173,
     hmr: {
-      overlay: false, // إيقاف overlay الأخطاء
-      port: 5173, // تحديد منفذ HMR
-      timeout: 30000, // زيادة timeout
+      overlay: false,
+      port: 5173,
+      timeout: 30000,
     },
     watch: {
-      usePolling: false, // إيقاف polling لتجنب التحميل المتكرر
-      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'], // تجاهل الملفات غير المهمة
+      usePolling: false,
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'], // تحسين التبعيات
+    include: ['react', 'react-dom'],
   },
   build: {
     rollupOptions: {
