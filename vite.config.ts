@@ -11,10 +11,11 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false, // إيقاف overlay الأخطاء
       port: 5173, // تحديد منفذ HMR
+      timeout: 30000, // زيادة timeout
     },
     watch: {
       usePolling: false, // إيقاف polling لتجنب التحميل المتكرر
-      ignored: ['**/node_modules/**', '**/dist/**'], // تجاهل الملفات غير المهمة
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'], // تجاهل الملفات غير المهمة
     },
   },
   optimizeDeps: {
