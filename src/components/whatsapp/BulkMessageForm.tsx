@@ -49,7 +49,7 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
   const [formData, setFormData] = useState({
     name: '',
     message_content: '',
-    message_type: 'text',
+    message_type: 'text' as 'text' | 'media' | 'button' | 'poll',
     media_url: '',
     media_type: '',
     button_text: '',
@@ -59,7 +59,7 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
 
   // إعدادات المستلمين
   const [recipientSettings, setRecipientSettings] = useState({
-    recipient_type: 'all',
+    recipient_type: 'all' as 'all' | 'by_type' | 'by_company' | 'by_tags' | 'custom',
     filters: {
       contact_types: [] as string[],
       companies: [] as string[],
@@ -74,7 +74,7 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
 
   // إعدادات الإرسال
   const [sendSettings, setSendSettings] = useState({
-    send_type: 'immediate',
+    send_type: 'immediate' as 'immediate' | 'scheduled' | 'gradual',
     scheduled_at: '',
     gradual_settings: {
       enabled: false,
@@ -117,7 +117,16 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
     try {
       const whatsappService = new WhatsAppService();
       const contactsData = await whatsappService.getContacts();
-      setContacts(contactsData);
+      // Map WhatsAppContact to Contact interface
+      const mappedContacts = contactsData.map(contact => ({
+        id: contact.id,
+        name: contact.name,
+        phone_number: contact.phone || contact.whatsapp_number,
+        type: contact.contact_type || 'client',
+        company: contact.company,
+        tags: contact.tags
+      }));
+      setContacts(mappedContacts);
     } catch (error) {
       console.error('Error loading contacts:', error);
       toast.error('فشل في تحميل جهات الاتصال');
@@ -128,7 +137,14 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
     try {
       const whatsappService = new WhatsAppService();
       const templatesData = await whatsappService.getTemplates();
-      setTemplates(templatesData);
+      // Map WhatsAppTemplate to Template interface
+      const mappedTemplates = templatesData.map(template => ({
+        id: template.id,
+        name: template.name,
+        content: template.content,
+        type: template.template_type || 'text'
+      }));
+      setTemplates(mappedTemplates);
     } catch (error) {
       console.error('Error loading templates:', error);
       toast.error('فشل في تحميل القوالب');
@@ -281,22 +297,22 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
         advanced_settings: advancedSettings,
       };
 
-      const messageId = await bulkMessageService.createBulkMessage(bulkMessage);
+      const messageResult = await bulkMessageService.createBulkMessage(bulkMessage);
 
       // إنشاء المستلمين
       const recipients = filteredContacts.map(contact => ({
-        bulk_message_id: messageId,
+        bulk_message_id: messageResult.id,
         contact_id: contact.id,
         phone_number: contact.phone_number,
         personalized_content: getPersonalizedContent(contact),
       }));
 
-      await bulkMessageService.addRecipients(messageId, recipients);
+      await bulkMessageService.addRecipients(messageResult.id, recipients);
 
       toast.success(`تم إنشاء الرسالة الجماعية بنجاح! سيتم إرسالها إلى ${filteredContacts.length} جهة اتصال`);
       
       if (onMessageCreated) {
-        onMessageCreated(messageId);
+        onMessageCreated(messageResult.id);
       }
     } catch (error) {
       console.error('Error creating bulk message:', error);
@@ -521,23 +537,23 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
                     <div>
                       <Label>الشركات</Label>
                       <div className="space-y-2">
-                        {getCompanies().map(company => (
-                          <div key={company} className="flex items-center space-x-2">
+                       {getCompanies().map((company, index) => (
+                          <div key={`company-${index}`} className="flex items-center space-x-2">
                             <input
                               type="checkbox"
-                              id={`company-${company}`}
-                              checked={recipientSettings.filters.companies.includes(company)}
+                              id={`company-${index}`}
+                              checked={recipientSettings.filters.companies.includes(String(company))}
                               onChange={(e) => {
                                 const newCompanies = e.target.checked
-                                  ? [...recipientSettings.filters.companies, company]
-                                  : recipientSettings.filters.companies.filter(c => c !== company);
+                                  ? [...recipientSettings.filters.companies, String(company)]
+                                  : recipientSettings.filters.companies.filter(c => c !== String(company));
                                 handleRecipientChange('filters', {
                                   ...recipientSettings.filters,
                                   companies: newCompanies
                                 });
                               }}
                             />
-                            <Label htmlFor={`company-${company}`}>{company}</Label>
+                            <Label htmlFor={`company-${index}`}>{String(company)}</Label>
                           </div>
                         ))}
                       </div>
@@ -548,23 +564,23 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
                     <div>
                       <Label>العلامات</Label>
                       <div className="space-y-2">
-                        {getTags().map(tag => (
-                          <div key={tag} className="flex items-center space-x-2">
+                       {getTags().map((tag, index) => (
+                          <div key={`tag-${index}`} className="flex items-center space-x-2">
                             <input
                               type="checkbox"
-                              id={`tag-${tag}`}
-                              checked={recipientSettings.filters.tags.includes(tag)}
+                              id={`tag-${index}`}
+                              checked={recipientSettings.filters.tags.includes(String(tag))}
                               onChange={(e) => {
                                 const newTags = e.target.checked
-                                  ? [...recipientSettings.filters.tags, tag]
-                                  : recipientSettings.filters.tags.filter(t => t !== tag);
+                                  ? [...recipientSettings.filters.tags, String(tag)]
+                                  : recipientSettings.filters.tags.filter(t => t !== String(tag));
                                 handleRecipientChange('filters', {
                                   ...recipientSettings.filters,
                                   tags: newTags
                                 });
                               }}
                             />
-                            <Label htmlFor={`tag-${tag}`}>{tag}</Label>
+                            <Label htmlFor={`tag-${index}`}>{String(tag)}</Label>
                           </div>
                         ))}
                       </div>

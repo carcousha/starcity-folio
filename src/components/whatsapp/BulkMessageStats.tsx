@@ -67,8 +67,21 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
     setIsLoading(true);
     try {
       const bulkMessageService = new BulkMessageService();
-      const statsData = await bulkMessageService.getBulkMessageStats(timeRange);
-      setStats(statsData);
+      const statsData = await bulkMessageService.getBulkMessageStats();
+      setStats({
+        total_messages: statsData.total_bulk_messages,
+        active_messages: statsData.active_bulk_messages,
+        completed_messages: statsData.completed_bulk_messages,
+        success_rate: statsData.average_success_rate,
+        total_recipients: statsData.total_recipients,
+        total_sent: statsData.total_sent,
+        total_failed: statsData.total_failed,
+        today_sent: statsData.today_sent,
+        today_failed: statsData.today_failed,
+        avg_delivery_time: statsData.avg_delivery_time || 5,
+        peak_hour: statsData.peak_hour || '10:00 ص',
+        most_active_day: statsData.most_active_day || 'الثلاثاء'
+      });
       
       // إنشاء بيانات الرسم البياني
       createChartData(statsData);
