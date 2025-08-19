@@ -45,9 +45,9 @@ export function LandBrokers() {
   const queryClient = useQueryClient();
 
   const { data: brokers = [], isLoading, error: queryError } = useQuery({
-    queryKey: ['land-brokers', searchTerm, activityFilter],
+    queryKey: ['land-brokers', searchTerm, activityFilter, languageFilter],
     queryFn: async () => {
-      console.log('Fetching brokers with filters:', { searchTerm, activityFilter });
+      console.log('Fetching brokers with filters:', { searchTerm, activityFilter, languageFilter });
       
       let query = supabase.from('land_brokers').select('*');
       
@@ -57,6 +57,10 @@ export function LandBrokers() {
       
       if (activityFilter !== 'all') {
         query = query.eq('activity_status', activityFilter);
+      }
+      
+      if (languageFilter !== 'all') {
+        query = query.eq('language', languageFilter);
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -252,6 +256,7 @@ export function LandBrokers() {
         office_name: formData.get('office_name') as string,
         office_location: formData.get('office_location') as string,
         activity_status: formData.get('activity_status') as 'active' | 'medium' | 'low' | 'inactive',
+        language: formData.get('language') as 'arabic' | 'english',
         areas_specialization: (formData.get('areas_specialization') as string)
           ?.split(',')
           .map(area => area.trim())
@@ -353,10 +358,12 @@ export function LandBrokers() {
   // نظام الاختيار المتعدد
   const [selectedBrokers, setSelectedBrokers] = useState<Set<string>>(new Set());
   const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false);
-  const [bulkActionType, setBulkActionType] = useState<'whatsapp' | 'task' | 'export'>('whatsapp');
+  const [bulkActionType, setBulkActionType] = useState<'whatsapp' | 'task' | 'export' | 'edit' | 'delete'>('whatsapp');
   const [bulkMessage, setBulkMessage] = useState('');
   const [bulkTaskTitle, setBulkTaskTitle] = useState('');
   const [bulkTaskDescription, setBulkTaskDescription] = useState('');
+  const [bulkEditActivity, setBulkEditActivity] = useState<'' | 'active' | 'medium' | 'low' | 'inactive'>('');
+  const [bulkEditLanguage, setBulkEditLanguage] = useState<'' | 'arabic' | 'english'>('');
 
   const handleWhatsApp = (broker: LandBroker) => {
     setSelectedBroker(broker);
@@ -618,6 +625,65 @@ export function LandBrokers() {
     URL.revokeObjectURL(url);
 
     toast({ title: "تم التصدير", description: `تم تصدير ${selectedBrokersData.length} وسيط بصيغة CSV` });
+  };
+
+  // تعديل جماعي: تحديث حالة النشاط واللغة للوسطاء المختارين
+  const bulkUpdateSelectedBrokers = async () => {
+    if (selectedBrokers.size === 0) {
+      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للتعديل", variant: "destructive" });
+      return;
+    }
+    if (!bulkEditActivity && !bulkEditLanguage) {
+      toast({ title: "تنبيه", description: "اختر على الأقل حقلاً واحداً للتعديل (الحالة أو اللغة)", variant: "destructive" });
+      return;
+    }
+
+    const ids = Array.from(selectedBrokers);
+    const updateData: any = {};
+    if (bulkEditActivity) updateData.activity_status = bulkEditActivity;
+    if (bulkEditLanguage) updateData.language = bulkEditLanguage;
+
+    try {
+      const { error } = await supabase
+        .from('land_brokers')
+        .update(updateData)
+        .in('id', ids);
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
+      toast({ title: "تم التعديل الجماعي", description: `تم تحديث ${ids.length} وسيط` });
+      setIsBulkActionsOpen(false);
+      setBulkEditActivity('');
+      setBulkEditLanguage('');
+      clearSelection();
+    } catch (error: any) {
+      console.error('Bulk update error:', error);
+      toast({ title: "خطأ", description: error.message || 'فشل التعديل الجماعي', variant: 'destructive' });
+    }
+  };
+
+  // حذف جماعي: حذف الوسطاء المختارين
+  const bulkDeleteSelectedBrokers = async () => {
+    if (selectedBrokers.size === 0) {
+      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للحذف", variant: "destructive" });
+      return;
+    }
+    try {
+      const ids = Array.from(selectedBrokers);
+      const { error } = await supabase
+        .from('land_brokers')
+        .delete()
+        .in('id', ids);
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
+      toast({ title: "تم الحذف", description: `تم حذف ${ids.length} وسيط` });
+      setIsBulkActionsOpen(false);
+      clearSelection();
+    } catch (error: any) {
+      console.error('Bulk delete error:', error);
+      toast({ title: "خطأ", description: error.message || 'فشل الحذف الجماعي', variant: 'destructive' });
+    }
   };
 
   // دالة تنظيف أرقام الهاتف
@@ -1097,7 +1163,7 @@ export function LandBrokers() {
 
         {/* Filters Section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
-          <div className="flex flex-wrap gap-6">
+          <div className="flex flex-wrap gap-6 items-center">
         <div className="flex-1 min-w-[300px]">
           <div className="relative">
                 <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
@@ -1134,6 +1200,27 @@ export function LandBrokers() {
             <SelectItem value="english">إنجليزي</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* أزرار الاختيار المتعدد */}
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={selectAllBrokers}
+            className="h-12 px-4 border-blue-300 text-blue-700 hover:bg-blue-50 rounded-xl"
+          >
+            اختيار الكل
+          </Button>
+          
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={clearSelection}
+            className="h-12 px-4 border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl"
+          >
+            إلغاء الاختيار
+          </Button>
+        </div>
           </div>
       </div>
 
@@ -1207,6 +1294,20 @@ export function LandBrokers() {
                           <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50">
+                    <TableHead className="text-right font-bold text-slate-800 w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedBrokers.size === filteredBrokers.length && filteredBrokers.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            selectAllBrokers();
+                          } else {
+                            clearSelection();
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                    </TableHead>
                     <TableHead className="text-right font-bold text-slate-800">الاسم</TableHead>
                     <TableHead className="text-right font-bold text-slate-800">الاسم المختصر</TableHead>
                     <TableHead className="text-right font-bold text-slate-800">رقم الهاتف</TableHead>
@@ -1244,16 +1345,20 @@ export function LandBrokers() {
                     </TableCell>
                     
                     <TableCell className="text-right">
-                      <Badge 
-                        variant={broker.language === 'arabic' ? 'default' : 'secondary'}
-                        className={`${
-                          broker.language === 'arabic' 
-                            ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                            : 'bg-green-100 text-green-800 border-green-200'
-                        }`}
-                      >
-                        {broker.language === 'arabic' ? 'عربي' : 'إنجليزي'}
-                      </Badge>
+                      {broker.language ? (
+                        <Badge 
+                          variant={broker.language === 'arabic' ? 'default' : 'secondary'}
+                          className={`${
+                            broker.language === 'arabic' 
+                              ? 'bg-blue-100 text-blue-800 border-blue-200' 
+                              : 'bg-green-100 text-green-800 border-green-200'
+                          }`}
+                        >
+                          {broker.language === 'arabic' ? 'عربي' : broker.language === 'english' ? 'إنجليزي' : 'غير محدد'}
+                        </Badge>
+                      ) : (
+                        <span className="text-slate-400">غير محدد</span>
+                      )}
                     </TableCell>
                     
                     <TableCell className="text-slate-600 py-4">
@@ -1270,17 +1375,29 @@ export function LandBrokers() {
                     </TableCell>
                     
                     <TableCell className="py-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleWhatsApp(broker)}
                           disabled={!broker.whatsapp_number && !broker.phone}
                           title="إرسال واتساب"
-                          className="h-9 w-9 p-0 border-slate-200 hover:border-green-500 hover:bg-green-50 rounded-xl transition-all duration-200"
+                          className="h-8 w-8 p-0 border-slate-200 hover:border-green-500 hover:bg-green-50 rounded-lg transition-all duration-200"
                         >
-                          <MessageCircle className="h-4 w-4 text-green-600" />
+                          <MessageCircle className="h-3 w-3 text-green-600" />
                         </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEmail(broker)}
+                          disabled={!broker.email}
+                          title="إرسال إيميل"
+                          className="h-8 w-8 p-0 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                        >
+                          <Mail className="h-3 w-3 text-blue-600" />
+                        </Button>
+                        
                         <Button
                           size="sm"
                           variant="outline"
@@ -1289,18 +1406,18 @@ export function LandBrokers() {
                             setIsDialogOpen(true);
                           }}
                           title="تعديل"
-                          className="h-9 w-9 p-0 border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-xl transition-all duration-200"
+                          className="h-8 w-8 p-0 border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-lg transition-all duration-200"
                         >
-                          <Edit className="h-4 w-4 text-amber-600" />
+                          <Edit className="h-3 w-3 text-amber-600" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => deleteMutation.mutate(broker.id)}
                           title="حذف"
-                          className="h-9 w-9 p-0 border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-xl transition-all duration-200"
+                          className="h-8 w-8 p-0 border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
+                          <Trash2 className="h-3 w-3 text-red-600" />
                         </Button>
                       </div>
                     </TableCell>
@@ -1316,11 +1433,19 @@ export function LandBrokers() {
             <Card key={broker.id} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold text-slate-800">{broker.name}</CardTitle>
-                    {broker.short_name && (
-                      <p className="text-sm text-slate-600 font-medium">({broker.short_name})</p>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedBrokers.has(broker.id)}
+                      onChange={() => toggleBrokerSelection(broker.id)}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-bold text-slate-800">{broker.name}</CardTitle>
+                      {broker.short_name && (
+                        <p className="text-sm text-slate-600 font-medium">({broker.short_name})</p>
+                      )}
+                    </div>
                   </div>
                   <Badge className={`${getActivityColor(broker.activity_status)} text-white px-3 py-1 rounded-full text-xs font-medium shadow-sm`}>
                     {getActivityLabel(broker.activity_status)}
@@ -1343,18 +1468,20 @@ export function LandBrokers() {
                   )}
 
                   {/* عرض اللغة */}
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant={broker.language === 'arabic' ? 'default' : 'secondary'}
-                      className={`${
-                        broker.language === 'arabic' 
-                          ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                          : 'bg-green-100 text-green-800 border-green-200'
-                      }`}
-                    >
-                      {broker.language === 'arabic' ? 'عربي' : 'إنجليزي'}
-                    </Badge>
-                  </div>
+                  {broker.language && (
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={broker.language === 'arabic' ? 'default' : 'secondary'}
+                        className={`${
+                          broker.language === 'arabic' 
+                            ? 'bg-blue-100 text-blue-800 border-blue-200' 
+                            : 'bg-green-100 text-green-800 border-green-200'
+                        }`}
+                      >
+                        {broker.language === 'arabic' ? 'عربي' : broker.language === 'english' ? 'إنجليزي' : 'غير محدد'}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 
                 {broker.office_name && (
@@ -1389,9 +1516,21 @@ export function LandBrokers() {
                       variant="outline"
                       onClick={() => handleWhatsApp(broker)}
                       disabled={!broker.whatsapp_number && !broker.phone}
-                      className="h-10 w-10 p-0 border-slate-200 hover:border-green-500 hover:bg-green-50 rounded-xl transition-all duration-200"
+                      title="إرسال واتساب"
+                      className="h-9 w-9 p-0 border-slate-200 hover:border-green-500 hover:bg-green-50 rounded-lg transition-all duration-200"
                     >
-                      <MessageCircle className="h-4 w-4 text-green-600" />
+                      <MessageCircle className="h-3 w-3 text-green-600" />
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEmail(broker)}
+                      disabled={!broker.email}
+                      title="إرسال إيميل"
+                      className="h-9 w-9 p-0 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                    >
+                      <Mail className="h-3 w-3 text-blue-600" />
                     </Button>
                   </div>
                   
@@ -1403,17 +1542,19 @@ export function LandBrokers() {
                         setEditingBroker(broker);
                         setIsDialogOpen(true);
                       }}
-                      className="h-10 w-10 p-0 border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-xl transition-all duration-200"
+                      title="تعديل"
+                      className="h-9 w-9 p-0 border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-lg transition-all duration-200"
                     >
-                      <Edit className="h-4 w-4 text-amber-600" />
+                      <Edit className="h-3 w-3 text-amber-600" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => deleteMutation.mutate(broker.id)}
-                      className="h-10 w-10 p-0 border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-xl transition-all duration-200"
+                      title="حذف"
+                      className="h-9 w-9 p-0 border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
                     >
-                      <Trash2 className="h-4 w-4 text-red-600" />
+                      <Trash2 className="h-3 w-3 text-red-600" />
                     </Button>
                   </div>
                 </div>
@@ -1583,6 +1724,32 @@ export function LandBrokers() {
                   <Download className="h-4 w-4 ml-2" />
                   تصدير البيانات
                 </Button>
+                
+                <Button
+                  variant={bulkActionType === 'edit' ? 'default' : 'outline'}
+                  onClick={() => setBulkActionType('edit')}
+                  className={`h-12 ${
+                    bulkActionType === 'edit' 
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                      : 'border-slate-200 hover:border-amber-300'
+                  } rounded-xl transition-all duration-200`}
+                >
+                  <Edit className="h-4 w-4 ml-2" />
+                  تعديل جماعي
+                </Button>
+                
+                <Button
+                  variant={bulkActionType === 'delete' ? 'default' : 'outline'}
+                  onClick={() => setBulkActionType('delete')}
+                  className={`h-12 ${
+                    bulkActionType === 'delete' 
+                      ? 'bg-red-600 hover:bg-red-700 text-white' 
+                      : 'border-slate-200 hover:border-red-300'
+                  } rounded-xl transition-all duration-200`}
+                >
+                  <Trash2 className="h-4 w-4 ml-2" />
+                  حذف جماعي
+                </Button>
               </div>
             </div>
 
@@ -1651,6 +1818,50 @@ export function LandBrokers() {
                 </div>
               </div>
             )}
+
+            {/* تعديل جماعي */}
+            {bulkActionType === 'edit' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">تحديث حالة النشاط (اختياري)</Label>
+                    <Select value={bulkEditActivity} onValueChange={(v: any) => setBulkEditActivity(v)}>
+                      <SelectTrigger className="h-12 border-slate-200 rounded-xl">
+                        <SelectValue placeholder="اختر حالة النشاط" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">نشط</SelectItem>
+                        <SelectItem value="medium">متوسط</SelectItem>
+                        <SelectItem value="low">ضعيف</SelectItem>
+                        <SelectItem value="inactive">غير نشط</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-slate-700">تحديث اللغة (اختياري)</Label>
+                    <Select value={bulkEditLanguage} onValueChange={(v: any) => setBulkEditLanguage(v)}>
+                      <SelectTrigger className="h-12 border-slate-200 rounded-xl">
+                        <SelectValue placeholder="اختر اللغة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="arabic">عربي</SelectItem>
+                        <SelectItem value="english">إنجليزي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="text-xs text-slate-500">سيتم تطبيق القيم المختارة فقط، واترك أي حقل فارغ إذا لا تريد تحديثه.</div>
+              </div>
+            )}
+
+            {/* حذف جماعي */}
+            {bulkActionType === 'delete' && (
+              <div className="space-y-3">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                  سيتم حذف جميع الأوسطاء المختارين بشكل نهائي. هذا الإجراء لا يمكن التراجع عنه.
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
@@ -1691,6 +1902,26 @@ export function LandBrokers() {
               >
                 <Download className="h-4 w-4 ml-2" />
                 تصدير البيانات
+              </Button>
+            )}
+
+            {bulkActionType === 'edit' && (
+              <Button
+                onClick={bulkUpdateSelectedBrokers}
+                className="h-12 px-8 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white rounded-xl shadow-lg shadow-amber-500/25 transition-all duration-200 hover:scale-105"
+              >
+                <Edit className="h-4 w-4 ml-2" />
+                حفظ التعديلات
+              </Button>
+            )}
+
+            {bulkActionType === 'delete' && (
+              <Button
+                onClick={bulkDeleteSelectedBrokers}
+                className="h-12 px-8 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl shadow-lg shadow-red-500/25 transition-all duration-200 hover:scale-105"
+              >
+                <Trash2 className="h-4 w-4 ml-2" />
+                تأكيد الحذف
               </Button>
             )}
           </div>
