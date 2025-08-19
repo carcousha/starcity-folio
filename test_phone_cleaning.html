@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار تنظيف أرقام الهواتف</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #25D366;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #128C7E;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-case {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار تنظيف أرقام الهواتف</h1>
+        
+        <div class="form-group">
+            <label for="phoneNumber">رقم الهاتف للاختبار:</label>
+            <input type="text" id="phoneNumber" placeholder="+971 50 123 4567" value="+971 50 123 4567">
+        </div>
+        
+        <div>
+            <button onclick="testPhoneCleaning()">اختبار تنظيف الرقم</button>
+            <button onclick="runAllTests()">تشغيل جميع الاختبارات</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+        }
+
+        function cleanPhoneNumber(phone) {
+            if (!phone) return '';
+            
+            // إزالة المسافات والرموز غير المرغوبة
+            let cleanPhone = phone
+                .replace(/\s+/g, '') // إزالة المسافات
+                .replace(/[^\d]/g, '') // إزالة كل شيء ما عدا الأرقام
+                .replace(/^\+/, ''); // إزالة + من البداية
+            
+            // إزالة الصفر من البداية إذا كان موجوداً
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = cleanPhone.substring(1);
+            }
+            
+            // إضافة كود الدولة إذا لم يكن موجوداً
+            if (!cleanPhone.startsWith('971')) {
+                cleanPhone = '971' + cleanPhone;
+            }
+            
+            return cleanPhone;
+        }
+
+        function testPhoneCleaning() {
+            const phone = document.getElementById('phoneNumber').value;
+            const cleaned = cleanPhoneNumber(phone);
+            
+            showResult(`
+                <strong>نتيجة تنظيف الرقم:</strong><br><br>
+                <strong>الرقم الأصلي:</strong> "${phone}"<br>
+                <strong>الرقم المنظف:</strong> "${cleaned}"<br><br>
+                <strong>التحليل:</strong><br>
+                - إزالة المسافات: ✅<br>
+                - إزالة الرموز: ✅<br>
+                - إزالة + من البداية: ✅<br>
+                - إضافة كود الدولة: ${cleaned.startsWith('971') ? '✅' : '❌'}<br>
+                - الطول الصحيح: ${cleaned.length === 12 ? '✅' : '❌'} (${cleaned.length} رقم)
+            `, 'success');
+        }
+
+        function runAllTests() {
+            const testCases = [
+                '+971 50 123 4567',
+                '971501234567',
+                '0501234567',
+                '50 123 4567',
+                '+971-50-123-4567',
+                '971 50 123 4567',
+                '050 123 4567',
+                '50-123-4567',
+                '+971501234567',
+                '971 50 123 4567',
+                ' 971 50 123 4567 ',
+                '+971 50 123 4567 ',
+                '971501234567 ',
+                ' 971501234567'
+            ];
+
+            let results = '<strong>نتائج جميع الاختبارات:</strong><br><br>';
+            
+            testCases.forEach((testCase, index) => {
+                const cleaned = cleanPhoneNumber(testCase);
+                const isValid = cleaned === '971501234567';
+                
+                results += `
+                    <div class="test-case">
+                        <strong>اختبار ${index + 1}:</strong><br>
+                        الأصلي: "${testCase}"<br>
+                        المنظف: "${cleaned}"<br>
+                        النتيجة: ${isValid ? '✅ صحيح' : '❌ خطأ'}
+                    </div>
+                `;
+            });
+
+            showResult(results, 'success');
+        }
+
+        // اختبار تلقائي عند تحميل الصفحة
+        window.onload = function() {
+            console.log('صفحة اختبار تنظيف أرقام الهواتف محملة بنجاح');
+            showResult('صفحة الاختبار جاهزة. أدخل رقم هاتف واختبر تنظيفه.', 'info');
+        };
+    </script>
+</body>
+</html>
