@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -74,7 +74,11 @@ export function LandBrokers() {
       return data as LandBroker[];
     },
     retry: 2,
-    retryDelay: 1000
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 دقائق
+    cacheTime: 10 * 60 * 1000, // 10 دقائق
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   const createMutation = useMutation({
@@ -144,10 +148,9 @@ export function LandBrokers() {
         throw new Error('يجب تسجيل الدخول أولاً');
       }
       
-      // إضافة updated_by
+      // إضافة updated_at فقط
       const updateData = {
         ...data,
-        updated_by: user.id,
         updated_at: new Date().toISOString()
       };
       
@@ -438,24 +441,26 @@ export function LandBrokers() {
   };
 
   // دوال الاختيار المتعدد
-  const toggleBrokerSelection = (brokerId: string) => {
-    const newSelection = new Set(selectedBrokers);
-    if (newSelection.has(brokerId)) {
-      newSelection.delete(brokerId);
-    } else {
-      newSelection.add(brokerId);
-    }
-    setSelectedBrokers(newSelection);
-  };
+  const toggleBrokerSelection = useCallback((brokerId: string) => {
+    setSelectedBrokers(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(brokerId)) {
+        newSelection.delete(brokerId);
+      } else {
+        newSelection.add(brokerId);
+      }
+      return newSelection;
+    });
+  }, []);
 
-  const selectAllBrokers = () => {
+  const selectAllBrokers = useCallback(() => {
     const allIds = brokers.map(broker => broker.id);
     setSelectedBrokers(new Set(allIds));
-  };
+  }, [brokers]);
 
-  const clearSelection = () => {
+  const clearSelection = useCallback(() => {
     setSelectedBrokers(new Set());
-  };
+  }, []);
 
   const getSelectedBrokersData = () => {
     return brokers.filter(broker => selectedBrokers.has(broker.id));
@@ -784,7 +789,9 @@ export function LandBrokers() {
 
   // تطبيق الفلاتر على البيانات
   const filteredBrokers = useMemo(() => {
-    let filtered = brokers || [];
+    if (!brokers || brokers.length === 0) return [];
+    
+    let filtered = [...brokers]; // إنشاء نسخة جديدة
 
     // فلتر البحث
     if (searchTerm) {
