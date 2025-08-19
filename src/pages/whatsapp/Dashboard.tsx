@@ -28,7 +28,8 @@ import {
   Target,
   Calendar,
   FileText,
-  Activity
+  Activity,
+  Settings
 } from 'lucide-react';
 
 // Import services and types
@@ -36,30 +37,40 @@ import { whatsappService } from '@/services/whatsappService';
 import { WhatsAppStats } from '@/types/whatsapp';
 
 export default function WhatsAppDashboard() {
+  console.log('WhatsAppDashboard: Component is loading...');
+  
   const [stats, setStats] = useState<WhatsAppStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  console.log('WhatsAppDashboard: State initialized');
+
   useEffect(() => {
+    console.log('WhatsApp Dashboard: Component mounted');
     loadStats();
   }, []);
 
   const loadStats = async () => {
     try {
+      console.log('WhatsApp Dashboard: Loading stats...');
       setIsLoading(true);
+      setError(null);
+      
       const statsData = await whatsappService.getStats();
+      console.log('WhatsApp Dashboard: Stats loaded successfully:', statsData);
       setStats(statsData);
     } catch (error) {
-      console.error('Error loading stats:', error);
-      toast({
-        title: "خطأ",
-        description: "فشل في تحميل الإحصائيات",
-        variant: "destructive"
-      });
+      console.error('WhatsApp Dashboard: Error loading stats:', error);
+      setError(error instanceof Error ? error.message : 'خطأ غير معروف');
+      // لا نعرض toast للخطأ، فقط نترك stats كـ null
+      // هذا سيظهر الصفحة الترحيبية
     } finally {
       setIsLoading(false);
     }
   };
+
+  console.log('WhatsApp Dashboard: Rendering with state:', { isLoading, stats, error });
 
   if (isLoading) {
     return (
@@ -70,13 +81,70 @@ export default function WhatsAppDashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">لوحة تحكم الواتساب</h1>
+            <p className="text-gray-600 mt-2">نظرة شاملة على نشاط الواتساب والإحصائيات</p>
+          </div>
+        </div>
+
+        <div className="text-center py-12">
+          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">حدث خطأ في تحميل البيانات</h3>
+          <p className="text-gray-600 mb-4">تفاصيل الخطأ: {error}</p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={loadStats} variant="outline">
+              إعادة المحاولة
+            </Button>
+            <Button onClick={() => window.location.href = '/whatsapp/settings'}>
+              <Settings className="h-4 w-4 ml-2" />
+              إعدادات الواتساب
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!stats) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">لا توجد بيانات متاحة</p>
-        <Button onClick={loadStats} className="mt-4">
-          إعادة المحاولة
-        </Button>
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">لوحة تحكم الواتساب</h1>
+            <p className="text-gray-600 mt-2">نظرة شاملة على نشاط الواتساب والإحصائيات</p>
+          </div>
+        </div>
+
+        {/* Debug Information */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="text-lg font-medium text-yellow-800 mb-2">معلومات التشخيص</h3>
+          <div className="text-sm text-yellow-700 space-y-1">
+            <p>• تم تحميل المكون بنجاح</p>
+            <p>• خدمة الواتساب متاحة</p>
+            <p>• لا توجد إحصائيات متاحة حالياً</p>
+            <p>• يمكنك البدء بإعداد الواتساب</p>
+          </div>
+        </div>
+
+        <div className="text-center py-12">
+          <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">مرحباً بك في وحدة الواتساب</h3>
+          <p className="text-gray-600 mb-6">لا توجد بيانات متاحة حالياً. يمكنك البدء بإعداد الواتساب</p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={loadStats} variant="outline">
+              إعادة المحاولة
+            </Button>
+            <Button onClick={() => window.location.href = '/whatsapp/settings'}>
+              <Settings className="h-4 w-4 ml-2" />
+              إعدادات الواتساب
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

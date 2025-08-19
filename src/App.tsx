@@ -372,9 +372,9 @@ const AppProtector = () => {
                  </ProtectedRoute>
                } />
               
-              {/* WhatsApp Module Routes - Admin only */}
+              {/* WhatsApp Module Routes - Admin and Accountant */}
               <Route path="/whatsapp/*" element={
-                <ProtectedRoute requiredPermission="canManageStaff">
+                <ProtectedRoute requiredPermission="canViewFinancials">
                   <Suspense fallback={<LoadingSpinner />}>
                     <WhatsAppModule />
                   </Suspense>

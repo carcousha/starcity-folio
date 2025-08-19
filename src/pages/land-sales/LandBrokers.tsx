@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2 } from "lucide-react";
+import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2, ExternalLink, Settings, ChevronDown, X, FileText } from "lucide-react";
 import { getTemplates, type TemplateDTO } from "@/services/templateService";
 
 interface LandBroker {
@@ -365,6 +366,7 @@ export function LandBrokers() {
   const [bulkMessage, setBulkMessage] = useState('');
   const [bulkTaskTitle, setBulkTaskTitle] = useState('');
   const [bulkTaskDescription, setBulkTaskDescription] = useState('');
+  const [sendMethod, setSendMethod] = useState<'api' | 'wa_me'>('api');
   const [bulkEditActivity, setBulkEditActivity] = useState<'' | 'active' | 'medium' | 'low' | 'inactive'>('');
   const [bulkEditLanguage, setBulkEditLanguage] = useState<'' | 'arabic' | 'english'>('');
 
@@ -466,20 +468,156 @@ export function LandBrokers() {
     return brokers.filter(broker => selectedBrokers.has(broker.id));
   };
 
-  const handleBulkWhatsApp = () => {
-    if (selectedBrokers.size === 0) return;
+  const handleBulkWhatsApp = async () => {
+    console.log('handleBulkWhatsApp called');
+    console.log('selectedBrokers size:', selectedBrokers.size);
+    console.log('sendMethod:', sendMethod);
+    
+    if (selectedBrokers.size === 0) {
+      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء لإرسال الرسالة", variant: "destructive" });
+      return;
+    }
     
     const selectedData = getSelectedBrokersData();
-    const phoneNumbers = selectedData
-      .map(broker => broker.whatsapp_number || broker.phone)
-      .filter(phone => phone)
-      .map(phone => phone.replace(/[^0-9]/g, ''))
-      .join(',');
+    console.log('selectedData:', selectedData);
     
-    if (phoneNumbers) {
-      const message = bulkMessage || 'مرحباً، لدينا عروض جديدة للأراضي قد تهمكم.';
-      const url = `https://wa.me/${phoneNumbers}?text=${encodeURIComponent(message)}`;
-      window.open(url, '_blank');
+    const message = bulkMessage || 'مرحباً، لدينا عروض جديدة للأراضي قد تهمكم.';
+    
+    if (sendMethod === 'wa_me') {
+      // استخدام wa.me
+      const phoneNumbers = selectedData
+        .map(broker => broker.whatsapp_number || broker.phone)
+        .filter(phone => phone)
+        .map(phone => phone.replace(/[^0-9]/g, ''))
+        .join(',');
+      
+      if (phoneNumbers) {
+        const url = `https://wa.me/${phoneNumbers}?text=${encodeURIComponent(message)}`;
+        console.log('WhatsApp URL:', url);
+        window.open(url, '_blank');
+        
+        toast({
+          title: "تم فتح WhatsApp",
+          description: `تم فتح WhatsApp لـ ${selectedData.length} وسيط`,
+        });
+      } else {
+        toast({ 
+          title: "خطأ", 
+          description: "لا توجد أرقام واتساب متاحة للوسطاء المختارين", 
+          variant: "destructive" 
+        });
+      }
+    } else {
+      // استخدام API الواتساب
+      try {
+        // إظهار رسالة تحميل
+        toast({
+          title: "جاري الإرسال...",
+          description: `جاري إرسال الرسائل لـ ${selectedData.length} وسيط`,
+        });
+        
+        // التحقق من إعدادات الواتساب أولاً
+        const { WhatsAppService } = await import('@/services/whatsappService');
+        const whatsappService = new WhatsAppService();
+        const settings = await whatsappService.getSettings();
+        
+        if (!settings || !settings.api_key || !settings.sender_number) {
+          // إذا لم تكن إعدادات API متوفرة، استخدم wa.me
+          toast({
+            title: "إعدادات API غير متوفرة",
+            description: "سيتم فتح WhatsApp Web بدلاً من الإرسال المباشر",
+            variant: "default"
+          });
+          
+          const phoneNumbers = selectedData
+            .map(broker => broker.whatsapp_number || broker.phone)
+            .filter(phone => phone)
+            .map(phone => phone.replace(/[^0-9]/g, ''))
+            .join(',');
+          
+          if (phoneNumbers) {
+            const url = `https://wa.me/${phoneNumbers}?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+            
+            toast({
+              title: "تم فتح WhatsApp",
+              description: `تم فتح WhatsApp لـ ${selectedData.length} وسيط`,
+            });
+          } else {
+            toast({ 
+              title: "خطأ", 
+              description: "لا توجد أرقام واتساب متاحة للوسطاء المختارين", 
+              variant: "destructive" 
+            });
+          }
+          return;
+        }
+        
+        // إرسال الرسائل باستخدام API الواتساب
+        const results = await Promise.allSettled(
+          selectedData.map(async (broker) => {
+            const phoneNumber = broker.whatsapp_number || broker.phone;
+            if (!phoneNumber) {
+              return { broker, success: false, error: 'لا يوجد رقم واتساب' };
+            }
+            
+            try {
+              // إرسال الرسالة
+              const result = await whatsappService.sendSingleMessage({
+                phone_number: phoneNumber,
+                custom_message: message,
+                message_type: 'text'
+              });
+              
+              return { broker, success: true, result };
+            } catch (error) {
+              console.error(`Error sending to ${broker.name}:`, error);
+              return { broker, success: false, error: error.message };
+            }
+          })
+        );
+        
+        // حساب النتائج
+        const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+        const failed = results.length - successful;
+        
+        // إظهار النتيجة
+        if (successful > 0) {
+          toast({
+            title: "تم الإرسال بنجاح",
+            description: `تم إرسال ${successful} رسالة بنجاح${failed > 0 ? `، فشل ${failed} رسالة` : ''}`,
+          });
+        } else {
+          toast({
+            title: "فشل الإرسال",
+            description: (
+              <div>
+                لم يتم إرسال أي رسالة. 
+                <br />
+                <a 
+                  href="/whatsapp/settings" 
+                  className="text-blue-600 hover:text-blue-800 underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = '/whatsapp/settings';
+                  }}
+                >
+                  إعدادات الواتساب
+                </a>
+              </div>
+            ),
+            variant: "destructive"
+          });
+        }
+        
+      } catch (error) {
+        console.error('Error in bulk WhatsApp:', error);
+        toast({
+          title: "خطأ في الإرسال",
+          description: "حدث خطأ أثناء إرسال الرسائل",
+          variant: "destructive"
+        });
+      }
     }
     
     setIsBulkActionsOpen(false);
@@ -630,6 +768,88 @@ export function LandBrokers() {
     URL.revokeObjectURL(url);
 
     toast({ title: "تم التصدير", description: `تم تصدير ${selectedBrokersData.length} وسيط بصيغة CSV` });
+  };
+
+  const exportSelectedBrokersAsPDF = () => {
+    if (selectedBrokers.size === 0) {
+      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للتصدير", variant: "destructive" });
+      return;
+    }
+    
+    const selectedData = getSelectedBrokersData();
+    
+    // إنشاء محتوى HTML للـ PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <title>قائمة الوسطاء المختارين</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .header h1 { color: #1e40af; margin-bottom: 10px; }
+          .header p { color: #6b7280; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #d1d5db; padding: 8px; text-align: right; }
+          th { background-color: #f3f4f6; font-weight: bold; }
+          .footer { margin-top: 30px; text-align: center; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>قائمة الوسطاء المختارين</h1>
+          <p>تاريخ التصدير: ${new Date().toLocaleDateString('ar-SA')}</p>
+          <p>عدد الوسطاء: ${selectedBrokers.size}</p>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>الاسم المختصر</th>
+              <th>رقم الهاتف</th>
+              <th>رقم الواتساب</th>
+              <th>البريد الإلكتروني</th>
+              <th>اسم المكتب</th>
+              <th>المناطق</th>
+              <th>اللغة</th>
+              <th>حالة النشاط</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${selectedData.map(broker => `
+              <tr>
+                <td>${broker.name}</td>
+                <td>${broker.short_name || '-'}</td>
+                <td>${broker.phone || '-'}</td>
+                <td>${broker.whatsapp_number || '-'}</td>
+                <td>${broker.email || '-'}</td>
+                <td>${broker.office_name || '-'}</td>
+                <td>${broker.specialization_areas || '-'}</td>
+                <td>${broker.language === 'arabic' ? 'عربي' : broker.language === 'english' ? 'إنجليزي' : '-'}</td>
+                <td>${broker.activity_status || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <p>تم إنشاء هذا التقرير بواسطة نظام إدارة الأراضي - StarCity Folio</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // فتح في نافذة جديدة للطباعة
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    
+    toast({
+      title: "تم فتح PDF",
+      description: `تم فتح تقرير PDF لـ ${selectedBrokers.size} وسيط`,
+    });
   };
 
   // تعديل جماعي: تحديث حالة النشاط واللغة للوسطاء المختارين
@@ -861,87 +1081,238 @@ export function LandBrokers() {
                 </Button>
               </div>
               
-              {/* Bulk Selection Controls */}
-              {selectedBrokers.size > 0 && (
-                <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3 shadow-sm">
+              {/* Bulk Selection Controls - ثابتة دائماً */}
+              <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                      selectedBrokers.size > 0 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-slate-300 text-slate-600'
+                    }`}>
                       {selectedBrokers.size}
                     </div>
-                    <span className="text-sm font-medium text-blue-800">
+                    <span className={`text-sm font-medium ${
+                      selectedBrokers.size > 0 
+                        ? 'text-blue-800' 
+                        : 'text-slate-600'
+                    }`}>
                       وسيط مختار
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setBulkActionType('whatsapp');
-                        setIsBulkActionsOpen(true);
-                      }}
-                      className="h-8 px-3 border-blue-300 text-blue-700 hover:bg-blue-50 rounded-lg"
-                    >
-                      <MessageCircle className="h-3 w-3 ml-1" />
-                      إرسال رسائل
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setBulkActionType('task');
-                        setIsBulkActionsOpen(true);
-                      }}
-                      className="h-8 px-3 border-green-300 text-green-700 hover:bg-green-50 rounded-lg"
-                    >
-                      <Plus className="h-3 w-3 ml-1" />
-                      إنشاء مهمة
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={exportPhoneNumbers}
-                      className="h-8 px-3 border-purple-300 text-purple-700 hover:bg-purple-50 rounded-lg"
-                    >
-                      <Download className="h-3 w-3 ml-1" />
-                      تصدير الأرقام
-                    </Button>
-
-                    {/* أزرار التصدير الجديدة */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={exportSelectedBrokersAsText}
-                      className="h-8 px-3 border-purple-300 text-purple-700 hover:bg-purple-50 rounded-lg"
-                    >
-                      <Download className="h-3 w-3 ml-1" />
-                      تصدير TEXT
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={exportSelectedBrokersAsCSV}
-                      className="h-8 px-3 border-indigo-300 text-indigo-700 hover:bg-indigo-50 rounded-lg"
-                    >
-                      <Download className="h-3 w-3 ml-1" />
-                      تصدير CSV
-                    </Button>
-                  </div>
+                  {/* قائمة الإجراءات */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={selectedBrokers.size === 0}
+                        className={`h-9 px-4 rounded-lg ${
+                          selectedBrokers.size > 0
+                            ? 'border-blue-300 text-blue-700 hover:bg-blue-50'
+                            : 'border-slate-300 text-slate-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <Settings className="h-4 w-4 ml-2" />
+                        إجراءات متعددة
+                        <ChevronDown className="h-3 w-3 mr-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>اختر الإجراء</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          setBulkActionType('whatsapp');
+                          setIsBulkActionsOpen(true);
+                        }}
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <MessageCircle className="h-4 w-4 ml-2 text-green-600" />
+                        إرسال رسائل واتساب
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          setBulkActionType('task');
+                          setIsBulkActionsOpen(true);
+                        }}
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <Plus className="h-4 w-4 ml-2 text-blue-600" />
+                        إنشاء مهمة
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          setBulkActionType('edit');
+                          setIsBulkActionsOpen(true);
+                        }}
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <Edit className="h-4 w-4 ml-2 text-amber-600" />
+                        تعديل جماعي
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          setBulkActionType('delete');
+                          setIsBulkActionsOpen(true);
+                        }} 
+                        className="text-red-600"
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <Trash2 className="h-4 w-4 ml-2" />
+                        حذف جماعي
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={clearSelection}
-                    className="h-8 px-3 text-slate-600 hover:text-slate-800"
-                  >
-                    إلغاء الاختيار
-                  </Button>
+                  {/* قائمة التصدير */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={selectedBrokers.size === 0}
+                        className={`h-9 px-4 rounded-lg ${
+                          selectedBrokers.size > 0
+                            ? 'border-purple-300 text-purple-700 hover:bg-purple-50'
+                            : 'border-slate-300 text-slate-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <Download className="h-4 w-4 ml-2" />
+                        تصدير
+                        <ChevronDown className="h-3 w-3 mr-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuLabel>نوع التصدير</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          exportPhoneNumbers();
+                        }}
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <FileText className="h-4 w-4 ml-2 text-blue-600" />
+                        تصدير الأرقام
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          exportSelectedBrokersAsText();
+                        }}
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <FileText className="h-4 w-4 ml-2 text-green-600" />
+                        تصدير TEXT
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          exportSelectedBrokersAsCSV();
+                        }}
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <FileText className="h-4 w-4 ml-2 text-purple-600" />
+                        تصدير CSV
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          if (selectedBrokers.size === 0) {
+                            toast({ 
+                              title: "تنبيه", 
+                              description: "يرجى اختيار وسطاء أولاً", 
+                              variant: "destructive" 
+                            });
+                            return;
+                          }
+                          exportSelectedBrokersAsPDF();
+                        }}
+                        disabled={selectedBrokers.size === 0}
+                      >
+                        <FileText className="h-4 w-4 ml-2 text-red-600" />
+                        تصدير PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-              )}
+                
+                <div className="flex items-center gap-2">
+                  {selectedBrokers.size > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={clearSelection}
+                      className="h-9 px-4 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
+                    >
+                      <X className="h-4 w-4 ml-2" />
+                      إلغاء الاختيار
+                    </Button>
+                  )}
+                </div>
+              </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -1766,12 +2137,65 @@ export function LandBrokers() {
                 <h3 className="text-lg font-semibold text-slate-800">رسالة الواتساب:</h3>
                 <textarea
                   value={bulkMessage}
-                  onChange={(e) => setBulkMessage(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Message changed:', e.target.value);
+                    setBulkMessage(e.target.value);
+                  }}
                   placeholder="اكتب رسالتك هنا... مثال: مرحباً، لدينا أرض جديدة للبيع في منطقة مميزة. هل تريد معرفة التفاصيل؟"
                   className="w-full h-32 p-4 border border-slate-200 rounded-xl focus:border-green-500 focus:ring-green-500/20 resize-none transition-all duration-200"
                 />
                 <div className="text-sm text-slate-500">
-                  سيتم إرسال هذه الرسالة لجميع الأوسطاء المختارين
+                  سيتم إرسال هذه الرسالة لجميع الأوسطاء المختارين ({selectedBrokers.size} وسيط)
+                </div>
+                {bulkMessage && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-sm font-medium text-green-800">معاينة الرسالة:</div>
+                    <div className="text-sm text-green-700 mt-1">{bulkMessage}</div>
+                  </div>
+                )}
+                
+                {/* خيارات الإرسال */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-slate-700">طريقة الإرسال:</div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSendMethod('api')}
+                      className={`flex-1 ${
+                        sendMethod === 'api' 
+                          ? 'border-green-500 bg-green-50 text-green-700' 
+                          : 'border-slate-200'
+                      }`}
+                    >
+                      <MessageCircle className="h-3 w-3 ml-1" />
+                      API الواتساب
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSendMethod('wa_me')}
+                      className={`flex-1 ${
+                        sendMethod === 'wa_me' 
+                          ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                          : 'border-slate-200'
+                      }`}
+                    >
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                      wa.me
+                    </Button>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {sendMethod === 'api' 
+                      ? 'إرسال مباشر عبر API الواتساب المدمج (يتطلب إعدادات)' 
+                      : 'فتح WhatsApp Web مع الرسالة جاهزة (لا يتطلب إعدادات)'
+                    }
+                  </div>
+                  {sendMethod === 'api' && (
+                    <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
+                      💡 إذا لم تكن إعدادات API متوفرة، سيتم استخدام wa.me تلقائياً
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1882,12 +2306,17 @@ export function LandBrokers() {
             
             {bulkActionType === 'whatsapp' && (
               <Button
-                onClick={handleBulkWhatsApp}
-                disabled={!bulkMessage.trim()}
+                onClick={() => {
+                  console.log('Bulk WhatsApp button clicked');
+                  console.log('Selected brokers:', selectedBrokers.size);
+                  console.log('Message:', bulkMessage);
+                  handleBulkWhatsApp();
+                }}
+                disabled={!bulkMessage.trim() || selectedBrokers.size === 0}
                 className="h-12 px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <MessageCircle className="h-4 w-4 ml-2" />
-                إرسال الرسائل
+                إرسال الرسائل ({selectedBrokers.size})
               </Button>
             )}
             

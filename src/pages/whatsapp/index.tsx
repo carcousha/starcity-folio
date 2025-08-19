@@ -15,6 +15,8 @@ import WhatsAppReports from './Reports';
 import WhatsAppSettings from './Settings';
 
 export default function WhatsAppModule() {
+  console.log('WhatsAppModule: Router component loaded');
+  
   return (
     <Routes>
       {/* Default route - redirect to dashboard */}
