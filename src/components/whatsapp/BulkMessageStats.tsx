@@ -32,15 +32,10 @@ interface Stats {
   total_messages: number;
   active_messages: number;
   completed_messages: number;
-  total_recipients: number;
-  total_sent: number;
-  total_failed: number;
   success_rate: number;
-  today_sent: number;
-  today_failed: number;
-  avg_delivery_time: number;
-  peak_hour: string;
-  most_active_day: string;
+  failed_messages: number;
+  pending_messages: number;
+  total_recipients: number;
 }
 
 interface ChartData {
@@ -66,8 +61,17 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
   const loadStats = async () => {
     setIsLoading(true);
     try {
-      const statsData = await bulkMessageService.getBulkMessageStats(timeRange);
-      setStats(statsData);
+      const statsData = await bulkMessageService.getBulkMessageStats();
+      // Map the response to match our Stats interface
+      setStats({
+        total_messages: statsData.total_bulk_messages || 0,
+        active_messages: statsData.active_bulk_messages || 0,
+        completed_messages: statsData.completed_bulk_messages || 0,
+        success_rate: statsData.average_success_rate || 0,
+        failed_messages: statsData.total_failed || 0,
+        pending_messages: 0,
+        total_recipients: statsData.total_recipients || 0
+      });
       
       // إنشاء بيانات الرسم البياني
       createChartData(statsData);
@@ -109,14 +113,9 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
       الرسائل النشطة,${stats.active_messages}
       الرسائل المكتملة,${stats.completed_messages}
       إجمالي المستلمين,${stats.total_recipients}
-      إجمالي المرسل,${stats.total_sent}
-      إجمالي الفاشل,${stats.total_failed}
+      الرسائل الفاشلة,${stats.failed_messages}
       معدل النجاح,${stats.success_rate}%
-      المرسل اليوم,${stats.today_sent}
-      الفاشل اليوم,${stats.today_failed}
-      متوسط وقت التسليم,${stats.avg_delivery_time} دقيقة
-      ساعة الذروة,${stats.peak_hour}
-      أكثر يوم نشاطاً,${stats.most_active_day}
+      الرسائل المعلقة,${stats.pending_messages}
     `;
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -227,7 +226,7 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
           <CardContent>
             <div className="text-2xl font-bold">{stats.total_recipients.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.total_sent.toLocaleString()} تم إرسالها
+              إجمالي المستلمين
             </p>
           </CardContent>
         </Card>
@@ -240,7 +239,7 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
           <CardContent>
             <div className="text-2xl font-bold">{stats.success_rate}%</div>
             <p className="text-xs text-muted-foreground">
-              {stats.total_failed} فاشلة
+              {stats.failed_messages} فاشلة
             </p>
           </CardContent>
         </Card>
@@ -251,9 +250,9 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.today_sent}</div>
+            <div className="text-2xl font-bold">{stats.pending_messages}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.today_failed} فاشلة
+              معلقة
             </p>
           </CardContent>
         </Card>
@@ -271,26 +270,26 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">متوسط وقت التسليم</span>
+              <span className="text-sm font-medium">إجمالي المرسل</span>
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span className="font-semibold">{stats.avg_delivery_time} دقيقة</span>
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span className="font-semibold">{stats.total_recipients} رسالة</span>
               </div>
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">ساعة الذروة</span>
+              <span className="text-sm font-medium">معدل النجاح</span>
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-gray-500" />
-                <span className="font-semibold">{stats.peak_hour}</span>
+                <span className="font-semibold">{stats.success_rate}%</span>
               </div>
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">أكثر يوم نشاطاً</span>
+              <span className="text-sm font-medium">الرسائل الفاشلة</span>
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-500" />
-                <span className="font-semibold">{stats.most_active_day}</span>
+                <XCircle className="h-4 w-4 text-red-500" />
+                <span className="font-semibold">{stats.failed_messages}</span>
               </div>
             </div>
           </CardContent>
@@ -326,7 +325,7 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
                 <XCircle className="h-4 w-4 text-red-600" />
                 <span className="text-sm">فاشلة</span>
               </div>
-              <Badge variant="secondary">{stats.total_failed}</Badge>
+              <Badge variant="secondary">{stats.failed_messages}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -375,8 +374,8 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-800">أفضل أداء</p>
-                <p className="text-2xl font-bold text-green-900">{stats.most_active_day}</p>
+                <p className="text-sm font-medium text-green-800">إجمالي الرسائل</p>
+                <p className="text-2xl font-bold text-green-900">{stats.total_messages}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-600" />
             </div>
@@ -399,8 +398,8 @@ export const BulkMessageStats: React.FC<BulkMessageStatsProps> = ({ refreshTrigg
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-800">سرعة التسليم</p>
-                <p className="text-2xl font-bold text-purple-900">{stats.avg_delivery_time} د</p>
+                <p className="text-sm font-medium text-purple-800">المستلمون</p>
+                <p className="text-2xl font-bold text-purple-900">{stats.total_recipients}</p>
               </div>
               <Zap className="h-8 w-8 text-purple-600" />
             </div>

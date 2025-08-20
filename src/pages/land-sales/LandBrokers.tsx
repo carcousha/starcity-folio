@@ -51,7 +51,7 @@ interface BrokerFormData {
 
 export function LandBrokers() {
   const navigate = useNavigate();
-  const { addBrokers, selectedBrokers: globalSelectedBrokers, selectedCount, transferToAdvancedTasks, isTransferring, setIsTransferring } = useGlobalSelectedBrokers();
+  const { addBrokers, selectedBrokers: globalSelectedBrokers, selectedCount, isTransferring, setIsTransferring } = useGlobalSelectedBrokers();
   const [searchTerm, setSearchTerm] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
   const [languageFilter, setLanguageFilter] = useState<'all' | 'arabic' | 'english'>('all');

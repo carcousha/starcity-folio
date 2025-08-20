@@ -98,7 +98,7 @@ export const BulkMessageList: React.FC<BulkMessageListProps> = ({
   const loadMessages = async () => {
     setIsLoading(true);
     try {
-      const messagesData = await bulkMessageService.getBulkMessages({ status: filter });
+      const messagesData = await bulkMessageService.getBulkMessages(filter === 'all' ? {} : { status: filter as any });
       setMessages(messagesData);
     } catch (error) {
       console.error('Error loading messages:', error);

@@ -758,6 +758,45 @@ class BulkMessageService {
     
     return cleaned;
   }
+  
+  async duplicateBulkMessage(messageId: string): Promise<BulkMessage> {
+    // Mock implementation
+    return {
+      id: 'mock-duplicate-' + Date.now(),
+      name: 'نسخة من الحملة',
+      status: 'draft' as const,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      total_recipients: 0,
+      sent_count: 0,
+      failed_count: 0,
+      success_rate: 0,
+      message_content: 'محتوى الرسالة',
+      message_type: 'text',
+      recipient_type: 'all',
+      send_type: 'immediate'
+    };
+  }
+
+  async getBulkMessageProgress(messageId: string): Promise<BulkMessageProgress> {
+    // Mock implementation
+    return {
+      bulk_message_id: messageId,
+      total_recipients: 100,
+      sent_count: 45,
+      pending_count: 30,
+      failed_count: 5,
+      success_rate: 90,
+      estimated_completion: new Date(Date.now() + 3600000).toISOString(),
+      current_batch: 2,
+      total_batches: 5
+    };
+  }
+
+  async retryFailedRecipients(messageId: string): Promise<void> {
+    // Mock implementation
+    console.log('Retrying failed recipients for message:', messageId);
+  }
 }
 
 // تصدير instance واحد من الخدمة

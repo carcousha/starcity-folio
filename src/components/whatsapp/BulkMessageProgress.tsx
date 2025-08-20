@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
-  Table, 
+  Table,
   TableBody, 
   TableCell, 
   TableHead, 
@@ -23,9 +23,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { 
-    Play, 
+  Play, 
   Pause,
-  StopCircle,
+  Square as Stop,
   RefreshCw, 
   CheckCircle, 
   XCircle, 
@@ -38,7 +38,8 @@ import {
   BarChart3,
   Download,
   Eye,
-  Activity
+  Activity,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { bulkMessageService } from '@/services/bulkMessageService';
@@ -96,10 +97,24 @@ export const BulkMessageProgress: React.FC<BulkMessageProgressProps> = ({
   const loadProgress = async () => {
     try {
       const data = await bulkMessageService.getBulkMessageProgress(messageId);
-      setProgressData(data);
+      const mappedData = {
+        id: messageId,
+        name: 'رسالة جماعية',
+        status: 'sending',
+        started_at: new Date().toISOString(),
+        total_recipients: data.total_recipients,
+        sent_count: data.sent_count,
+        failed_count: data.failed_count,
+        success_rate: data.success_rate,
+        current_batch: data.current_batch || 1,
+        total_batches: data.total_batches || 1,
+        estimated_completion: data.estimated_completion,
+        recipients: []
+      };
+      setProgressData(mappedData);
       
-      if (onStatusChange && data.status !== progressData?.status) {
-        onStatusChange(data.status);
+      if (onStatusChange && 'sending' !== progressData?.status) {
+        onStatusChange('sending');
       }
     } catch (error) {
       console.error('Error loading progress:', error);
@@ -178,7 +193,7 @@ export const BulkMessageProgress: React.FC<BulkMessageProgressProps> = ({
       case 'paused':
         return <Pause className="h-4 w-4 text-yellow-500" />;
       case 'cancelled':
-        return <StopCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
