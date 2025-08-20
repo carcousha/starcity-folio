@@ -13,6 +13,13 @@ import WhatsAppBulkSend from './BulkSend';
 import WhatsAppTemplates from './Templates';
 import WhatsAppReports from './Reports';
 import WhatsAppSettings from './Settings';
+import TestSend from './TestSend';
+import SimpleTest from './SimpleTest';
+import TestMedia from './TestMedia';
+import TestBucket from './TestBucket';
+import TestMediaSimple from './TestMediaSimple';
+import TestMediaFinal from './TestMediaFinal';
+import TestPage from './TestPage';
 
 export default function WhatsAppModule() {
   console.log('WhatsAppModule: Router component loaded');
@@ -20,34 +27,55 @@ export default function WhatsAppModule() {
   return (
     <Routes>
       {/* Default route - redirect to dashboard */}
-      <Route path="/" element={<Navigate to="/whatsapp/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="dashboard" replace />} />
       
       {/* Dashboard */}
-      <Route path="/dashboard" element={<WhatsAppDashboard />} />
+      <Route path="dashboard" element={<WhatsAppDashboard />} />
       
       {/* Quick Send */}
-      <Route path="/quick-send" element={<WhatsAppQuickSend />} />
+      <Route path="quick-send" element={<WhatsAppQuickSend />} />
       
       {/* Bulk Send */}
-      <Route path="/bulk-send" element={<WhatsAppBulkSend />} />
+      <Route path="bulk-send" element={<WhatsAppBulkSend />} />
       
       {/* Contacts */}
-      <Route path="/contacts" element={<WhatsAppContacts />} />
+      <Route path="contacts" element={<WhatsAppContacts />} />
       
       {/* Campaigns */}
-      <Route path="/campaigns" element={<WhatsAppCampaigns />} />
+      <Route path="campaigns" element={<WhatsAppCampaigns />} />
       
       {/* Templates */}
-      <Route path="/templates" element={<WhatsAppTemplates />} />
+      <Route path="templates" element={<WhatsAppTemplates />} />
       
       {/* Reports */}
-      <Route path="/reports" element={<WhatsAppReports />} />
+      <Route path="reports" element={<WhatsAppReports />} />
       
       {/* Settings */}
-      <Route path="/settings" element={<WhatsAppSettings />} />
+      <Route path="settings" element={<WhatsAppSettings />} />
+      
+      {/* Test Send */}
+      <Route path="test-send" element={<TestSend />} />
+      
+      {/* Simple Test */}
+      <Route path="simple-test" element={<SimpleTest />} />
+      
+      {/* Test Media */}
+      <Route path="test-media" element={<TestMedia />} />
+      
+      {/* Test Bucket */}
+      <Route path="test-bucket" element={<TestBucket />} />
+      
+      {/* Test Media Simple */}
+      <Route path="test-media-simple" element={<TestMediaSimple />} />
+      
+      {/* Test Media Final */}
+      <Route path="test-media-final" element={<TestMediaFinal />} />
+      
+      {/* Test Page */}
+      <Route path="test" element={<TestPage />} />
       
       {/* Catch all - redirect to dashboard */}
-      <Route path="*" element={<Navigate to="/whatsapp/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Routes>
   );
 }

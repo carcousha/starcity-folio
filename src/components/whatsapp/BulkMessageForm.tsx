@@ -39,11 +39,81 @@ interface Template {
 
 export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreated, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [showPersonalization, setShowPersonalization] = useState(false);
+
+  // التحقق من وجود بيانات من صفحة المهام المتقدمة
+  useEffect(() => {
+    const bulkSendData = localStorage.getItem('bulkSendFromLandBrokers');
+    if (bulkSendData) {
+      try {
+        setIsLoadingData(true);
+        console.log('📥 [BulkMessageForm] Loading data from Advanced Tasks...');
+        const parsedData = JSON.parse(bulkSendData);
+        
+        // تعبئة النموذج بالبيانات المحولة
+        setFormData(prev => ({
+          ...prev,
+          name: parsedData.campaignName || '',
+          message_content: parsedData.messageContent || '',
+        }));
+
+        // تعبئة إعدادات التخصيص
+        if (parsedData.personalizationEnabled) {
+          setPersonalizationSettings(prev => ({
+            ...prev,
+            enabled: true,
+          }));
+        }
+
+        // تعبئة إعدادات التوقيت
+        if (parsedData.timingSettings) {
+          const timing = parsedData.timingSettings;
+          setSendSettings(prev => ({
+            ...prev,
+            send_type: timing.useRandomTiming ? 'gradual' : 'immediate',
+            gradual_settings: {
+              ...prev.gradual_settings,
+              enabled: timing.useRandomTiming,
+              delay_minutes: timing.fixedIntervalMinutes || 2,
+            },
+          }));
+        }
+
+        // إضافة المستلمين المحولين
+        if (parsedData.recipients && Array.isArray(parsedData.recipients)) {
+          const convertedContacts = parsedData.recipients.map((recipient: any) => ({
+            id: recipient.id,
+            name: recipient.name,
+            phone_number: recipient.phone_number,
+            type: recipient.type,
+            company: recipient.company,
+            tags: recipient.tags || [],
+          }));
+          
+          setContacts(convertedContacts);
+          setSelectedContacts(convertedContacts.map(c => c.id));
+          
+          console.log('✅ [BulkMessageForm] Loaded', convertedContacts.length, 'recipients from Advanced Tasks');
+        }
+
+        // تأخير مسح البيانات من localStorage لضمان عدم فقدان البيانات
+        setTimeout(() => {
+          localStorage.removeItem('bulkSendFromLandBrokers');
+          console.log('✅ [BulkMessageForm] Data cleared from localStorage after form population');
+        }, 3000); // تأخير 3 ثواني
+        
+      } catch (error) {
+        console.error('❌ [BulkMessageForm] Error loading data from Advanced Tasks:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
+  }, []);
 
   // بيانات الرسالة الأساسية
   const [formData, setFormData] = useState({
@@ -295,15 +365,8 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
 
       const messageResult = await bulkMessageService.createBulkMessage(bulkMessage);
 
-      // إنشاء المستلمين
-      const recipients = filteredContacts.map(contact => ({
-        bulk_message_id: messageResult.id,
-        contact_id: contact.id,
-        phone_number: contact.phone_number,
-        personalized_content: getPersonalizedContent(contact),
-      }));
-
-      await bulkMessageService.addRecipients(messageResult.id, recipients);
+      // إنشاء المستلمين (سيتم التعامل معهم في createBulkMessage)
+      console.log('✅ Bulk message created with recipients:', filteredContacts.length);
 
       toast.success(`تم إنشاء الرسالة الجماعية بنجاح! سيتم إرسالها إلى ${filteredContacts.length} جهة اتصال`);
       
@@ -342,6 +405,20 @@ export const BulkMessageForm: React.FC<BulkMessageFormProps> = ({ onMessageCreat
 
   return (
     <div className="space-y-6">
+      {/* مؤشر تحميل البيانات */}
+      {isLoadingData && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="text-sm font-medium text-blue-800">
+                جاري تحميل البيانات من صفحة المهام المتقدمة...
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

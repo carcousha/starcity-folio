@@ -29,7 +29,9 @@ import {
   AlertTriangle,
   MessageSquare,
   Send,
-  Phone
+  Phone,
+  TestTube,
+  FileImage
 } from "lucide-react";
 
 import { 
@@ -271,6 +273,12 @@ export function AppSidebar() {
         { title: "لوحة التحكم", url: "/whatsapp/dashboard", icon: BarChart3 },
         { title: "الإرسال السريع", url: "/whatsapp/quick-send", icon: Send },
         { title: "الإرسال الجماعي", url: "/whatsapp/bulk-send", icon: Users },
+        { title: "اختبار الإرسال", url: "/whatsapp/test-send", icon: TestTube },
+        { title: "اختبار بسيط", url: "/whatsapp/simple-test", icon: TestTube },
+        { title: "اختبار المرفقات", url: "/whatsapp/test-media", icon: FileImage },
+        { title: "اختبار Bucket", url: "/whatsapp/test-bucket", icon: Upload },
+        { title: "اختبار مرفقات مبسط", url: "/whatsapp/test-media-simple", icon: FileImage },
+        { title: "اختبار مرفقات نهائي", url: "/whatsapp/test-media-final", icon: FileImage },
         { title: "جهات الاتصال", url: "/whatsapp/contacts", icon: Users },
         { title: "الحملات الإعلانية", url: "/whatsapp/campaigns", icon: Target },
         { title: "القوالب", url: "/whatsapp/templates", icon: FileText },
@@ -326,6 +334,7 @@ export function AppSidebar() {
         { title: "العملاء", url: "/land-sales/clients", icon: User },
         { title: "المهام", url: "/land-sales/tasks", icon: CheckSquare },
         { title: "التقارير", url: "/land-sales/reports", icon: BarChart3 },
+        { title: "المهام المتقدمة", url: "/land-sales/advanced-tasks", icon: Target },
       ]
     }
   ];
