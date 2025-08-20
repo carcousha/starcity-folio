@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -6,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2, ExternalLink, Settings, ChevronDown, X, FileText } from "lucide-react";
-import { getTemplates, type TemplateDTO } from "@/services/templateService";
+import { useGlobalSelectedBrokers } from "@/hooks/useGlobalSelectedBrokers";
+import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2, ExternalLink, Settings, ChevronDown, X, FileText, Eye, MoreHorizontal, Filter, RefreshCw, Send, Users, FileText as FileTextIcon, Target, ArrowRight } from "lucide-react";
 
 interface LandBroker {
   id: string;
@@ -29,31 +31,64 @@ interface LandBroker {
   deals_count: number;
   total_sales_amount: number;
   created_at: string;
-  notes?: string; // Added notes property
-  language?: string; // Added language property
+  notes?: string;
+  language?: string;
+}
+
+interface BrokerFormData {
+  name: string;
+  short_name: string;
+  phone: string;
+  email: string;
+  whatsapp_number: string;
+  areas_specialization: string[];
+  office_name: string;
+  office_location: string;
+  activity_status: 'active' | 'medium' | 'low' | 'inactive';
+  notes: string;
+  language: 'arabic' | 'english';
 }
 
 export function LandBrokers() {
+  const navigate = useNavigate();
+  const { addBrokers, selectedBrokers: globalSelectedBrokers, selectedCount, transferToAdvancedTasks, isTransferring, setIsTransferring } = useGlobalSelectedBrokers();
   const [searchTerm, setSearchTerm] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingBroker, setEditingBroker] = useState<LandBroker | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-
-  // إضافة حالة اللغة
   const [languageFilter, setLanguageFilter] = useState<'all' | 'arabic' | 'english'>('all');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isBulkMessageDialogOpen, setIsBulkMessageDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [selectedBroker, setSelectedBroker] = useState<LandBroker | null>(null);
+  const [selectedBrokersForBulk, setSelectedBrokersForBulk] = useState<string[]>([]);
+  const [bulkMessage, setBulkMessage] = useState('');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'txt' | 'excel'>('csv');
+  const [formData, setFormData] = useState<BrokerFormData>({
+    name: '',
+    short_name: '',
+    phone: '',
+    email: '',
+    whatsapp_number: '',
+    areas_specialization: [],
+    office_name: '',
+    office_location: '',
+    activity_status: 'active',
+    notes: '',
+    language: 'arabic'
+  });
 
   const queryClient = useQueryClient();
 
-  const { data: brokers = [], isLoading, error: queryError } = useQuery({
+  // Fetch brokers
+  const { data: brokers = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['land-brokers', searchTerm, activityFilter, languageFilter],
     queryFn: async () => {
-      console.log('Fetching brokers with filters:', { searchTerm, activityFilter, languageFilter });
-      
       let query = supabase.from('land_brokers').select('*');
       
       if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        query = query.or(`name.ilike.%${searchTerm}%,short_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
       }
       
       if (activityFilter !== 'all') {
@@ -71,2362 +106,1202 @@ export function LandBrokers() {
         throw error;
       }
       
-      console.log('Brokers fetched successfully:', data?.length || 0);
       return data as LandBroker[];
     },
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 دقائق
-    gcTime: 10 * 60 * 1000, // 10 دقائق
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: Partial<LandBroker>) => {
-      console.log('Creating broker with data:', data);
-      
-      // الحصول على المستخدم الحالي
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error('Error getting user:', userError);
-        throw new Error('يجب تسجيل الدخول أولاً');
-      }
-      
-      // إضافة قيم افتراضية
-      const brokerData = {
-        ...data,
-        created_by: user.id,
-        deals_count: 0,
-        total_sales_amount: 0,
-        created_at: new Date().toISOString()
-      };
-      
-      console.log('Final broker data:', brokerData);
-      
+  // Add broker mutation
+  const addBrokerMutation = useMutation({
+    mutationFn: async (data: BrokerFormData) => {
       const { data: result, error } = await supabase
         .from('land_brokers')
-        .insert(brokerData)
+        .insert([{
+          ...data,
+          deals_count: 0,
+          total_sales_amount: 0
+        }])
         .select()
         .single();
-        
-      if (error) {
-        console.error('Error creating broker:', error);
-        throw error;
-      }
-      
-      console.log('Broker created successfully:', result);
+
+      if (error) throw error;
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
-      setIsDialogOpen(false);
-      toast({ 
-        title: "تم إضافة الوسيط بنجاح",
-        description: "تم حفظ بيانات الوسيط في قاعدة البيانات"
+      toast({
+        title: "تم الإضافة بنجاح",
+        description: "تم إضافة الوسيط بنجاح",
       });
+      setIsAddDialogOpen(false);
+      resetForm();
     },
     onError: (error) => {
-      console.error('Mutation error:', error);
-      toast({ 
-        title: "خطأ في إضافة الوسيط",
-        description: error.message || "حدث خطأ أثناء حفظ البيانات",
-        variant: "destructive"
+      toast({
+        title: "خطأ في الإضافة",
+        description: error.message,
+        variant: "destructive",
       });
     }
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<LandBroker> & { id: string }) => {
-      console.log('Updating broker with ID:', id, 'data:', data);
-      
-      // الحصول على المستخدم الحالي
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error('Error getting user:', userError);
-        throw new Error('يجب تسجيل الدخول أولاً');
-      }
-      
-      // إضافة updated_at فقط
-      const updateData = {
-        ...data,
-        updated_at: new Date().toISOString()
-      };
-      
-      console.log('Final update data:', updateData);
-      
+  // Update broker mutation
+  const updateBrokerMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<BrokerFormData> }) => {
       const { data: result, error } = await supabase
         .from('land_brokers')
-        .update(updateData)
+        .update(data)
         .eq('id', id)
         .select()
         .single();
-        
-      if (error) {
-        console.error('Error updating broker:', error);
-        throw error;
-      }
-      
-      console.log('Broker updated successfully:', result);
+
+      if (error) throw error;
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
-      setIsDialogOpen(false);
-      setEditingBroker(null);
-      toast({ 
-        title: "تم تحديث الوسيط بنجاح",
-        description: "تم حفظ التغييرات بنجاح"
+      toast({
+        title: "تم التحديث بنجاح",
+        description: "تم تحديث بيانات الوسيط بنجاح",
       });
+      setIsEditDialogOpen(false);
+      setSelectedBroker(null);
+      resetForm();
     },
     onError: (error) => {
-      console.error('Update mutation error:', error);
-      toast({ 
-        title: "خطأ في تحديث الوسيط",
-        description: error.message || "حدث خطأ أثناء حفظ التغييرات",
-        variant: "destructive"
+      toast({
+        title: "خطأ في التحديث",
+        description: error.message,
+        variant: "destructive",
       });
     }
   });
 
-  const deleteMutation = useMutation({
+  // Delete broker mutation
+  const deleteBrokerMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('Deleting broker with ID:', id);
-      
-      // الحصول على المستخدم الحالي
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error('Error getting user:', userError);
-        throw new Error('يجب تسجيل الدخول أولاً');
-      }
-      
-      // التحقق من أن المستخدم يمكنه حذف هذا الوسيط
-      // يمكنك إضافة منطق إضافي هنا للتحقق من الصلاحيات
-      
-      const { error } = await supabase.from('land_brokers').delete().eq('id', id);
-      if (error) {
-        console.error('Error deleting broker:', error);
-        throw error;
-      }
-      
-      console.log('Broker deleted successfully');
+      const { error } = await supabase
+        .from('land_brokers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
-      toast({ 
-        title: "تم حذف الوسيط بنجاح",
-        description: "تم حذف الوسيط من قاعدة البيانات"
+      toast({
+        title: "تم الحذف بنجاح",
+        description: "تم حذف الوسيط بنجاح",
       });
     },
     onError: (error) => {
-      console.error('Delete mutation error:', error);
-      toast({ 
-        title: "خطأ في حذف الوسيط",
-        description: error.message || "حدث خطأ أثناء حذف الوسيط",
-        variant: "destructive"
+      toast({
+        title: "خطأ في الحذف",
+        description: error.message,
+        variant: "destructive",
       });
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    try {
-      const formData = new FormData(e.currentTarget);
-      
-      // فحص الأرقام المكررة قبل الإرسال
-      const validation = validatePhoneNumbers(formData);
-      if (!validation.isValid) {
-        // عرض جميع الأخطاء
-        validation.errors.forEach(error => {
-          toast({
-            title: "خطأ في التحقق",
-            description: error,
-            variant: "destructive"
-          });
-        });
-        return;
-      }
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      short_name: '',
+      phone: '',
+      email: '',
+      whatsapp_number: '',
+      areas_specialization: [],
+      office_name: '',
+      office_location: '',
+      activity_status: 'active',
+      notes: '',
+      language: 'arabic'
+    });
+  };
 
-      const brokerData = {
-        name: formData.get('name') as string,
-        short_name: formData.get('short_name') as string,
-        phone: cleanPhoneNumber(formData.get('phone') as string),
-        whatsapp_number: cleanWhatsAppNumber(formData.get('whatsapp_number') as string),
-        email: formData.get('email') as string,
-        office_name: formData.get('office_name') as string,
-        office_location: formData.get('office_location') as string,
-        activity_status: formData.get('activity_status') as 'active' | 'medium' | 'low' | 'inactive',
-        language: formData.get('language') as 'arabic' | 'english',
-        areas_specialization: (formData.get('areas_specialization') as string)
-          ?.split(',')
-          .map(area => area.trim())
-          .filter(area => area.length > 0) || []
-      };
+  const handleEdit = (broker: LandBroker) => {
+    setSelectedBroker(broker);
+    setFormData({
+      name: broker.name,
+      short_name: broker.short_name || '',
+      phone: broker.phone,
+      email: broker.email || '',
+      whatsapp_number: broker.whatsapp_number || '',
+      areas_specialization: broker.areas_specialization || [],
+      office_name: broker.office_name || '',
+      office_location: broker.office_location || '',
+      activity_status: broker.activity_status,
+      notes: broker.notes || '',
+      language: broker.language as 'arabic' | 'english' || 'arabic'
+    });
+    setIsEditDialogOpen(true);
+  };
 
-      if (editingBroker) {
-        // تحديث وسيط موجود
-        await updateMutation.mutateAsync({
-          id: editingBroker.id,
-          ...brokerData
-        });
-        toast({ title: "تم التحديث", description: "تم تحديث بيانات الوسيط بنجاح" });
-      } else {
-        // إضافة وسيط جديد
-        await createMutation.mutateAsync(brokerData);
-        toast({ title: "تم الإضافة", description: "تم إضافة الوسيط الجديد بنجاح" });
-      }
+  const handleView = (broker: LandBroker) => {
+    setSelectedBroker(broker);
+    setIsViewDialogOpen(true);
+  };
 
-      setIsDialogOpen(false);
-      setEditingBroker(null);
-    } catch (error) {
-      console.error('خطأ في حفظ بيانات الوسيط:', error);
-      toast({
-        title: "خطأ",
-        description: `فشل في حفظ البيانات: ${error.message}`,
-        variant: "destructive"
-      });
+  const handleDelete = (id: string) => {
+    if (confirm('هل أنت متأكد من حذف هذا الوسيط؟')) {
+      deleteBrokerMutation.mutate(id);
     }
   };
 
-  const getActivityColor = (status: string) => {
+  const handleSubmit = (isEdit: boolean = false) => {
+    if (isEdit && selectedBroker) {
+      updateBrokerMutation.mutate({ id: selectedBroker.id, data: formData });
+    } else {
+      addBrokerMutation.mutate(formData);
+    }
+  };
+
+  const getActivityStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-orange-500';
-      case 'inactive': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-orange-100 text-orange-800';
+      case 'inactive': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getActivityLabel = (status: string) => {
+  const getActivityStatusText = (status: string) => {
     switch (status) {
       case 'active': return 'نشط';
       case 'medium': return 'متوسط';
-      case 'low': return 'ضعيف';
+      case 'low': return 'منخفض';
       case 'inactive': return 'غير نشط';
       default: return status;
     }
   };
 
-  // جلب قوالب الواتساب من قاعدة البيانات
-  const { data: whatsappTemplates = [], isLoading: templatesLoading } = useQuery({
-    queryKey: ['whatsapp-templates', 'ar'],
-    queryFn: async () => {
-      try {
-        const templates = await getTemplates({ lang: 'ar' });
-        console.log('WhatsApp templates loaded:', templates);
-        return templates;
-      } catch (error) {
-        console.error('Error loading WhatsApp templates:', error);
-        return [];
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 دقائق
-  });
-
-  // تحويل قوالب قاعدة البيانات إلى التنسيق المطلوب
-  const getFormattedTemplates = (brokerName: string) => {
-    if (!whatsappTemplates.length) {
-      // قوالب افتراضية في حالة عدم وجود قوالب في قاعدة البيانات
-      return [
-        {
-          id: 'default_1',
-          title: 'عروض جديدة',
-          message: `مرحباً ${brokerName}، لدينا عروض جديدة للأراضي قد تهمك. هل يمكننا مناقشة التفاصيل؟`
-        },
-        {
-          id: 'default_2',
-          title: 'البحث عن أراضي',
-          message: `أهلاً ${brokerName}، نبحث عن أراضي في مناطق تخصصك. هل لديك عروض حالية؟`
-        }
-      ];
-    }
-
-    return whatsappTemplates.map(template => ({
-      id: template.id || 'unknown',
-      title: template.name,
-      message: template.body.replace(/{broker_name}/g, brokerName).replace(/{client_name}/g, brokerName),
-      stage: template.stage
-    }));
-  };
-
-  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
-  const [selectedBroker, setSelectedBroker] = useState<LandBroker | null>(null);
-  const [customMessage, setCustomMessage] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  
-  // نظام الاختيار المتعدد
-  const [selectedBrokers, setSelectedBrokers] = useState<Set<string>>(new Set());
-  const [isBulkActionsOpen, setIsBulkActionsOpen] = useState(false);
-  const [bulkActionType, setBulkActionType] = useState<'whatsapp' | 'task' | 'export' | 'edit' | 'delete'>('whatsapp');
-  const [bulkMessage, setBulkMessage] = useState('');
-  const [bulkTaskTitle, setBulkTaskTitle] = useState('');
-  const [bulkTaskDescription, setBulkTaskDescription] = useState('');
-  const [sendMethod, setSendMethod] = useState<'api' | 'wa_me'>('api');
-  const [bulkEditActivity, setBulkEditActivity] = useState<'' | 'active' | 'medium' | 'low' | 'inactive'>('');
-  const [bulkEditLanguage, setBulkEditLanguage] = useState<'' | 'arabic' | 'english'>('');
-
-  const handleWhatsApp = (broker: LandBroker) => {
-    setSelectedBroker(broker);
-    setCustomMessage('');
-    setSelectedTemplate('');
-    setIsWhatsAppDialogOpen(true);
-  };
-
-  const sendWhatsAppMessage = async (message: string) => {
-    if (selectedBrokers.size === 0) {
-      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء لإرسال الرسالة", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const selectedBrokersData = getSelectedBrokersData();
-      let successCount = 0;
-      let failedCount = 0;
-
-      for (const broker of selectedBrokersData) {
-        try {
-          // تنظيف رقم الهاتف قبل الإرسال
-          let phoneNumber = cleanPhoneNumber(broker.whatsapp_number || broker.phone);
-          
-          // إزالة + إذا كان موجوداً وإضافة كود الدولة
-          if (phoneNumber.startsWith('+')) {
-            phoneNumber = phoneNumber.substring(1);
-          }
-          
-          // إضافة كود الدولة إذا لم يكن موجوداً
-          if (!phoneNumber.startsWith('971')) {
-            phoneNumber = '971' + phoneNumber;
-          }
-
-          const encodedMessage = encodeURIComponent(message);
-          const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-          
-          console.log(`إرسال رسالة لـ ${broker.name}:`, whatsappUrl);
-          window.open(whatsappUrl, '_blank');
-          
-          successCount++;
-        } catch (error) {
-          console.error(`خطأ في إرسال رسالة لـ ${broker.name}:`, error);
-          failedCount++;
-        }
-      }
-
-      toast({
-        title: "تم إرسال الرسائل",
-        description: `تم فتح WhatsApp لـ ${successCount} وسيط، فشل ${failedCount} وسيط`
-      });
-
-      setIsBulkActionsOpen(false);
-      clearSelection();
-    } catch (error) {
-      console.error('خطأ في إرسال الرسائل الجماعية:', error);
-      toast({
-        title: "خطأ",
-        description: `فشل في إرسال الرسائل: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    const templates = getFormattedTemplates(selectedBroker?.name || 'الوسيط');
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      setCustomMessage(template.message);
-    }
-  };
-
-  // دوال الاختيار المتعدد
-  const toggleBrokerSelection = useCallback((brokerId: string) => {
-    setSelectedBrokers(prev => {
-      const newSelection = new Set(prev);
-      if (newSelection.has(brokerId)) {
-        newSelection.delete(brokerId);
-      } else {
-        newSelection.add(brokerId);
-      }
-      return newSelection;
-    });
-  }, []);
-
-  const selectAllBrokers = useCallback(() => {
-    const allIds = brokers.map(broker => broker.id);
-    setSelectedBrokers(new Set(allIds));
-  }, [brokers]);
-
-  const clearSelection = useCallback(() => {
-    setSelectedBrokers(new Set());
-  }, []);
-
-  // دالة مساعدة لتنظيف أرقام الهواتف
-  const cleanPhoneNumber = useCallback((phone: string): string => {
-    if (!phone) return '';
-    
-    // إزالة المسافات والرموز غير المرغوبة
-    let cleanPhone = phone
-      .replace(/\s+/g, '') // إزالة المسافات
-      .replace(/[^\d]/g, '') // إزالة كل شيء ما عدا الأرقام
-      .replace(/^\+/, ''); // إزالة + من البداية
-    
-    // إزالة الصفر من البداية إذا كان موجوداً
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = cleanPhone.substring(1);
-    }
-    
-    // إضافة كود الدولة إذا لم يكن موجوداً
-    if (!cleanPhone.startsWith('971')) {
-      cleanPhone = '971' + cleanPhone;
-    }
-    
-    return cleanPhone;
-  }, []);
-
-  const getSelectedBrokersData = () => {
-    return brokers.filter(broker => selectedBrokers.has(broker.id));
-  };
-
-  const handleBulkWhatsApp = async () => {
-    console.log('handleBulkWhatsApp called');
-    console.log('selectedBrokers size:', selectedBrokers.size);
-    console.log('sendMethod:', sendMethod);
-    
-    if (selectedBrokers.size === 0) {
-      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء لإرسال الرسالة", variant: "destructive" });
-      return;
-    }
-    
-    const selectedData = getSelectedBrokersData();
-    console.log('selectedData:', selectedData);
-    
-    const message = bulkMessage || 'مرحباً، لدينا عروض جديدة للأراضي قد تهمكم.';
-    
-    if (sendMethod === 'wa_me') {
-      // استخدام wa.me
-      const phoneNumbers = selectedData
-        .map(broker => broker.whatsapp_number || broker.phone)
-        .filter(phone => phone)
-        .map(phone => cleanPhoneNumber(phone))
-        .join(',');
+  const filteredBrokers = useMemo(() => {
+    return brokers.filter(broker => {
+      const matchesSearch = !searchTerm || 
+        broker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        broker.short_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        broker.phone.includes(searchTerm) ||
+        broker.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        broker.office_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      if (phoneNumbers) {
-        const url = `https://wa.me/${phoneNumbers}?text=${encodeURIComponent(message)}`;
-        console.log('WhatsApp URL:', url);
-        window.open(url, '_blank');
-        
-        toast({
-          title: "تم فتح WhatsApp",
-          description: `تم فتح WhatsApp لـ ${selectedData.length} وسيط`,
-        });
-      } else {
-        toast({ 
-          title: "خطأ", 
-          description: "لا توجد أرقام واتساب متاحة للوسطاء المختارين", 
-          variant: "destructive" 
-        });
-      }
-    } else {
-      // استخدام API الواتساب
-      try {
-        // إظهار رسالة تحميل
-        toast({
-          title: "جاري الإرسال...",
-          description: `جاري إرسال الرسائل لـ ${selectedData.length} وسيط`,
-        });
-        
-        // التحقق من إعدادات الواتساب أولاً
-        const { whatsappService } = await import('@/services/whatsappService');
-        console.log('WhatsAppService imported successfully');
-        
-        const settings = await whatsappService.getSettings();
-        console.log('WhatsApp settings:', settings);
-        
-        if (!settings || !settings.api_key || !settings.sender_number) {
-          // إذا لم تكن إعدادات API متوفرة، استخدم wa.me
-          toast({
-            title: "إعدادات API غير متوفرة",
-            description: "سيتم فتح WhatsApp Web بدلاً من الإرسال المباشر",
-            variant: "default"
-          });
-          
-          const phoneNumbers = selectedData
-            .map(broker => broker.whatsapp_number || broker.phone)
-            .filter(phone => phone)
-            .map(phone => cleanPhoneNumber(phone))
-            .join(',');
-          
-          if (phoneNumbers) {
-            const url = `https://wa.me/${phoneNumbers}?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
-            
-            toast({
-              title: "تم فتح WhatsApp",
-              description: `تم فتح WhatsApp لـ ${selectedData.length} وسيط`,
-            });
-          } else {
-            toast({ 
-              title: "خطأ", 
-              description: "لا توجد أرقام واتساب متاحة للوسطاء المختارين", 
-              variant: "destructive" 
-            });
-          }
-          return;
-        }
-        
-        // إرسال الرسائل باستخدام API الواتساب
-        console.log('إرسال الرسائل لـ:', selectedData.length, 'وسيط');
-        
-        const results = await Promise.allSettled(
-          selectedData.map(async (broker) => {
-            const phoneNumber = broker.whatsapp_number || broker.phone;
-            if (!phoneNumber) {
-              console.log(`لا يوجد رقم واتساب لـ: ${broker.name}`);
-              return { broker, success: false, error: 'لا يوجد رقم واتساب' };
-            }
-            
-            // تنظيف الرقم باستخدام الدالة المساعدة
-            const cleanPhone = cleanPhoneNumber(phoneNumber);
-            
-            console.log(`إرسال رسالة لـ: ${broker.name} - الرقم الأصلي: "${phoneNumber}" - الرقم المنظف: "${cleanPhone}"`);
-            
-            try {
-              // إرسال الرسالة
-              const result = await whatsappService.sendSingleMessage({
-                phone_number: cleanPhone,
-                custom_message: message,
-                message_type: 'text'
-              });
-              
-              console.log(`تم إرسال الرسالة بنجاح لـ: ${broker.name}`, result);
-              return { broker, success: true, result };
-            } catch (error) {
-              console.error(`خطأ في إرسال رسالة لـ ${broker.name}:`, error);
-              return { broker, success: false, error: error.message };
-            }
-          })
-        );
-        
-        // حساب النتائج
-        const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-        const failed = results.length - successful;
-        
-        console.log('نتائج الإرسال:', {
-          total: results.length,
-          successful,
-          failed,
-          results: results.map(r => r.status === 'fulfilled' ? r.value : r.reason)
-        });
-        
-        // إظهار النتيجة
-        console.log('Final results summary:', {
-          total: results.length,
-          successful,
-          failed,
-          successRate: `${((successful / results.length) * 100).toFixed(1)}%`
-        });
-        
-        if (successful > 0) {
-          toast({
-            title: "تم الإرسال بنجاح",
-            description: `تم إرسال ${successful} رسالة بنجاح${failed > 0 ? `، فشل ${failed} رسالة` : ''}`,
-          });
-        } else {
-          toast({
-            title: "فشل الإرسال",
-            description: (
-              <div>
-                لم يتم إرسال أي رسالة. 
-                <br />
-                <a 
-                  href="/whatsapp/settings" 
-                  className="text-blue-600 hover:text-blue-800 underline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = '/whatsapp/settings';
-                  }}
-                >
-                  إعدادات الواتساب
-                </a>
-              </div>
-            ),
-            variant: "destructive"
-          });
-        }
-        
-      } catch (error) {
-        console.error('Error in bulk WhatsApp:', error);
-        toast({
-          title: "خطأ في الإرسال",
-          description: "حدث خطأ أثناء إرسال الرسائل",
-          variant: "destructive"
-        });
-      }
-    }
-    
-    setIsBulkActionsOpen(false);
-    setBulkMessage('');
-  };
-
-  const handleBulkTaskCreation = () => {
-    if (selectedBrokers.size === 0) return;
-    
-    const selectedData = getSelectedBrokersData();
-    const brokerNames = selectedData.map(broker => broker.name).join(', ');
-    const phoneNumbers = selectedData
-      .map(broker => broker.whatsapp_number || broker.phone)
-      .filter(phone => phone)
-      .join(', ');
-    
-    // إنشاء مهمة جديدة
-    const taskData = {
-      title: bulkTaskTitle || `تواصل مع وسطاء: ${brokerNames}`,
-      description: `${bulkTaskDescription || 'إرسال رسائل واتساب لوسطاء مختارين'}\n\nالأسماء: ${brokerNames}\nالأرقام: ${phoneNumbers}`,
-      type: 'communication',
-      priority: 'medium',
-      status: 'pending'
-    };
-    
-    // هنا يمكنك إضافة الكود لإرسال المهمة لصفحة المهام
-    console.log('Creating bulk task:', taskData);
-    
-    // إظهار رسالة نجاح
-    toast({
-      title: "تم إنشاء المهمة بنجاح",
-      description: `تم إنشاء مهمة لـ ${selectedBrokers.size} وسيط`,
+      const matchesActivity = activityFilter === 'all' || broker.activity_status === activityFilter;
+      const matchesLanguage = languageFilter === 'all' || broker.language === languageFilter;
+      
+      return matchesSearch && matchesActivity && matchesLanguage;
     });
-    
-    setIsBulkActionsOpen(false);
-    setBulkTaskTitle('');
-    setBulkTaskDescription('');
-  };
+  }, [brokers, searchTerm, activityFilter, languageFilter]);
 
-  const exportPhoneNumbers = () => {
-    if (selectedBrokers.size === 0) return;
-    
-    const selectedData = getSelectedBrokersData();
-    const phoneData = selectedData.map(broker => ({
+  // Export functionality
+  const handleExport = useCallback(() => {
+    const data = filteredBrokers.map(broker => ({
       name: broker.name,
+      short_name: broker.short_name || '',
       phone: broker.phone,
-      whatsapp: broker.whatsapp_number || broker.phone,
-      office: broker.office_name || 'غير محدد'
+      email: broker.email || '',
+      whatsapp_number: broker.whatsapp_number || '',
+      activity_status: getActivityStatusText(broker.activity_status),
+      deals_count: broker.deals_count.toString(),
+      total_sales_amount: broker.total_sales_amount.toString(),
+      office_name: broker.office_name || '',
+      office_location: broker.office_location || '',
+      language: broker.language === 'arabic' ? 'عربي' : 'إنجليزي',
+      notes: broker.notes || ''
     }));
-    
-    // إنشاء ملف CSV
-    const csvContent = [
-      'الاسم,رقم الهاتف,رقم الواتساب,المكتب',
-      ...phoneData.map(row => `${row.name},${row.phone},${row.whatsapp},${row.office}`)
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    let content = '';
+    let filename = '';
+    let mimeType = '';
+
+    if (exportFormat === 'csv') {
+      const headers = ['الاسم', 'الاسم المختصر', 'رقم الهاتف', 'البريد الإلكتروني', 'رقم الواتساب', 'حالة النشاط', 'عدد الصفقات', 'إجمالي المبيعات', 'اسم المكتب', 'موقع المكتب', 'اللغة', 'ملاحظات'];
+      content = [
+        headers,
+        ...data.map(broker => [
+          broker.name,
+          broker.short_name,
+          broker.phone,
+          broker.email,
+          broker.whatsapp_number,
+          broker.activity_status,
+          broker.deals_count,
+          broker.total_sales_amount,
+          broker.office_name,
+          broker.office_location,
+          broker.language,
+          broker.notes
+        ])
+      ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      filename = `وسطاء_الأراضي_${new Date().toISOString().split('T')[0]}.csv`;
+      mimeType = 'text/csv;charset=utf-8;';
+    } else if (exportFormat === 'txt') {
+      content = data.map(broker => 
+        `الاسم: ${broker.name}\n` +
+        `الاسم المختصر: ${broker.short_name}\n` +
+        `رقم الهاتف: ${broker.phone}\n` +
+        `البريد الإلكتروني: ${broker.email}\n` +
+        `رقم الواتساب: ${broker.whatsapp_number}\n` +
+        `حالة النشاط: ${broker.activity_status}\n` +
+        `عدد الصفقات: ${broker.deals_count}\n` +
+        `إجمالي المبيعات: ${broker.total_sales_amount} د.ك\n` +
+        `اسم المكتب: ${broker.office_name}\n` +
+        `موقع المكتب: ${broker.office_location}\n` +
+        `اللغة: ${broker.language}\n` +
+        `ملاحظات: ${broker.notes}\n` +
+        '----------------------------------------\n'
+      ).join('\n');
+      filename = `وسطاء_الأراضي_${new Date().toISOString().split('T')[0]}.txt`;
+      mimeType = 'text/plain;charset=utf-8;';
+    } else if (exportFormat === 'excel') {
+      // Excel format (CSV with BOM for Arabic support)
+      const headers = ['الاسم', 'الاسم المختصر', 'رقم الهاتف', 'البريد الإلكتروني', 'رقم الواتساب', 'حالة النشاط', 'عدد الصفقات', 'إجمالي المبيعات', 'اسم المكتب', 'موقع المكتب', 'اللغة', 'ملاحظات'];
+      content = '\ufeff' + [
+        headers,
+        ...data.map(broker => [
+          broker.name,
+          broker.short_name,
+          broker.phone,
+          broker.email,
+          broker.whatsapp_number,
+          broker.activity_status,
+          broker.deals_count,
+          broker.total_sales_amount,
+          broker.office_name,
+          broker.office_location,
+          broker.language,
+          broker.notes
+        ])
+      ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      filename = `وسطاء_الأراضي_${new Date().toISOString().split('T')[0]}.csv`;
+      mimeType = 'text/csv;charset=utf-8;';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `وسطاء_مختارين_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
     toast({
-      title: "تم تصدير الأرقام بنجاح",
-      description: `تم تصدير ${selectedBrokers.size} رقم`,
+      title: "تم التصدير بنجاح",
+      description: `تم تصدير البيانات بصيغة ${exportFormat.toUpperCase()}`,
     });
-  };
+  }, [filteredBrokers, exportFormat]);
 
-  const handleEmail = (broker: LandBroker) => {
-    if (broker.email) {
-      const subject = 'عروض أراضي جديدة';
-      const body = `مرحباً ${broker.name},\n\nلدينا عروض جديدة للأراضي في مناطق تخصصك قد تهمك.\n\nشكراً لك`;
-      const url = `mailto:${broker.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(url);
+  // Bulk message functionality
+  const sendBulkMessageMutation = useMutation({
+    mutationFn: async ({ brokerIds, message }: { brokerIds: string[], message: string }) => {
+      // Here you would integrate with your WhatsApp service
+      // For now, we'll simulate the process
+      const selectedBrokersData = filteredBrokers.filter(broker => brokerIds.includes(broker.id));
+      
+      // Simulate sending messages
+      for (const broker of selectedBrokersData) {
+        if (broker.whatsapp_number) {
+          console.log(`Sending message to ${broker.name} (${broker.whatsapp_number}): ${message}`);
+          // await sendWhatsAppMessage(broker.whatsapp_number, message);
+        }
+      }
+      
+      return { success: true, count: selectedBrokersData.length };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "تم إرسال الرسائل بنجاح",
+        description: `تم إرسال الرسالة إلى ${data.count} وسيط`,
+      });
+      setIsBulkMessageDialogOpen(false);
+      setBulkMessage('');
+      setSelectedBrokersForBulk([]);
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في إرسال الرسائل",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-  };
+  });
 
-  // دوال التصدير الجديدة
-  const exportSelectedBrokersAsText = () => {
-    if (selectedBrokers.size === 0) {
-      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للتصدير", variant: "destructive" });
-      return;
-    }
-
-    const selectedBrokersData = getSelectedBrokersData();
-    const textContent = selectedBrokersData
-      .map(broker => `${cleanPhoneNumber(broker.phone)}, ${broker.short_name || broker.name}`)
-      .join('\n');
-
-    // إنشاء ملف نصي للتحميل
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `وسطاء_مختارين_${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast({ title: "تم التصدير", description: `تم تصدير ${selectedBrokersData.length} وسيط بصيغة TEXT` });
-  };
-
-  const exportSelectedBrokersAsCSV = () => {
-    if (selectedBrokers.size === 0) {
-      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للتصدير", variant: "destructive" });
-      return;
-    }
-
-    const selectedBrokersData = getSelectedBrokersData();
-    
-    // رؤوس الأعمدة
-    const headers = [
-      'الاسم الكامل',
-      'الاسم المختصر',
-      'رقم الهاتف',
-      'رقم الواتساب',
-      'البريد الإلكتروني',
-      'حالة النشاط'
-    ];
-
-    // بيانات CSV مع تنظيف الأرقام
-    const csvContent = [
-      headers.join(','),
-      ...selectedBrokersData.map(broker => [
-        `"${broker.name}"`,
-        `"${broker.short_name || ''}"`,
-        `"${cleanPhoneNumber(broker.phone)}"`,
-        `"${cleanPhoneNumber(broker.whatsapp_number || '')}"`,
-        `"${broker.email || ''}"`,
-        `"${broker.activity_status}"`
-      ].join(','))
-    ].join('\n');
-
-    // إنشاء ملف CSV للتحميل
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `وسطاء_مختارين_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast({ title: "تم التصدير", description: `تم تصدير ${selectedBrokersData.length} وسيط بصيغة CSV` });
-  };
-
-  const exportSelectedBrokersAsPDF = () => {
-    if (selectedBrokers.size === 0) {
-      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للتصدير", variant: "destructive" });
+  const handleBulkMessage = () => {
+    if (selectedBrokersForBulk.length === 0) {
+      toast({
+        title: "تحذير",
+        description: "يرجى اختيار وسطاء لإرسال الرسالة إليهم",
+        variant: "destructive",
+      });
       return;
     }
     
-    const selectedData = getSelectedBrokersData();
-    
-    // إنشاء محتوى HTML للـ PDF
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html dir="rtl" lang="ar">
-      <head>
-        <meta charset="UTF-8">
-        <title>قائمة الوسطاء المختارين</title>
-        <style>
-          body { font-family: 'Arial', sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .header h1 { color: #1e40af; margin-bottom: 10px; }
-          .header p { color: #6b7280; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #d1d5db; padding: 8px; text-align: right; }
-          th { background-color: #f3f4f6; font-weight: bold; }
-          .footer { margin-top: 30px; text-align: center; color: #6b7280; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>قائمة الوسطاء المختارين</h1>
-          <p>تاريخ التصدير: ${new Date().toLocaleDateString('ar-SA')}</p>
-          <p>عدد الوسطاء: ${selectedBrokers.size}</p>
+    if (!bulkMessage.trim()) {
+      toast({
+        title: "تحذير",
+        description: "يرجى كتابة الرسالة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    sendBulkMessageMutation.mutate({ brokerIds: selectedBrokersForBulk, message: bulkMessage });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedBrokersForBulk.length === filteredBrokers.length) {
+      setSelectedBrokersForBulk([]);
+    } else {
+      setSelectedBrokersForBulk(filteredBrokers.map(broker => broker.id));
+    }
+  };
+
+  const handleSelectBroker = (brokerId: string) => {
+    if (selectedBrokersForBulk.includes(brokerId)) {
+      setSelectedBrokersForBulk(selectedBrokersForBulk.filter(id => id !== brokerId));
+    } else {
+      setSelectedBrokersForBulk([...selectedBrokersForBulk, brokerId]);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <PageHeader
+          title="الوسطاء"
+          description="إدارة وسطاء الأراضي والعقارات"
+        />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p>جاري تحميل البيانات...</p>
+          </div>
         </div>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>الاسم</th>
-              <th>الاسم المختصر</th>
-              <th>رقم الهاتف</th>
-              <th>رقم الواتساب</th>
-              <th>البريد الإلكتروني</th>
-              <th>اسم المكتب</th>
-              <th>المناطق</th>
-              <th>اللغة</th>
-              <th>حالة النشاط</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${selectedData.map(broker => `
-              <tr>
-                <td>${broker.name}</td>
-                <td>${broker.short_name || '-'}</td>
-                <td>${broker.phone || '-'}</td>
-                <td>${broker.whatsapp_number || '-'}</td>
-                <td>${broker.email || '-'}</td>
-                <td>${broker.office_name || '-'}</td>
-                <td>${broker.specialization_areas || '-'}</td>
-                <td>${broker.language === 'arabic' ? 'عربي' : broker.language === 'english' ? 'إنجليزي' : '-'}</td>
-                <td>${broker.activity_status || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        
-        <div class="footer">
-          <p>تم إنشاء هذا التقرير بواسطة نظام إدارة الأراضي - StarCity Folio</p>
+      </div>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <div className="container mx-auto p-6">
+        <PageHeader
+          title="الوسطاء"
+          description="إدارة وسطاء الأراضي والعقارات"
+        />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">خطأ في تحميل البيانات</p>
+            <Button onClick={() => refetch()}>إعادة المحاولة</Button>
+          </div>
         </div>
-      </body>
-      </html>
-    `;
-    
-    // فتح في نافذة جديدة للطباعة
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    
-    toast({
-      title: "تم فتح PDF",
-      description: `تم فتح تقرير PDF لـ ${selectedBrokers.size} وسيط`,
-    });
-  };
-
-  // تعديل جماعي: تحديث حالة النشاط واللغة للوسطاء المختارين
-  const bulkUpdateSelectedBrokers = async () => {
-    if (selectedBrokers.size === 0) {
-      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للتعديل", variant: "destructive" });
-      return;
-    }
-    if (!bulkEditActivity && !bulkEditLanguage) {
-      toast({ title: "تنبيه", description: "اختر على الأقل حقلاً واحداً للتعديل (الحالة أو اللغة)", variant: "destructive" });
-      return;
-    }
-
-    const ids = Array.from(selectedBrokers);
-    const updateData: any = {};
-    if (bulkEditActivity) updateData.activity_status = bulkEditActivity;
-    if (bulkEditLanguage) updateData.language = bulkEditLanguage;
-
-    try {
-      const { error } = await supabase
-        .from('land_brokers')
-        .update(updateData)
-        .in('id', ids);
-      if (error) throw error;
-
-      await queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
-      toast({ title: "تم التعديل الجماعي", description: `تم تحديث ${ids.length} وسيط` });
-      setIsBulkActionsOpen(false);
-      setBulkEditActivity('');
-      setBulkEditLanguage('');
-      clearSelection();
-    } catch (error: any) {
-      console.error('Bulk update error:', error);
-      toast({ title: "خطأ", description: error.message || 'فشل التعديل الجماعي', variant: 'destructive' });
-    }
-  };
-
-  // حذف جماعي: حذف الوسطاء المختارين
-  const bulkDeleteSelectedBrokers = async () => {
-    if (selectedBrokers.size === 0) {
-      toast({ title: "تنبيه", description: "يرجى اختيار وسطاء للحذف", variant: "destructive" });
-      return;
-    }
-    try {
-      const ids = Array.from(selectedBrokers);
-      const { error } = await supabase
-        .from('land_brokers')
-        .delete()
-        .in('id', ids);
-      if (error) throw error;
-
-      await queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
-      toast({ title: "تم الحذف", description: `تم حذف ${ids.length} وسيط` });
-      setIsBulkActionsOpen(false);
-      clearSelection();
-    } catch (error: any) {
-      console.error('Bulk delete error:', error);
-      toast({ title: "خطأ", description: error.message || 'فشل الحذف الجماعي', variant: 'destructive' });
-    }
-  };
-
-  // دالة تنظيف أرقام الهاتف
-  const cleanPhoneNumber = (phone: string): string => {
-    if (!phone) return '';
-    
-    // إزالة المسافات والرموز غير المرغوبة مع الحفاظ على + والأرقام
-    return phone.replace(/[\s\-\(\)\.]/g, '');
-  };
-
-  // دالة تنظيف أرقام الواتساب
-  const cleanWhatsAppNumber = (whatsapp: string): string => {
-    if (!whatsapp) return '';
-    
-    // نفس التنظيف مع إضافة تنظيف إضافي للواتساب
-    return whatsapp.replace(/[\s\-\(\)\.]/g, '');
-  };
-
-  // دالة فحص الأرقام المكررة
-  const checkDuplicatePhoneNumbers = (phone: string, whatsapp: string, excludeId?: string): { hasDuplicate: boolean; duplicateType: string; duplicateBroker: any } => {
-    if (!phone && !whatsapp) {
-      return { hasDuplicate: false, duplicateType: '', duplicateBroker: null };
-    }
-
-    const cleanedPhone = cleanPhoneNumber(phone);
-    const cleanedWhatsapp = cleanWhatsAppNumber(whatsapp);
-
-    // فحص في قاعدة البيانات
-    const existingBrokers = brokers || [];
-    
-    for (const broker of existingBrokers) {
-      // تجاهل الوسيط الحالي عند التعديل
-      if (excludeId && broker.id === excludeId) continue;
-
-      const existingPhone = cleanPhoneNumber(broker.phone);
-      const existingWhatsapp = cleanPhoneNumber(broker.whatsapp_number || '');
-
-      // فحص رقم الهاتف
-      if (cleanedPhone && existingPhone === cleanedPhone) {
-        return {
-          hasDuplicate: true,
-          duplicateType: 'رقم الهاتف',
-          duplicateBroker: broker
-        };
-      }
-
-      // فحص رقم الواتساب
-      if (cleanedWhatsapp && existingWhatsapp === cleanedWhatsapp) {
-        return {
-          hasDuplicate: true,
-          duplicateType: 'رقم الواتساب',
-          duplicateBroker: broker
-        };
-      }
-
-      // فحص تداخل بين الهاتف والواتساب
-      if (cleanedPhone && existingWhatsapp === cleanedPhone) {
-        return {
-          hasDuplicate: true,
-          duplicateType: 'رقم الهاتف يتطابق مع واتساب موجود',
-          duplicateBroker: broker
-        };
-      }
-
-      if (cleanedWhatsapp && existingPhone === cleanedWhatsapp) {
-        return {
-          hasDuplicate: true,
-          duplicateType: 'رقم الواتساب يتطابق مع هاتف موجود',
-          duplicateBroker: broker
-        };
-      }
-    }
-
-    return { hasDuplicate: false, duplicateType: '', duplicateBroker: null };
-  };
-
-  // دالة فحص الأرقام المكررة في النموذج
-  const validatePhoneNumbers = (formData: FormData): { isValid: boolean; errors: string[] } => {
-    const errors: string[] = [];
-    const phone = formData.get('phone') as string;
-    const whatsapp = formData.get('whatsapp_number') as string;
-    const excludeId = editingBroker?.id;
-
-    if (!phone && !whatsapp) {
-      errors.push('يجب إدخال رقم هاتف أو واتساب واحد على الأقل');
-      return { isValid: false, errors };
-    }
-
-    const duplicateCheck = checkDuplicatePhoneNumbers(phone, whatsapp, excludeId);
-    
-    if (duplicateCheck.hasDuplicate) {
-      const brokerName = duplicateCheck.duplicateBroker?.name || 'وسيط آخر';
-      errors.push(`الرقم مكرر! ${duplicateCheck.duplicateType} موجود بالفعل مع ${brokerName}`);
-    }
-
-    return { isValid: errors.length === 0, errors };
-  };
-
-  // تطبيق الفلاتر على البيانات
-  const filteredBrokers = useMemo(() => {
-    if (!brokers || brokers.length === 0) return [];
-    
-    let filtered = [...brokers]; // إنشاء نسخة جديدة
-
-    // فلتر البحث
-    if (searchTerm) {
-      filtered = filtered.filter(broker =>
-        broker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (broker.short_name && broker.short_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        broker.phone.includes(searchTerm) ||
-        (broker.whatsapp_number && broker.whatsapp_number.includes(searchTerm)) ||
-        (broker.office_name && broker.office_name.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    // فلتر النشاط
-    if (activityFilter !== 'all') {
-      filtered = filtered.filter(broker => broker.activity_status === activityFilter);
-    }
-
-    // فلتر اللغة الجديد
-    if (languageFilter !== 'all') {
-      filtered = filtered.filter(broker => broker.language === languageFilter);
-    }
-
-    return filtered;
-  }, [brokers, searchTerm, activityFilter, languageFilter]);
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/20">
-      <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
-                إدارة الوسطاء
-              </h1>
-              <p className="text-slate-600 text-lg">إدارة شبكة الوسطاء والتواصل معهم بكفاءة عالية</p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              {/* View Mode Toggle */}
-              <div className="flex items-center bg-white/60 backdrop-blur-sm border border-slate-200 rounded-xl p-1 shadow-sm">
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                  className={`h-10 px-4 transition-all duration-200 ${
-                    viewMode === 'table' 
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25' 
-                      : 'hover:bg-slate-100'
-                  }`}
-                >
-                  <List className="h-4 w-4 ml-2" />
-                  جدول
-                </Button>
-                <Button
-                  variant={viewMode === 'cards' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('cards')}
-                  className={`h-10 px-4 transition-all duration-200 ${
-                    viewMode === 'cards' 
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25' 
-                      : 'hover:bg-slate-100'
-                  }`}
-                >
-                  <Grid3X3 className="h-4 w-4 ml-2" />
-                  كروت
-                </Button>
-              </div>
-              
-              {/* Bulk Selection Controls - ثابتة دائماً */}
-              <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                      selectedBrokers.size > 0 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-slate-300 text-slate-600'
-                    }`}>
-                      {selectedBrokers.size}
-                    </div>
-                    <span className={`text-sm font-medium ${
-                      selectedBrokers.size > 0 
-                        ? 'text-blue-800' 
-                        : 'text-slate-600'
-                    }`}>
-                      وسيط مختار
-                    </span>
-                  </div>
-                  
-                  {/* قائمة الإجراءات */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={selectedBrokers.size === 0}
-                        className={`h-9 px-4 rounded-lg ${
-                          selectedBrokers.size > 0
-                            ? 'border-blue-300 text-blue-700 hover:bg-blue-50'
-                            : 'border-slate-300 text-slate-400 cursor-not-allowed'
-                        }`}
-                      >
-                        <Settings className="h-4 w-4 ml-2" />
-                        إجراءات متعددة
-                        <ChevronDown className="h-3 w-3 mr-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>اختر الإجراء</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          setBulkActionType('whatsapp');
-                          setIsBulkActionsOpen(true);
-                        }}
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <MessageCircle className="h-4 w-4 ml-2 text-green-600" />
-                        إرسال رسائل واتساب
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          setBulkActionType('task');
-                          setIsBulkActionsOpen(true);
-                        }}
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <Plus className="h-4 w-4 ml-2 text-blue-600" />
-                        إنشاء مهمة
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          setBulkActionType('edit');
-                          setIsBulkActionsOpen(true);
-                        }}
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <Edit className="h-4 w-4 ml-2 text-amber-600" />
-                        تعديل جماعي
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          setBulkActionType('delete');
-                          setIsBulkActionsOpen(true);
-                        }} 
-                        className="text-red-600"
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <Trash2 className="h-4 w-4 ml-2" />
-                        حذف جماعي
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  
-                  {/* قائمة التصدير */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={selectedBrokers.size === 0}
-                        className={`h-9 px-4 rounded-lg ${
-                          selectedBrokers.size > 0
-                            ? 'border-purple-300 text-purple-700 hover:bg-purple-50'
-                            : 'border-slate-300 text-slate-400 cursor-not-allowed'
-                        }`}
-                      >
-                        <Download className="h-4 w-4 ml-2" />
-                        تصدير
-                        <ChevronDown className="h-3 w-3 mr-2" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuLabel>نوع التصدير</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          exportPhoneNumbers();
-                        }}
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <FileText className="h-4 w-4 ml-2 text-blue-600" />
-                        تصدير الأرقام
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          exportSelectedBrokersAsText();
-                        }}
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <FileText className="h-4 w-4 ml-2 text-green-600" />
-                        تصدير TEXT
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          exportSelectedBrokersAsCSV();
-                        }}
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <FileText className="h-4 w-4 ml-2 text-purple-600" />
-                        تصدير CSV
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          if (selectedBrokers.size === 0) {
-                            toast({ 
-                              title: "تنبيه", 
-                              description: "يرجى اختيار وسطاء أولاً", 
-                              variant: "destructive" 
-                            });
-                            return;
-                          }
-                          exportSelectedBrokersAsPDF();
-                        }}
-                        disabled={selectedBrokers.size === 0}
-                      >
-                        <FileText className="h-4 w-4 ml-2 text-red-600" />
-                        تصدير PDF
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {selectedBrokers.size > 0 && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={clearSelection}
-                      className="h-9 px-4 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
-                    >
-                      <X className="h-4 w-4 ml-2" />
-                      إلغاء الاختيار
-                    </Button>
-                  )}
-                </div>
-              </div>
+    <div className="container mx-auto p-6">
+      <PageHeader
+        title="الوسطاء"
+        description="إدارة وسطاء الأراضي والعقارات"
+      />
+      
+      {/* Filters and Actions */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="البحث في الوسطاء..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-                  <Button 
-                    onClick={() => setEditingBroker(null)}
-                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6 py-3 h-12 rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-105"
-                  >
-                    <Plus className="h-5 w-5 ml-2" />
-              إضافة وسيط جديد
-            </Button>
-          </DialogTrigger>
-                <DialogContent className="max-w-3xl bg-white/95 backdrop-blur-sm border-0 shadow-2xl rounded-2xl">
-                  <DialogHeader className="text-center pb-6">
-                    <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
-                      {editingBroker ? 'تعديل الوسيط' : 'إضافة وسيط جديد'}
-                    </DialogTitle>
-            </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="name" className="text-sm font-semibold text-slate-700">اسم الوسيط</Label>
-                  <Input 
-                    id="name" 
-                    name="name" 
-                    defaultValue={editingBroker?.name}
-                    required 
-                          className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
+        <div className="flex gap-2">
+          <Select value={activityFilter} onValueChange={setActivityFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="حالة النشاط" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="active">نشط</SelectItem>
+              <SelectItem value="medium">متوسط</SelectItem>
+              <SelectItem value="low">منخفض</SelectItem>
+              <SelectItem value="inactive">غير نشط</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={languageFilter} onValueChange={(v: any) => setLanguageFilter(v)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="اللغة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع اللغات</SelectItem>
+              <SelectItem value="arabic">عربي</SelectItem>
+              <SelectItem value="english">إنجليزي</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button
+            variant="outline"
+            onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+          >
+            {viewMode === 'table' ? <Grid3X3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => setIsExportDialogOpen(true)}
+            disabled={filteredBrokers.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            تصدير
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => setIsBulkMessageDialogOpen(true)}
+            disabled={filteredBrokers.length === 0}
+          >
+            <Send className="h-4 w-4 mr-2" />
+            رسائل جماعية
+          </Button>
+          
+          <Button
+            variant="default"
+            onClick={() => {
+              console.log('Selected brokers for bulk:', selectedBrokersForBulk);
+              console.log('Filtered brokers:', filteredBrokers);
+              
+              const selectedBrokersData = filteredBrokers.filter(broker => 
+                selectedBrokersForBulk.includes(broker.id)
+              );
+              
+              console.log('Selected brokers data:', selectedBrokersData);
+              
+              if (selectedBrokersData.length > 0) {
+                addBrokers(selectedBrokersData);
+                setIsTransferring(true);
+                
+                // Simulate transfer delay
+                setTimeout(() => {
+                  setIsTransferring(false);
+                  navigate('/land-sales/advanced-tasks');
+                  toast({
+                    title: "تم النقل بنجاح",
+                    description: `تم نقل ${selectedBrokersData.length} وسيط إلى صفحة المهام المتقدمة`,
+                  });
+                }, 1000);
+              } else {
+                toast({
+                  title: "تحذير",
+                  description: "يرجى اختيار وسطاء للنقل إلى المهام المتقدمة",
+                  variant: "destructive",
+                });
+              }
+            }}
+            disabled={selectedBrokersForBulk.length === 0 || isTransferring}
+          >
+            <Target className="h-4 w-4 mr-2" />
+            {isTransferring ? "جاري النقل..." : `نقل للمهام (${selectedBrokersForBulk.length})`}
+          </Button>
+          
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                إضافة وسيط
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>إضافة وسيط جديد</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">الاسم الكامل *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="الاسم الكامل"
                   />
                 </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="short_name" className="text-sm font-semibold text-slate-700">الاسم المختصر</Label>
-                        <Input 
-                          id="short_name" 
-                          name="short_name" 
-                          placeholder="مثال: أحمد، محمد، علي"
-                          defaultValue={editingBroker?.short_name}
-                          className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="phone" className="text-sm font-semibold text-slate-700">رقم الهاتف</Label>
-                        <Input 
-                          id="phone" 
-                          name="phone" 
-                          defaultValue={editingBroker?.phone}
-                          required 
-                          onChange={(e) => {
-                            // تنظيف الرقم تلقائياً أثناء الكتابة
-                            const cleaned = cleanPhoneNumber(e.target.value);
-                            if (cleaned !== e.target.value) {
-                              e.target.value = cleaned;
-                            }
-                            
-                            // فحص فوري للأرقام المكررة
-                            if (cleaned) {
-                              const duplicateCheck = checkDuplicatePhoneNumbers(cleaned, '', editingBroker?.id);
-                              if (duplicateCheck.hasDuplicate) {
-                                e.target.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500/20');
-                                e.target.classList.remove('border-slate-200', 'focus:border-blue-500', 'focus:ring-blue-500/20');
-                              } else {
-                                e.target.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500/20');
-                                e.target.classList.add('border-slate-200', 'focus:border-blue-500', 'focus:ring-blue-500/20');
-                              }
-                            }
-                          }}
-                          onBlur={(e) => {
-                            // تنظيف نهائي عند الخروج من الحقل
-                            e.target.value = cleanPhoneNumber(e.target.value);
-                          }}
-                          placeholder="+971585700181"
-                          className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
-                        />
-                        {/* تنبيه الأرقام المكررة */}
-                        <div id="phone-duplicate-warning" className="hidden text-sm text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
-                          ⚠️ هذا الرقم موجود بالفعل مع وسيط آخر
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <Label htmlFor="language" className="text-sm font-semibold text-slate-700">لغة الوسيط</Label>
-                        <Select name="language" defaultValue={editingBroker?.language || 'arabic'}>
-                          <SelectTrigger className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-slate-200 rounded-xl">
-                            <SelectItem value="arabic">عربي</SelectItem>
-                            <SelectItem value="english">إنجليزي</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="email" className="text-sm font-semibold text-slate-700">البريد الإلكتروني</Label>
-                  <Input 
-                    id="email" 
-                    name="email" 
+                <div>
+                  <Label htmlFor="short_name">الاسم المختصر</Label>
+                  <Input
+                    id="short_name"
+                    value={formData.short_name}
+                    onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
+                    placeholder="الاسم المختصر"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">رقم الهاتف *</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="رقم الهاتف"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="whatsapp_number">رقم الواتساب</Label>
+                  <Input
+                    id="whatsapp_number"
+                    value={formData.whatsapp_number}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                    placeholder="رقم الواتساب"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <Input
+                    id="email"
                     type="email"
-                    defaultValue={editingBroker?.email}
-                          className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="البريد الإلكتروني"
                   />
                 </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="whatsapp_number" className="text-sm font-semibold text-slate-700">رقم الواتساب</Label>
-                        <Input 
-                          id="whatsapp_number" 
-                          name="whatsapp_number" 
-                          defaultValue={editingBroker?.whatsapp_number}
-                          onChange={(e) => {
-                            // تنظيف الرقم تلقائياً أثناء الكتابة
-                            const cleaned = cleanWhatsAppNumber(e.target.value);
-                            if (cleaned !== e.target.value) {
-                              e.target.value = cleaned;
-                            }
-                            
-                            // فحص فوري للأرقام المكررة
-                            if (cleaned) {
-                              const duplicateCheck = checkDuplicatePhoneNumbers('', cleaned, editingBroker?.id);
-                              if (duplicateCheck.hasDuplicate) {
-                                e.target.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500/20');
-                                e.target.classList.remove('border-slate-200', 'focus:border-blue-500', 'focus:ring-blue-500/20');
-                              } else {
-                                e.target.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500/20');
-                                e.target.classList.add('border-slate-200', 'focus:border-blue-500', 'focus:ring-blue-500/20');
-                              }
-                            }
-                          }}
-                          onBlur={(e) => {
-                            // تنظيف نهائي عند الخروج من الحقل
-                            e.target.value = cleanWhatsAppNumber(e.target.value);
-                          }}
-                          placeholder="+971585700181"
-                          className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
-                        />
-                        {/* تنبيه الأرقام المكررة */}
-                        <div id="whatsapp-duplicate-warning" className="hidden text-sm text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
-                          ⚠️ هذا الرقم موجود بالفعل مع وسيط آخر
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <Label htmlFor="office_name" className="text-sm font-semibold text-slate-700">المكتب العقاري</Label>
-                        <Input 
-                          id="office_name" 
-                          name="office_name" 
-                          defaultValue={editingBroker?.office_name}
-                          className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="office_location" className="text-sm font-semibold text-slate-700">موقع المكتب</Label>
-                  <Input 
-                    id="office_location" 
-                    name="office_location"
-                    defaultValue={editingBroker?.office_location}
-                          className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
-                  />
-                </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="activity_status" className="text-sm font-semibold text-slate-700">حالة النشاط</Label>
-                  <Select name="activity_status" defaultValue={editingBroker?.activity_status || 'active'}>
-                          <SelectTrigger className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200">
+                <div>
+                  <Label htmlFor="activity_status">حالة النشاط</Label>
+                  <Select value={formData.activity_status} onValueChange={(v: any) => setFormData({ ...formData, activity_status: v })}>
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                          <SelectContent className="bg-white border-slate-200 rounded-xl">
+                    <SelectContent>
                       <SelectItem value="active">نشط</SelectItem>
                       <SelectItem value="medium">متوسط</SelectItem>
-                      <SelectItem value="low">ضعيف</SelectItem>
+                      <SelectItem value="low">منخفض</SelectItem>
                       <SelectItem value="inactive">غير نشط</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="language">اللغة</Label>
+                  <Select value={formData.language} onValueChange={(v: any) => setFormData({ ...formData, language: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="arabic">عربي</SelectItem>
+                      <SelectItem value="english">إنجليزي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="office_name">اسم المكتب</Label>
+                  <Input
+                    id="office_name"
+                    value={formData.office_name}
+                    onChange={(e) => setFormData({ ...formData, office_name: e.target.value })}
+                    placeholder="اسم المكتب"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="office_location">موقع المكتب</Label>
+                  <Input
+                    id="office_location"
+                    value={formData.office_location}
+                    onChange={(e) => setFormData({ ...formData, office_location: e.target.value })}
+                    placeholder="موقع المكتب"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="notes">ملاحظات</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="ملاحظات إضافية"
+                    rows={3}
+                  />
+                </div>
               </div>
-
-                    <div className="space-y-3">
-                      <Label htmlFor="areas_specialization" className="text-sm font-semibold text-slate-700">مناطق التخصص (مفصولة بفواصل)</Label>
-                <Input 
-                  id="areas_specialization" 
-                  name="areas_specialization"
-                  placeholder="دبي, أبوظبي, الشارقة"
-                  defaultValue={editingBroker?.areas_specialization?.join(', ')}
-                        className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
-                />
-              </div>
-
-                    <div className="flex justify-end gap-4 pt-6 border-t border-slate-200">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setIsDialogOpen(false)}
-                        className="h-12 px-8 border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl transition-all duration-200"
-                      >
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   إلغاء
                 </Button>
-                      <Button 
-                        type="submit" 
-                        disabled={createMutation.isPending || updateMutation.isPending}
-                        className="h-12 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {createMutation.isPending || updateMutation.isPending ? (
-                          <div className="flex items-center">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                            {editingBroker ? 'جاري التحديث...' : 'جاري الإضافة...'}
-                          </div>
-                        ) : (
-                          editingBroker ? 'تحديث' : 'إضافة'
-                        )}
+                <Button 
+                  onClick={() => handleSubmit(false)}
+                  disabled={addBrokerMutation.isPending || !formData.name || !formData.phone}
+                >
+                  {addBrokerMutation.isPending ? 'جاري الإضافة...' : 'إضافة'}
                 </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-            </div>
-          </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-        {/* Filters Section */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
-          <div className="flex flex-wrap gap-6 items-center">
-        <div className="flex-1 min-w-[300px]">
-          <div className="relative">
-                <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <Input
-              placeholder="البحث في الاسم أو الهاتف أو البريد..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-12 pr-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200 bg-white/60 backdrop-blur-sm"
-            />
-          </div>
-        </div>
-
-        <Select value={activityFilter} onValueChange={setActivityFilter}>
-              <SelectTrigger className="w-[200px] h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl bg-white/60 backdrop-blur-sm">
-            <SelectValue placeholder="فلترة بالنشاط" />
-          </SelectTrigger>
-              <SelectContent className="bg-white border-slate-200 rounded-xl">
-            <SelectItem value="all">جميع الحالات</SelectItem>
-            <SelectItem value="active">نشط</SelectItem>
-            <SelectItem value="medium">متوسط</SelectItem>
-            <SelectItem value="low">ضعيف</SelectItem>
-            <SelectItem value="inactive">غير نشط</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* فلتر اللغة الجديد */}
-        <Select value={languageFilter} onValueChange={(value: 'all' | 'arabic' | 'english') => setLanguageFilter(value)}>
-          <SelectTrigger className="w-[200px] h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl bg-white/60 backdrop-blur-sm">
-            <SelectValue placeholder="فلترة باللغة" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-slate-200 rounded-xl">
-            <SelectItem value="all">جميع اللغات</SelectItem>
-            <SelectItem value="arabic">عربي</SelectItem>
-            <SelectItem value="english">إنجليزي</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* أزرار الاختيار المتعدد */}
-        <div className="flex items-center gap-3">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={selectAllBrokers}
-            className="h-12 px-4 border-blue-300 text-blue-700 hover:bg-blue-50 rounded-xl"
-          >
-            اختيار الكل
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={clearSelection}
-            className="h-12 px-4 border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl"
-          >
-            إلغاء الاختيار
-          </Button>
-        </div>
-          </div>
-      </div>
-
-      {/* Brokers Display */}
-        {queryError ? (
-          <Card className="bg-red-50/80 backdrop-blur-sm border-red-200 border-2">
-            <CardContent className="text-center py-8">
-              <div className="h-16 w-16 mx-auto text-red-400 mb-4">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z"/>
-                </svg>
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">إجمالي الوسطاء</p>
+                <p className="text-2xl font-bold">{brokers.length}</p>
               </div>
-              <h3 className="text-xl font-bold text-red-800 mb-2">خطأ في تحميل البيانات</h3>
-              <p className="text-red-600 mb-4">حدث خطأ أثناء جلب بيانات الوسطاء</p>
-              <p className="text-sm text-red-500 mb-4">{queryError.message}</p>
-              <Button 
-                onClick={() => window.location.reload()}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg"
-              >
-                إعادة المحاولة
-              </Button>
-            </CardContent>
-          </Card>
-        ) : isLoading ? (
-          viewMode === 'table' ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl animate-pulse"></div>
-              ))}
+              <Building2 className="h-8 w-8 text-blue-600" />
             </div>
-          ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl border-0">
-              <CardHeader>
-                    <div className="h-6 bg-slate-300 rounded w-3/4"></div>
-                    <div className="h-4 bg-slate-300 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                    <div className="space-y-3">
-                      <div className="h-4 bg-slate-300 rounded"></div>
-                      <div className="h-4 bg-slate-300 rounded w-2/3"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-          )
-      ) : brokers.length === 0 ? (
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl">
-            <CardContent className="text-center py-16">
-              <div className="h-20 w-20 mx-auto text-slate-400 mb-6">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 5.5C14.8 5.1 14.4 4.8 14 4.8S13.2 5.1 13 5.5L11 6.5H7C5.9 6.5 5 7.4 5 8.5V11H3V13H5V22H7V13H9V11H11L13 10L15 11H17V13H19V11H21V9Z"/>
-              </svg>
-            </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-3">لا يوجد وسطاء</h3>
-              <p className="text-slate-600 mb-6 text-lg">لم يتم العثور على وسطاء يطابقون معايير البحث</p>
-              <Button 
-                onClick={() => setIsDialogOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 h-12 rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 hover:scale-105"
-              >
-                <Plus className="h-5 w-5 ml-2" />
-              إضافة أول وسيط
-            </Button>
           </CardContent>
         </Card>
-        ) : viewMode === 'table' ? (
-          // Table View
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-                          <Table>
-                <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50">
-                    <TableHead className="text-right font-bold text-slate-800 w-12">
-                      <input
-                        type="checkbox"
-                        checked={selectedBrokers.size === filteredBrokers.length && filteredBrokers.length > 0}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            selectAllBrokers();
-                          } else {
-                            clearSelection();
-                          }
-                        }}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                    </TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">الاسم</TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">الاسم المختصر</TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">رقم الهاتف</TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">رقم الواتساب</TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">اللغة</TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">المكتب</TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">حالة النشاط</TableHead>
-                    <TableHead className="text-right font-bold text-slate-800">الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">وسطاء نشطين</p>
+                <p className="text-2xl font-bold">{brokers.filter(b => b.activity_status === 'active').length}</p>
+              </div>
+              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="h-4 w-4 bg-green-600 rounded-full"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">إجمالي الصفقات</p>
+                <p className="text-2xl font-bold">{brokers.reduce((sum, b) => sum + b.deals_count, 0)}</p>
+              </div>
+              <FileText className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">إجمالي المبيعات</p>
+                <p className="text-2xl font-bold">
+                  {brokers.reduce((sum, b) => sum + b.total_sales_amount, 0).toLocaleString()} د.ك
+                </p>
+              </div>
+              <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                <div className="h-4 w-4 bg-yellow-600 rounded-full"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Content */}
+      {filteredBrokers.length === 0 ? (
+        <Card>
+          <CardContent className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد نتائج</h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm || activityFilter !== 'all' || languageFilter !== 'all' 
+                  ? 'جرب تغيير معايير البحث أو الفلترة' 
+                  : 'لم يتم العثور على وسطاء بعد. ابدأ بإضافة وسيط جديد.'}
+              </p>
+              {!searchTerm && activityFilter === 'all' && languageFilter === 'all' && (
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  إضافة وسيط جديد
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'table' ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>قائمة الوسطاء ({filteredBrokers.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <input
+                      type="checkbox"
+                      checked={selectedBrokersForBulk.length === filteredBrokers.length && filteredBrokers.length > 0}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300"
+                    />
+                  </TableHead>
+                  <TableHead>الاسم</TableHead>
+                  <TableHead>رقم الهاتف</TableHead>
+                  <TableHead>البريد الإلكتروني</TableHead>
+                  <TableHead>حالة النشاط</TableHead>
+                  <TableHead>عدد الصفقات</TableHead>
+                  <TableHead>إجمالي المبيعات</TableHead>
+                  <TableHead>الإجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
-                {filteredBrokers.map((broker, index) => (
-                  <TableRow 
-                    key={broker.id} 
-                    className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200 ${
-                      index % 2 === 0 ? 'bg-white/60' : 'bg-slate-50/60'
-                    }`}
-                  >
-                    <TableCell className="py-4 w-12">
+                {filteredBrokers.map((broker) => (
+                  <TableRow key={broker.id}>
+                    <TableCell>
                       <input
                         type="checkbox"
-                        checked={selectedBrokers.has(broker.id)}
-                        onChange={() => toggleBrokerSelection(broker.id)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        checked={selectedBrokersForBulk.includes(broker.id)}
+                        onChange={() => handleSelectBroker(broker.id)}
+                        className="rounded border-gray-300"
                       />
                     </TableCell>
-                    <TableCell className="font-semibold text-slate-800 py-4">{broker.name}</TableCell>
-                    <TableCell className="text-slate-600 py-4">{broker.short_name || '-'}</TableCell>
-                    <TableCell className="text-slate-600 py-4">{broker.phone}</TableCell>
-                    <TableCell className="text-slate-600 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        {broker.whatsapp_number || 'غير محدد'}
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{broker.name}</p>
+                        {broker.short_name && (
+                          <p className="text-sm text-gray-500">{broker.short_name}</p>
+                        )}
                       </div>
                     </TableCell>
-                    
-                    <TableCell className="text-right">
-                      {broker.language ? (
-                        <Badge 
-                          variant={broker.language === 'arabic' ? 'default' : 'secondary'}
-                          className={`${
-                            broker.language === 'arabic' 
-                              ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                              : 'bg-green-100 text-green-800 border-green-200'
-                          }`}
-                        >
-                          {broker.language === 'arabic' ? 'عربي' : broker.language === 'english' ? 'إنجليزي' : 'غير محدد'}
-                        </Badge>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        {broker.phone}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {broker.email ? (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          {broker.email}
+                        </div>
                       ) : (
-                        <span className="text-slate-400">غير محدد</span>
+                        <span className="text-gray-400">غير محدد</span>
                       )}
                     </TableCell>
-                    
-                    <TableCell className="text-slate-600 py-4">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-slate-500" />
-                        {broker.office_name || 'غير محدد'}
-                      </div>
-                    </TableCell>
-                    
-                    <TableCell className="py-4">
-                      <Badge className={`${getActivityColor(broker.activity_status)} text-white px-3 py-1 rounded-full text-xs font-medium shadow-sm`}>
-                        {getActivityLabel(broker.activity_status)}
+                    <TableCell>
+                      <Badge className={getActivityStatusColor(broker.activity_status)}>
+                        {getActivityStatusText(broker.activity_status)}
                       </Badge>
                     </TableCell>
-                    
-                    <TableCell className="py-4">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleWhatsApp(broker)}
-                          disabled={!broker.whatsapp_number && !broker.phone}
-                          title="إرسال واتساب"
-                          className="h-8 w-8 p-0 border-slate-200 hover:border-green-500 hover:bg-green-50 rounded-lg transition-all duration-200"
-                        >
-                          <MessageCircle className="h-3 w-3 text-green-600" />
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEmail(broker)}
-                          disabled={!broker.email}
-                          title="إرسال إيميل"
-                          className="h-8 w-8 p-0 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                        >
-                          <Mail className="h-3 w-3 text-blue-600" />
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingBroker(broker);
-                            setIsDialogOpen(true);
-                          }}
-                          title="تعديل"
-                          className="h-8 w-8 p-0 border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-lg transition-all duration-200"
-                        >
-                          <Edit className="h-3 w-3 text-amber-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deleteMutation.mutate(broker.id)}
-                          title="حذف"
-                          className="h-8 w-8 p-0 border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
-                        >
-                          <Trash2 className="h-3 w-3 text-red-600" />
-                        </Button>
-                      </div>
+                    <TableCell>{broker.deals_count}</TableCell>
+                    <TableCell>{broker.total_sales_amount.toLocaleString()} د.ك</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleView(broker)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            عرض التفاصيل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(broker)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(broker.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <div>
+          <div className="mb-4">
+            <h3 className="text-lg font-medium">عرض البطاقات ({filteredBrokers.length})</h3>
           </div>
-        ) : (
-          // Cards View
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBrokers.map((broker, index) => (
-            <Card key={broker.id} className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <CardHeader className="pb-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredBrokers.map((broker) => (
+              <Card key={broker.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={selectedBrokers.has(broker.id)}
-                      onChange={() => toggleBrokerSelection(broker.id)}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                      checked={selectedBrokersForBulk.includes(broker.id)}
+                      onChange={() => handleSelectBroker(broker.id)}
+                      className="absolute top-2 right-2 z-10 rounded border-gray-300"
                     />
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl font-bold text-slate-800">{broker.name}</CardTitle>
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{broker.name}</CardTitle>
                       {broker.short_name && (
-                        <p className="text-sm text-slate-600 font-medium">({broker.short_name})</p>
+                        <p className="text-sm text-gray-500">{broker.short_name}</p>
                       )}
                     </div>
                   </div>
-                  <Badge className={`${getActivityColor(broker.activity_status)} text-white px-3 py-1 rounded-full text-xs font-medium shadow-sm`}>
-                    {getActivityLabel(broker.activity_status)}
-                  </Badge>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleView(broker)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        عرض التفاصيل
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(broker)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        تعديل
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(broker.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        حذف
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardHeader>
-              
-              <CardContent className="space-y-4">
+              <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Phone className="h-4 w-4" />
-                    {broker.phone}
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm">{broker.phone}</span>
                   </div>
                   
-                  {broker.whatsapp_number && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <MessageCircle className="h-4 w-4" />
-                      {broker.whatsapp_number}
-                    </div>
-                  )}
-
-                  {/* عرض اللغة */}
-                  {broker.language && (
+                  {broker.email && (
                     <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={broker.language === 'arabic' ? 'default' : 'secondary'}
-                        className={`${
-                          broker.language === 'arabic' 
-                            ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                            : 'bg-green-100 text-green-800 border-green-200'
-                        }`}
-                      >
-                        {broker.language === 'arabic' ? 'عربي' : broker.language === 'english' ? 'إنجليزي' : 'غير محدد'}
-                      </Badge>
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm">{broker.email}</span>
                     </div>
                   )}
-                </div>
-                
-                {broker.office_name && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Building2 className="h-4 w-4 text-slate-500" />
-                    {broker.office_name}
-                  </div>
-                )}
-                
-                {broker.areas_specialization && broker.areas_specialization.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium text-slate-700">مناطق التخصص:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {broker.areas_specialization.slice(0, 3).map((area, index) => (
-                        <Badge key={index} variant="outline" className="text-xs border-slate-200 text-slate-600 rounded-full px-2 py-1">
-                          {area}
-                        </Badge>
-                      ))}
-                      {broker.areas_specialization.length > 3 && (
-                        <Badge variant="outline" className="text-xs border-slate-200 text-slate-600 rounded-full px-2 py-1">
-                          +{broker.areas_specialization.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleWhatsApp(broker)}
-                      disabled={!broker.whatsapp_number && !broker.phone}
-                      title="إرسال واتساب"
-                      className="h-9 w-9 p-0 border-slate-200 hover:border-green-500 hover:bg-green-50 rounded-lg transition-all duration-200"
-                    >
-                      <MessageCircle className="h-3 w-3 text-green-600" />
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEmail(broker)}
-                      disabled={!broker.email}
-                      title="إرسال إيميل"
-                      className="h-9 w-9 p-0 border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                    >
-                      <Mail className="h-3 w-3 text-blue-600" />
-                    </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    <Badge className={getActivityStatusColor(broker.activity_status)}>
+                      {getActivityStatusText(broker.activity_status)}
+                    </Badge>
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingBroker(broker);
-                        setIsDialogOpen(true);
-                      }}
-                      title="تعديل"
-                      className="h-9 w-9 p-0 border-slate-200 hover:border-amber-500 hover:bg-amber-50 rounded-lg transition-all duration-200"
-                    >
-                      <Edit className="h-3 w-3 text-amber-600" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => deleteMutation.mutate(broker.id)}
-                      title="حذف"
-                      className="h-9 w-9 p-0 border-slate-200 hover:border-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
-                    >
-                      <Trash2 className="h-3 w-3 text-red-600" />
-                    </Button>
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                    <div>
+                      <p className="text-xs text-gray-500">الصفقات</p>
+                      <p className="font-medium">{broker.deals_count}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">المبيعات</p>
+                      <p className="font-medium">{broker.total_sales_amount.toLocaleString()} د.ك</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           ))}
+          </div>
         </div>
       )}
-      </div>
 
-      {/* WhatsApp Templates Dialog */}
-      <Dialog open={isWhatsAppDialogOpen} onOpenChange={setIsWhatsAppDialogOpen}>
-        <DialogContent className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl rounded-2xl max-w-2xl">
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              إرسال رسالة واتساب
-            </DialogTitle>
-            <div className="text-sm text-slate-600 mt-2">
-              إلى: <span className="font-semibold text-slate-800">{selectedBroker?.name}</span>
-            </div>
+            <DialogTitle>تعديل بيانات الوسيط</DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-6">
-            {/* قوالب الرسائل */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-800">اختر قالب جاهز:</h3>
-              
-              {templatesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                  <span className="ml-3 text-slate-600">جاري تحميل القوالب...</span>
-                </div>
-              ) : getFormattedTemplates(selectedBroker?.name || 'الوسيط').length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <div className="h-16 w-16 mx-auto text-slate-300 mb-4">
-                    <MessageCircle className="h-full w-full" />
-                  </div>
-                  <p>لا توجد قوالب متاحة حالياً</p>
-                  <p className="text-sm">يمكنك إنشاء قوالب جديدة في صفحة إدارة القوالب</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {getFormattedTemplates(selectedBroker?.name || 'الوسيط').map((template) => (
-                    <Button
-                      key={template.id}
-                      variant={selectedTemplate === template.id ? "default" : "outline"}
-                      onClick={() => handleTemplateSelect(template.id)}
-                      className={`h-auto p-4 text-right justify-start ${
-                        selectedTemplate === template.id 
-                          ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
-                          : 'border-slate-700 hover:border-green-300 hover:bg-green-50'
-                      } rounded-xl transition-all duration-200`}
-                    >
-                      <div className="space-y-1">
-                        <div className="font-semibold">{template.title}</div>
-                        <div className={`text-xs ${selectedTemplate === template.id ? 'text-green-100' : 'text-slate-600'}`}>
-                          {template.message.length > 50 ? template.message.substring(0, 50) + '...' : template.message}
-                        </div>
-                        {template.stage && (
-                          <div className={`text-xs px-2 py-1 rounded-full ${
-                            selectedTemplate === template.id ? 'bg-green-700 text-green-100' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {template.stage}
-                          </div>
-                        )}
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* رسالة مخصصة */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-slate-800">أو اكتب رسالة مخصصة:</h3>
-              <textarea
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder="اكتب رسالتك هنا..."
-                className="w-full h-32 p-4 border border-slate-200 rounded-xl focus:border-green-500 focus:ring-green-500/20 resize-none transition-all duration-200"
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-name">الاسم الكامل *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="الاسم الكامل"
               />
             </div>
-
-            {/* معاينة الرسالة */}
-            {customMessage && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-slate-800">معاينة الرسالة:</h3>
-                <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
-                  <div className="text-sm text-green-800 whitespace-pre-wrap">{customMessage}</div>
-                </div>
-              </div>
-            )}
+            <div>
+              <Label htmlFor="edit-short_name">الاسم المختصر</Label>
+              <Input
+                id="edit-short_name"
+                value={formData.short_name}
+                onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
+                placeholder="الاسم المختصر"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-phone">رقم الهاتف *</Label>
+              <Input
+                id="edit-phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="رقم الهاتف"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-whatsapp_number">رقم الواتساب</Label>
+              <Input
+                id="edit-whatsapp_number"
+                value={formData.whatsapp_number}
+                onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                placeholder="رقم الواتساب"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-email">البريد الإلكتروني</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="البريد الإلكتروني"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-activity_status">حالة النشاط</Label>
+              <Select value={formData.activity_status} onValueChange={(v: any) => setFormData({ ...formData, activity_status: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">نشط</SelectItem>
+                  <SelectItem value="medium">متوسط</SelectItem>
+                  <SelectItem value="low">منخفض</SelectItem>
+                  <SelectItem value="inactive">غير نشط</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-language">اللغة</Label>
+              <Select value={formData.language} onValueChange={(v: any) => setFormData({ ...formData, language: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="arabic">عربي</SelectItem>
+                  <SelectItem value="english">إنجليزي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-office_name">اسم المكتب</Label>
+              <Input
+                id="edit-office_name"
+                value={formData.office_name}
+                onChange={(e) => setFormData({ ...formData, office_name: e.target.value })}
+                placeholder="اسم المكتب"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="edit-office_location">موقع المكتب</Label>
+              <Input
+                id="edit-office_location"
+                value={formData.office_location}
+                onChange={(e) => setFormData({ ...formData, office_location: e.target.value })}
+                placeholder="موقع المكتب"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="edit-notes">ملاحظات</Label>
+              <Textarea
+                id="edit-notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="ملاحظات إضافية"
+                rows={3}
+              />
+            </div>
           </div>
-
-          <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-            <Button
-              variant="outline"
-              onClick={() => setIsWhatsAppDialogOpen(false)}
-              className="h-12 px-6 border-slate-200 hover:border-slate-300 rounded-xl"
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               إلغاء
             </Button>
-            <Button
-              onClick={() => sendWhatsAppMessage(customMessage)}
-              disabled={!customMessage.trim()}
-              className="h-12 px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            <Button 
+              onClick={() => handleSubmit(true)}
+              disabled={updateBrokerMutation.isPending || !formData.name || !formData.phone}
             >
-              <MessageCircle className="h-4 w-4 ml-2" />
-              إرسال الرسالة
+              {updateBrokerMutation.isPending ? 'جاري التحديث...' : 'تحديث'}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Actions Dialog */}
-      <Dialog open={isBulkActionsOpen} onOpenChange={setIsBulkActionsOpen}>
-        <DialogContent className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl rounded-2xl max-w-2xl">
+      {/* View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              إجراءات متعددة
-            </DialogTitle>
-            <div className="text-sm text-slate-600 mt-2">
-              {selectedBrokers.size} وسيط مختار
-            </div>
+            <DialogTitle>تفاصيل الوسيط</DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-6">
-            {/* نوع الإجراء */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-slate-800">نوع الإجراء:</h3>
-              <div className="grid grid-cols-3 gap-3">
-                <Button
-                  variant={bulkActionType === 'whatsapp' ? 'default' : 'outline'}
-                  onClick={() => setBulkActionType('whatsapp')}
-                  className={`h-12 ${
-                    bulkActionType === 'whatsapp' 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'border-slate-200 hover:border-green-300'
-                  } rounded-xl transition-all duration-200`}
-                >
-                  <MessageCircle className="h-4 w-4 ml-2" />
-                  رسائل واتساب
-                </Button>
-                
-                <Button
-                  variant={bulkActionType === 'task' ? 'default' : 'outline'}
-                  onClick={() => setBulkActionType('task')}
-                  className={`h-12 ${
-                    bulkActionType === 'task' 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'border-slate-200 hover:border-blue-300'
-                  } rounded-xl transition-all duration-200`}
-                >
-                  <Plus className="h-4 w-4 ml-2" />
-                  إنشاء مهمة
-                </Button>
-                
-                <Button
-                  variant={bulkActionType === 'export' ? 'default' : 'outline'}
-                  onClick={() => setBulkActionType('export')}
-                  className={`h-12 ${
-                    bulkActionType === 'export' 
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                      : 'border-slate-200 hover:border-purple-300'
-                  } rounded-xl transition-all duration-200`}
-                >
-                  <Download className="h-4 w-4 ml-2" />
-                  تصدير البيانات
-                </Button>
-                
-                <Button
-                  variant={bulkActionType === 'edit' ? 'default' : 'outline'}
-                  onClick={() => setBulkActionType('edit')}
-                  className={`h-12 ${
-                    bulkActionType === 'edit' 
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                      : 'border-slate-200 hover:border-amber-300'
-                  } rounded-xl transition-all duration-200`}
-                >
-                  <Edit className="h-4 w-4 ml-2" />
-                  تعديل جماعي
-                </Button>
-                
-                <Button
-                  variant={bulkActionType === 'delete' ? 'default' : 'outline'}
-                  onClick={() => setBulkActionType('delete')}
-                  className={`h-12 ${
-                    bulkActionType === 'delete' 
-                      ? 'bg-red-600 hover:bg-red-700 text-white' 
-                      : 'border-slate-200 hover:border-red-300'
-                  } rounded-xl transition-all duration-200`}
-                >
-                  <Trash2 className="h-4 w-4 ml-2" />
-                  حذف جماعي
-                </Button>
-              </div>
-            </div>
-
-            {/* رسالة الواتساب */}
-            {bulkActionType === 'whatsapp' && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-slate-800">رسالة الواتساب:</h3>
-                <textarea
-                  value={bulkMessage}
-                  onChange={(e) => {
-                    console.log('Message changed:', e.target.value);
-                    setBulkMessage(e.target.value);
-                  }}
-                  placeholder="اكتب رسالتك هنا... مثال: مرحباً، لدينا أرض جديدة للبيع في منطقة مميزة. هل تريد معرفة التفاصيل؟"
-                  className="w-full h-32 p-4 border border-slate-200 rounded-xl focus:border-green-500 focus:ring-green-500/20 resize-none transition-all duration-200"
-                />
-                <div className="text-sm text-slate-500">
-                  سيتم إرسال هذه الرسالة لجميع الأوسطاء المختارين ({selectedBrokers.size} وسيط)
+          {selectedBroker && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">الاسم الكامل</Label>
+                  <p className="text-lg font-medium">{selectedBroker.name}</p>
                 </div>
-                {bulkMessage && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="text-sm font-medium text-green-800">معاينة الرسالة:</div>
-                    <div className="text-sm text-green-700 mt-1">{bulkMessage}</div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">الاسم المختصر</Label>
+                  <p className="text-lg">{selectedBroker.short_name || 'غير محدد'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">رقم الهاتف</Label>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    <p className="text-lg">{selectedBroker.phone}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">رقم الواتساب</Label>
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-gray-400" />
+                    <p className="text-lg">{selectedBroker.whatsapp_number || 'غير محدد'}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">البريد الإلكتروني</Label>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    <p className="text-lg">{selectedBroker.email || 'غير محدد'}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">حالة النشاط</Label>
+                  <Badge className={getActivityStatusColor(selectedBroker.activity_status)}>
+                    {getActivityStatusText(selectedBroker.activity_status)}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">اللغة</Label>
+                  <p className="text-lg">{selectedBroker.language === 'arabic' ? 'عربي' : 'إنجليزي'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">اسم المكتب</Label>
+                  <p className="text-lg">{selectedBroker.office_name || 'غير محدد'}</p>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-sm font-medium text-gray-500">موقع المكتب</Label>
+                  <p className="text-lg">{selectedBroker.office_location || 'غير محدد'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">عدد الصفقات</Label>
+                  <p className="text-lg font-medium">{selectedBroker.deals_count}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">إجمالي المبيعات</Label>
+                  <p className="text-lg font-medium">{selectedBroker.total_sales_amount.toLocaleString()} د.ك</p>
+                </div>
+                {selectedBroker.notes && (
+                  <div className="col-span-2">
+                    <Label className="text-sm font-medium text-gray-500">ملاحظات</Label>
+                    <p className="text-lg">{selectedBroker.notes}</p>
                   </div>
                 )}
-                
-                {/* خيارات الإرسال */}
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-slate-700">طريقة الإرسال:</div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSendMethod('api')}
-                      className={`flex-1 ${
-                        sendMethod === 'api' 
-                          ? 'border-green-500 bg-green-50 text-green-700' 
-                          : 'border-slate-200'
-                      }`}
-                    >
-                      <MessageCircle className="h-3 w-3 ml-1" />
-                      API الواتساب
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSendMethod('wa_me')}
-                      className={`flex-1 ${
-                        sendMethod === 'wa_me' 
-                          ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                          : 'border-slate-200'
-                      }`}
-                    >
-                      <ExternalLink className="h-3 w-3 ml-1" />
-                      wa.me
-                    </Button>
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {sendMethod === 'api' 
-                      ? 'إرسال مباشر عبر API الواتساب المدمج (يتطلب إعدادات)' 
-                      : 'فتح WhatsApp Web مع الرسالة جاهزة (لا يتطلب إعدادات)'
-                    }
-                  </div>
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      onClick={() => window.open('/test_whatsapp_send.html', '_blank')}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                    >
-                      🧪 اختبار الإرسال
-                    </Button>
-                    <Button
-                      onClick={() => window.open('/debug_whatsapp_settings.html', '_blank')}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                    >
-                      🔧 فحص الإعدادات
-                    </Button>
-                  </div>
-                  {sendMethod === 'api' && (
-                    <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
-                      💡 إذا لم تكن إعدادات API متوفرة، سيتم استخدام wa.me تلقائياً
-                    </div>
-                  )}
-                </div>
               </div>
-            )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            {/* إنشاء مهمة */}
-            {bulkActionType === 'task' && (
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Label htmlFor="bulk-task-title" className="text-sm font-semibold text-slate-700">عنوان المهمة:</Label>
-                  <Input
-                    id="bulk-task-title"
-                    value={bulkTaskTitle}
-                    onChange={(e) => setBulkTaskTitle(e.target.value)}
-                    placeholder="مثال: التواصل مع وسطاء بخصوص أرض جديدة للبيع"
-                    className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl transition-all duration-200"
-                  />
-                </div>
-                
-                <div className="space-y-3">
-                  <Label htmlFor="bulk-task-description" className="text-sm font-semibold text-slate-700">وصف المهمة:</Label>
-                  <textarea
-                    id="bulk-task-description"
-                    value={bulkTaskDescription}
-                    onChange={(e) => setBulkTaskDescription(e.target.value)}
-                    placeholder="وصف تفصيلي للمهمة..."
-                    className="w-full h-24 p-4 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500/20 resize-none transition-all duration-200"
-                  />
-                </div>
-                
-                <div className="text-sm text-slate-500">
-                  سيتم إنشاء مهمة تحتوي على أسماء وأرقام جميع الأوسطاء المختارين
-                </div>
-              </div>
-            )}
-
-            {/* تصدير البيانات */}
-            {bulkActionType === 'export' && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-slate-800">تصدير البيانات:</h3>
-                <div className="p-4 bg-slate-50 rounded-xl">
-                  <div className="text-sm text-slate-600">
-                    سيتم تصدير البيانات التالية لجميع الأوسطاء المختارين:
+      {/* Bulk Message Dialog */}
+      <Dialog open={isBulkMessageDialogOpen} onOpenChange={setIsBulkMessageDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>إرسال رسائل جماعية</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>اختيار الوسطاء</Label>
+              <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                {filteredBrokers.map((broker) => (
+                  <div key={broker.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`broker-${broker.id}`}
+                      checked={selectedBrokersForBulk.includes(broker.id)}
+                      onChange={() => handleSelectBroker(broker.id)}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor={`broker-${broker.id}`} className="text-sm">
+                      {broker.name} - {broker.phone}
+                    </label>
                   </div>
-                  <ul className="mt-2 text-sm text-slate-600 space-y-1">
-                    <li>• الاسم الكامل</li>
-                    <li>• رقم الهاتف</li>
-                    <li>• رقم الواتساب</li>
-                    <li>• اسم المكتب</li>
-                    <li>• مناطق التخصص</li>
-                  </ul>
-                </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                تم اختيار {selectedBrokersForBulk.length} وسيط من أصل {filteredBrokers.length}
+              </p>
+            </div>
+            {selectedBrokersForBulk.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm text-muted-foreground">
+                  سيتم إرسال الرسالة إلى {selectedBrokersForBulk.length} وسيط محدد
+                </p>
               </div>
             )}
-
-            {/* تعديل جماعي */}
-            {bulkActionType === 'edit' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-semibold text-slate-700">تحديث حالة النشاط (اختياري)</Label>
-                    <Select value={bulkEditActivity} onValueChange={(v: any) => setBulkEditActivity(v)}>
-                      <SelectTrigger className="h-12 border-slate-200 rounded-xl">
-                        <SelectValue placeholder="اختر حالة النشاط" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">نشط</SelectItem>
-                        <SelectItem value="medium">متوسط</SelectItem>
-                        <SelectItem value="low">ضعيف</SelectItem>
-                        <SelectItem value="inactive">غير نشط</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-slate-700">تحديث اللغة (اختياري)</Label>
-                    <Select value={bulkEditLanguage} onValueChange={(v: any) => setBulkEditLanguage(v)}>
-                      <SelectTrigger className="h-12 border-slate-200 rounded-xl">
-                        <SelectValue placeholder="اختر اللغة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="arabic">عربي</SelectItem>
-                        <SelectItem value="english">إنجليزي</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="text-xs text-slate-500">سيتم تطبيق القيم المختارة فقط، واترك أي حقل فارغ إذا لا تريد تحديثه.</div>
-              </div>
-            )}
-
-            {/* حذف جماعي */}
-            {bulkActionType === 'delete' && (
-              <div className="space-y-3">
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-                  سيتم حذف جميع الأوسطاء المختارين بشكل نهائي. هذا الإجراء لا يمكن التراجع عنه.
-                </div>
-              </div>
-            )}
+            <div>
+              <Label htmlFor="bulk-message">الرسالة</Label>
+              <Textarea
+                id="bulk-message"
+                value={bulkMessage}
+                onChange={(e) => setBulkMessage(e.target.value)}
+                placeholder="اكتب الرسالة هنا..."
+                rows={4}
+              />
+            </div>
           </div>
-
-          <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-            <Button
-              variant="outline"
-              onClick={() => setIsBulkActionsOpen(false)}
-              className="h-12 px-6 border-slate-200 hover:border-slate-300 rounded-xl"
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkMessageDialogOpen(false)}>
               إلغاء
             </Button>
-            
-            {bulkActionType === 'whatsapp' && (
-              <Button
-                onClick={() => {
-                  console.log('Bulk WhatsApp button clicked');
-                  console.log('Selected brokers:', selectedBrokers.size);
-                  console.log('Message:', bulkMessage);
-                  handleBulkWhatsApp();
-                }}
-                disabled={!bulkMessage.trim() || selectedBrokers.size === 0}
-                className="h-12 px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl shadow-lg shadow-green-500/25 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <MessageCircle className="h-4 w-4 ml-2" />
-                إرسال الرسائل ({selectedBrokers.size})
-              </Button>
-            )}
-            
-            {bulkActionType === 'task' && (
-              <Button
-                onClick={handleBulkTaskCreation}
-                disabled={!bulkTaskTitle.trim()}
-                className="h-12 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-4 w-4 ml-2" />
-                إنشاء المهمة
-              </Button>
-            )}
-            
-            {bulkActionType === 'export' && (
-              <Button
-                onClick={exportPhoneNumbers}
-                className="h-12 px-8 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-purple-500/25 transition-all duration-200 hover:scale-105"
-              >
-                <Download className="h-4 w-4 ml-2" />
-                تصدير البيانات
-              </Button>
-            )}
+            <Button 
+              onClick={handleBulkMessage}
+              disabled={sendBulkMessageMutation.isPending || selectedBrokersForBulk.length === 0 || !bulkMessage.trim()}
+            >
+              {sendBulkMessageMutation.isPending ? 'جاري الإرسال...' : 'إرسال'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            {bulkActionType === 'edit' && (
-              <Button
-                onClick={bulkUpdateSelectedBrokers}
-                className="h-12 px-8 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white rounded-xl shadow-lg shadow-amber-500/25 transition-all duration-200 hover:scale-105"
-              >
-                <Edit className="h-4 w-4 ml-2" />
-                حفظ التعديلات
-              </Button>
-            )}
-
-            {bulkActionType === 'delete' && (
-              <Button
-                onClick={bulkDeleteSelectedBrokers}
-                className="h-12 px-8 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl shadow-lg shadow-red-500/25 transition-all duration-200 hover:scale-105"
-              >
-                <Trash2 className="h-4 w-4 ml-2" />
-                تأكيد الحذف
-              </Button>
-            )}
+      {/* Export Dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تصدير البيانات</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>اختر صيغة التصدير</Label>
+              <Select value={exportFormat} onValueChange={(v: any) => setExportFormat(v)}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="txt">TXT</SelectItem>
+                  <SelectItem value="excel">Excel (CSV)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-gray-500">
+              سيتم تصدير {filteredBrokers.length} وسيط بصيغة {exportFormat.toUpperCase()}
+            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleExport}>
+              تصدير
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -46,6 +46,33 @@ export default function BulkSend() {
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // التحقق من وجود بيانات من صفحة المهام المتقدمة
+  useEffect(() => {
+    const bulkSendData = localStorage.getItem('bulkSendFromLandBrokers');
+    if (bulkSendData) {
+      try {
+        console.log('📥 [BulkSend] Found data from Advanced Tasks:', bulkSendData);
+        const parsedData = JSON.parse(bulkSendData);
+        
+        // التبديل إلى تبويب الإنشاء
+        updateState({ activeTab: 'create' });
+        
+        // إظهار رسالة نجاح
+        toast.success(`تم تحويل ${parsedData.recipients?.length || 0} وسيط من صفحة المهام المتقدمة`);
+        
+        // تأخير مسح البيانات من localStorage لضمان تحميل النموذج أولاً
+        setTimeout(() => {
+          localStorage.removeItem('bulkSendFromLandBrokers');
+          console.log('✅ [BulkSend] Data cleared from localStorage after form loading');
+        }, 2000); // تأخير ثانيتين
+        
+      } catch (error) {
+        console.error('❌ [BulkSend] Error parsing bulk send data:', error);
+        toast.error('خطأ في تحليل البيانات المحولة');
+      }
+    }
+  }, []);
+
   const updateState = (updates: Partial<BulkSendState>) => {
     setState(prev => ({ ...prev, ...updates }));
   };

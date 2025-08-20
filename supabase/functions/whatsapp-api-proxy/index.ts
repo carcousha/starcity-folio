@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { corsHeaders } from "../_shared/cors.ts"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+}
 
 interface WhatsAppRequest {
   api_key: string
@@ -7,34 +12,45 @@ interface WhatsAppRequest {
   number: string
   message: string
   footer?: string
-  message_type?: string
-  media_url?: string
-  media_type?: string
-  button_text?: string
-  button_url?: string
+  url?: string
+  media_type?: 'image' | 'document' | 'video' | 'audio'
+  caption?: string
 }
 
 interface WhatsAppResponse {
   status: boolean
   message: string
-  api_response?: any
+  data?: any
+  error?: string
 }
 
 serve(async (req) => {
+  console.log('🔍 [Edge Function] Request received:', req.method, req.url)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ [Edge Function] CORS preflight handled')
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { api_key, sender, number, message, footer, message_type, media_url, media_type, button_text, button_url }: WhatsAppRequest = await req.json()
+    // Parse request body
+    const body = await req.json()
+    console.log('📥 [Edge Function] Request body:', {
+      ...body,
+      api_key: body.api_key ? `${body.api_key.substring(0, 8)}...` : 'NOT SET'
+    })
+
+    const { api_key, sender, number, message, footer, url, media_type, caption }: WhatsAppRequest = body
 
     // Validate required fields
-    if (!api_key || !sender || !number || !message) {
+    if (!api_key) {
+      console.error('❌ [Edge Function] Missing api_key')
       return new Response(
         JSON.stringify({
           status: false,
-          message: 'Missing required fields: api_key, sender, number, message'
+          message: 'مفتاح API مطلوب',
+          error: 'MISSING_API_KEY'
         }),
         {
           status: 400,
@@ -43,35 +59,92 @@ serve(async (req) => {
       )
     }
 
-    // Build API URL based on message type
-    let apiUrl = 'https://app.x-growth.tech/send-message'
+    if (!sender) {
+      console.error('❌ [Edge Function] Missing sender')
+      return new Response(
+        JSON.stringify({
+          status: false,
+          message: 'رقم المرسل مطلوب',
+          error: 'MISSING_SENDER'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (!number) {
+      console.error('❌ [Edge Function] Missing number')
+      return new Response(
+        JSON.stringify({
+          status: false,
+          message: 'رقم الهاتف مطلوب',
+          error: 'MISSING_NUMBER'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    if (!message) {
+      console.error('❌ [Edge Function] Missing message')
+      return new Response(
+        JSON.stringify({
+          status: false,
+          message: 'نص الرسالة مطلوب',
+          error: 'MISSING_MESSAGE'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Clean phone number
+    let cleanNumber = number.replace(/\D/g, '')
+    if (cleanNumber.startsWith('0')) {
+      cleanNumber = cleanNumber.substring(1)
+    }
+    if (!cleanNumber.startsWith('971')) {
+      cleanNumber = '971' + cleanNumber
+    }
+
+    console.log('📱 [Edge Function] Cleaned number:', cleanNumber)
+
+    // Build API URL - Choose endpoint based on media presence
+    const apiUrl = url ? 'https://app.x-growth.tech/send-media' : 'https://app.x-growth.tech/send-message'
     const params = new URLSearchParams({
       api_key,
       sender,
-      number,
+      number: cleanNumber,
       message
     })
-    
-    // إضافة footer فقط إذا كان موجوداً وغير فارغ وليس "StarCity Folio"
-    if (footer && 
-        footer.trim() && 
-        !footer.includes('StarCity Folio')) {
+
+    // Add footer if provided and not default
+    if (footer && footer.trim() && !footer.includes('StarCity Folio')) {
       params.append('footer', footer.trim())
     }
 
-    // Add additional parameters based on message type
-    if (message_type === 'media' && media_url && media_type) {
-      params.append('media_url', media_url)
-      params.append('media_type', media_type)
-    } else if (message_type === 'button' && button_text && button_url) {
-      params.append('button_text', button_text)
-      params.append('button_url', button_url)
+    // Add media parameters if media is provided
+    if (url) {
+      params.append('url', url)
+      if (media_type) {
+        params.append('media_type', media_type)
+      }
+      if (caption) {
+        params.append('caption', caption)
+      }
     }
 
     const fullUrl = `${apiUrl}?${params.toString()}`
-    console.log('Calling WhatsApp API:', fullUrl)
+    console.log('🌐 [Edge Function] Calling WhatsApp API:', fullUrl.replace(api_key, `${api_key.substring(0, 8)}...`))
 
     // Make the API call
+    const startTime = Date.now()
     const response = await fetch(fullUrl, {
       method: 'GET',
       headers: {
@@ -79,33 +152,50 @@ serve(async (req) => {
         'User-Agent': 'StarCity-Folio/1.0'
       }
     })
+    const endTime = Date.now()
+    const responseTime = endTime - startTime
 
+    console.log('⏱️ [Edge Function] API response time:', responseTime + 'ms')
+    console.log('📥 [Edge Function] API response status:', response.status, response.statusText)
+
+    // Get response text
     const responseText = await response.text()
-    console.log('API Response:', responseText)
+    console.log('📄 [Edge Function] API response text:', responseText)
 
-    // Parse the response
+    // Parse response
     let apiResponse: any
     try {
       apiResponse = JSON.parse(responseText)
-    } catch {
+      console.log('✅ [Edge Function] Parsed JSON response:', apiResponse)
+    } catch (parseError) {
+      console.log('⚠️ [Edge Function] Could not parse JSON, using raw text')
       apiResponse = { raw_response: responseText }
     }
 
-    // Determine success based on response
+    // Determine success
     let isSuccess = false
     let statusMessage = ''
 
     if (response.ok) {
-      if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
+      // Check for success indicators in response
+      const responseLower = responseText.toLowerCase()
+      if (responseLower.includes('success') || 
+          responseLower.includes('تم') || 
+          responseLower.includes('نجح') ||
+          responseLower.includes('sent') ||
+          responseLower.includes('delivered')) {
         isSuccess = true
         statusMessage = 'تم إرسال الرسالة بنجاح!'
-      } else if (responseText.includes('error') || responseText.includes('فشل') || responseText.includes('خطأ')) {
+      } else if (responseLower.includes('error') || 
+                 responseLower.includes('فشل') || 
+                 responseLower.includes('خطأ') ||
+                 responseLower.includes('failed')) {
         isSuccess = false
         statusMessage = 'فشل في إرسال الرسالة: ' + responseText
       } else {
-        // If we can't determine from text, check status code
-        isSuccess = response.status === 200
-        statusMessage = isSuccess ? 'تم إرسال الرسالة بنجاح!' : 'فشل في إرسال الرسالة'
+        // Default to success if status is 200 and no clear error
+        isSuccess = true
+        statusMessage = 'تم إرسال الرسالة بنجاح!'
       }
     } else {
       isSuccess = false
@@ -115,8 +205,25 @@ serve(async (req) => {
     const result: WhatsAppResponse = {
       status: isSuccess,
       message: statusMessage,
-      api_response: apiResponse
+      data: {
+        api_response: apiResponse,
+        response_time_ms: responseTime,
+        http_status: response.status,
+        cleaned_number: cleanNumber
+      }
     }
+
+    if (!isSuccess) {
+      result.error = 'API_CALL_FAILED'
+    }
+
+    console.log('📤 [Edge Function] Sending response:', {
+      ...result,
+      data: {
+        ...result.data,
+        api_response: 'HIDDEN_FOR_LOG'
+      }
+    })
 
     return new Response(
       JSON.stringify(result),
@@ -127,12 +234,13 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('WhatsApp API Proxy Error:', error)
+    console.error('💥 [Edge Function] Unexpected error:', error)
     
     return new Response(
       JSON.stringify({
         status: false,
-        message: 'خطأ في الخادم: ' + error.message
+        message: 'خطأ في الخادم: ' + error.message,
+        error: 'INTERNAL_ERROR'
       }),
       {
         status: 500,

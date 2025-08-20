@@ -14,6 +14,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { StrictAuthProtector } from "@/components/StrictAuthProtector";
 import { DashboardHome } from "@/components/DashboardHome";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { GlobalSelectedBrokersProvider } from "@/hooks/useGlobalSelectedBrokers";
 
 // Lazy Loading Components
 const Auth = lazy(() => import("./pages/Auth"));
@@ -69,6 +70,7 @@ const MyTasks = lazy(() => import("./pages/employee/MyTasks"));
 const MyProperties = lazy(() => import("./pages/employee/MyProperties"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Settings = lazy(() => import("./pages/Settings"));
+const TestPage = lazy(() => import("./pages/TestPage"));
 const SecurityAuditPage = lazy(() => import("./pages/SecurityAudit"));
 
 
@@ -100,9 +102,11 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <StrictAuthProtector>
-                <AppProtector />
-              </StrictAuthProtector>
+              <GlobalSelectedBrokersProvider>
+                <StrictAuthProtector>
+                  <AppProtector />
+                </StrictAuthProtector>
+              </GlobalSelectedBrokersProvider>
             </BrowserRouter>
           </TooltipProvider>
         </ThemeProvider>
@@ -115,6 +119,15 @@ const App = () => {
 const AppProtector = () => {
   const { user, session, profile, loading } = useAuth();
   const location = useLocation();
+
+  // صفحة اختبار بدون مصادقة
+  if (location.pathname === "/test-app") {
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <TestPage />
+      </Suspense>
+    );
+  }
 
   // إذا كان المسار صفحة تسجيل الدخول، اعرضها فقط
   if (location.pathname === "/") {
@@ -602,6 +615,8 @@ const AppProtector = () => {
                    </Suspense>
                  </ProtectedRoute>
                } />
+              
+
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route

@@ -831,6 +831,170 @@ class WhatsAppService {
     console.log('Campaign execution started for:', campaignId);
   }
 
+  // ===== دالة إرسال رسائل WhatsApp الفعلية =====
+
+  async sendWhatsAppMessage(number: string, message: string, footer?: string, url?: string, mediaType?: 'image' | 'document' | 'video' | 'audio', caption?: string) {
+    try {
+      console.log('🔍 [sendWhatsAppMessage] Starting message send process...');
+      console.log('📱 [sendWhatsAppMessage] Target number:', number);
+      console.log('💬 [sendWhatsAppMessage] Message length:', message.length);
+      
+      // الحصول على الإعدادات من قاعدة البيانات
+      console.log('⚙️ [sendWhatsAppMessage] Fetching WhatsApp settings from database...');
+      const settings = await this.getSettings();
+      
+      if (!settings) {
+        console.error('❌ [sendWhatsAppMessage] WhatsApp settings not found in database');
+        throw new Error('إعدادات WhatsApp غير متوفرة في قاعدة البيانات. يرجى إعدادها أولاً.');
+      }
+
+      if (!settings.api_key || !settings.sender_number) {
+        console.error('❌ [sendWhatsAppMessage] Incomplete settings:', {
+          hasApiKey: !!settings.api_key,
+          hasSenderNumber: !!settings.sender_number,
+          apiKeyLength: settings.api_key?.length || 0,
+          senderNumber: settings.sender_number || 'NOT SET'
+        });
+        throw new Error('مفتاح API أو رقم المرسل غير مكتمل في إعدادات WhatsApp.');
+      }
+
+      console.log('✅ [sendWhatsAppMessage] Settings loaded successfully:', {
+        apiKey: `${settings.api_key.substring(0, 8)}...`,
+        senderNumber: settings.sender_number,
+        hasFooter: !!footer
+      });
+
+      const payload = {
+        api_key: settings.api_key,
+        sender: settings.sender_number,
+        number: number,
+        message: message,
+        footer: footer || 'Sent via StarCity Folio',
+        ...(url && { url: url }),
+        ...(mediaType && { media_type: mediaType }),
+        ...(caption && { caption: caption })
+      };
+
+      console.log('📤 [sendWhatsAppMessage] Sending payload to Edge Function:', {
+        ...payload,
+        api_key: `${payload.api_key.substring(0, 8)}...` // Hide full API key in logs
+      });
+
+      // استخدام Supabase Edge Function مباشرة
+      const response = await fetch('https://hrjyjemacsjoouobcgri.supabase.co/functions/v1/whatsapp-api-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk`,
+        },
+        body: JSON.stringify(payload)
+      });
+
+      console.log('📥 [sendWhatsAppMessage] Edge Function response status:', response.status);
+      console.log('📥 [sendWhatsAppMessage] Edge Function response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        console.error('❌ [sendWhatsAppMessage] Edge Function returned error status:', response.status, response.statusText);
+        throw new Error(`فشل الاتصال بـ Edge Function: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('📥 [sendWhatsAppMessage] Edge Function response data:', result);
+
+      if (result.status === true) {
+        console.log('✅ [sendWhatsAppMessage] Message sent successfully!');
+        return {
+          success: true,
+          status: true,
+          message: result.msg || 'تم إرسال الرسالة بنجاح',
+          data: result
+        };
+      } else {
+        console.error('❌ [sendWhatsAppMessage] Message sending failed:', result);
+        return {
+          success: false,
+          status: false,
+          message: result.msg || result.message || 'فشل في إرسال الرسالة',
+          error: result.error || 'Unknown error'
+        };
+      }
+
+    } catch (error) {
+      console.error('💥 [sendWhatsAppMessage] Caught error during send process:', error);
+      return {
+        success: false,
+        status: false,
+        message: 'خطأ في الاتصال بالخادم',
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  // ===== رفع الملفات إلى Storage =====
+
+  async uploadMediaFile(file: File): Promise<string | null> {
+    try {
+      console.log('📤 [uploadMediaFile] Starting file upload...');
+      console.log('📁 [uploadMediaFile] File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
+      // Validate file size (max 16MB for WhatsApp)
+      const maxSize = 16 * 1024 * 1024; // 16MB
+      if (file.size > maxSize) {
+        throw new Error('حجم الملف كبير جداً. الحد الأقصى 16 ميجابايت');
+      }
+
+      // Validate file type
+      const allowedTypes = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+        'video/mp4', 'video/avi', 'video/mov',
+        'audio/mp3', 'audio/wav', 'audio/ogg',
+        'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('نوع الملف غير مدعوم');
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `whatsapp-media/${timestamp}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
+
+      console.log('📝 [uploadMediaFile] Generated filename:', fileName);
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('whatsapp-media')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ [uploadMediaFile] Upload error:', error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('whatsapp-media')
+        .getPublicUrl(fileName);
+
+      const publicUrl = urlData.publicUrl;
+      console.log('✅ [uploadMediaFile] File uploaded successfully:', publicUrl);
+
+      return publicUrl;
+
+    } catch (error) {
+      console.error('💥 [uploadMediaFile] Upload failed:', error);
+      throw error;
+    }
+  }
+
   // ===== التحقق من صحة البيانات =====
 
   validatePhoneNumber(phone: string): ValidationResult {
