@@ -50,8 +50,10 @@ export function AdvancedTasks() {
   const [sendingStatus, setSendingStatus] = useState('');
   const [sentCount, setSentCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [failedRecipients, setFailedRecipients] = useState<any[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [useRealWhatsApp, setUseRealWhatsApp] = useState(false);
+  const [currentBulkMessageId, setCurrentBulkMessageId] = useState<string | null>(null);
 
   // WhatsApp Settings
   const [whatsappSettings, setWhatsappSettings] = useState<any>(null);
@@ -269,10 +271,14 @@ export function AdvancedTasks() {
     setIsSending(true);
     setSendingProgress(0);
     setSendingStatus('جاري إعداد الرسائل...');
+    setSentCount(0);
+    setFailedCount(0);
+    setFailedRecipients([]);
 
     const totalBrokers = selectedBrokers.length;
     let sentCount = 0;
     let failedCount = 0;
+    const failedList: any[] = [];
 
     for (let i = 0; i < totalBrokers; i++) {
       const broker = selectedBrokers[i];
@@ -296,6 +302,9 @@ export function AdvancedTasks() {
         if (!whatsappNumber) {
           console.error(`No WhatsApp number for ${broker.name}`);
           failedCount++;
+          failedList.push({ ...broker, error: 'لا يوجد رقم واتساب' });
+          setFailedCount(failedCount);
+          setFailedRecipients([...failedList]);
           continue;
         }
 
@@ -316,9 +325,13 @@ export function AdvancedTasks() {
         
         if (result && result.status) {
           sentCount++;
+          setSentCount(sentCount);
           console.log(`✅ Sent to ${broker.name} (${whatsappNumber}): ${personalizedMessage}`);
         } else {
           failedCount++;
+          failedList.push({ ...broker, error: result?.message || 'خطأ غير معروف' });
+          setFailedCount(failedCount);
+          setFailedRecipients([...failedList]);
           console.error(`❌ Failed to send to ${broker.name}: ${result?.message || 'Unknown error'}`);
         }
         
@@ -332,24 +345,112 @@ export function AdvancedTasks() {
       } catch (error) {
         console.error(`Failed to send to ${broker.name}:`, error);
         failedCount++;
+        failedList.push({ ...broker, error: error.message || 'خطأ في الإرسال' });
+        setFailedCount(failedCount);
+        setFailedRecipients([...failedList]);
       }
     }
 
     setSendingStatus('تم إرسال جميع الرسائل');
     setIsSending(false);
     
-          console.log('🎉 [AdvancedTasks] Campaign completed:', { 
-        sentCount, 
-        failedCount, 
-        totalBrokers,
-        success_rate: `${Math.round((sentCount / totalBrokers) * 100)}%`
-      });
-      
+    console.log('🎉 [AdvancedTasks] Campaign completed:', { 
+      sentCount, 
+      failedCount, 
+      totalBrokers,
+      success_rate: `${Math.round((sentCount / totalBrokers) * 100)}%`
+    });
+    
+    toast({
+      title: sentCount > 0 ? "تم إرسال الحملة بنجاح" : "فشل في إرسال جميع الرسائل",
+      description: `تم إرسال ${sentCount} رسالة، فشل ${failedCount} رسالة`,
+      variant: sentCount > 0 ? "default" : "destructive",
+    });
+  };
+
+  // إعادة الإرسال للرسائل الفاشلة
+  const retryFailedMessages = async () => {
+    if (failedRecipients.length === 0) {
       toast({
-        title: sentCount > 0 ? "تم إرسال الحملة بنجاح" : "فشل في إرسال جميع الرسائل",
-        description: `تم إرسال ${sentCount} رسالة، فشل ${failedCount} رسالة`,
-        variant: sentCount > 0 ? "default" : "destructive",
+        title: "لا توجد رسائل فاشلة",
+        description: "لا توجد رسائل فاشلة لإعادة إرسالها",
+        variant: "destructive",
       });
+      return;
+    }
+
+    setIsSending(true);
+    setSendingProgress(0);
+    setSendingStatus('جاري إعادة إرسال الرسائل الفاشلة...');
+
+    const totalFailed = failedRecipients.length;
+    let retrySentCount = 0;
+    let retryFailedCount = 0;
+    const newFailedList: any[] = [];
+
+    for (let i = 0; i < totalFailed; i++) {
+      const broker = failedRecipients[i];
+      const progress = ((i + 1) / totalFailed) * 100;
+      
+      setSendingProgress(progress);
+      setSendingStatus(`إعادة إرسال إلى ${broker.name}...`);
+
+      try {
+        const personalizedMessage = personalizeMessages 
+          ? messageTemplate
+              .replace(/{name}/g, broker.name)
+              .replace(/{phone}/g, broker.phone)
+              .replace(/{email}/g, broker.email || 'غير محدد')
+          : messageTemplate;
+
+        const whatsappNumber = broker.whatsapp_number || broker.phone;
+        
+        if (!whatsappNumber) {
+          retryFailedCount++;
+          newFailedList.push({ ...broker, error: 'لا يوجد رقم واتساب' });
+          continue;
+        }
+
+        const result = await whatsappService.sendWhatsAppMessage(
+          whatsappNumber,
+          personalizedMessage,
+          whatsappSettings.default_footer || 'Sent via StarCity Folio'
+        );
+        
+        if (result && result.status) {
+          retrySentCount++;
+          setSentCount(prev => prev + 1);
+          console.log(`✅ Retry success for ${broker.name}`);
+        } else {
+          retryFailedCount++;
+          newFailedList.push({ ...broker, error: result?.message || 'خطأ غير معروف' });
+          console.error(`❌ Retry failed for ${broker.name}: ${result?.message || 'Unknown error'}`);
+        }
+        
+        // تأخير بسيط
+        if (i < totalFailed - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+      } catch (error) {
+        console.error(`Retry failed for ${broker.name}:`, error);
+        retryFailedCount++;
+        newFailedList.push({ ...broker, error: error.message || 'خطأ في الإرسال' });
+      }
+    }
+
+    // تحديث قائمة الفاشلين
+    setFailedRecipients(newFailedList);
+    setFailedCount(prev => prev - retrySentCount);
+    
+    setSendingStatus('تم الانتهاء من إعادة الإرسال');
+    setIsSending(false);
+    
+    toast({
+      title: "تم إعادة الإرسال",
+      description: `نجح إرسال ${retrySentCount} رسالة، فشل ${retryFailedCount} رسالة`,
+      variant: retrySentCount > 0 ? "default" : "destructive",
+    });
   };
 
   // Simulate sending messages with progress (for testing)
@@ -357,10 +458,14 @@ export function AdvancedTasks() {
     setIsSending(true);
     setSendingProgress(0);
     setSendingStatus('جاري إعداد الرسائل...');
+    setSentCount(0);
+    setFailedCount(0);
+    setFailedRecipients([]);
 
     const totalBrokers = selectedBrokers.length;
     let sentCount = 0;
     let failedCount = 0;
+    const failedList: any[] = [];
 
     for (let i = 0; i < totalBrokers; i++) {
       const broker = selectedBrokers[i];
@@ -383,7 +488,16 @@ export function AdvancedTasks() {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        sentCount++;
+        // محاكاة نسبة فشل عشوائية (10%)
+        if (Math.random() < 0.1) {
+          failedCount++;
+          failedList.push({ ...broker, error: 'خطأ في الشبكة (محاكاة)' });
+          setFailedCount(failedCount);
+          setFailedRecipients([...failedList]);
+        } else {
+          sentCount++;
+          setSentCount(sentCount);
+        }
         
         // Add random delay between messages
         if (i < totalBrokers - 1) {
@@ -395,6 +509,9 @@ export function AdvancedTasks() {
       } catch (error) {
         console.error(`Failed to send to ${broker.name}:`, error);
         failedCount++;
+        failedList.push({ ...broker, error: error.message || 'خطأ في الإرسال' });
+        setFailedCount(failedCount);
+        setFailedRecipients([...failedList]);
       }
     }
 
@@ -1530,29 +1647,107 @@ export function AdvancedTasks() {
         </Button>
       </div>
 
-      {/* Progress Dialog */}
-      <Dialog open={isSending} onOpenChange={setIsSending}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>جاري إرسال الحملة</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>جاري إرسال الرسائل...</span>
+      {/* Progress Section - عرض التقدم في الصفحة بدلاً من Pop up */}
+      {isSending && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-700">
+              <RefreshCw className="h-5 w-5 animate-spin" />
+              جاري إرسال الحملة
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">التقدم العام</span>
+                <span className="text-lg font-bold text-blue-600">{Math.round(sendingProgress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${sendingProgress}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${sendProgress}%` }}
-              ></div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-white rounded border">
+                <div className="text-xl font-bold text-blue-600">{selectedCount + uploadedBrokers.length}</div>
+                <div className="text-sm text-gray-600">إجمالي المستلمين</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded border">
+                <div className="text-xl font-bold text-green-600">{sentCount}</div>
+                <div className="text-sm text-gray-600">تم الإرسال</div>
+              </div>
+              <div className="text-center p-3 bg-white rounded border">
+                <div className="text-xl font-bold text-red-600">{failedCount}</div>
+                <div className="text-sm text-gray-600">فاشل</div>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              تم إرسال {sentCount} من {selectedCount + uploadedBrokers.length} رسالة
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+            
+            <div className="bg-white p-3 rounded border">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium">الحالة الحالية:</span>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">{sendingStatus}</p>
+            </div>
+            
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                لا تغلق هذه الصفحة أثناء عملية الإرسال لتجنب توقف العملية
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Failed Messages Retry Section */}
+      {!isSending && failedRecipients.length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-5 w-5" />
+              رسائل فاشلة ({failedRecipients.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {failedRecipients.map((recipient, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-white rounded border">
+                  <div>
+                    <div className="font-medium">{recipient.name}</div>
+                    <div className="text-sm text-gray-600">{recipient.phone}</div>
+                    <div className="text-xs text-red-600">{recipient.error}</div>
+                  </div>
+                  <Badge variant="destructive">فاشل</Badge>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={retryFailedMessages}
+                disabled={isSending}
+                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700"
+              >
+                <RefreshCw className="h-4 w-4" />
+                إعادة الإرسال ({failedRecipients.length})
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setFailedRecipients([])}
+                disabled={isSending}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                مسح القائمة
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>

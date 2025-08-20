@@ -794,8 +794,44 @@ class BulkMessageService {
   }
 
   async retryFailedRecipients(messageId: string): Promise<void> {
-    // Mock implementation
-    console.log('Retrying failed recipients for message:', messageId);
+    try {
+      // في حالة عدم وجود جداول حقيقية، نعمل محاكاة
+      console.log('Retrying failed recipients for message:', messageId);
+      
+      // محاكاة عملية إعادة الإرسال
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Retry completed for message:', messageId);
+    } catch (error) {
+      console.error('Error retrying failed recipients:', error);
+      throw error;
+    }
+  }
+
+  // جلب المستلمين الفاشلين
+  async getFailedRecipients(messageId: string): Promise<any[]> {
+    try {
+      // Mock implementation - إرجاع قائمة تجريبية
+      return [
+        {
+          id: '1',
+          name: 'مستلم تجريبي 1',
+          phone: '971501234567',
+          error: 'خطأ في الشبكة',
+          status: 'failed'
+        },
+        {
+          id: '2', 
+          name: 'مستلم تجريبي 2',
+          phone: '971507654321',
+          error: 'رقم غير صحيح',
+          status: 'failed'
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting failed recipients:', error);
+      return [];
+    }
   }
 }
 
