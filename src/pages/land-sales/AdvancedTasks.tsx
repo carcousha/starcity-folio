@@ -292,6 +292,7 @@ export function AdvancedTasks() {
         const personalizedMessage = personalizeMessages 
           ? messageTemplate
               .replace(/{name}/g, broker.name)
+              .replace(/{short_name}/g, broker.name ? broker.name.split(' ')[0] : 'صديق')
               .replace(/{phone}/g, broker.phone)
               .replace(/{email}/g, broker.email || 'غير محدد')
           : messageTemplate;
@@ -399,6 +400,7 @@ export function AdvancedTasks() {
         const personalizedMessage = personalizeMessages 
           ? messageTemplate
               .replace(/{name}/g, broker.name)
+              .replace(/{short_name}/g, broker.name ? broker.name.split(' ')[0] : 'صديق')
               .replace(/{phone}/g, broker.phone)
               .replace(/{email}/g, broker.email || 'غير محدد')
           : messageTemplate;
@@ -479,6 +481,7 @@ export function AdvancedTasks() {
         const personalizedMessage = personalizeMessages 
           ? messageTemplate
               .replace(/{name}/g, broker.name)
+              .replace(/{short_name}/g, broker.name ? broker.name.split(' ')[0] : 'صديق')
               .replace(/{phone}/g, broker.phone)
               .replace(/{email}/g, broker.email || 'غير محدد')
           : messageTemplate;
@@ -1309,7 +1312,7 @@ export function AdvancedTasks() {
                 rows={4}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                المتغيرات المتاحة: {"{name}"}, {"{phone}"}, {"{email}"}
+                المتغيرات المتاحة: {"{name}"}, {"{short_name}"}, {"{phone}"}, {"{email}"}
               </p>
             </div>
 
