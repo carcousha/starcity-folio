@@ -10,11 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Calendar, Clock, MessageSquare, Smartphone, Users, ArrowLeft, Play, Settings, Target, FileText, Upload, CheckCircle, AlertCircle, X, Send, Timer, Shuffle, RefreshCw, AlertTriangle, Download, Table } from 'lucide-react';
+import { Calendar, Clock, MessageSquare, Smartphone, Users, ArrowLeft, Play, Settings, Target, FileText, Upload, CheckCircle, AlertCircle, X, Send, Timer, Shuffle, RefreshCw, AlertTriangle, Download, Table, CheckSquare, Square } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { whatsappService } from '@/services/whatsappService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function AdvancedTasks() {
   const navigate = useNavigate();
@@ -50,6 +52,7 @@ export function AdvancedTasks() {
   const [sentCount, setSentCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
   const [failedRecipients, setFailedRecipients] = useState<any[]>([]);
+  const [selectedFailedRecipients, setSelectedFailedRecipients] = useState<Set<number>>(new Set());
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [useRealWhatsApp, setUseRealWhatsApp] = useState(false);
   const [currentBulkMessageId, setCurrentBulkMessageId] = useState<string | null>(null);
@@ -74,6 +77,24 @@ export function AdvancedTasks() {
   const [mediaUploadProgress, setMediaUploadProgress] = useState(0);
 
   useEffect(() => {
+    // Check authentication first
+    const checkAuth = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        console.error('❌ [AdvancedTasks] Authentication failed:', error);
+        toast({
+          title: "يجب تسجيل الدخول",
+          description: "يرجى تسجيل الدخول أولاً",
+          variant: "destructive",
+        });
+        navigate('/auth/login');
+        return;
+      }
+      console.log('✅ [AdvancedTasks] User authenticated:', user.email);
+    };
+    
+    checkAuth();
+    
     if (selectedCount === 0) {
       toast({
         title: "لا توجد وسطاء محددين",
@@ -83,6 +104,14 @@ export function AdvancedTasks() {
       navigate('/land-sales/brokers');
     }
   }, [selectedCount, navigate]);
+
+  // Monitor uploadedBrokers state changes
+  useEffect(() => {
+    console.log('📊 [AdvancedTasks] uploadedBrokers state changed:', {
+      count: uploadedBrokers.length,
+      brokers: uploadedBrokers.map(b => ({ name: b.name, phone: b.phone }))
+    });
+  }, [uploadedBrokers]);
 
   // تحميل إعدادات WhatsApp مع تحسينات التشخيص
   const loadWhatsAppSettings = async () => {
@@ -169,6 +198,21 @@ export function AdvancedTasks() {
     
     if (files.length === 0) return;
 
+    console.log('🚀 [AdvancedTasks] handleAttachmentUpload started with files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+
+    // Check authentication first
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('❌ [AdvancedTasks] Authentication failed in handleAttachmentUpload:', authError);
+      toast({
+        title: "يجب تسجيل الدخول",
+        description: "يرجى تسجيل الدخول أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+    console.log('✅ [AdvancedTasks] User authenticated for file upload:', user.email);
+
     setIsUploadingMedia(true);
     setMediaUploadProgress(0);
 
@@ -180,23 +224,60 @@ export function AdvancedTasks() {
         const progress = ((i + 1) / files.length) * 100;
         setMediaUploadProgress(progress);
 
-        console.log(`📤 [AdvancedTasks] Uploading media file ${i + 1}/${files.length}:`, file.name);
+        console.log(`📤 [AdvancedTasks] Uploading media file ${i + 1}/${files.length}:`, {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: new Date(file.lastModified).toISOString()
+        });
 
         try {
+          console.log(`🔄 [AdvancedTasks] Calling whatsappService.uploadMediaFile for ${file.name}...`);
           const mediaUrl = await whatsappService.uploadMediaFile(file);
+          console.log(`📥 [AdvancedTasks] uploadMediaFile returned:`, mediaUrl);
+          
           if (mediaUrl) {
             uploadedUrls.push(mediaUrl);
             console.log(`✅ [AdvancedTasks] Media uploaded successfully:`, mediaUrl);
+          } else {
+            console.warn(`⚠️ [AdvancedTasks] uploadMediaFile returned null for ${file.name}`);
           }
         } catch (error) {
           console.error(`❌ [AdvancedTasks] Failed to upload ${file.name}:`, error);
+          console.error(`🔍 [AdvancedTasks] Error details for ${file.name}:`, {
+            name: error?.name,
+            message: error?.message,
+            stack: error?.stack,
+            constructor: error?.constructor?.name
+          });
+          
+          let errorMessage = 'خطأ غير معروف';
+          
+          if (error instanceof Error) {
+            if (error.message.includes('Bucket not found')) {
+              errorMessage = 'مشكلة في إعدادات التخزين. يرجى التواصل مع المسؤول.';
+            } else if (error.message.includes('File too large')) {
+              errorMessage = 'حجم الملف كبير جداً. الحد الأقصى 16 ميجابايت.';
+            } else if (error.message.includes('File type not allowed')) {
+              errorMessage = 'نوع الملف غير مدعوم. يرجى اختيار ملف آخر.';
+            } else if (error.message.includes('JWT')) {
+              errorMessage = 'مشكلة في المصادقة. يرجى إعادة تسجيل الدخول.';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+              errorMessage = 'مشكلة في الاتصال بالشبكة. يرجى التحقق من اتصال الإنترنت.';
+            } else {
+              errorMessage = error.message;
+            }
+          }
+          
           toast({
             title: "فشل في رفع الملف",
-            description: `فشل في رفع ${file.name}: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
+            description: `فشل في رفع ${file.name}: ${errorMessage}`,
             variant: "destructive",
           });
         }
       }
+
+      console.log(`📊 [AdvancedTasks] Upload summary: ${uploadedUrls.length}/${files.length} files uploaded successfully`);
 
       // Add files to attachments list
       setAttachments(prev => [...prev, ...files]);
@@ -213,6 +294,12 @@ export function AdvancedTasks() {
 
     } catch (error) {
       console.error('💥 [AdvancedTasks] Media upload error:', error);
+      console.error('💥 [AdvancedTasks] Outer error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
+      
       toast({
         title: "خطأ في رفع المرفقات",
         description: "حدث خطأ أثناء رفع المرفقات",
@@ -221,6 +308,7 @@ export function AdvancedTasks() {
     } finally {
       setIsUploadingMedia(false);
       setMediaUploadProgress(0);
+      console.log('🏁 [AdvancedTasks] handleAttachmentUpload completed');
     }
   };
 
@@ -261,7 +349,7 @@ export function AdvancedTasks() {
     console.log('🚀 [AdvancedTasks] Starting WhatsApp campaign with settings:', {
       api_key: `${whatsappSettings.api_key.substring(0, 8)}...`,
       sender: whatsappSettings.sender_number,
-      total_brokers: selectedBrokers.length,
+      total_brokers: selectedBrokers.length + uploadedBrokers.length,
       message_template: messageTemplate.substring(0, 50) + '...',
       personalize_messages: personalizeMessages,
       use_random_timing: useRandomTiming
@@ -274,13 +362,15 @@ export function AdvancedTasks() {
     setFailedCount(0);
     setFailedRecipients([]);
 
-    const totalBrokers = selectedBrokers.length;
+    // Combine selected brokers and uploaded brokers
+    const allBrokers = [...selectedBrokers, ...uploadedBrokers];
+    const totalBrokers = allBrokers.length;
     let sentCount = 0;
     let failedCount = 0;
     const failedList: any[] = [];
 
     for (let i = 0; i < totalBrokers; i++) {
-      const broker = selectedBrokers[i];
+      const broker = allBrokers[i];
       const progress = ((i + 1) / totalBrokers) * 100;
       
       setSendingProgress(progress);
@@ -291,7 +381,7 @@ export function AdvancedTasks() {
         const personalizedMessage = personalizeMessages 
           ? messageTemplate
               .replace(/{name}/g, broker.name)
-              .replace(/{short_name}/g, broker.name ? broker.name.split(' ')[0] : 'صديق')
+              .replace(/{short_name}/g, broker.short_name || (broker.name ? broker.name.split(' ')[0] : 'صديق'))
               .replace(/{phone}/g, broker.phone)
               .replace(/{email}/g, broker.email || 'غير محدد')
           : messageTemplate;
@@ -368,12 +458,40 @@ export function AdvancedTasks() {
     });
   };
 
+  // دوال التحكم في اختيار الرسائل الفاشلة
+  const toggleFailedRecipientSelection = (index: number) => {
+    setSelectedFailedRecipients(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllFailedRecipients = () => {
+    const allIndices = failedRecipients.map((_, index) => index);
+    setSelectedFailedRecipients(new Set(allIndices));
+  };
+
+  const deselectAllFailedRecipients = () => {
+    setSelectedFailedRecipients(new Set());
+  };
+
+  const getSelectedFailedRecipients = () => {
+    return failedRecipients.filter((_, index) => selectedFailedRecipients.has(index));
+  };
+
   // إعادة الإرسال للرسائل الفاشلة
   const retryFailedMessages = async () => {
-    if (failedRecipients.length === 0) {
+    const selectedRecipients = getSelectedFailedRecipients();
+    
+    if (selectedRecipients.length === 0) {
       toast({
-        title: "لا توجد رسائل فاشلة",
-        description: "لا توجد رسائل فاشلة لإعادة إرسالها",
+        title: "لا توجد رسائل محددة",
+        description: "يرجى تحديد الرسائل الفاشلة التي تريد إعادة إرسالها",
         variant: "destructive",
       });
       return;
@@ -381,15 +499,16 @@ export function AdvancedTasks() {
 
     setIsSending(true);
     setSendingProgress(0);
-    setSendingStatus('جاري إعادة إرسال الرسائل الفاشلة...');
+    setSendingStatus(`جاري إعادة إرسال ${selectedRecipients.length} رسالة فاشلة...`);
 
-    const totalFailed = failedRecipients.length;
+    const totalFailed = selectedRecipients.length;
     let retrySentCount = 0;
     let retryFailedCount = 0;
     const newFailedList: any[] = [];
+    const remainingFailedRecipients = failedRecipients.filter((_, index) => !selectedFailedRecipients.has(index));
 
     for (let i = 0; i < totalFailed; i++) {
-      const broker = failedRecipients[i];
+      const broker = selectedRecipients[i];
       const progress = ((i + 1) / totalFailed) * 100;
       
       setSendingProgress(progress);
@@ -399,7 +518,7 @@ export function AdvancedTasks() {
         const personalizedMessage = personalizeMessages 
           ? messageTemplate
               .replace(/{name}/g, broker.name)
-              .replace(/{short_name}/g, broker.name ? broker.name.split(' ')[0] : 'صديق')
+              .replace(/{short_name}/g, broker.short_name || (broker.name ? broker.name.split(' ')[0] : 'صديق'))
               .replace(/{phone}/g, broker.phone)
               .replace(/{email}/g, broker.email || 'غير محدد')
           : messageTemplate;
@@ -441,8 +560,10 @@ export function AdvancedTasks() {
     }
 
     // تحديث قائمة الفاشلين
-    setFailedRecipients(newFailedList);
-    setFailedCount(prev => prev - retrySentCount);
+    const updatedFailedList = [...remainingFailedRecipients, ...newFailedList];
+    setFailedRecipients(updatedFailedList);
+    setFailedCount(updatedFailedList.length);
+    setSelectedFailedRecipients(new Set()); // مسح الاختيار
     
     setSendingStatus('تم الانتهاء من إعادة الإرسال');
     setIsSending(false);
@@ -480,12 +601,26 @@ export function AdvancedTasks() {
         const personalizedMessage = personalizeMessages 
           ? messageTemplate
               .replace(/{name}/g, broker.name)
-              .replace(/{short_name}/g, broker.name ? broker.name.split(' ')[0] : 'صديق')
+              .replace(/{short_name}/g, broker.short_name || (broker.name ? broker.name.split(' ')[0] : 'صديق'))
               .replace(/{phone}/g, broker.phone)
               .replace(/{email}/g, broker.email || 'غير محدد')
           : messageTemplate;
 
-        console.log(`Sending to ${broker.name} (${broker.phone}): ${personalizedMessage}`);
+        // معلومات عن الملفات المرفقة
+        const mediaInfo = uploadedMediaUrls.length > 0 
+          ? ` + ملف مرفق (${attachments[0]?.name || 'ملف مجهول'})`
+          : '';
+        
+        console.log(`📤 [Simulation] Sending to ${broker.name} (${broker.phone}): ${personalizedMessage}${mediaInfo}`);
+        
+        if (uploadedMediaUrls.length > 0) {
+          console.log(`📎 [Simulation] Media attached:`, {
+            mediaUrl: uploadedMediaUrls[0],
+            fileName: attachments[0]?.name,
+            fileSize: attachments[0]?.size,
+            mediaType: getMediaType(attachments[0])
+          });
+        }
         
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -520,9 +655,13 @@ export function AdvancedTasks() {
     setSendingStatus('تم إرسال جميع الرسائل');
     setIsSending(false);
     
+    const mediaMessage = uploadedMediaUrls.length > 0 
+      ? ` مع ${uploadedMediaUrls.length} ملف مرفق`
+      : '';
+    
     toast({
       title: "تم إرسال الحملة بنجاح",
-      description: `تم إرسال ${sentCount} رسالة، فشل ${failedCount} رسالة`,
+      description: `تم إرسال ${sentCount} رسالة، فشل ${failedCount} رسالة${mediaMessage}`,
     });
   };
 
@@ -577,6 +716,15 @@ export function AdvancedTasks() {
   };
 
   const handleSendNow = () => {
+    console.log('🚀 [AdvancedTasks] handleSendNow called');
+    console.log('🚀 [AdvancedTasks] Current state:', {
+      messageTemplate: messageTemplate.substring(0, 50) + '...',
+      selectedBrokersCount: selectedBrokers.length,
+      uploadedBrokersCount: uploadedBrokers.length,
+      selectedBrokers: selectedBrokers.map(b => ({ id: b.id, name: b.name, phone: b.phone })),
+      uploadedBrokers: uploadedBrokers.map(b => ({ name: b.name, phone: b.phone }))
+    });
+    
     if (!messageTemplate.trim()) {
       toast({
         title: "نص الرسالة مطلوب",
@@ -586,10 +734,11 @@ export function AdvancedTasks() {
       return;
     }
 
-    if (selectedBrokers.length === 0) {
+    if (selectedBrokers.length === 0 && uploadedBrokers.length === 0) {
+      console.error('❌ [AdvancedTasks] No brokers selected for sending');
       toast({
         title: "لا توجد وسطاء محددين",
-        description: "يرجى اختيار وسطاء أولاً",
+        description: "يرجى اختيار وسطاء من القاعدة أو رفعهم من ملف أولاً",
         variant: "destructive",
       });
       return;
@@ -661,7 +810,10 @@ export function AdvancedTasks() {
       }
 
       // Process the file
+      console.log('⚙️ [AdvancedTasks] Processing file...');
       const processedData = await processUploadedFile(file);
+      console.log('✅ [AdvancedTasks] File processed successfully. Records found:', processedData.length, processedData);
+      
       setFilePreviewData(processedData);
       setShowPreviewDialog(true);
       
@@ -721,6 +873,7 @@ export function AdvancedTasks() {
             const normalizedRow = {
               id: row.id || row.ID || `uploaded_${Date.now()}_${index}`,
               name: row.name || row.Name || row['الاسم'] || row['اسم'] || '',
+              short_name: row.short_name || row['الاسم المختصر'] || row['اسم مختصر'] || '',
               phone: row.phone || row.Phone || row['رقم الهاتف'] || row['الهاتف'] || '',
               whatsapp_number: row.whatsapp_number || row.whatsapp || row['واتساب'] || row.phone || row.Phone || '',
               email: row.email || row.Email || row['الإيميل'] || '',
@@ -754,10 +907,17 @@ export function AdvancedTasks() {
   };
 
   const confirmImportData = () => {
+    console.log('📥 [AdvancedTasks] confirmImportData called');
+    console.log('📥 [AdvancedTasks] filePreviewData:', filePreviewData);
+    
     const validData = filePreviewData.filter(row => !row._errors || row._errors.length === 0);
+    console.log('📥 [AdvancedTasks] validData after filtering:', validData);
+    
     setUploadedBrokers(validData);
     setShowPreviewDialog(false);
     setShowFileUpload(false);
+    
+    console.log('📥 [AdvancedTasks] uploadedBrokers state updated with:', validData);
     
     toast({
       title: "تم استيراد البيانات",
@@ -773,9 +933,9 @@ export function AdvancedTasks() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `name,phone,whatsapp_number,email,office_name,areas_specialization
-"أحمد محمد","971501234567","971501234567","ahmed@example.com","مكتب العقارات المتميز","دبي، أبوظبي"
-"سارة أحمد","971509876543","971509876543","sara@example.com","شركة الإمارات العقارية","الشارقة، عجمان"`;
+    const csvContent = `name,short_name,phone,whatsapp_number,email,office_name,areas_specialization
+"أحمد محمد","أحمد","971501234567","971501234567","ahmed@example.com","مكتب العقارات المتميز","دبي، أبوظبي"
+"سارة أحمد","سارة","971509876543","971509876543","sara@example.com","شركة الإمارات العقارية","الشارقة، عجمان"`;
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -803,19 +963,22 @@ export function AdvancedTasks() {
       return;
     }
 
-    if (selectedBrokers.length === 0) {
+    if (selectedBrokers.length === 0 && uploadedBrokers.length === 0) {
       toast({
         title: "لا توجد وسطاء محددين",
-        description: "يرجى اختيار وسطاء أولاً",
+        description: "يرجى اختيار وسطاء من القاعدة أو رفعهم من ملف أولاً",
         variant: "destructive",
       });
       return;
     }
 
+    // Combine selected brokers and uploaded brokers
+    const allBrokers = [...selectedBrokers, ...uploadedBrokers];
+    
     const bulkSendData = {
       messageContent: messageTemplate,
-      recipients: selectedBrokers.map(broker => ({
-        id: broker.id,
+      recipients: allBrokers.map(broker => ({
+        id: broker.id || `uploaded_${Date.now()}_${Math.random()}`,
         name: broker.name,
         phone_number: broker.whatsapp_number || broker.phone,
         type: 'land_broker',
@@ -855,7 +1018,7 @@ export function AdvancedTasks() {
     
     toast({
       title: "تم التحويل بنجاح",
-      description: `تم تحويل ${selectedCount} وسيط إلى صفحة الإرسال الجماعية.`,
+      description: `تم تحويل ${allBrokers.length} وسيط إلى صفحة الإرسال الجماعية.`,
     });
   };
 
@@ -921,6 +1084,7 @@ export function AdvancedTasks() {
           const personalizedMessage = personalizeMessages 
             ? messageTemplate
                 .replace(/{name}/g, broker.name)
+                .replace(/{short_name}/g, broker.short_name || (broker.name ? broker.name.split(' ')[0] : 'صديق'))
                 .replace(/{phone}/g, broker.phone)
                 .replace(/{email}/g, broker.email || 'غير محدد')
             : messageTemplate;
@@ -952,10 +1116,13 @@ export function AdvancedTasks() {
             const mediaType = getMediaType(attachments[0]);
             const caption = personalizedMessage; // استخدم الرسالة كـ caption
             
-            console.log(`📎 [AdvancedTasks] Sending with media:`, {
+            console.log(`📎 [AdvancedTasks] Sending message with media:`, {
               mediaUrl,
               mediaType,
-              caption: caption.substring(0, 50) + '...'
+              caption: caption.substring(0, 50) + '...',
+              attachmentsCount: attachments.length,
+              uploadedUrlsCount: uploadedMediaUrls.length,
+              allUploadedUrls: uploadedMediaUrls
             });
 
             result = await whatsappService.sendWhatsAppMessage(
@@ -1175,45 +1342,49 @@ export function AdvancedTasks() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {/* Brokers from selection */}
-              {selectedBrokers.map(broker => (
-                <div key={broker.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                  <div>
-                    <p className="font-medium">{broker.name}</p>
-                    <p className="text-sm text-muted-foreground">{broker.phone}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default">من القاعدة</Badge>
-                    <Badge variant={broker.activity_status === 'active' ? 'default' : 'secondary'}>
-                      {broker.activity_status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                             {/* Brokers from selection */}
+               {selectedBrokers.map(broker => (
+                 <div key={broker.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                   <div>
+                     <p className="font-medium">{broker.name}</p>
+                     <p className="text-sm text-muted-foreground">
+                       {broker.short_name && <span className="text-blue-600">({broker.short_name})</span>} {broker.phone}
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Badge variant="default">من القاعدة</Badge>
+                     <Badge variant={broker.activity_status === 'active' ? 'default' : 'secondary'}>
+                       {broker.activity_status}
+                     </Badge>
+                   </div>
+                 </div>
+               ))}
               
-              {/* Brokers from file upload */}
-              {uploadedBrokers.map((broker, index) => (
-                <div key={`uploaded_${index}`} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                  <div>
-                    <p className="font-medium">{broker.name}</p>
-                    <p className="text-sm text-muted-foreground">{broker.whatsapp_number || broker.phone}</p>
-                    <p className="text-xs text-muted-foreground">{broker.office_name}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">من الملف</Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const filtered = uploadedBrokers.filter((_, i) => i !== index);
-                        setUploadedBrokers(filtered);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                             {/* Brokers from file upload */}
+               {uploadedBrokers.map((broker, index) => (
+                 <div key={`uploaded_${index}`} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
+                   <div>
+                     <p className="font-medium">{broker.name}</p>
+                     <p className="text-sm text-muted-foreground">
+                       {broker.short_name && <span className="text-blue-600">({broker.short_name})</span>} {broker.whatsapp_number || broker.phone}
+                     </p>
+                     <p className="text-xs text-muted-foreground">{broker.office_name}</p>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Badge variant="secondary">من الملف</Badge>
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => {
+                         const filtered = uploadedBrokers.filter((_, i) => i !== index);
+                         setUploadedBrokers(filtered);
+                       }}
+                     >
+                       <X className="h-4 w-4" />
+                     </Button>
+                   </div>
+                 </div>
+               ))}
               
               {selectedCount === 0 && uploadedBrokers.length === 0 && (
                 <div className="text-center text-muted-foreground py-4">
@@ -1307,10 +1478,10 @@ export function AdvancedTasks() {
                 id="messageTemplate"
                 value={messageTemplate}
                 onChange={(e) => setMessageTemplate(e.target.value)}
-                placeholder="اكتب نص الرسالة هنا... يمكنك استخدام {name} لإدراج اسم الوسيط"
+                                 placeholder="اكتب نص الرسالة هنا... مثال: مرحباً {short_name}، كيف حالك؟"
                 rows={4}
               />
-              <p className="text-sm text-muted-foreground mt-1">
+                                                          <p className="text-sm text-muted-foreground mt-1">
                 المتغيرات المتاحة: {"{name}"}, {"{short_name}"}, {"{phone}"}, {"{email}"}
               </p>
             </div>
@@ -1418,6 +1589,9 @@ export function AdvancedTasks() {
                     <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                     <p className="text-sm text-gray-600">اضغط لإضافة مرفقات</p>
                     <p className="text-xs text-gray-500">صور، فيديو، مستندات (حد أقصى 16 ميجابايت)</p>
+                    <p className="text-xs text-orange-600 mt-1">
+                      ⚠️ ملاحظة: حالياً يتم استخدام روابط تجريبية للملفات
+                    </p>
                   </div>
                 </label>
               </div>
@@ -1715,37 +1889,180 @@ export function AdvancedTasks() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {failedRecipients.map((recipient, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white rounded border">
-                  <div>
-                    <div className="font-medium">{recipient.name}</div>
-                    <div className="text-sm text-gray-600">{recipient.phone}</div>
-                    <div className="text-xs text-red-600">{recipient.error}</div>
-                  </div>
-                  <Badge variant="destructive">فاشل</Badge>
-                </div>
-              ))}
+            {/* Table Controls */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllFailedRecipients}
+                  disabled={selectedFailedRecipients.size === failedRecipients.length}
+                  className={`flex items-center gap-1 ${
+                    selectedFailedRecipients.size === failedRecipients.length 
+                      ? 'bg-green-50 text-green-700 border-green-200' 
+                      : 'hover:bg-green-50 hover:text-green-700'
+                  }`}
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  تحديد الكل
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={deselectAllFailedRecipients}
+                  disabled={selectedFailedRecipients.size === 0}
+                  className={`flex items-center gap-1 ${
+                    selectedFailedRecipients.size === 0 
+                      ? 'bg-gray-50 text-gray-400 border-gray-200' 
+                      : 'hover:bg-red-50 hover:text-red-700'
+                  }`}
+                >
+                  <Square className="h-4 w-4" />
+                  إلغاء التحديد
+                </Button>
+                <span className="text-sm text-gray-600">
+                  محدد: <span className="font-medium text-blue-600">{selectedFailedRecipients.size}</span> من <span className="font-medium">{failedRecipients.length}</span>
+                  {selectedFailedRecipients.size > 0 && (
+                    <span className="text-green-600 mr-1">✓</span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Failed Messages Table */}
+            <div className="border rounded-lg overflow-hidden max-h-96">
+              <UITable>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 sticky top-0">
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedFailedRecipients.size === failedRecipients.length && failedRecipients.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            selectAllFailedRecipients();
+                          } else {
+                            deselectAllFailedRecipients();
+                          }
+                        }}
+                      />
+                    </TableHead>
+                    <TableHead className="text-right">الاسم</TableHead>
+                    <TableHead className="text-right">رقم الهاتف</TableHead>
+                    <TableHead className="text-right">سبب الفشل</TableHead>
+                    <TableHead className="text-right w-32">الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {failedRecipients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        لا توجد رسائل فاشلة
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    failedRecipients.map((recipient, index) => (
+                      <TableRow 
+                        key={index} 
+                        className={`hover:bg-gray-50 ${
+                          selectedFailedRecipients.has(index) ? 'bg-blue-50 border-blue-200' : ''
+                        }`}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedFailedRecipients.has(index)}
+                            onCheckedChange={() => toggleFailedRecipientSelection(index)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium text-right">
+                          <div className={`${selectedFailedRecipients.has(index) ? 'text-blue-700' : ''}`}>
+                            {recipient.name}
+                            {recipient.short_name && (
+                              <span className="text-blue-600 text-xs block">({recipient.short_name})</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={`${selectedFailedRecipients.has(index) ? 'text-blue-700' : ''}`}>
+                            {recipient.whatsapp_number || recipient.phone}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className={`text-red-600 text-sm max-w-xs ${selectedFailedRecipients.has(index) ? 'text-red-700' : ''}`}>
+                            <div className="truncate" title={recipient.error}>
+                              {recipient.error}
+                            </div>
+                            {recipient.error && recipient.error.length > 50 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                اضغط للتوسيع
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant={selectedFailedRecipients.has(index) ? "default" : "outline"}
+                              onClick={() => {
+                                setSelectedFailedRecipients(new Set([index]));
+                                retryFailedMessages();
+                              }}
+                              disabled={isSending}
+                              className={`flex items-center gap-1 ${
+                                selectedFailedRecipients.has(index) ? 'bg-blue-600 hover:bg-blue-700' : ''
+                              }`}
+                            >
+                              <RefreshCw className={`h-3 w-3 ${isSending ? 'animate-spin' : ''}`} />
+                              {isSending ? 'جاري...' : 'إعادة المحاولة'}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </UITable>
             </div>
             
-            <div className="flex gap-2">
-              <Button 
-                onClick={retryFailedMessages}
-                disabled={isSending}
-                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700"
-              >
-                <RefreshCw className="h-4 w-4" />
-                إعادة الإرسال ({failedRecipients.length})
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setFailedRecipients([])}
-                disabled={isSending}
-                className="flex items-center gap-2"
-              >
-                <X className="h-4 w-4" />
-                مسح القائمة
-              </Button>
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button 
+                  onClick={retryFailedMessages}
+                  disabled={isSending || selectedFailedRecipients.size === 0}
+                  className={`flex items-center gap-2 ${
+                    selectedFailedRecipients.size > 0 
+                      ? 'bg-orange-600 hover:bg-orange-700' 
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isSending ? 'animate-spin' : ''}`} />
+                  {isSending ? 'جاري إعادة الإرسال...' : `إعادة إرسال المحدد (${selectedFailedRecipients.size})`}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setFailedRecipients([]);
+                    setSelectedFailedRecipients(new Set());
+                  }}
+                  disabled={isSending}
+                  className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600"
+                >
+                  <X className="h-4 w-4" />
+                  مسح القائمة
+                </Button>
+              </div>
+              <div className="text-sm text-gray-600">
+                {selectedFailedRecipients.size > 0 ? (
+                  <span className="text-orange-600 font-medium">
+                    سيتم إعادة إرسال {selectedFailedRecipients.size} رسالة
+                  </span>
+                ) : (
+                  <span className="text-gray-500">
+                    حدد الرسائل لإعادة إرسالها
+                  </span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1845,6 +2162,7 @@ export function AdvancedTasks() {
               <h4 className="font-medium mb-2">تنسيق الملف المطلوب:</h4>
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>• <strong>name</strong>: اسم الوسيط (مطلوب)</p>
+                <p>• <strong>short_name</strong>: الاسم المختصر (اختياري)</p>
                 <p>• <strong>phone</strong>: رقم الهاتف (مطلوب)</p>
                 <p>• <strong>whatsapp_number</strong>: رقم الواتساب (اختياري)</p>
                 <p>• <strong>email</strong>: البريد الإلكتروني (اختياري)</p>
@@ -1904,34 +2222,36 @@ export function AdvancedTasks() {
 
             <div className="max-h-96 overflow-auto border rounded-lg">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="p-2 text-right">الاسم</th>
-                    <th className="p-2 text-right">الهاتف</th>
-                    <th className="p-2 text-right">واتساب</th>
-                    <th className="p-2 text-right">المكتب</th>
-                    <th className="p-2 text-right">الحالة</th>
-                  </tr>
-                </thead>
+                                 <thead className="bg-gray-50 sticky top-0">
+                   <tr>
+                     <th className="p-2 text-right">الاسم</th>
+                     <th className="p-2 text-right">الاسم المختصر</th>
+                     <th className="p-2 text-right">الهاتف</th>
+                     <th className="p-2 text-right">واتساب</th>
+                     <th className="p-2 text-right">المكتب</th>
+                     <th className="p-2 text-right">الحالة</th>
+                   </tr>
+                 </thead>
                 <tbody>
-                  {filePreviewData.map((row, index) => (
-                    <tr 
-                      key={index} 
-                      className={row._errors && row._errors.length > 0 ? 'bg-red-50' : 'bg-white'}
-                    >
-                      <td className="p-2 border-b">{row.name}</td>
-                      <td className="p-2 border-b">{row.phone}</td>
-                      <td className="p-2 border-b">{row.whatsapp_number}</td>
-                      <td className="p-2 border-b">{row.office_name}</td>
-                      <td className="p-2 border-b">
-                        {row._errors && row._errors.length > 0 ? (
-                          <Badge variant="destructive">خطأ</Badge>
-                        ) : (
-                          <Badge variant="default">صحيح</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                                     {filePreviewData.map((row, index) => (
+                     <tr 
+                       key={index} 
+                       className={row._errors && row._errors.length > 0 ? 'bg-red-50' : 'bg-white'}
+                     >
+                       <td className="p-2 border-b">{row.name}</td>
+                       <td className="p-2 border-b">{row.short_name}</td>
+                       <td className="p-2 border-b">{row.phone}</td>
+                       <td className="p-2 border-b">{row.whatsapp_number}</td>
+                       <td className="p-2 border-b">{row.office_name}</td>
+                       <td className="p-2 border-b">
+                         {row._errors && row._errors.length > 0 ? (
+                           <Badge variant="destructive">خطأ</Badge>
+                         ) : (
+                           <Badge variant="default">صحيح</Badge>
+                         )}
+                       </td>
+                     </tr>
+                   ))}
                 </tbody>
               </table>
             </div>

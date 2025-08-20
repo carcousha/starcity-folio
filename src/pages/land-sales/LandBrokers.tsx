@@ -85,6 +85,8 @@ export function LandBrokers() {
   const { data: brokers = [], isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['land-brokers', searchTerm, activityFilter, languageFilter],
     queryFn: async () => {
+      console.log('🔍 [LandBrokers] Fetching brokers with filters:', { searchTerm, activityFilter, languageFilter });
+      
       let query = supabase.from('land_brokers').select('*');
       
       if (searchTerm) {
@@ -102,9 +104,14 @@ export function LandBrokers() {
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching brokers:', error);
+        console.error('❌ [LandBrokers] Error fetching brokers:', error);
         throw error;
       }
+      
+      console.log('✅ [LandBrokers] Brokers fetched successfully:', {
+        count: data?.length || 0,
+        brokers: data?.map(b => ({ id: b.id, name: b.name, phone: b.phone })) || []
+      });
       
       return data as LandBroker[];
     },
