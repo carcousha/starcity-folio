@@ -45,7 +45,6 @@ export function AdvancedTasks() {
 
   // Campaign Status
   const [isSending, setIsSending] = useState(false);
-  const [sendProgress, setSendProgress] = useState(0);
   const [sendingProgress, setSendingProgress] = useState(0);
   const [sendingStatus, setSendingStatus] = useState('');
   const [sentCount, setSentCount] = useState(0);
@@ -899,7 +898,7 @@ export function AdvancedTasks() {
     }
 
     setIsSending(true);
-    setSendProgress(0);
+    setSendingProgress(0);
     setSentCount(0);
     setFailedCount(0);
 
@@ -914,7 +913,7 @@ export function AdvancedTasks() {
         const broker = allBrokers[i];
         const progress = ((i + 1) / totalMessages) * 100;
         
-        setSendProgress(progress);
+        setSendingProgress(progress);
         setSendingStatus(`جاري إرسال الرسالة إلى ${broker.name}...`);
 
         try {
