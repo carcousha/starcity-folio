@@ -31,7 +31,8 @@ import {
   Send,
   Phone,
   TestTube,
-  FileImage
+  FileImage,
+  Upload
 } from "lucide-react";
 
 import { 
