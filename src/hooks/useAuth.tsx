@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -80,9 +81,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     console.log('useAuth: Setting up auth state listener');
     
-    // Set up auth state listener FIRST
+    // Only run once
+    if (isInitialized) {
+      return;
+    }
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
         
         // Clear state immediately if no session
@@ -100,29 +106,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(session.user);
         
         // Fetch profile asynchronously
-        setTimeout(async () => {
-          try {
-            const profileData = await fetchProfile(session.user.id);
-            if (profileData) {
-              setProfile(profileData);
-              console.log('useAuth: Profile loaded successfully', profileData);
-            } else {
-              console.error('useAuth: Failed to load profile, clearing session');
-              await supabase.auth.signOut();
-            }
-          } catch (error) {
-            console.error('useAuth: Error loading profile, clearing session', error);
-            await supabase.auth.signOut();
-          } finally {
-            setLoading(false);
+        try {
+          const profileData = await fetchProfile(session.user.id);
+          if (profileData) {
+            setProfile(profileData);
+            console.log('useAuth: Profile loaded successfully', profileData);
+          } else {
+            console.error('useAuth: Failed to load profile, clearing session');
+            setSession(null);
+            setUser(null);
+            setProfile(null);
           }
-        }, 0);
+        } catch (error) {
+          console.error('useAuth: Error loading profile, clearing session', error);
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        } finally {
+          setLoading(false);
+        }
       }
     );
 
     // Check for existing session
     console.log('useAuth: Checking for existing session');
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('useAuth: Existing session check', { userId: session?.user?.id });
       
       if (!session) {
@@ -131,33 +139,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setProfile(null);
         setLoading(false);
         console.log('useAuth: No existing session found');
+        setIsInitialized(true);
         return;
       }
       
       setSession(session);
       setUser(session.user);
       
-      setTimeout(async () => {
-        try {
-          const profileData = await fetchProfile(session.user.id);
-          if (profileData) {
-            setProfile(profileData);
-            console.log('useAuth: Profile loaded from existing session', profileData);
-          } else {
-            console.error('useAuth: Failed to load profile from existing session');
-            await supabase.auth.signOut();
-          }
-        } catch (error) {
-          console.error('useAuth: Error loading profile from existing session', error);
-          await supabase.auth.signOut();
-        } finally {
-          setLoading(false);
+      try {
+        const profileData = await fetchProfile(session.user.id);
+        if (profileData) {
+          setProfile(profileData);
+          console.log('useAuth: Profile loaded from existing session', profileData);
+        } else {
+          console.error('useAuth: Failed to load profile from existing session');
+          setSession(null);
+          setUser(null);
+          setProfile(null);
         }
-      }, 0);
+      } catch (error) {
+        console.error('useAuth: Error loading profile from existing session', error);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+        setIsInitialized(true);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isInitialized]);
 
   const signOut = async () => {
     console.log('useAuth: Signing out user');

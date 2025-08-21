@@ -1,7 +1,7 @@
 import React from 'react';
 
-export default function TestPage() {
-  console.log('TestPage: Component is loading...');
+export default function SimpleTest() {
+  console.log('SimpleTest: Component is loading...');
   
   return (
     <div style={{
@@ -9,7 +9,7 @@ export default function TestPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#f0f9ff',
+      backgroundColor: '#fef3c7',
       fontFamily: 'Arial, sans-serif',
       direction: 'rtl'
     }}>
@@ -25,7 +25,7 @@ export default function TestPage() {
         <div style={{
           width: '80px',
           height: '80px',
-          backgroundColor: '#10b981',
+          backgroundColor: '#f59e0b',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
@@ -34,7 +34,7 @@ export default function TestPage() {
           fontSize: '2rem',
           color: 'white'
         }}>
-          ✅
+          🧪
         </div>
         
         <h1 style={{
@@ -43,7 +43,7 @@ export default function TestPage() {
           fontWeight: 'bold',
           marginBottom: '1rem'
         }}>
-          React يعمل بنجاح!
+          صفحة WhatsApp بسيطة
         </h1>
         
         <p style={{
@@ -51,7 +51,7 @@ export default function TestPage() {
           fontSize: '1.1rem',
           marginBottom: '2rem'
         }}>
-          هذه صفحة React بسيطة بدون مصادقة
+          هذه صفحة اختبار بسيطة بدون أي تبعيات معقدة
         </p>
         
         <div style={{
@@ -61,23 +61,23 @@ export default function TestPage() {
           marginBottom: '2rem'
         }}>
           <div style={{
+            backgroundColor: '#fef3c7',
+            padding: '1rem',
+            borderRadius: '8px',
+            border: '1px solid #fbbf24'
+          }}>
+            <h3 style={{ color: '#92400e', marginBottom: '0.5rem' }}>React</h3>
+            <p style={{ fontSize: '0.9rem', color: '#92400e' }}>✅ يعمل</p>
+          </div>
+          
+          <div style={{
             backgroundColor: '#dbeafe',
             padding: '1rem',
             borderRadius: '8px',
             border: '1px solid #93c5fd'
           }}>
-            <h3 style={{ color: '#1e40af', marginBottom: '0.5rem' }}>React</h3>
+            <h3 style={{ color: '#1e40af', marginBottom: '0.5rem' }}>Router</h3>
             <p style={{ fontSize: '0.9rem', color: '#1e40af' }}>✅ يعمل</p>
-          </div>
-          
-          <div style={{
-            backgroundColor: '#dcfce7',
-            padding: '1rem',
-            borderRadius: '8px',
-            border: '1px solid #86efac'
-          }}>
-            <h3 style={{ color: '#166534', marginBottom: '0.5rem' }}>Router</h3>
-            <p style={{ fontSize: '0.9rem', color: '#166534' }}>✅ يعمل</p>
           </div>
         </div>
         
@@ -100,7 +100,7 @@ export default function TestPage() {
           gap: '1rem'
         }}>
           <a 
-            href="/whatsapp/simple-test" 
+            href="/test-app" 
             style={{
               padding: '1rem',
               backgroundColor: '#f3f4f6',
@@ -111,7 +111,7 @@ export default function TestPage() {
               transition: 'background-color 0.3s'
             }}
           >
-            📱 اختبار صفحة WhatsApp
+            🧪 العودة لصفحة React
           </a>
           
           <a 

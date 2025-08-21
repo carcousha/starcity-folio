@@ -28,7 +28,6 @@ import {
   CheckCircle,
   CreditCard,
   AlertTriangle,
-  MessageSquare,
   Send,
   Phone,
   TestTube,
