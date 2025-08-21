@@ -20,6 +20,7 @@ import TestBucket from './TestBucket';
 import TestMediaSimple from './TestMediaSimple';
 import TestMediaFinal from './TestMediaFinal';
 import TestPage from './TestPage';
+import AdvancedCampaign from './AdvancedCampaign';
 
 export default function WhatsAppModule() {
   console.log('WhatsAppModule: Router component loaded');
@@ -37,6 +38,9 @@ export default function WhatsAppModule() {
       
       {/* Bulk Send */}
       <Route path="bulk-send" element={<WhatsAppBulkSend />} />
+      
+      {/* Advanced Campaign */}
+      <Route path="advanced-campaign" element={<AdvancedCampaign />} />
       
       {/* Contacts */}
       <Route path="contacts" element={<WhatsAppContacts />} />
