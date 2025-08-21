@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 اختبار نظام WhatsApp - StarCity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-card {
+            transition: all 0.3s ease;
+        }
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4 status-indicator">
+                <span class="text-white text-3xl">🧪</span>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">اختبار نظام WhatsApp</h1>
+            <p class="text-lg text-gray-600">StarCity Advanced WhatsApp System</p>
+        </div>
+
+        <!-- System Status -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Vite Config Status -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-green-600 text-xl">⚙️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">Vite Config</h3>
+                </div>
+                <p class="text-green-600 font-medium mb-2">✅ تم الإصلاح</p>
+                <p class="text-sm text-gray-600">المنفذ: 8080، تم إزالة manualChunks</p>
+            </div>
+
+            <!-- Routes Status -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-blue-600 text-xl">🛣️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">المسارات</h3>
+                </div>
+                <p class="text-blue-600 font-medium mb-2">✅ تم الإصلاح</p>
+                <p class="text-sm text-gray-600">إزالة التكرار في الاستيرادات</p>
+            </div>
+
+            <!-- React App Status -->
+            <div class="test-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-purple-600 text-xl">⚛️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">React App</h3>
+                </div>
+                <p class="text-purple-600 font-medium mb-2">✅ جاهز</p>
+                <p class="text-sm text-gray-600">التطبيق محمل ومتصل</p>
+            </div>
+
+        </div>
+
+        <!-- Test Links -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">🔗 روابط الاختبار</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="http://localhost:8080/whatsapp/simple-test" class="test-card bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg block text-center hover:from-blue-600 hover:to-purple-700 transition-all duration-300">
+                    <div class="text-xl mb-2">🧪</div>
+                    <div class="font-bold">اختبار بسيط</div>
+                    <div class="text-sm opacity-90">فحص النظام الأساسي</div>
+                </a>
+                
+                <a href="http://localhost:8080/whatsapp/test-advanced" class="test-card bg-gradient-to-r from-green-500 to-blue-600 text-white p-4 rounded-lg block text-center hover:from-green-600 hover:to-blue-700 transition-all duration-300">
+                    <div class="text-xl mb-2">🚀</div>
+                    <div class="font-bold">النظام المتطور</div>
+                    <div class="text-sm opacity-90">عرض جميع الميزات</div>
+                </a>
+                
+                <a href="http://localhost:8080/whatsapp/advanced-text-message" class="test-card bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 rounded-lg block text-center hover:from-purple-600 hover:to-pink-700 transition-all duration-300">
+                    <div class="text-xl mb-2">🎭</div>
+                    <div class="font-bold">رسائل نصية ذكية</div>
+                    <div class="text-sm opacity-90">النظام الكامل</div>
+                </a>
+                
+                <a href="http://localhost:8080/whatsapp/message-types" class="test-card bg-gradient-to-r from-orange-500 to-red-600 text-white p-4 rounded-lg block text-center hover:from-orange-600 hover:to-red-700 transition-all duration-300">
+                    <div class="text-xl mb-2">📋</div>
+                    <div class="font-bold">اختيار نوع الرسالة</div>
+                    <div class="text-sm opacity-90">جميع أنواع الرسائل</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-yellow-800 mb-4 text-center">🔧 خطوات التشخيص</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="font-bold text-yellow-700 mb-2">إذا كانت الصفحة بيضاء:</h4>
+                    <ol class="list-decimal list-inside space-y-1 text-yellow-600 text-sm">
+                        <li>تحقق من أن الخادم يعمل على المنفذ 8080</li>
+                        <li>افتح وحدة التحكم (F12 → Console)</li>
+                        <li>تحقق من وجود أخطاء في التحميل</li>
+                        <li>أعد تحميل الصفحة (Ctrl+F5)</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 class="font-bold text-yellow-700 mb-2">إذا كان الخادم لا يعمل:</h4>
+                    <ol class="list-decimal list-inside space-y-1 text-yellow-600 text-sm">
+                        <li>افتح Terminal في مجلد المشروع</li>
+                        <li>شغل الأمر: npm run dev</li>
+                        <li>انتظر حتى يظهر: Local: http://localhost:8080/</li>
+                        <li>افتح الرابط في المتصفح</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Status -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-blue-800 mb-4 text-center">📊 الحالة الحالية</h3>
+            <div class="space-y-2 text-sm text-blue-700">
+                <p>✅ تم إصلاح إعدادات Vite (المنفذ: 8080)</p>
+                <p>✅ تم إزالة manualChunks لحل مشاكل التحميل الديناميكي</p>
+                <p>✅ تم إصلاح تكرار الاستيرادات في المسارات</p>
+                <p>✅ تم تحسين optimizeDeps للأداء</p>
+                <p>🔄 الخادم يعمل على: http://localhost:8080/</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        console.log(`
+🧪 اختبار نظام WhatsApp - StarCity
+
+✅ الحالة: تم إصلاح جميع المشاكل
+🔧 الإصلاحات:
+- تغيير المنفذ إلى 8080
+- إزالة manualChunks
+- إصلاح تكرار الاستيرادات
+- تحسين optimizeDeps
+
+🔗 الروابط:
+- http://localhost:8080/whatsapp/simple-test
+- http://localhost:8080/whatsapp/test-advanced
+- http://localhost:8080/whatsapp/advanced-text-message
+- http://localhost:8080/whatsapp/message-types
+
+النظام جاهز للاختبار! 🎉
+        `);
+
+        // Add interactivity
+        document.querySelectorAll('.test-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>

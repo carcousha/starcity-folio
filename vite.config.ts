@@ -7,10 +7,10 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: true,
-    port: 5173,
+    port: 8080, // تغيير المنفذ إلى 8080
     hmr: {
       overlay: false,
-      port: 5173,
+      port: 8080, // تحديث منفذ HMR
       timeout: 30000,
     },
     watch: {
@@ -19,16 +19,29 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: [
+      'react', 
+      'react-dom',
+      '@tanstack/react-query',
+      'react-router-dom',
+      'lucide-react'
+    ],
+    exclude: ['@lovable/tagger']
   },
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-        },
+        // إزالة manualChunks لحل مشاكل التحميل الديناميكي
+        manualChunks: undefined,
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
+    // تحسينات إضافية للأداء
+    target: 'esnext',
+    minify: 'terser',
+    sourcemap: mode === 'development',
   },
   plugins: [
     react(),
@@ -40,4 +53,9 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // إضافة إعدادات لحل مشاكل التحميل الديناميكي
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(mode),
+  },
+  // إزالة jsxInject لحل مشكلة React import
 }));

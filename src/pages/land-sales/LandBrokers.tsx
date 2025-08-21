@@ -8,13 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useGlobalSelectedBrokers } from "@/hooks/useGlobalSelectedBrokers";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2, ExternalLink, Settings, ChevronDown, X, FileText, Eye, MoreHorizontal, Filter, RefreshCw, Send, Users, FileText as FileTextIcon, Target, ArrowRight } from "lucide-react";
 
 interface LandBroker {
@@ -120,6 +121,64 @@ export function LandBrokers() {
     refetchOnWindowFocus: false,
     refetchOnMount: false
   });
+
+  // Bulk selection hook
+  const bulkSelection = useBulkSelection({
+    items: brokers,
+    getItemId: (broker) => broker.id
+  });
+
+  // Bulk messaging functions
+  const handleBulkTextMessage = () => {
+    if (bulkSelection.selectedCount === 0) {
+      toast({
+        title: "لم يتم تحديد وسطاء",
+        description: "يرجى تحديد وسيط واحد على الأقل لإرسال الرسائل",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const brokerIds = Array.from(bulkSelection.selectedIds);
+    const brokerNames = bulkSelection.selectedItems.map(b => b.name);
+    const brokerPhones = bulkSelection.selectedItems.map(b => b.phone);
+    
+    navigate(`/whatsapp/text-message?bulkMode=true&brokerIds=${brokerIds.join(',')}&brokerNames=${encodeURIComponent(brokerNames.join(','))}&brokerPhones=${brokerPhones.join(',')}`);
+  };
+
+  const handleBulkMediaMessage = () => {
+    if (bulkSelection.selectedCount === 0) {
+      toast({
+        title: "لم يتم تحديد وسطاء",
+        description: "يرجى تحديد وسيط واحد على الأقل لإرسال الرسائل",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const brokerIds = Array.from(bulkSelection.selectedIds);
+    const brokerNames = bulkSelection.selectedItems.map(b => b.name);
+    const brokerPhones = bulkSelection.selectedItems.map(b => b.phone);
+    
+    navigate(`/whatsapp/media-message?bulkMode=true&brokerIds=${brokerIds.join(',')}&brokerNames=${encodeURIComponent(brokerNames.join(','))}&brokerPhones=${brokerPhones.join(',')}`);
+  };
+
+  const handleBulkAllTypes = () => {
+    if (bulkSelection.selectedCount === 0) {
+      toast({
+        title: "لم يتم تحديد وسطاء",
+        description: "يرجى تحديد وسيط واحد على الأقل لإرسال الرسائل",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const brokerIds = Array.from(bulkSelection.selectedIds);
+    const brokerNames = bulkSelection.selectedItems.map(b => b.name);
+    const brokerPhones = bulkSelection.selectedItems.map(b => b.phone);
+    
+    navigate(`/whatsapp/message-types?bulkMode=true&brokerIds=${brokerIds.join(',')}&brokerNames=${encodeURIComponent(brokerNames.join(','))}&brokerPhones=${brokerPhones.join(',')}`);
+  };
 
   // Add broker mutation
   const addBrokerMutation = useMutation({
@@ -515,6 +574,58 @@ export function LandBrokers() {
         title="الوسطاء"
         description="إدارة وسطاء الأراضي والعقارات"
       />
+
+      {/* Bulk Actions Toolbar */}
+      {bulkSelection.selectedCount > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                <span className="font-medium text-blue-800">
+                  تم تحديد {bulkSelection.selectedCount} وسيط
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={bulkSelection.clearSelection}
+                className="text-gray-600"
+              >
+                <X className="h-4 w-4 mr-1" />
+                إلغاء التحديد
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleBulkTextMessage}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                رسالة نصية جماعية
+              </Button>
+              <Button
+                onClick={handleBulkMediaMessage}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                size="sm"
+              >
+                <FileTextIcon className="h-4 w-4 mr-1" />
+                رسالة وسائط جماعية
+              </Button>
+              <Button
+                onClick={handleBulkAllTypes}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
+              >
+                <Target className="h-4 w-4 mr-1" />
+                جميع الأنواع
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Filters and Actions */}
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
@@ -835,8 +946,11 @@ export function LandBrokers() {
                   <TableHead>
                     <input
                       type="checkbox"
-                      checked={selectedBrokersForBulk.length === filteredBrokers.length && filteredBrokers.length > 0}
-                      onChange={handleSelectAll}
+                      checked={bulkSelection.isAllSelected}
+                      ref={(input) => {
+                        if (input) input.indeterminate = bulkSelection.isIndeterminate;
+                      }}
+                      onChange={bulkSelection.toggleAll}
                       className="rounded border-gray-300"
                     />
                   </TableHead>
@@ -855,8 +969,8 @@ export function LandBrokers() {
                     <TableCell>
                       <input
                         type="checkbox"
-                        checked={selectedBrokersForBulk.includes(broker.id)}
-                        onChange={() => handleSelectBroker(broker.id)}
+                        checked={bulkSelection.isSelected(broker.id)}
+                        onChange={() => bulkSelection.toggleItem(broker.id)}
                         className="rounded border-gray-300"
                       />
                     </TableCell>
@@ -908,6 +1022,37 @@ export function LandBrokers() {
                             تعديل
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <Target className="h-4 w-4 mr-2" />
+                              المهام
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuLabel>أنواع الرسائل</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => navigate(`/whatsapp/text-message?brokerId=${broker.id}&brokerName=${encodeURIComponent(broker.name)}&brokerPhone=${broker.phone}`)}
+                              >
+                                <MessageCircle className="h-4 w-4 mr-2" />
+                                رسالة نصية
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => navigate(`/whatsapp/media-message?brokerId=${broker.id}&brokerName=${encodeURIComponent(broker.name)}&brokerPhone=${broker.phone}`)}
+                              >
+                                <FileTextIcon className="h-4 w-4 mr-2" />
+                                رسالة وسائط
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => navigate(`/whatsapp/message-types?brokerId=${broker.id}&brokerName=${encodeURIComponent(broker.name)}&brokerPhone=${broker.phone}`)}
+                                className="text-blue-600"
+                              >
+                                <ArrowRight className="h-4 w-4 mr-2" />
+                                جميع الأنواع
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem 
                             onClick={() => handleDelete(broker.id)}
                             className="text-red-600"
@@ -937,8 +1082,8 @@ export function LandBrokers() {
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={selectedBrokersForBulk.includes(broker.id)}
-                      onChange={() => handleSelectBroker(broker.id)}
+                      checked={bulkSelection.isSelected(broker.id)}
+                      onChange={() => bulkSelection.toggleItem(broker.id)}
                       className="absolute top-2 right-2 z-10 rounded border-gray-300"
                     />
                     <div className="flex-1">
@@ -963,6 +1108,37 @@ export function LandBrokers() {
                         <Edit className="h-4 w-4 mr-2" />
                         تعديل
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <Target className="h-4 w-4 mr-2" />
+                          المهام
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuLabel>أنواع الرسائل</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => navigate(`/whatsapp/text-message?brokerId=${broker.id}&brokerName=${encodeURIComponent(broker.name)}&brokerPhone=${broker.phone}`)}
+                          >
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            رسالة نصية
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => navigate(`/whatsapp/media-message?brokerId=${broker.id}&brokerName=${encodeURIComponent(broker.name)}&brokerPhone=${broker.phone}`)}
+                          >
+                            <FileTextIcon className="h-4 w-4 mr-2" />
+                            رسالة وسائط
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => navigate(`/whatsapp/message-types?brokerId=${broker.id}&brokerName=${encodeURIComponent(broker.name)}&brokerPhone=${broker.phone}`)}
+                            className="text-blue-600"
+                          >
+                            <ArrowRight className="h-4 w-4 mr-2" />
+                            جميع الأنواع
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         onClick={() => handleDelete(broker.id)}
