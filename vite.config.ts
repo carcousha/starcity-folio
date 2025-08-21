@@ -38,10 +38,10 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
-    // تحسينات إضافية للأداء
-    target: 'esnext',
-    minify: 'terser',
-    sourcemap: mode === 'development',
+                  // تحسينات إضافية للأداء
+              target: 'esnext',
+              minify: mode === 'production' ? 'esbuild' : false,
+              sourcemap: mode === 'development',
   },
   plugins: [
     react(),
