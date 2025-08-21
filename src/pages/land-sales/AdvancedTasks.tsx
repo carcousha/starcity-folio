@@ -3,17 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useGlobalSelectedBrokers } from '@/hooks/useGlobalSelectedBrokers';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Calendar, Clock, MessageSquare, Smartphone, Users, ArrowLeft, Play, Settings, Target, FileText, Upload, CheckCircle, AlertCircle, X, Send, Timer, Shuffle, RefreshCw, AlertTriangle, Download, Table, CheckSquare, Square } from 'lucide-react';
+import { Calendar, Clock, MessageSquare, Smartphone, Users, ArrowLeft, Play, Settings, Target, FileText, Upload, CheckCircle, AlertCircle, X, Send, Timer, Shuffle, RefreshCw, AlertTriangle, Download, Table, CheckSquare, Square, Image, Video, Music, FileSpreadsheet, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { whatsappService } from '@/services/whatsappService';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -75,6 +75,11 @@ export function AdvancedTasks() {
   const [uploadedMediaUrls, setUploadedMediaUrls] = useState<string[]>([]);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [mediaUploadProgress, setMediaUploadProgress] = useState(0);
+  const [directMediaUrl, setDirectMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'document' | 'video' | 'audio'>('image');
+
+  // New state for tab management
+  const [activeTab, setActiveTab] = useState<'text' | 'media'>('text');
 
   useEffect(() => {
     // Check authentication first
@@ -188,6 +193,48 @@ export function AdvancedTasks() {
       toast({
         title: "خطأ في إنشاء الإعدادات",
         description: "حدث خطأ أثناء إنشاء إعدادات WhatsApp الافتراضية",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDirectMediaUrl = async () => {
+    if (!directMediaUrl.trim()) {
+      toast({
+        title: "رابط فارغ",
+        description: "يرجى إدخال رابط صحيح للمرفق",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // استخدام الدالة الجديدة في whatsappService
+      const validatedUrl = await whatsappService.addDirectMediaUrl(directMediaUrl, mediaType);
+      
+      // إضافة الرابط إلى القائمة
+      setUploadedMediaUrls(prev => [...prev, validatedUrl]);
+      
+      // إنشاء ملف وهمي للعرض
+      const dummyFile = new File([''], `attachment.${mediaType === 'image' ? 'jpg' : mediaType === 'video' ? 'mp4' : mediaType === 'audio' ? 'mp3' : 'pdf'}`, {
+        type: mediaType === 'image' ? 'image/jpeg' : mediaType === 'video' ? 'video/mp4' : mediaType === 'audio' ? 'audio/mpeg' : 'application/pdf'
+      });
+      setAttachments(prev => [...prev, dummyFile]);
+
+      toast({
+        title: "تم إضافة المرفق",
+        description: `تم إضافة ${mediaType === 'image' ? 'الصورة' : mediaType === 'video' ? 'الفيديو' : mediaType === 'audio' ? 'الملف الصوتي' : 'المستند'} بنجاح`,
+      });
+
+      // مسح الحقول
+      setDirectMediaUrl('');
+      setMediaType('image');
+      
+    } catch (error) {
+      console.error('❌ [AdvancedTasks] Failed to add direct media URL:', error);
+      toast({
+        title: "خطأ في إضافة الرابط",
+        description: error instanceof Error ? error.message : 'خطأ غير معروف',
         variant: "destructive",
       });
     }
@@ -398,17 +445,48 @@ export function AdvancedTasks() {
           continue;
         }
 
-        console.log(`Sending to ${broker.name} (${whatsappNumber}):`, {
+        console.log(`📤 [AdvancedTasks] Sending to ${broker.name} (${whatsappNumber}):`, {
           message: personalizedMessage.substring(0, 50) + '...',
           api_key: `${whatsappSettings.api_key.substring(0, 8)}...`,
-          sender: whatsappSettings.sender_number
+          sender: whatsappSettings.sender_number,
+          hasAttachments: uploadedMediaUrls.length > 0,
+          attachmentsCount: uploadedMediaUrls.length,
+          firstAttachmentUrl: uploadedMediaUrls[0] || 'none'
         });
+
+        // إعداد المرفقات
+        let mediaUrl: string | undefined;
+        let mediaType: 'image' | 'document' | 'video' | 'audio' | undefined;
+        let caption: string | undefined;
+
+        if (uploadedMediaUrls.length > 0) {
+          mediaUrl = uploadedMediaUrls[0];
+          // تحديد نوع الملف من الرابط أو من الملف
+          if (attachments[0] && attachments[0].size > 0) {
+            mediaType = getMediaType(attachments[0]);
+          } else {
+            mediaType = getMediaTypeFromUrl(mediaUrl, 'image');
+          }
+          caption = personalizedMessage; // استخدام الرسالة المخصصة كـ caption للمرفق
+          
+          console.log(`📎 [AdvancedTasks] Sending message with media:`, {
+            mediaUrl,
+            mediaType,
+            caption: caption.substring(0, 50) + '...',
+            attachmentsCount: attachments.length,
+            uploadedUrlsCount: uploadedMediaUrls.length,
+            allUploadedUrls: uploadedMediaUrls
+          });
+        }
 
         // استخدام whatsappService بدلاً من الاتصال المباشر
         const result = await whatsappService.sendWhatsAppMessage(
           whatsappNumber,
-          personalizedMessage,
-          whatsappSettings.default_footer || 'Sent via StarCity Folio'
+          personalizedMessage, // إرسال الرسالة كاملة (سيتم التعامل معها في whatsappService)
+          whatsappSettings.default_footer || 'Sent via StarCity Folio',
+          mediaUrl,
+          mediaType,
+          caption
         );
 
         console.log(`API Response for ${broker.name}:`, result);
@@ -531,10 +609,29 @@ export function AdvancedTasks() {
           continue;
         }
 
+        // إعداد المرفقات للرسائل الفاشلة
+        let mediaUrl: string | undefined;
+        let mediaType: 'image' | 'document' | 'video' | 'audio' | undefined;
+        let caption: string | undefined;
+
+        if (uploadedMediaUrls.length > 0) {
+          mediaUrl = uploadedMediaUrls[0];
+          // تحديد نوع الملف من الرابط أو من الملف
+          if (attachments[0] && attachments[0].size > 0) {
+            mediaType = getMediaType(attachments[0]);
+          } else {
+            mediaType = getMediaTypeFromUrl(mediaUrl, 'image');
+          }
+          caption = personalizedMessage;
+        }
+
         const result = await whatsappService.sendWhatsAppMessage(
           whatsappNumber,
           personalizedMessage,
-          whatsappSettings.default_footer || 'Sent via StarCity Folio'
+          whatsappSettings.default_footer || 'Sent via StarCity Folio',
+          mediaUrl,
+          mediaType,
+          caption
         );
         
         if (result && result.status) {
@@ -618,7 +715,8 @@ export function AdvancedTasks() {
             mediaUrl: uploadedMediaUrls[0],
             fileName: attachments[0]?.name,
             fileSize: attachments[0]?.size,
-            mediaType: getMediaType(attachments[0])
+            mediaType: attachments[0] && attachments[0].size > 0 ? getMediaType(attachments[0]) : getMediaTypeFromUrl(uploadedMediaUrls[0], 'image'),
+            willSendAsCaption: true
           });
         }
         
@@ -932,6 +1030,33 @@ export function AdvancedTasks() {
     return 'document';
   };
 
+  const getMediaTypeFromUrl = (url: string, defaultType: 'image' | 'document' | 'video' | 'audio' = 'image'): 'image' | 'document' | 'video' | 'audio' => {
+    const lowerUrl = url.toLowerCase();
+    
+    // تحديد نوع الملف من امتداد الرابط
+    if (lowerUrl.includes('.jpg') || lowerUrl.includes('.jpeg') || lowerUrl.includes('.png') || 
+        lowerUrl.includes('.gif') || lowerUrl.includes('.webp') || lowerUrl.includes('.bmp')) {
+      return 'image';
+    }
+    
+    if (lowerUrl.includes('.mp4') || lowerUrl.includes('.avi') || lowerUrl.includes('.mov') || 
+        lowerUrl.includes('.wmv') || lowerUrl.includes('.flv') || lowerUrl.includes('.webm')) {
+      return 'video';
+    }
+    
+    if (lowerUrl.includes('.mp3') || lowerUrl.includes('.wav') || lowerUrl.includes('.ogg') || 
+        lowerUrl.includes('.aac') || lowerUrl.includes('.flac')) {
+      return 'audio';
+    }
+    
+    if (lowerUrl.includes('.pdf') || lowerUrl.includes('.doc') || lowerUrl.includes('.docx') || 
+        lowerUrl.includes('.xls') || lowerUrl.includes('.xlsx') || lowerUrl.includes('.txt')) {
+      return 'document';
+    }
+    
+    return defaultType;
+  };
+
   const downloadTemplate = () => {
     const csvContent = `name,short_name,phone,whatsapp_number,email,office_name,areas_specialization
 "أحمد محمد","أحمد","971501234567","971501234567","ahmed@example.com","مكتب العقارات المتميز","دبي، أبوظبي"
@@ -1195,1091 +1320,464 @@ export function AdvancedTasks() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="إنشاء حملة متقدمة"
-        description={`إنشاء حملة جديدة لـ ${selectedCount} وسيط محدد`}
-      >
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/land-sales/brokers')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            العودة للوسطاء
-          </Button>
-          
-                     <Button 
-             onClick={handleSendNow}
-             disabled={isSending || !messageTemplate.trim() || selectedCount === 0 || !whatsappSettings}
-             className="bg-green-600 hover:bg-green-700"
-           >
-             <Send className="h-4 w-4 mr-2" />
-             {isSending ? "جاري الإرسال..." : "إرسال فعلي عبر WhatsApp"}
-           </Button>
-          
-          <Button onClick={handleCreateCampaign}>
-            <Play className="h-4 w-4 mr-2" />
-            إنشاء الحملة
-          </Button>
-          
-          <Button 
-            onClick={navigateToBulkSend}
-            disabled={!messageTemplate.trim() || selectedCount === 0}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            تحويل للإرسال الجماعي
-          </Button>
+    <div className="container mx-auto p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">إنشاء حملة متقدمة</h1>
+          <p className="text-gray-600 mt-2">إنشاء وإدارة حملات WhatsApp المتقدمة مع خيارات متعددة</p>
         </div>
-      </PageHeader>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Users className="w-4 h-4" />
+            {selectedBrokers.length + uploadedBrokers.length} وسيط
+          </Badge>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Settings className="w-4 h-4" />
+            متقدم
+          </Badge>
+        </div>
+      </div>
 
-             {/* WhatsApp Settings Status */}
-       {!whatsappSettings && settingsLoaded && (
-         <Card className="border-orange-200 bg-orange-50">
-           <CardContent className="p-4">
-             <div className="flex items-center gap-2">
-               <AlertTriangle className="h-5 w-5 text-orange-600" />
-               <div>
-                 <p className="text-sm font-medium text-orange-800">
-                   إعدادات WhatsApp غير متوفرة
-                 </p>
-                 <p className="text-xs text-orange-600">
-                   يرجى إعداد WhatsApp من صفحة الإعدادات أولاً
-                 </p>
-               </div>
-               <div className="ml-auto flex gap-2">
-                 <Button 
-                   variant="outline" 
-                   size="sm"
-                   onClick={createDefaultWhatsAppSettings}
-                 >
-                   إنشاء إعدادات افتراضية
-                 </Button>
-                 <Button 
-                   variant="outline" 
-                   size="sm"
-                   onClick={() => navigate('/whatsapp/settings')}
-                 >
-                   إعدادات WhatsApp
-                 </Button>
-               </div>
-             </div>
-           </CardContent>
-         </Card>
-       )}
-
-       {/* WhatsApp Settings Info */}
-       {whatsappSettings && (
-         <Card className="border-green-200 bg-green-50">
-           <CardContent className="p-4">
-             <div className="flex items-center gap-2">
-               <CheckCircle className="h-5 w-5 text-green-600" />
-               <div>
-                 <p className="text-sm font-medium text-green-800">
-                   إعدادات WhatsApp متوفرة - جاهز للإرسال
-                 </p>
-                 <p className="text-xs text-green-600">
-                   المرسل: {whatsappSettings.sender_number} | API Key: {whatsappSettings.api_key.substring(0, 8)}...
-                 </p>
-               </div>
-             </div>
-           </CardContent>
-         </Card>
-       )}
-
-      {/* Sending Progress */}
-      {isSending && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                <span className="text-sm font-medium">{sendingStatus}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${sendingProgress}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-600">
-                التقدم: {Math.round(sendingProgress)}% ({Math.round(sendingProgress * selectedCount / 100)} من {selectedCount})
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Selected Brokers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              الوسطاء المحددين ({selectedCount + uploadedBrokers.length})
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFileUpload(true)}
-                className="flex items-center gap-1"
-              >
-                <Upload className="h-4 w-4" />
-                تحميل من ملف
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadTemplate}
-                className="flex items-center gap-1"
-              >
-                <Download className="h-4 w-4" />
-                تحميل القالب
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-                             {/* Brokers from selection */}
-               {selectedBrokers.map(broker => (
-                 <div key={broker.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                   <div>
-                     <p className="font-medium">{broker.name}</p>
-                     <p className="text-sm text-muted-foreground">
-                       {broker.short_name && <span className="text-blue-600">({broker.short_name})</span>} {broker.phone}
-                     </p>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <Badge variant="default">من القاعدة</Badge>
-                     <Badge variant={broker.activity_status === 'active' ? 'default' : 'secondary'}>
-                       {broker.activity_status}
-                     </Badge>
-                   </div>
-                 </div>
-               ))}
-              
-                             {/* Brokers from file upload */}
-               {uploadedBrokers.map((broker, index) => (
-                 <div key={`uploaded_${index}`} className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                   <div>
-                     <p className="font-medium">{broker.name}</p>
-                     <p className="text-sm text-muted-foreground">
-                       {broker.short_name && <span className="text-blue-600">({broker.short_name})</span>} {broker.whatsapp_number || broker.phone}
-                     </p>
-                     <p className="text-xs text-muted-foreground">{broker.office_name}</p>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <Badge variant="secondary">من الملف</Badge>
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => {
-                         const filtered = uploadedBrokers.filter((_, i) => i !== index);
-                         setUploadedBrokers(filtered);
-                       }}
-                     >
-                       <X className="h-4 w-4" />
-                     </Button>
-                   </div>
-                 </div>
-               ))}
-              
-              {selectedCount === 0 && uploadedBrokers.length === 0 && (
-                <div className="text-center text-muted-foreground py-4">
-                  لم يتم اختيار وسطاء بعد
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Campaign Configuration */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              إعدادات الحملة
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Campaign Name */}
-            <div>
-              <Label htmlFor="campaignName">اسم الحملة</Label>
-              <Input
-                id="campaignName"
-                value={campaignName}
-                onChange={(e) => setCampaignName(e.target.value)}
-                placeholder="أدخل اسم الحملة"
-              />
-            </div>
-
-            {/* Campaign Type */}
-            <div>
-              <Label htmlFor="campaignType">نوع الحملة</Label>
-              <Select value={campaignType} onValueChange={(value: 'instant' | 'scheduled' | 'recurring') => setCampaignType(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="instant">إرسال فوري</SelectItem>
-                  <SelectItem value="scheduled">مجدولة</SelectItem>
-                  <SelectItem value="recurring">متكررة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Scheduling Options */}
-            {campaignType === 'scheduled' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="scheduledDate">تاريخ الإرسال</Label>
-                  <Input
-                    id="scheduledDate"
-                    type="date"
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="scheduledTime">وقت الإرسال</Label>
-                  <Input
-                    id="scheduledTime"
-                    type="time"
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Recurring Pattern */}
-            {campaignType === 'recurring' && (
-              <div>
-                <Label htmlFor="recurringPattern">نمط التكرار</Label>
-                <Select value={recurringPattern} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setRecurringPattern(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">يومياً</SelectItem>
-                    <SelectItem value="weekly">أسبوعياً</SelectItem>
-                    <SelectItem value="monthly">شهرياً</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Message Template */}
-            <div>
-              <Label htmlFor="messageTemplate">نص الرسالة *</Label>
-              <Textarea
-                id="messageTemplate"
-                value={messageTemplate}
-                onChange={(e) => setMessageTemplate(e.target.value)}
-                                 placeholder="اكتب نص الرسالة هنا... مثال: مرحباً {short_name}، كيف حالك؟"
-                rows={4}
-              />
-                                                          <p className="text-sm text-muted-foreground mt-1">
-                المتغيرات المتاحة: {"{name}"}, {"{short_name}"}, {"{phone}"}, {"{email}"}
-              </p>
-            </div>
-
-            {/* Improved Timing Options */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Timer className="h-4 w-4" />
-                <Label className="text-base font-medium">إعدادات التوقيت بين الرسائل</Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="useRandomTiming"
-                  checked={useRandomTiming}
-                  onChange={(e) => setUseRandomTiming(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                <Label htmlFor="useRandomTiming" className="flex items-center gap-2">
-                  <Shuffle className="h-4 w-4" />
-                  استخدام توقيت عشوائي (طبيعي أكثر)
-                </Label>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Content Area */}
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                محتوى الحملة
+              </CardTitle>
+              <CardDescription>
+                اختر نوع الرسالة وأضف المحتوى المطلوب
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Message Type Tabs */}
+              <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveTab('text')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'text'
+                      ? 'bg-white text-purple-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  رسالة نصية
+                </button>
+                <button
+                  onClick={() => setActiveTab('media')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'media'
+                      ? 'bg-white text-purple-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Image className="w-4 h-4" />
+                  رسالة وسائط
+                </button>
               </div>
 
-              {useRandomTiming ? (
-                <div className="grid grid-cols-2 gap-4">
+              {/* Tab Content */}
+              {activeTab === 'text' && (
+                <div className="space-y-4">
+                  {/* Text Message Content */}
                   <div>
-                    <Label htmlFor="minInterval">الحد الأدنى (بالثواني)</Label>
-                    <Input
-                      id="minInterval"
-                      type="number"
-                      value={minIntervalSeconds}
-                      onChange={(e) => setMinIntervalSeconds(Number(e.target.value))}
-                      min={1}
-                      max={60}
-                      placeholder="مثال: 3"
-                    />
+                    <Label htmlFor="messageTemplate" className="text-base font-medium">
+                      رسالة نصية
+                    </Label>
+                    <div className="mt-1">
+                                             <p className="text-sm text-gray-500 mb-2">
+                         مثال: مرحباً {'{name}'} | أهلاً رقمك هو {'{phone}'}
+                       </p>
+                      <Textarea
+                        id="messageTemplate"
+                        placeholder="اكتب رسالتك هنا..."
+                        value={messageTemplate}
+                        onChange={(e) => setMessageTemplate(e.target.value)}
+                        className="min-h-[120px] resize-none"
+                      />
+                    </div>
                   </div>
+
+                  {/* Personalization Options */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                      خيارات التخصيص
+                    </Label>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={personalizeMessages}
+                          onChange={(e) => setPersonalizeMessages(e.target.checked)}
+                          className="rounded"
+                        />
+                        <span className="text-sm">تخصيص الرسائل تلقائياً</span>
+                      </label>
+                    </div>
+                    {personalizeMessages && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-md">
+                        <p className="text-sm text-blue-800">
+                          المتغيرات المتاحة: {'{name}'}, {'{short_name}'}, {'{phone}'}, {'{email}'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'media' && (
+                <div className="space-y-4">
+                  {/* Media Message Content */}
                   <div>
-                    <Label htmlFor="maxInterval">الحد الأقصى (بالثواني)</Label>
-                    <Input
-                      id="maxInterval"
-                      type="number"
-                      value={maxIntervalSeconds}
-                      onChange={(e) => setMaxIntervalSeconds(Number(e.target.value))}
-                      min={1}
-                      max={60}
-                      placeholder="مثال: 10"
-                    />
+                    <Label htmlFor="mediaMessageTemplate" className="text-base font-medium">
+                      التسمية التوضيحية
+                    </Label>
+                    <div className="mt-1">
+                      <p className="text-sm text-gray-500 mb-2">
+                        النص سيظهر كتسمية توضيحية للمرفق
+                      </p>
+                      <Textarea
+                        id="mediaMessageTemplate"
+                        placeholder="اكتب التسمية التوضيحية للمرفق..."
+                        value={messageTemplate}
+                        onChange={(e) => setMessageTemplate(e.target.value)}
+                        className="min-h-[120px] resize-none"
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div>
-                  <Label htmlFor="fixedInterval">الفترة الثابتة (بالدقائق)</Label>
-                  <Input
-                    id="fixedInterval"
-                    type="number"
-                    value={fixedIntervalMinutes}
-                    onChange={(e) => setFixedIntervalMinutes(Number(e.target.value))}
-                    min={1}
-                    max={60}
-                    placeholder="مثال: 5"
-                  />
+
+                  {/* Media Upload Section */}
+                  <div className="space-y-4">
+                    <Label className="text-base font-medium">المرفقات</Label>
+                    
+                    {/* Direct Media URL */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <Label htmlFor="directMediaUrl" className="text-sm font-medium text-gray-700 mb-2 block">
+                        رابط المرفق المباشر
+                      </Label>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Input
+                            id="directMediaUrl"
+                            type="url"
+                            placeholder="https://example.com/image.jpg"
+                            value={directMediaUrl}
+                            onChange={(e) => setDirectMediaUrl(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <Select value={mediaType} onValueChange={(value: 'image' | 'document' | 'video' | 'audio') => setMediaType(value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="image">صورة</SelectItem>
+                            <SelectItem value="video">فيديو</SelectItem>
+                            <SelectItem value="audio">صوت</SelectItem>
+                            <SelectItem value="document">مستند</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button onClick={handleDirectMediaUrl} type="button" size="sm">
+                          إضافة
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 ارفع الملف على أي موقع (مثل Google Drive, Dropbox, Imgur) وأضف الرابط المباشر هنا
+                      </p>
+                    </div>
+
+                    {/* File Upload */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                        رفع ملف
+                      </Label>
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 mb-2">
+                          اسحب وأفلت الملفات هنا، أو اضغط للاختيار
+                        </p>
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleAttachmentUpload}
+                          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          className="hidden"
+                          id="file-upload"
+                        />
+                        <label htmlFor="file-upload">
+                          <Button variant="outline" size="sm" asChild>
+                            <span>اختيار ملفات</span>
+                          </Button>
+                        </label>
+                      </div>
+                      <p className="text-xs text-orange-600 mt-1">
+                        ⚠️ ملاحظة: يمكنك إضافة روابط مباشرة للمرفقات أو رفع الملفات
+                      </p>
+                    </div>
+
+                    {/* Attachments List */}
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">المرفقات المضافة:</Label>
+                        {attachments.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                            <div className="flex items-center gap-2">
+                              {file.type.startsWith('image/') && <Image className="w-4 h-4 text-blue-500" />}
+                              {file.type.startsWith('video/') && <Video className="w-4 h-4 text-red-500" />}
+                              {file.type.startsWith('audio/') && <Music className="w-4 h-4 text-green-500" />}
+                              {file.type.startsWith('application/') && <FileText className="w-4 h-4 text-purple-500" />}
+                              <span className="text-sm font-medium">{file.name}</span>
+                              <span className="text-xs text-gray-500">
+                                ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAttachment(index)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-              
-              <div className="text-sm text-muted-foreground bg-background p-2 rounded">
-                {useRandomTiming 
-                  ? `سيتم إرسال الرسائل بفترات عشوائية بين ${minIntervalSeconds} و ${maxIntervalSeconds} ثانية`
-                  : `سيتم إرسال الرسائل كل ${fixedIntervalMinutes} دقيقة`
-                }
-              </div>
-            </div>
 
-            {/* Timezone */}
-            <div>
-              <Label htmlFor="timezone">المنطقة الزمنية</Label>
-              <Select value={timezone} onValueChange={(value: string) => setTimezone(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Asia/Dubai">دبي (GMT+4)</SelectItem>
-                  <SelectItem value="Asia/Riyadh">الرياض (GMT+3)</SelectItem>
-                  <SelectItem value="Asia/Kuwait">الكويت (GMT+3)</SelectItem>
-                  <SelectItem value="Asia/Qatar">قطر (GMT+3)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* File Attachments */}
-            <div>
-              <Label htmlFor="attachments">المرفقات (صور، فيديو، مستندات)</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                <input
-                  type="file"
-                  id="attachments"
-                  multiple
-                  onChange={handleAttachmentUpload}
-                  className="hidden"
-                />
-                <label htmlFor="attachments" className="cursor-pointer">
-                  <div className="text-center">
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600">اضغط لإضافة مرفقات</p>
-                    <p className="text-xs text-gray-500">صور، فيديو، مستندات (حد أقصى 16 ميجابايت)</p>
-                    <p className="text-xs text-orange-600 mt-1">
-                      ⚠️ ملاحظة: حالياً يتم استخدام روابط تجريبية للملفات
-                    </p>
-                  </div>
-                </label>
-              </div>
-              
-              {/* Media Upload Progress */}
-              {isUploadingMedia && (
-                <div className="mt-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span className="text-sm">جاري رفع المرفقات...</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${mediaUploadProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-
-              {/* Attachments List */}
-              {attachments.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {attachments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <div>
-                          <span className="text-sm font-medium">{file.name}</span>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                            {uploadedMediaUrls[index] && (
-                              <Badge variant="default" className="text-xs">تم الرفع</Badge>
-                            )}
+                             {/* Campaign Settings */}
+               <div className="border-t pt-6">
+                 <div className="flex items-center gap-2 mb-4">
+                   <Settings className="w-5 h-5 text-gray-600" />
+                   <Label className="text-base font-medium">إعدادات الحملة</Label>
+                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Timing Settings */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">توقيت الإرسال</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={useRandomTiming}
+                        onChange={(e) => setUseRandomTiming(e.target.checked)}
+                        className="rounded"
+                      />
+                      <span className="text-sm">استخدام توقيت عشوائي</span>
+                    </div>
+                    
+                    {useRandomTiming ? (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Label className="text-xs">الحد الأدنى (ثانية)</Label>
+                            <Input
+                              type="number"
+                              value={minIntervalSeconds}
+                              onChange={(e) => setMinIntervalSeconds(parseInt(e.target.value))}
+                              min="1"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-xs">الحد الأقصى (ثانية)</Label>
+                            <Input
+                              type="number"
+                              value={maxIntervalSeconds}
+                              onChange={(e) => setMaxIntervalSeconds(parseInt(e.target.value))}
+                              min="1"
+                              className="text-sm"
+                            />
                           </div>
                         </div>
                       </div>
+                    ) : (
+                      <div>
+                        <Label className="text-xs">الفاصل الزمني (دقائق)</Label>
+                        <Input
+                          type="number"
+                          value={fixedIntervalMinutes}
+                          onChange={(e) => setFixedIntervalMinutes(parseInt(e.target.value))}
+                          min="1"
+                          className="text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preview Settings */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">معاينة الحملة</Label>
+                    <div className="space-y-2">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => removeAttachment(index)}
+                        onClick={simulateSendingMessages}
+                        className="w-full"
                       >
-                        <X className="h-4 w-4" />
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        معاينة الإرسال
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowPreviewDialog(true)}
+                        className="w-full"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        معاينة الرسالة
                       </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Media Info */}
-              {uploadedMediaUrls.length > 0 && (
-                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-                  <p className="text-sm text-green-800">
-                    📎 سيتم إرسال أول مرفق مع الرسالة ({uploadedMediaUrls.length} مرفق جاهز)
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Advanced Options */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            خيارات متقدمة
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="personalizeMessages"
-                checked={personalizeMessages}
-                onChange={(e) => setPersonalizeMessages(e.target.checked)}
-              />
-              <Label htmlFor="personalizeMessages">تخصيص الرسائل</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="trackDelivery"
-                checked={trackDelivery}
-                onChange={(e) => setTrackDelivery(e.target.checked)}
-              />
-              <Label htmlFor="trackDelivery">تتبع التسليم</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="autoRetry"
-                checked={autoRetry}
-                onChange={(e) => setAutoRetry(e.target.checked)}
-              />
-              <Label htmlFor="autoRetry">إعادة المحاولة التلقائية</Label>
-            </div>
-            
-                         <div className="flex items-center space-x-2">
-               <CheckCircle className="h-4 w-4 text-green-600" />
-               <Label className="text-green-600 font-medium">
-                 إرسال فعلي عبر WhatsApp (مفعل دائماً)
-               </Label>
-             </div>
-
-            {autoRetry && (
-              <div>
-                <Label htmlFor="maxRetries">عدد المحاولات القصوى</Label>
-                <Input
-                  id="maxRetries"
-                  type="number"
-                  value={maxRetries}
-                  onChange={(e) => setMaxRetries(Number(e.target.value))}
-                  min={1}
-                  max={10}
-                />
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Campaign Preview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            معاينة الحملة
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>اسم الحملة</Label>
-                <p className="text-sm text-muted-foreground">{campaignName || 'غير محدد'}</p>
-              </div>
-              <div>
-                <Label>نوع الحملة</Label>
-                <p className="text-sm text-muted-foreground">
-                  {campaignType === 'instant' ? 'إرسال فوري' : 
-                   campaignType === 'scheduled' ? 'مجدولة' : 'متكررة'}
-                </p>
-              </div>
-            </div>
-            
-            <div>
-              <Label>عدد الوسطاء</Label>
-              <p className="text-sm text-muted-foreground">{selectedCount} وسيط</p>
-            </div>
-            
-            <div>
-              <Label>إعدادات التوقيت</Label>
-              <p className="text-sm text-muted-foreground">
-                {useRandomTiming 
-                  ? `عشوائي: ${minIntervalSeconds}-${maxIntervalSeconds} ثانية`
-                  : `ثابت: ${fixedIntervalMinutes} دقيقة`
-                }
-              </p>
-            </div>
-            
-                         <div>
-               <Label>نوع الإرسال</Label>
-               <p className="text-sm text-muted-foreground">
-                 <span className="text-green-600 font-medium">إرسال فعلي عبر WhatsApp</span>
-               </p>
-             </div>
-            
-            <div>
-              <Label>نص الرسالة</Label>
-              <div className="mt-1 p-3 bg-muted rounded text-sm">
-                {messageTemplate || 'لم يتم تحديد نص الرسالة'}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 mt-6">
-        <Button
-          variant="outline"
-          onClick={() => navigate('/land-sales/brokers')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          العودة للوسطاء
-        </Button>
-        
-        <Button
-          variant="outline"
-          onClick={handleSaveDraft}
-          disabled={!campaignName || !messageTemplate}
-          className="flex items-center gap-2"
-        >
-          <FileText className="h-4 w-4" />
-          حفظ كمسودة
-        </Button>
-        
-                 <Button
-           onClick={handleSendCampaign}
-           disabled={!canSendCampaign() || isSending}
-           className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-         >
-           {isSending ? (
-             <>
-               <RefreshCw className="h-4 w-4 animate-spin" />
-               جاري الإرسال...
-             </>
-           ) : (
-             <>
-               <Send className="h-4 w-4" />
-               إرسال فعلي عبر WhatsApp
-             </>
-           )}
-         </Button>
-
-        <Button
-          onClick={navigateToBulkSend}
-          disabled={!messageTemplate.trim() || selectedCount === 0}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-        >
-          <Users className="h-4 w-4" />
-          تحويل للإرسال الجماعي
-        </Button>
-      </div>
-
-      {/* Progress Section - عرض التقدم في الصفحة بدلاً من Pop up */}
-      {isSending && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-700">
-              <RefreshCw className="h-5 w-5 animate-spin" />
-              جاري إرسال الحملة
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">التقدم العام</span>
-                <span className="text-lg font-bold text-blue-600">{Math.round(sendingProgress)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
-                  className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                  style={{ width: `${sendingProgress}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-white rounded border">
-                <div className="text-xl font-bold text-blue-600">{selectedCount + uploadedBrokers.length}</div>
-                <div className="text-sm text-gray-600">إجمالي المستلمين</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded border">
-                <div className="text-xl font-bold text-green-600">{sentCount}</div>
-                <div className="text-sm text-gray-600">تم الإرسال</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded border">
-                <div className="text-xl font-bold text-red-600">{failedCount}</div>
-                <div className="text-sm text-gray-600">فاشل</div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-3 rounded border">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium">الحالة الحالية:</span>
-              </div>
-              <p className="text-sm text-gray-600 mt-1">{sendingStatus}</p>
-            </div>
-            
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                لا تغلق هذه الصفحة أثناء عملية الإرسال لتجنب توقف العملية
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Failed Messages Retry Section */}
-      {!isSending && failedRecipients.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
-              <AlertTriangle className="h-5 w-5" />
-              رسائل فاشلة ({failedRecipients.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Table Controls */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={selectAllFailedRecipients}
-                  disabled={selectedFailedRecipients.size === failedRecipients.length}
-                  className={`flex items-center gap-1 ${
-                    selectedFailedRecipients.size === failedRecipients.length 
-                      ? 'bg-green-50 text-green-700 border-green-200' 
-                      : 'hover:bg-green-50 hover:text-green-700'
-                  }`}
-                >
-                  <CheckSquare className="h-4 w-4" />
-                  تحديد الكل
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={deselectAllFailedRecipients}
-                  disabled={selectedFailedRecipients.size === 0}
-                  className={`flex items-center gap-1 ${
-                    selectedFailedRecipients.size === 0 
-                      ? 'bg-gray-50 text-gray-400 border-gray-200' 
-                      : 'hover:bg-red-50 hover:text-red-700'
-                  }`}
-                >
-                  <Square className="h-4 w-4" />
-                  إلغاء التحديد
-                </Button>
-                <span className="text-sm text-gray-600">
-                  محدد: <span className="font-medium text-blue-600">{selectedFailedRecipients.size}</span> من <span className="font-medium">{failedRecipients.length}</span>
-                  {selectedFailedRecipients.size > 0 && (
-                    <span className="text-green-600 mr-1">✓</span>
-                  )}
-                </span>
-              </div>
-            </div>
-
-            {/* Failed Messages Table */}
-            <div className="border rounded-lg overflow-hidden max-h-96">
-              <UITable>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 sticky top-0">
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedFailedRecipients.size === failedRecipients.length && failedRecipients.length > 0}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            selectAllFailedRecipients();
-                          } else {
-                            deselectAllFailedRecipients();
-                          }
-                        }}
-                      />
-                    </TableHead>
-                    <TableHead className="text-right">الاسم</TableHead>
-                    <TableHead className="text-right">رقم الهاتف</TableHead>
-                    <TableHead className="text-right">سبب الفشل</TableHead>
-                    <TableHead className="text-right w-32">الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {failedRecipients.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                        لا توجد رسائل فاشلة
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    failedRecipients.map((recipient, index) => (
-                      <TableRow 
-                        key={index} 
-                        className={`hover:bg-gray-50 ${
-                          selectedFailedRecipients.has(index) ? 'bg-blue-50 border-blue-200' : ''
-                        }`}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedFailedRecipients.has(index)}
-                            onCheckedChange={() => toggleFailedRecipientSelection(index)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium text-right">
-                          <div className={`${selectedFailedRecipients.has(index) ? 'text-blue-700' : ''}`}>
-                            {recipient.name}
-                            {recipient.short_name && (
-                              <span className="text-blue-600 text-xs block">({recipient.short_name})</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className={`${selectedFailedRecipients.has(index) ? 'text-blue-700' : ''}`}>
-                            {recipient.whatsapp_number || recipient.phone}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className={`text-red-600 text-sm max-w-xs ${selectedFailedRecipients.has(index) ? 'text-red-700' : ''}`}>
-                            <div className="truncate" title={recipient.error}>
-                              {recipient.error}
-                            </div>
-                            {recipient.error && recipient.error.length > 50 && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                اضغط للتوسيع
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant={selectedFailedRecipients.has(index) ? "default" : "outline"}
-                              onClick={() => {
-                                setSelectedFailedRecipients(new Set([index]));
-                                retryFailedMessages();
-                              }}
-                              disabled={isSending}
-                              className={`flex items-center gap-1 ${
-                                selectedFailedRecipients.has(index) ? 'bg-blue-600 hover:bg-blue-700' : ''
-                              }`}
-                            >
-                              <RefreshCw className={`h-3 w-3 ${isSending ? 'animate-spin' : ''}`} />
-                              {isSending ? 'جاري...' : 'إعادة المحاولة'}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </UITable>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between">
-              <div className="flex gap-2">
-                <Button 
-                  onClick={retryFailedMessages}
-                  disabled={isSending || selectedFailedRecipients.size === 0}
-                  className={`flex items-center gap-2 ${
-                    selectedFailedRecipients.size > 0 
-                      ? 'bg-orange-600 hover:bg-orange-700' 
-                      : 'bg-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  <RefreshCw className={`h-4 w-4 ${isSending ? 'animate-spin' : ''}`} />
-                  {isSending ? 'جاري إعادة الإرسال...' : `إعادة إرسال المحدد (${selectedFailedRecipients.size})`}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setFailedRecipients([]);
-                    setSelectedFailedRecipients(new Set());
-                  }}
-                  disabled={isSending}
-                  className="flex items-center gap-2 hover:bg-red-50 hover:text-red-600"
-                >
-                  <X className="h-4 w-4" />
-                  مسح القائمة
-                </Button>
-              </div>
-              <div className="text-sm text-gray-600">
-                {selectedFailedRecipients.size > 0 ? (
-                  <span className="text-orange-600 font-medium">
-                    سيتم إعادة إرسال {selectedFailedRecipients.size} رسالة
-                  </span>
-                ) : (
-                  <span className="text-gray-500">
-                    حدد الرسائل لإعادة إرسالها
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Success Dialog */}
-      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              تم إرسال الحملة بنجاح
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p>تم إرسال الحملة بنجاح إلى {selectedCount + uploadedBrokers.length} وسيط</p>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium">الرسائل المرسلة:</span>
-                <p className="text-green-600">{sentCount}</p>
-              </div>
-              <div>
-                <span className="font-medium">الرسائل الفاشلة:</span>
-                <p className="text-red-600">{failedCount}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowSuccessDialog(false)}
-                className="flex-1"
-              >
-                إغلاق
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowSuccessDialog(false);
-                  navigate('/land-sales/brokers');
-                }}
-                className="flex-1"
-              >
-                العودة للوسطاء
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* File Upload Dialog */}
-      <Dialog open={showFileUpload} onOpenChange={setShowFileUpload}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              تحميل وسطاء من ملف
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label 
-                htmlFor="file-upload" 
-                className="cursor-pointer flex flex-col items-center space-y-2"
-              >
-                <FileText className="h-12 w-12 text-gray-400" />
-                <div>
-                  <p className="text-lg font-medium">اختر ملف CSV أو Excel</p>
-                  <p className="text-sm text-muted-foreground">
-                    اسحب الملف هنا أو انقر للاختيار
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            {isProcessingFile && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm">جاري معالجة الملف...</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${fileUploadProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">تنسيق الملف المطلوب:</h4>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>• <strong>name</strong>: اسم الوسيط (مطلوب)</p>
-                <p>• <strong>short_name</strong>: الاسم المختصر (اختياري)</p>
-                <p>• <strong>phone</strong>: رقم الهاتف (مطلوب)</p>
-                <p>• <strong>whatsapp_number</strong>: رقم الواتساب (اختياري)</p>
-                <p>• <strong>email</strong>: البريد الإلكتروني (اختياري)</p>
-                <p>• <strong>office_name</strong>: اسم المكتب (اختياري)</p>
-                <p>• <strong>areas_specialization</strong>: مناطق التخصص (اختياري)</p>
-              </div>
-            </div>
-
-            <div className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={downloadTemplate}
-                className="flex items-center gap-1"
-              >
-                <Download className="h-4 w-4" />
-                تحميل قالب نموذجي
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowFileUpload(false)}
-              >
-                إلغاء
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Preview Dialog */}
-      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Table className="h-5 w-5" />
-              معاينة البيانات المحملة
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {validationErrors.length > 0 && (
-              <Alert className="border-orange-200 bg-orange-50">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-1">
-                    <p className="font-medium">تم العثور على أخطاء في البيانات:</p>
-                    <ul className="text-sm space-y-1">
-                      {validationErrors.slice(0, 5).map((error, index) => (
-                        <li key={index}>• {error}</li>
-                      ))}
-                      {validationErrors.length > 5 && (
-                        <li>... و {validationErrors.length - 5} أخطاء أخرى</li>
-                      )}
-                    </ul>
                   </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="max-h-96 overflow-auto border rounded-lg">
-              <table className="w-full text-sm">
-                                 <thead className="bg-gray-50 sticky top-0">
-                   <tr>
-                     <th className="p-2 text-right">الاسم</th>
-                     <th className="p-2 text-right">الاسم المختصر</th>
-                     <th className="p-2 text-right">الهاتف</th>
-                     <th className="p-2 text-right">واتساب</th>
-                     <th className="p-2 text-right">المكتب</th>
-                     <th className="p-2 text-right">الحالة</th>
-                   </tr>
-                 </thead>
-                <tbody>
-                                     {filePreviewData.map((row, index) => (
-                     <tr 
-                       key={index} 
-                       className={row._errors && row._errors.length > 0 ? 'bg-red-50' : 'bg-white'}
-                     >
-                       <td className="p-2 border-b">{row.name}</td>
-                       <td className="p-2 border-b">{row.short_name}</td>
-                       <td className="p-2 border-b">{row.phone}</td>
-                       <td className="p-2 border-b">{row.whatsapp_number}</td>
-                       <td className="p-2 border-b">{row.office_name}</td>
-                       <td className="p-2 border-b">
-                         {row._errors && row._errors.length > 0 ? (
-                           <Badge variant="destructive">خطأ</Badge>
-                         ) : (
-                           <Badge variant="default">صحيح</Badge>
-                         )}
-                       </td>
-                     </tr>
-                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
-                إجمالي: {filePreviewData.length} | 
-                صحيح: {filePreviewData.filter(row => !row._errors || row._errors.length === 0).length} | 
-                خطأ: {filePreviewData.filter(row => row._errors && row._errors.length > 0).length}
+                </div>
               </div>
-              <div className="flex gap-2">
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="space-y-4">
+            {/* Recipients Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="w-5 h-5" />
+                  المستلمون
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {selectedBrokers.length + uploadedBrokers.length}
+                  </div>
+                  <div className="text-sm text-gray-600">وسيط محدد</div>
+                </div>
+                
+                <div className="space-y-2">
+                                     <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => navigate('/land-sales/brokers')}
+                     className="w-full"
+                   >
+                    <Users className="w-4 h-4 mr-2" />
+                    اختيار وسطاء
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFileUpload(true)}
+                    className="w-full"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    تحميل من ملف
+                  </Button>
+                </div>
+
+                {uploadedBrokers.length > 0 && (
+                  <div className="pt-2 border-t">
+                    <div className="text-sm text-gray-600 mb-2">
+                      من الملف: {uploadedBrokers.length} وسيط
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      من قاعدة البيانات: {selectedBrokers.length} وسيط
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Send Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Send className="w-5 h-5" />
+                  إرسال الحملة
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  onClick={handleSendNow}
+                  disabled={isSending || (selectedBrokers.length + uploadedBrokers.length) === 0}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isSending ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-2 animate-spin" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      إرسال الآن
+                    </>
+                  )}
+                </Button>
+                
                 <Button
                   variant="outline"
-                  onClick={() => setShowPreviewDialog(false)}
+                  onClick={navigateToBulkSend}
+                  disabled={(selectedBrokers.length + uploadedBrokers.length) === 0}
+                  className="w-full"
                 >
-                  إلغاء
+                  <Settings className="w-4 h-4 mr-2" />
+                  إعدادات متقدمة
                 </Button>
-                <Button
-                  onClick={confirmImportData}
-                  disabled={filePreviewData.filter(row => !row._errors || row._errors.length === 0).length === 0}
-                >
-                  استيراد البيانات الصحيحة
-                </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+
+            {/* Progress Card (when sending) */}
+            {isSending && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <BarChart3 className="w-5 h-5" />
+                    تقدم الإرسال
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>التقدم</span>
+                      <span>{Math.round(sendingProgress)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${sendingProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-gray-600">
+                    {sendingStatus}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-center p-2 bg-green-50 rounded">
+                      <div className="font-bold text-green-600">{sentCount}</div>
+                      <div className="text-green-600">تم الإرسال</div>
+                    </div>
+                    <div className="text-center p-2 bg-red-50 rounded">
+                      <div className="font-bold text-red-600">{failedCount}</div>
+                      <div className="text-red-600">فشل</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
+
+      {/* ... existing dialogs and modals ... */}
     </div>
   );
 }

@@ -89,13 +89,14 @@ serve(async (req) => {
       )
     }
 
-    if (!message) {
-      console.error('❌ [Edge Function] Missing message')
+    // Allow empty message if media is provided (message will be in caption)
+    if (!message && !url) {
+      console.error('❌ [Edge Function] Missing message and no media provided')
       return new Response(
         JSON.stringify({
           status: false,
-          message: 'نص الرسالة مطلوب',
-          error: 'MISSING_MESSAGE'
+          message: 'نص الرسالة مطلوب أو يجب توفير مرفق',
+          error: 'MISSING_MESSAGE_AND_MEDIA'
         }),
         {
           status: 400,
@@ -121,7 +122,7 @@ serve(async (req) => {
       api_key,
       sender,
       number: cleanNumber,
-      message
+      message: url ? '' : message // رسالة فارغة عند وجود مرفق
     })
 
     // Add footer if provided and not default

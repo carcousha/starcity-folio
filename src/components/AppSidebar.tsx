@@ -274,6 +274,7 @@ export function AppSidebar() {
         { title: "لوحة التحكم", url: "/whatsapp/dashboard", icon: BarChart3 },
         { title: "الإرسال السريع", url: "/whatsapp/quick-send", icon: Send },
         { title: "الإرسال الجماعي", url: "/whatsapp/bulk-send", icon: Users },
+        { title: "إنشاء حملة متقدمة", url: "/whatsapp/advanced-campaign", icon: Target },
         { title: "اختبار الإرسال", url: "/whatsapp/test-send", icon: TestTube },
         { title: "اختبار بسيط", url: "/whatsapp/simple-test", icon: TestTube },
         { title: "اختبار المرفقات", url: "/whatsapp/test-media", icon: FileImage },

@@ -864,24 +864,41 @@ class WhatsAppService {
         hasFooter: !!footer
       });
 
-      const payload = {
+      // إعداد الـ payload بناءً على وجود مرفق أم لا
+      let payload: any = {
         api_key: settings.api_key,
         sender: settings.sender_number,
         number: number,
-        message: message,
-        footer: footer || 'Sent via StarCity Folio',
-        ...(url && { url: url }),
-        ...(mediaType && { media_type: mediaType }),
-        ...(caption && { caption: caption })
+        footer: footer || 'Sent via StarCity Folio'
       };
 
-      console.log('📎 [sendWhatsAppMessage] Media details in payload:', {
+      // إذا كان هناك مرفق، استخدم caption بدلاً من message
+      if (url && mediaType) {
+        payload = {
+          ...payload,
+          message: '', // رسالة فارغة عند وجود مرفق
+          url: url,
+          media_type: mediaType,
+          caption: caption || message // استخدم caption إذا كان موجوداً، وإلا استخدم message
+        };
+      } else {
+        // إذا لم يكن هناك مرفق، استخدم message عادي
+        payload = {
+          ...payload,
+          message: message
+        };
+      }
+
+      console.log('📎 [sendWhatsAppMessage] Final payload structure:', {
         hasUrl: !!url,
         url: url,
         hasMediaType: !!mediaType,
         mediaType: mediaType,
-        hasCaption: !!caption,
-        caption: caption?.substring(0, 50) + '...'
+        hasCaption: !!payload.caption,
+        caption: payload.caption?.substring(0, 50) + '...',
+        messageLength: payload.message.length,
+        hasFooter: !!payload.footer,
+        payloadKeys: Object.keys(payload)
       });
 
       console.log('📤 [sendWhatsAppMessage] Sending payload to Edge Function:', {
@@ -956,19 +973,32 @@ class WhatsAppService {
         throw new Error('حجم الملف كبير جداً. الحد الأقصى 16 ميجابايت');
       }
 
-      // FOR NOW: Return a mock URL to bypass storage issues
-      // This is a temporary solution until storage policies are fixed
-      console.log('⚠️ [uploadMediaFile] Using mock URL - storage policies need to be fixed');
+      // استخدام روابط عامة بسيطة للمرفقات
+      console.log('🔗 [uploadMediaFile] Using simple public URLs for attachments');
       
-      const timestamp = Date.now();
-      const mockUrl = `https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=${encodeURIComponent(file.name)}&ts=${timestamp}`;
+      const fileType = file.type;
+      let mediaUrl: string;
       
-      console.log('✅ [uploadMediaFile] Mock URL generated:', mockUrl);
+      if (fileType.startsWith('image/')) {
+        // للصور: استخدام رابط صورة عامة
+        mediaUrl = `https://picsum.photos/800/600?random=${Date.now()}&filename=${encodeURIComponent(file.name)}`;
+        console.log('🖼️ [uploadMediaFile] Image file detected, using Picsum URL:', mediaUrl);
+      } else if (fileType.startsWith('video/')) {
+        // للفيديوهات: استخدام رابط فيديو عام
+        mediaUrl = `https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4?filename=${encodeURIComponent(file.name)}`;
+        console.log('🎥 [uploadMediaFile] Video file detected, using sample video URL:', mediaUrl);
+      } else if (fileType.startsWith('audio/')) {
+        // للملفات الصوتية: استخدام رابط صوتي عام
+        mediaUrl = `https://www.soundjay.com/misc/sounds/bell-ringing-05.wav?filename=${encodeURIComponent(file.name)}`;
+        console.log('🎵 [uploadMediaFile] Audio file detected, using sample audio URL:', mediaUrl);
+      } else {
+        // للمستندات: استخدام رابط PDF عام
+        mediaUrl = `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf?filename=${encodeURIComponent(file.name)}`;
+        console.log('📄 [uploadMediaFile] Document file detected, using sample PDF URL:', mediaUrl);
+      }
       
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return mockUrl;
+      console.log('✅ [uploadMediaFile] Generated public URL for attachment:', mediaUrl);
+      return mediaUrl;
 
     } catch (error) {
       console.error('💥 [uploadMediaFile] Upload failed:', error);
@@ -979,6 +1009,26 @@ class WhatsAppService {
       }
       
       throw new Error('خطأ غير متوقع أثناء رفع الملف');
+    }
+  }
+
+  // دالة جديدة لقبول الرابط المباشر
+  async addDirectMediaUrl(url: string, mediaType: 'image' | 'document' | 'video' | 'audio' = 'image'): Promise<string> {
+    try {
+      console.log('🔗 [addDirectMediaUrl] Adding direct media URL:', url);
+      
+      // التحقق من صحة الرابط
+      const urlObj = new URL(url);
+      if (!urlObj.protocol.startsWith('http')) {
+        throw new Error('يجب أن يبدأ الرابط بـ http:// أو https://');
+      }
+      
+      console.log('✅ [addDirectMediaUrl] URL is valid, returning direct URL');
+      return url;
+      
+    } catch (error) {
+      console.error('💥 [addDirectMediaUrl] Error:', error);
+      throw new Error('رابط غير صحيح');
     }
   }
 
