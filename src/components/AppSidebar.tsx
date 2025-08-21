@@ -11,6 +11,7 @@ import {
   FileText,
   Settings,
   BarChart3,
+  MessageSquare,
   UserCheck,
   Calculator,
   Brain,
@@ -32,7 +33,8 @@ import {
   Phone,
   TestTube,
   FileImage,
-  Upload
+  Upload,
+  Wand2
 } from "lucide-react";
 
 import { 
@@ -274,7 +276,13 @@ export function AppSidebar() {
         { title: "لوحة التحكم", url: "/whatsapp/dashboard", icon: BarChart3 },
         { title: "الإرسال السريع", url: "/whatsapp/quick-send", icon: Send },
         { title: "الإرسال الجماعي", url: "/whatsapp/bulk-send", icon: Users },
+        { title: "اختيار نوع الرسالة", url: "/whatsapp/message-types", icon: Target },
+        { title: "رسائل نصية", url: "/whatsapp/text-message", icon: MessageSquare },
+        { title: "رسائل وسائط", url: "/whatsapp/media-message", icon: FileImage },
+        { title: "🚀 النظام المتطور", url: "/whatsapp/test-advanced", icon: Wand2 },
+        { title: "🎭 رسائل نصية ذكية", url: "/whatsapp/advanced-text-message", icon: Brain },
         { title: "إنشاء حملة متقدمة", url: "/whatsapp/advanced-campaign", icon: Target },
+        { title: "اختبار رسائل الوسائط", url: "/whatsapp/media-test", icon: FileImage },
         { title: "اختبار الإرسال", url: "/whatsapp/test-send", icon: TestTube },
         { title: "اختبار بسيط", url: "/whatsapp/simple-test", icon: TestTube },
         { title: "اختبار المرفقات", url: "/whatsapp/test-media", icon: FileImage },

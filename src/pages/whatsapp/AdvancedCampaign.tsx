@@ -25,8 +25,9 @@ import {
 } from 'lucide-react';
 
 // Components
-import { TextMessageTab } from '@/components/whatsapp/campaign-tabs/TextMessageTab';
-import { MediaMessageTab } from '@/components/whatsapp/campaign-tabs/MediaMessageTab';
+import { EnhancedTextMessageTab } from '@/components/whatsapp/campaign-tabs/EnhancedTextMessageTab';
+import { EnhancedMediaMessageTab } from '@/components/whatsapp/campaign-tabs/EnhancedMediaMessageTab';
+import { whatsappService } from '@/services/whatsappService';
 import { ProductMessageTab } from '@/components/whatsapp/campaign-tabs/ProductMessageTab';
 import { ChannelMessageTab } from '@/components/whatsapp/campaign-tabs/ChannelMessageTab';
 import { StickerMessageTab } from '@/components/whatsapp/campaign-tabs/StickerMessageTab';
@@ -42,78 +43,60 @@ interface AdvancedCampaignState {
   campaignData: any;
 }
 
-// تعريف التابات المتاحة
+// تعريف التابات المتاحة - ركز على النصية والوسائط الآن
 const campaignTabs = [
   {
     id: 'text',
     label: 'رسالة نصية',
     icon: MessageSquare,
-    component: TextMessageTab,
-    description: 'رسالة نصية بسيطة'
+    component: EnhancedTextMessageTab,
+    description: 'رسالة نصية مع متغيرات وقوالب'
   },
   {
     id: 'media',
     label: 'رسالة وسائط',
     icon: Image,
-    component: MediaMessageTab,
-    description: 'رسالة مع صورة أو فيديو'
+    component: EnhancedMediaMessageTab,
+    description: 'رسالة مع صورة، فيديو، صوت أو مستند'
   },
+  // الأنواع التالية ستكون متاحة في المستقبل
+  /* 
   {
     id: 'product',
     label: 'رسالة المنتج',
     icon: Grid3X3,
     component: ProductMessageTab,
-    description: 'رسالة لعرض منتج'
+    description: 'رسالة لعرض منتج (قريباً)'
   },
   {
-    id: 'channel',
-    label: 'رسالة القناة',
-    icon: Zap,
-    component: ChannelMessageTab,
-    description: 'رسالة من قناة'
-  },
-  {
-    id: 'sticker',
-    label: 'رسالة ملصق',
-    icon: Clock,
-    component: StickerMessageTab,
-    description: 'رسالة ملصق'
-  },
-  {
-    id: 'poll',
-    label: 'رسالة استفتاء',
-    icon: Clock,
-    component: PollMessageTab,
-    description: 'رسالة استطلاع رأي'
+    id: 'button',
+    label: 'رسالة تفاعلية',
+    icon: Plus,
+    component: ButtonMessageTab,
+    description: 'رسالة مع أزرار تفاعلية (قريباً)'
   },
   {
     id: 'list',
     label: 'رسالة قائمة',
     icon: List,
     component: ListMessageTab,
-    description: 'رسالة قائمة خيارات'
+    description: 'رسالة قائمة خيارات (قريباً)'
   },
   {
     id: 'location',
     label: 'رسالة موقع',
     icon: MapPin,
     component: LocationMessageTab,
-    description: 'رسالة مع موقع جغرافي'
+    description: 'رسالة مع موقع جغرافي (قريباً)'
   },
   {
     id: 'contact',
     label: 'رسالة جهة إتصال',
     icon: User,
     component: ContactMessageTab,
-    description: 'رسالة مشاركة جهة اتصال'
-  },
-  {
-    id: 'button',
-    label: 'رسالة زر (*)',
-    icon: Plus,
-    component: ButtonMessageTab,
-    description: 'رسالة مع أزرار تفاعلية'
+    description: 'رسالة مشاركة جهة اتصال (قريباً)'
   }
+  */
 ];
 
 export default function AdvancedCampaign() {
@@ -156,21 +139,144 @@ export default function AdvancedCampaign() {
   };
 
   const handleSendCampaign = async () => {
+    // التحقق من صحة البيانات
+    if (!state.campaignData.campaignName) {
+      toast.error('يرجى إدخال اسم الحملة');
+      return;
+    }
+
+    if (!state.campaignData.selectedContacts || state.campaignData.selectedContacts.length === 0) {
+      toast.error('يرجى اختيار جهات اتصال على الأقل');
+      return;
+    }
+
+    // التحقق من وجود رسائل صالحة
+    let hasValidMessages = false;
+    
+    if (state.campaignData.messageType === 'text' && state.campaignData.textMessages) {
+      hasValidMessages = state.campaignData.textMessages.some((msg: any) => msg.message.trim());
+    } else if (state.campaignData.messageType === 'media' && state.campaignData.mediaMessages) {
+      hasValidMessages = state.campaignData.mediaMessages.some((msg: any) => msg.mediaUrl && msg.message);
+    }
+
+    if (!hasValidMessages) {
+      toast.error('يرجى إضافة رسالة صالحة واحدة على الأقل');
+      return;
+    }
+
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      // هنا سيتم إرسال البيانات إلى الخدمة
-      console.log('Sending campaign data:', state.campaignData);
+      console.log('🚀 بدء إرسال الحملة:', state.campaignData);
       
-      // محاكاة الإرسال
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { selectedContacts, messageType } = state.campaignData;
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+
+      // إرسال الرسائل لكل جهة اتصال
+      for (const contactId of selectedContacts) {
+        try {
+          // العثور على جهة الاتصال
+          const contact = await whatsappService.getContactById(contactId);
+          if (!contact) {
+            errors.push(`لم يتم العثور على جهة الاتصال ${contactId}`);
+            errorCount++;
+            continue;
+          }
+
+          // إرسال حسب نوع الرسالة
+          if (messageType === 'text') {
+            await sendTextMessages(contact, state.campaignData.textMessages);
+          } else if (messageType === 'media') {
+            await sendMediaMessages(contact, state.campaignData.mediaMessages);
+          }
+
+          successCount++;
+          
+          // تأخير بسيط بين الرسائل لتجنب الحظر
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+        } catch (error) {
+          console.error(`خطأ في إرسال رسالة للعميل ${contactId}:`, error);
+          errors.push(`فشل الإرسال للعميل ${contactId}: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+          errorCount++;
+        }
+      }
+
+      // عرض النتائج
+      if (successCount > 0) {
+        toast.success(`تم إرسال الحملة بنجاح إلى ${successCount} عميل!`);
+      }
       
-      toast.success('تم إرسال الحملة بنجاح!');
+      if (errorCount > 0) {
+        console.error('أخطاء الإرسال:', errors);
+        toast.error(`فشل إرسال ${errorCount} رسالة`);
+      }
+
+      // إنشاء تقرير الحملة
+      const campaignReport = {
+        campaignName: state.campaignData.campaignName,
+        messageType,
+        totalRecipients: selectedContacts.length,
+        successCount,
+        errorCount,
+        errors,
+        sentAt: new Date().toISOString()
+      };
+
+      console.log('📊 تقرير الحملة:', campaignReport);
+      
     } catch (error) {
-      console.error('Error sending campaign:', error);
-      toast.error('فشل في إرسال الحملة');
+      console.error('خطأ عام في إرسال الحملة:', error);
+      toast.error('حدث خطأ في إرسال الحملة');
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // دالة إرسال الرسائل النصية
+  const sendTextMessages = async (contact: any, textMessages: any[]) => {
+    for (const textMsg of textMessages) {
+      if (!textMsg.message.trim()) continue;
+
+      // استبدال المتغيرات
+      let message = textMsg.message;
+      const replacements: { [key: string]: string } = {
+        name: contact.name || 'العميل',
+        company: contact.company || '',
+        phone: contact.phone || '',
+        email: contact.email || '',
+        date: new Date().toLocaleDateString('ar-SA'),
+        time: new Date().toLocaleTimeString('ar-SA')
+      };
+
+      textMsg.variables?.forEach((variable: string) => {
+        const value = replacements[variable] || `{${variable}}`;
+        message = message.replace(new RegExp(`\\{${variable}\\}`, 'g'), value);
+      });
+
+      await whatsappService.sendWhatsAppMessage(
+        contact.phone,
+        message,
+        textMsg.footer || 'مرسل عبر StarCity Folio'
+      );
+    }
+  };
+
+  // دالة إرسال رسائل الوسائط
+  const sendMediaMessages = async (contact: any, mediaMessages: any[]) => {
+    for (const mediaMsg of mediaMessages) {
+      if (!mediaMsg.mediaUrl) continue;
+
+      await whatsappService.sendWhatsAppMessage(
+        contact.phone,
+        mediaMsg.message || 'رسالة وسائط',
+        'مرسل عبر StarCity Folio',
+        mediaMsg.mediaUrl,
+        mediaMsg.mediaType,
+        mediaMsg.message
+      );
     }
   };
 

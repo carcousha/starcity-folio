@@ -22,7 +22,7 @@ import {
 } from '@/types/whatsapp';
 
 class WhatsAppService {
-  private apiBaseUrl = 'https://app.x-growth.tech';
+  private apiBaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://app.x-growth.tech';
 
   // ===== إدارة جهات الاتصال =====
   
@@ -973,32 +973,61 @@ class WhatsAppService {
         throw new Error('حجم الملف كبير جداً. الحد الأقصى 16 ميجابايت');
       }
 
-      // استخدام روابط عامة بسيطة للمرفقات
-      console.log('🔗 [uploadMediaFile] Using simple public URLs for attachments');
-      
-      const fileType = file.type;
-      let mediaUrl: string;
-      
-      if (fileType.startsWith('image/')) {
-        // للصور: استخدام رابط صورة عامة
-        mediaUrl = `https://picsum.photos/800/600?random=${Date.now()}&filename=${encodeURIComponent(file.name)}`;
-        console.log('🖼️ [uploadMediaFile] Image file detected, using Picsum URL:', mediaUrl);
-      } else if (fileType.startsWith('video/')) {
-        // للفيديوهات: استخدام رابط فيديو عام
-        mediaUrl = `https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4?filename=${encodeURIComponent(file.name)}`;
-        console.log('🎥 [uploadMediaFile] Video file detected, using sample video URL:', mediaUrl);
-      } else if (fileType.startsWith('audio/')) {
-        // للملفات الصوتية: استخدام رابط صوتي عام
-        mediaUrl = `https://www.soundjay.com/misc/sounds/bell-ringing-05.wav?filename=${encodeURIComponent(file.name)}`;
-        console.log('🎵 [uploadMediaFile] Audio file detected, using sample audio URL:', mediaUrl);
-      } else {
-        // للمستندات: استخدام رابط PDF عام
-        mediaUrl = `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf?filename=${encodeURIComponent(file.name)}`;
-        console.log('📄 [uploadMediaFile] Document file detected, using sample PDF URL:', mediaUrl);
+      // التحقق من نوع الملف
+      const allowedTypes = [
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff',
+        // Videos
+        'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv', 'video/webm',
+        // Audio
+        'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac',
+        // Documents
+        'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain', 'text/csv'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(`نوع الملف غير مدعوم: ${file.type}`);
       }
-      
-      console.log('✅ [uploadMediaFile] Generated public URL for attachment:', mediaUrl);
-      return mediaUrl;
+
+      // الحصول على session الحالي
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('يجب تسجيل الدخول لرفع الملفات');
+      }
+
+      // إنشاء اسم ملف فريد
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
+      const filePath = `whatsapp-media/${fileName}`;
+
+      console.log('🔗 [uploadMediaFile] Uploading to Supabase Storage...');
+
+      // رفع الملف مباشرة إلى Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('whatsapp-media')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('💥 [uploadMediaFile] Upload error:', uploadError);
+        throw new Error(`فشل في رفع الملف: ${uploadError.message}`);
+      }
+
+      // الحصول على الرابط العام
+      const { data: urlData } = supabase.storage
+        .from('whatsapp-media')
+        .getPublicUrl(filePath);
+
+      if (!urlData?.publicUrl) {
+        throw new Error('فشل في الحصول على رابط الملف');
+      }
+
+      console.log('✅ [uploadMediaFile] File uploaded successfully:', urlData.publicUrl);
+      return urlData.publicUrl;
 
     } catch (error) {
       console.error('💥 [uploadMediaFile] Upload failed:', error);

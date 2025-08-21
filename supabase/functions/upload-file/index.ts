@@ -3,8 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, Accept, Accept-Language, Content-Language",
+  "Access-Control-Allow-Methods": "POST, OPTIONS, GET, PUT, DELETE",
+  "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Max-Age": "86400",
 };
 
 serve(async (req) => {
@@ -43,16 +45,27 @@ serve(async (req) => {
       throw new Error("No file provided");
     }
 
-    // Validate file type and size
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // Validate file type and size for WhatsApp
+    const allowedTypes = [
+      // Images
+      "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/tiff",
+      // Videos
+      "video/mp4", "video/avi", "video/mov", "video/wmv", "video/flv", "video/webm",
+      // Audio
+      "audio/mp3", "audio/wav", "audio/ogg", "audio/m4a", "audio/aac",
+      // Documents
+      "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/plain", "text/csv"
+    ];
+    const maxSize = 16 * 1024 * 1024; // 16MB for WhatsApp
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error("File type not allowed");
+      throw new Error(`نوع الملف غير مدعوم: ${file.type}. الأنواع المدعومة: صور، فيديو، صوت، مستندات`);
     }
 
     if (file.size > maxSize) {
-      throw new Error("File too large");
+      throw new Error(`حجم الملف كبير جداً: ${(file.size / 1024 / 1024).toFixed(2)}MB. الحد الأقصى 16MB`);
     }
 
     // Generate unique filename
@@ -60,9 +73,11 @@ serve(async (req) => {
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`;
     const filePath = `${category}/${fileName}`;
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage - use whatsapp-media bucket if category is whatsapp-media
+    const bucketName = category === "whatsapp-media" ? "whatsapp-media" : "documents";
+    
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from("documents")
+      .from(bucketName)
       .upload(filePath, file);
 
     if (uploadError) {
@@ -72,7 +87,7 @@ serve(async (req) => {
 
     // Get public URL
     const { data: urlData } = supabaseAdmin.storage
-      .from("documents")
+      .from(bucketName)
       .getPublicUrl(filePath);
 
     // Save file metadata to database
@@ -92,7 +107,7 @@ serve(async (req) => {
     if (dbError) {
       console.error("Database error:", dbError);
       // Try to cleanup uploaded file
-      await supabaseAdmin.storage.from("documents").remove([filePath]);
+      await supabaseAdmin.storage.from(bucketName).remove([filePath]);
       throw new Error("Failed to save file metadata");
     }
 

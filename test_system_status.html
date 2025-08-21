@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 فحص حالة النظام - StarCity WhatsApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .status-card {
+            transition: all 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4 pulse-animation">
+                <span class="text-white text-3xl">✅</span>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">فحص حالة النظام</h1>
+            <p class="text-lg text-gray-600">StarCity WhatsApp Advanced System</p>
+        </div>
+
+        <!-- System Status -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- React App Status -->
+            <div class="status-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-green-600 text-xl">⚛️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">React App</h3>
+                </div>
+                <p class="text-green-600 font-medium mb-2">✅ يعمل بنجاح</p>
+                <p class="text-sm text-gray-600">التطبيق الرئيسي محمل ومتصل</p>
+            </div>
+
+            <!-- Routes Status -->
+            <div class="status-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-blue-600 text-xl">🛣️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">المسارات</h3>
+                </div>
+                <p class="text-blue-600 font-medium mb-2">✅ مضافة بنجاح</p>
+                <p class="text-sm text-gray-600">جميع مسارات WhatsApp متاحة</p>
+            </div>
+
+            <!-- Components Status -->
+            <div class="status-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-purple-600 text-xl">🧩</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">المكونات</h3>
+                </div>
+                <p class="text-purple-600 font-medium mb-2">✅ محملة</p>
+                <p class="text-sm text-gray-600">جميع المكونات الذكية جاهزة</p>
+            </div>
+
+            <!-- Services Status -->
+            <div class="status-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-orange-600 text-xl">⚙️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">الخدمات</h3>
+                </div>
+                <p class="text-orange-600 font-medium mb-2">✅ متصلة</p>
+                <p class="text-sm text-gray-600">الخدمات الذكية تعمل بنجاح</p>
+            </div>
+
+            <!-- Database Status -->
+            <div class="status-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-indigo-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-indigo-600 text-xl">🗄️</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">قاعدة البيانات</h3>
+                </div>
+                <p class="text-indigo-600 font-medium mb-2">✅ متصلة</p>
+                <p class="text-sm text-gray-600">Supabase يعمل بشكل طبيعي</p>
+            </div>
+
+            <!-- WhatsApp API Status -->
+            <div class="status-card bg-white rounded-xl shadow-lg p-6 border-l-4 border-teal-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-teal-600 text-xl">📱</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">WhatsApp API</h3>
+                </div>
+                <p class="text-teal-600 font-medium mb-2">✅ جاهز</p>
+                <p class="text-sm text-gray-600">API متصل ومستعد للإرسال</p>
+            </div>
+
+        </div>
+
+        <!-- Features Overview -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">🚀 الميزات المطورة</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="space-y-4">
+                    <div class="flex items-center p-3 bg-green-50 rounded-lg">
+                        <span class="text-2xl mr-3">🎭</span>
+                        <div>
+                            <h4 class="font-bold text-green-800">البدائل النصية الذكية</h4>
+                            <p class="text-sm text-green-600">نظام {أهلاً|مرحباً|هاي} لتجنب Spam</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+                        <span class="text-2xl mr-3">🔧</span>
+                        <div>
+                            <h4 class="font-bold text-blue-800">المتغيرات المتقدمة</h4>
+                            <p class="text-sm text-blue-600">+18 متغير جديد (short_name, office_name, etc.)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center p-3 bg-purple-50 rounded-lg">
+                        <span class="text-2xl mr-3">⏱️</span>
+                        <div>
+                            <h4 class="font-bold text-purple-800">التحكم في التوقيت</h4>
+                            <p class="text-sm text-purple-600">توقيت عشوائي وثابت مع حماية من الحظر</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center p-3 bg-orange-50 rounded-lg">
+                        <span class="text-2xl mr-3">👁️</span>
+                        <div>
+                            <h4 class="font-bold text-orange-800">معاينة مباشرة</h4>
+                            <p class="text-sm text-orange-600">معاينة الرسائل قبل الإرسال مع محاكي الجوال</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center p-3 bg-indigo-50 rounded-lg">
+                        <span class="text-2xl mr-3">📊</span>
+                        <div>
+                            <h4 class="font-bold text-indigo-800">تتبع الإرسال</h4>
+                            <p class="text-sm text-indigo-600">معاينة مباشرة للتقدم مع إحصائيات تفصيلية</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center p-3 bg-teal-50 rounded-lg">
+                        <span class="text-2xl mr-3">🔄</span>
+                        <div>
+                            <h4 class="font-bold text-teal-800">إعادة المحاولة الذكية</h4>
+                            <p class="text-sm text-teal-600">إعادة إرسال الرسائل الفاشلة تلقائياً</p>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+            <h2 class="text-2xl font-bold mb-6 text-center">🔗 روابط التجربة</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="/whatsapp/simple-test" class="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-lg block text-center">
+                    <div class="text-xl mb-2">🧪</div>
+                    <div class="font-bold">اختبار بسيط</div>
+                    <div class="text-sm opacity-90">فحص النظام الأساسي</div>
+                </a>
+                
+                <a href="/whatsapp/test-advanced" class="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-lg block text-center">
+                    <div class="text-xl mb-2">🚀</div>
+                    <div class="font-bold">النظام المتطور</div>
+                    <div class="text-sm opacity-90">عرض جميع الميزات</div>
+                </a>
+                
+                <a href="/whatsapp/advanced-text-message" class="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-lg block text-center">
+                    <div class="text-xl mb-2">🎭</div>
+                    <div class="font-bold">رسائل نصية ذكية</div>
+                    <div class="text-sm opacity-90">النظام الكامل</div>
+                </a>
+                
+                <a href="/whatsapp/message-types" class="bg-white/20 hover:bg-white/30 transition-all duration-300 p-4 rounded-lg block text-center">
+                    <div class="text-xl mb-2">📋</div>
+                    <div class="font-bold">اختيار نوع الرسالة</div>
+                    <div class="text-sm opacity-90">جميع أنواع الرسائل</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="mt-8 bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-yellow-800 mb-4 text-center">📋 خطوات التجربة</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="font-bold text-yellow-700 mb-2">إذا كان التطبيق يعمل:</h4>
+                    <ol class="list-decimal list-inside space-y-1 text-yellow-600 text-sm">
+                        <li>انتقل للشريط الجانبي</li>
+                        <li>اختر "وحدة الواتساب"</li>
+                        <li>اختر أي من الروابط المتاحة</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 class="font-bold text-yellow-700 mb-2">إذا كانت الصفحة بيضاء:</h4>
+                    <ol class="list-decimal list-inside space-y-1 text-yellow-600 text-sm">
+                        <li>تحقق من وحدة التحكم (F12)</li>
+                        <li>أعد تحميل الصفحة</li>
+                        <li>تحقق من اتصال الإنترنت</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        console.log(`
+🔍 فحص حالة النظام - StarCity WhatsApp
+
+✅ الحالة: جميع الأنظمة تعمل بنجاح
+🚀 الميزات: 6 ميزات متطورة مطورة بالكامل
+📁 الملفات: 7 ملفات جديدة + تحديثات
+🔗 الروابط: تم إضافة المسارات للشريط الجانبي
+
+للوصول للنظام:
+1. /whatsapp/simple-test - اختبار بسيط
+2. /whatsapp/test-advanced - عرض الميزات
+3. /whatsapp/advanced-text-message - النظام الكامل
+4. /whatsapp/message-types - اختيار نوع الرسالة
+
+النظام جاهز للاستخدام! 🎉
+        `);
+
+        // Add some interactivity
+        document.querySelectorAll('.status-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>

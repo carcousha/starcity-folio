@@ -25,6 +25,7 @@ import {
   Download
 } from 'lucide-react';
 import { whatsappService } from '@/services/whatsappService';
+import { toast } from 'sonner';
 
 interface MediaMessageTabProps {
   data: any;
@@ -47,6 +48,7 @@ export const MediaMessageTab: React.FC<MediaMessageTabProps> = ({
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -145,9 +147,12 @@ export const MediaMessageTab: React.FC<MediaMessageTabProps> = ({
         mediaUrl: uploadedUrl
       });
 
+      toast.success(`تم رفع ${getMediaTypeLabel()} بنجاح!`);
+
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert(error instanceof Error ? error.message : 'خطأ في رفع الملف');
+      const errorMessage = error instanceof Error ? error.message : 'خطأ في رفع الملف';
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -182,6 +187,31 @@ export const MediaMessageTab: React.FC<MediaMessageTabProps> = ({
       mediaFile: null,
       mediaUrl: ''
     });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      // إنشاء event وهمي لاستخدام نفس دالة handleFileUpload
+      const fakeEvent = {
+        target: { files: [file] }
+      } as React.ChangeEvent<HTMLInputElement>;
+      handleFileUpload(fakeEvent);
+    }
   };
 
   const getMediaIcon = () => {
@@ -296,25 +326,50 @@ export const MediaMessageTab: React.FC<MediaMessageTabProps> = ({
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
                   رفع ملف {getMediaTypeLabel()}
                 </Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    isUploading 
+                      ? 'border-blue-300 bg-blue-50' 
+                      : isDragOver
+                      ? 'border-purple-500 bg-purple-100'
+                      : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <input
                     type="file"
                     id="mediaFile"
                     accept={mediaType === 'image' ? 'image/*' : 
                            mediaType === 'video' ? 'video/*' : 
                            mediaType === 'audio' ? 'audio/*' : 
-                           'application/pdf,application/doc,application/docx'}
+                           'application/pdf,application/doc,application/docx,text/plain,text/csv'}
                     onChange={handleFileUpload}
                     className="hidden"
+                    disabled={isUploading}
                   />
-                  <label htmlFor="mediaFile" className="cursor-pointer">
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600">
-                      {isUploading ? 'جاري الرفع...' : `اضغط لرفع ${getMediaTypeLabel()}`}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      الحد الأقصى 16 ميجابايت
-                    </p>
+                  <label htmlFor="mediaFile" className={`cursor-pointer ${isUploading ? 'pointer-events-none' : ''}`}>
+                    {isUploading ? (
+                      <div className="flex flex-col items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                        <p className="text-sm text-blue-600 font-medium">جاري الرفع...</p>
+                        <p className="text-xs text-blue-500 mt-1">يرجى الانتظار</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-600">
+                          اضغط لرفع {getMediaTypeLabel()}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          الحد الأقصى 16 ميجابايت
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {isDragOver ? 'أفلت الملف هنا' : 'أو اسحب الملف هنا'}
+                        </p>
+                      </>
+                    )}
                   </label>
                 </div>
               </div>
@@ -334,28 +389,87 @@ export const MediaMessageTab: React.FC<MediaMessageTabProps> = ({
                     </Button>
                   </div>
                   
-                  {mediaType === 'image' && mediaPreview && (
-                    <div className="relative">
+                  {mediaType === 'image' && (mediaPreview || mediaUrl) && (
+                    <div className="space-y-2">
                       <img
-                        src={mediaPreview}
+                        src={mediaPreview || mediaUrl}
                         alt="معاينة"
                         className="max-w-full h-auto rounded-lg"
+                        onError={(e) => {
+                          console.error('Error loading image preview');
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
+                      {mediaFile && (
+                        <div className="text-xs text-gray-500 text-center">
+                          {mediaFile.name} ({(mediaFile.size / 1024 / 1024).toFixed(2)}MB)
+                        </div>
+                      )}
                     </div>
                   )}
                   
                   {mediaType !== 'image' && mediaUrl && (
-                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                      {getMediaIcon()}
-                      <span className="text-sm text-gray-700">{getMediaTypeLabel()}</span>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-4 w-4" />
-                        </Button>
+                    <div className="space-y-3">
+                                             <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                         {getMediaIcon()}
+                         <div className="flex-1 text-right">
+                           <span className="text-sm text-gray-700 font-medium">{getMediaTypeLabel()}</span>
+                           {mediaFile && (
+                             <div className="text-xs text-gray-500 mt-1">
+                               {mediaFile.name} ({(mediaFile.size / 1024 / 1024).toFixed(2)}MB)
+                             </div>
+                           )}
+                         </div>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(mediaUrl, '_blank')}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = mediaUrl;
+                              link.download = mediaFile?.name || 'file';
+                              link.click();
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
+                      
+                      {mediaType === 'video' && (
+                        <video 
+                          controls 
+                          className="w-full rounded-lg"
+                          onError={(e) => {
+                            console.error('Error loading video preview');
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        >
+                          <source src={mediaUrl} type={mediaFile?.type || 'video/mp4'} />
+                          متصفحك لا يدعم تشغيل الفيديو
+                        </video>
+                      )}
+                      
+                      {mediaType === 'audio' && (
+                        <audio 
+                          controls 
+                          className="w-full"
+                          onError={(e) => {
+                            console.error('Error loading audio preview');
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        >
+                          <source src={mediaUrl} type={mediaFile?.type || 'audio/mp3'} />
+                          متصفحك لا يدعم تشغيل الصوت
+                        </audio>
+                      )}
                     </div>
                   )}
                 </div>
