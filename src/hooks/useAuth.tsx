@@ -42,7 +42,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -81,17 +80,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     console.log('useAuth: Setting up auth state listener');
     
-    // Only run once
-    if (isInitialized) {
-      return;
-    }
-    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
         
-        // Clear state immediately if no session
         if (!session) {
           setSession(null);
           setUser(null);
@@ -101,11 +94,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
         
-        // Set session and user
         setSession(session);
         setUser(session.user);
         
-        // Fetch profile asynchronously
         try {
           const profileData = await fetchProfile(session.user.id);
           if (profileData) {
@@ -139,7 +130,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setProfile(null);
         setLoading(false);
         console.log('useAuth: No existing session found');
-        setIsInitialized(true);
         return;
       }
       
@@ -164,12 +154,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setProfile(null);
       } finally {
         setLoading(false);
-        setIsInitialized(true);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [isInitialized]);
+  }, []);
 
   const signOut = async () => {
     console.log('useAuth: Signing out user');

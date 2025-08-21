@@ -3,132 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اختبار بسيط - StarCity</title>
+    <title>اختبار النظام - ستار سيتي</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f0f9ff;
-            direction: rtl;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .container {
-            max-width: 600px;
-            margin: 0 auto;
             background: white;
             padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             text-align: center;
-        }
-        .icon {
-            width: 80px;
-            height: 80px;
-            background-color: #10b981;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 2rem;
-            color: white;
-        }
-        h1 {
-            color: #1f2937;
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-        p {
-            color: #6b7280;
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
+            max-width: 500px;
+            width: 90%;
         }
         .status {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-            margin-bottom: 2rem;
+            margin: 2rem 0;
         }
         .status-item {
             padding: 1rem;
             border-radius: 8px;
             border: 1px solid;
         }
-        .status-item.success {
-            background-color: #dbeafe;
+        .success {
+            background: #dbeafe;
             border-color: #93c5fd;
             color: #1e40af;
         }
-        .status-item.info {
-            background-color: #dcfce7;
+        .warning {
+            background: #fef3c7;
+            border-color: #fbbf24;
+            color: #92400e;
+        }
+        .error {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+        .info {
+            background: #dcfce7;
             border-color: #86efac;
             color: #166534;
         }
-        .info {
-            border-top: 1px solid #e5e7eb;
-            padding-top: 1rem;
-            font-size: 0.9rem;
-            color: #6b7280;
-        }
-        .links {
-            margin-top: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .link {
-            padding: 1rem;
-            background-color: #f3f4f6;
-            border-radius: 8px;
+        .button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            background: #3b82f6;
+            color: white;
             text-decoration: none;
-            color: #374151;
+            border-radius: 8px;
             font-weight: bold;
             transition: background-color 0.3s;
         }
-        .link:hover {
-            background-color: #e5e7eb;
+        .button:hover {
+            background: #2563eb;
+        }
+        .button.secondary {
+            background: #6b7280;
+        }
+        .button.secondary:hover {
+            background: #4b5563;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="icon">✅</div>
-        <h1>الخادم يعمل بنجاح!</h1>
-        <p>هذه صفحة HTML بسيطة للتأكد من عمل الخادم</p>
+        <h1>🚀 اختبار النظام</h1>
+        <p>صفحة اختبار بسيطة للتأكد من عمل الخادم</p>
         
         <div class="status">
             <div class="status-item success">
-                <h3>الخادم</h3>
-                <p>✅ يعمل</p>
+                <h3>✅ الخادم</h3>
+                <p>يعمل بنجاح</p>
             </div>
             <div class="status-item info">
-                <h3>HTML</h3>
-                <p>✅ يعمل</p>
+                <h3>✅ HTML</h3>
+                <p>يعمل بنجاح</p>
+            </div>
+            <div class="status-item warning">
+                <h3>⚠️ React</h3>
+                <p>تحتاج اختبار</p>
+            </div>
+            <div class="status-item warning">
+                <h3>⚠️ المصادقة</h3>
+                <p>تحتاج اختبار</p>
             </div>
         </div>
         
-        <div class="info">
-            <p>URL: <span id="current-url"></span></p>
-            <p>الوقت: <span id="current-time"></span></p>
-            <p>المنفذ: 8084</p>
+        <div>
+            <a href="/test-app" class="button">🧪 اختبار React</a>
+            <a href="/" class="button secondary">🔐 تسجيل الدخول</a>
         </div>
-
-        <div class="links">
-            <h3>روابط الاختبار:</h3>
-            <a href="/test-app" class="link">🧪 صفحة React بدون مصادقة</a>
-            <a href="/whatsapp/simple-test" class="link">📱 صفحة WhatsApp بسيطة</a>
-            <a href="/" class="link">🔐 صفحة تسجيل الدخول</a>
+        
+        <div style="margin-top: 2rem; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.9rem; color: #6b7280;">
+                URL الحالي: <span id="current-url"></span>
+            </p>
         </div>
     </div>
-
+    
     <script>
         document.getElementById('current-url').textContent = window.location.href;
-        document.getElementById('current-time').textContent = new Date().toLocaleString('ar-SA');
-        
-        console.log('✅ صفحة HTML بسيطة تعمل بنجاح!');
-        console.log('URL:', window.location.href);
-        console.log('الوقت:', new Date().toLocaleString('ar-SA'));
-        console.log('المنفذ: 8084');
     </script>
 </body>
 </html>

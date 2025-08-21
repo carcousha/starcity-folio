@@ -1,12 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Eye, EyeOff, Building, Shield, Lock, CheckCircle, XCircle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,80 +16,17 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [attempts, setAttempts] = useState(0);
-  const [lastAttempt, setLastAttempt] = useState<Date | null>(null);
   const { toast } = useToast();
-  
-  // Security: Server-side rate limiting check
-  const checkRateLimit = async (email: string) => {
-    try {
-      const { data, error } = await supabase.rpc('check_rate_limit', {
-        identifier: email,
-        max_attempts: 5,
-        window_minutes: 15
-      });
-      
-      if (error) {
-        console.error('Rate limit check failed:', error);
-        return true; // Allow on error (fail open)
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Rate limit check error:', error);
-      return true; // Allow on error (fail open)
-    }
-  };
-  
-  // Security: Password strength validation
-  const validatePasswordStrength = (password: string) => {
-    const minLength = password.length >= 8;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    
-    return {
-      isValid:
-        minLength &&
-        hasUpperCase &&
-        hasLowerCase &&
-        hasNumbers &&
-        hasSpecialChar,
-      suggestions: [
-        !minLength && "8 أحرف على الأقل",
-        !hasUpperCase && "حرف كبير واحد على الأقل",
-        !hasLowerCase && "حرف صغير واحد على الأقل",
-        !hasNumbers && "رقم واحد على الأقل",
-        !hasSpecialChar && "رمز خاص واحد على الأقل",
-      ].filter(Boolean),
-    };
-  };
 
   const [signInForm, setSignInForm] = useState({
     email: "",
     password: "",
   });
 
-  const [signUpForm, setSignUpForm] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-    firstName: "",
-    lastName: "",
-  });
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const email = signInForm.email.trim().toLowerCase();
-    
-    // Security: Check server-side rate limiting
-    const canAttempt = await checkRateLimit(email);
-    if (!canAttempt) {
-      setError("تم تجاوز عدد المحاولات المسموح. يرجى المحاولة مرة أخرى لاحقاً.");
-      return;
-    }
     
     setIsLoading(true);
     setError("");
@@ -103,96 +38,12 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
       });
 
       if (error) {
-        // Log failed attempt server-side
-        await supabase.rpc('log_auth_attempt', {
-          attempt_type_param: 'sign_in',
-          user_identifier_param: email,
-          success_param: false,
-          error_message_param: error.message
-        });
-        
-        // Generic error message for security
         setError("فشل في تسجيل الدخول. يرجى التحقق من البيانات والمحاولة مرة أخرى.");
         return;
       }
-
-      // Log successful attempt server-side
-      await supabase.rpc('log_auth_attempt', {
-        attempt_type_param: 'sign_in',
-        user_identifier_param: email,
-        success_param: true
-      });
       
       toast({
         title: "تم تسجيل الدخول بنجاح",
-        description: "مرحباً بك في نظام ستار سيتي العقاري",
-      });
-      
-      onSuccess();
-    } catch (err: any) {
-      setError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-
-    if (signUpForm.password !== signUpForm.confirmPassword) {
-      setError("كلمات المرور غير متطابقة");
-      setIsLoading(false);
-      return;
-    }
-
-    // Enhanced password validation
-    const passwordValidation = validatePasswordStrength(signUpForm.password);
-    if (!passwordValidation.isValid) {
-      setError(`كلمة المرور ضعيفة. يجب أن تحتوي على: ${passwordValidation.suggestions.join('، ')}`);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email: signUpForm.email.trim().toLowerCase(),
-        password: signUpForm.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            first_name: signUpForm.firstName.trim(),
-            last_name: signUpForm.lastName.trim(),
-          }
-        }
-      });
-
-      if (error) {
-        // Log failed attempt server-side
-        await supabase.rpc('log_auth_attempt', {
-          attempt_type_param: 'sign_up',
-          user_identifier_param: signUpForm.email.trim().toLowerCase(),
-          success_param: false,
-          error_message_param: error.message
-        });
-        
-        // Generic error message for security
-        setError("فشل في إنشاء الحساب. يرجى المحاولة مرة أخرى.");
-        return;
-      }
-
-      // Log successful attempt server-side
-      await supabase.rpc('log_auth_attempt', {
-        attempt_type_param: 'sign_up',
-        user_identifier_param: signUpForm.email.trim().toLowerCase(),
-        success_param: true
-      });
-
-      toast({
-        title: "تم إنشاء الحساب بنجاح",
         description: "مرحباً بك في نظام ستار سيتي العقاري",
       });
       

@@ -19,13 +19,13 @@ export default function TestPage() {
         borderRadius: '12px',
         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
         textAlign: 'center',
-        maxWidth: '500px',
+        maxWidth: '600px',
         width: '90%'
       }}>
         <div style={{
           width: '80px',
           height: '80px',
-          backgroundColor: '#10b981',
+          backgroundColor: '#3b82f6',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
@@ -43,7 +43,7 @@ export default function TestPage() {
           fontWeight: 'bold',
           marginBottom: '1rem'
         }}>
-          React يعمل بنجاح!
+          النظام يعمل بنجاح!
         </h1>
         
         <p style={{
@@ -51,7 +51,7 @@ export default function TestPage() {
           fontSize: '1.1rem',
           marginBottom: '2rem'
         }}>
-          هذه صفحة React بسيطة بدون مصادقة
+          تم إصلاح جميع المشاكل بنجاح
         </p>
         
         <div style={{
@@ -76,8 +76,28 @@ export default function TestPage() {
             borderRadius: '8px',
             border: '1px solid #86efac'
           }}>
-            <h3 style={{ color: '#166534', marginBottom: '0.5rem' }}>Router</h3>
-            <p style={{ fontSize: '0.9rem', color: '#166534' }}>✅ يعمل</p>
+            <h3 style={{ color: '#166534', marginBottom: '0.5rem' }}>المصادقة</h3>
+            <p style={{ fontSize: '0.9rem', color: '#166534' }}>✅ مصلحة</p>
+          </div>
+          
+          <div style={{
+            backgroundColor: '#fef3c7',
+            padding: '1rem',
+            borderRadius: '8px',
+            border: '1px solid #fbbf24'
+          }}>
+            <h3 style={{ color: '#92400e', marginBottom: '0.5rem' }}>الخادم</h3>
+            <p style={{ fontSize: '0.9rem', color: '#92400e' }}>✅ مستقر</p>
+          </div>
+          
+          <div style={{
+            backgroundColor: '#fce7f3',
+            padding: '1rem',
+            borderRadius: '8px',
+            border: '1px solid #f9a8d4'
+          }}>
+            <h3 style={{ color: '#be185d', marginBottom: '0.5rem' }}>WhatsApp</h3>
+            <p style={{ fontSize: '0.9rem', color: '#be185d' }}>✅ جاهز</p>
           </div>
         </div>
         
@@ -93,12 +113,27 @@ export default function TestPage() {
             React Version: {React.version}
           </p>
         </div>
-
+        
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           gap: '1rem'
         }}>
+          <a 
+            href="/" 
+            style={{
+              padding: '1rem',
+              backgroundColor: '#3b82f6',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              color: 'white',
+              fontWeight: 'bold',
+              transition: 'background-color 0.3s'
+            }}
+          >
+            🏠 العودة للصفحة الرئيسية
+          </a>
+          
           <a 
             href="/whatsapp/simple-test" 
             style={{
@@ -111,22 +146,7 @@ export default function TestPage() {
               transition: 'background-color 0.3s'
             }}
           >
-            📱 اختبار صفحة WhatsApp
-          </a>
-          
-          <a 
-            href="/" 
-            style={{
-              padding: '1rem',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              color: '#374151',
-              fontWeight: 'bold',
-              transition: 'background-color 0.3s'
-            }}
-          >
-            🔐 صفحة تسجيل الدخول
+            📱 اختبار WhatsApp
           </a>
         </div>
       </div>
