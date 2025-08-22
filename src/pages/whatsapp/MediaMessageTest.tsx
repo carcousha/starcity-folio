@@ -175,8 +175,10 @@ const MediaMessageTest: React.FC = () => {
     if (files.length > 0) {
       const file = files[0];
       const fakeEvent = {
-        target: { files: [file] }
-      } as React.ChangeEvent<HTMLInputElement>;
+        target: { files: [file] },
+        preventDefault: () => {},
+        stopPropagation: () => {}
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
       handleFileUpload(fakeEvent);
     }
   };

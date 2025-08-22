@@ -103,7 +103,7 @@ export default function WhatsAppModule() {
       <Route path="test-media-final" element={<TestMediaFinal />} />
       
       {/* Test Page */}
-      <Route path="test" element={<TestPage />} />
+      <Route path="test" element={<SimpleTest />} />
       
       {/* Catch all - redirect to dashboard */}
       <Route path="*" element={<Navigate to="dashboard" replace />} />
