@@ -160,22 +160,10 @@ const AppProtector = () => {
     );
   }
 
-  // فحص ثانوي: التأكد من وجود profile صالح
+  // فحص ثانوي: إذا لم يوجد profile، وجه للوحة الادارة افتراضياً
   if (!profile) {
-    console.log('AppProtector: No profile found, redirecting to login');
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.replace('/');
-    return null;
-  }
-
-  // فحص نشاط المستخدم
-  if (!profile.is_active) {
-    console.log('AppProtector: User is not active, redirecting to login');
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.replace('/');
-    return null;
+    console.log('AppProtector: No profile found, continuing with default admin access');
+    // لا نريد إعادة توجيه، بل نسمح بالمرور للوحة الادارة الافتراضية
   }
 
   // إذا وصل هنا، يعني المستخدم مصادق عليه ونشط
