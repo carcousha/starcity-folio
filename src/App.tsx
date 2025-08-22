@@ -150,6 +150,7 @@ const AppProtector = () => {
 
   // إذا كان التحميل جاري، أظهر شاشة تحميل بسيطة
   if (loading) {
+    console.log('AppProtector: Loading is true, showing loading screen', { user: !!user, session: !!session, profile: !!profile, loading });
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
