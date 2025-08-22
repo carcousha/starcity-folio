@@ -9,20 +9,25 @@ const Auth = () => {
 
   useEffect(() => {
     // إذا كان المستخدم مسجل دخول بالفعل، وجهه للوحة التحكم
-    if (!loading && session && user && profile && profile.is_active) {
+    if (!loading && session && user) {
       console.log('Auth: User already logged in, redirecting to dashboard');
-      if (profile.role === 'admin') {
-        navigate("/admin-dashboard");
-      } else if (profile.role === 'accountant') {
-        navigate("/accounting");
+      if (profile && profile.is_active) {
+        if (profile.role === 'admin') {
+          navigate("/admin-dashboard");
+        } else if (profile.role === 'accountant') {
+          navigate("/accounting");
+        } else {
+          navigate("/employee/dashboard");
+        }
       } else {
-        navigate("/employee/dashboard");
+        // إذا لم يكن هناك ملف شخصي، وجه للوحة الادارة افتراضياً
+        navigate("/admin-dashboard");
       }
     }
   }, [user, profile, loading, session, navigate]);
 
   // إذا كان المستخدم مسجل دخول، لا تظهر صفحة تسجيل الدخول
-  if (!loading && session && user && profile && profile.is_active) {
+  if (!loading && session && user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

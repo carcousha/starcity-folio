@@ -46,6 +46,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchProfile = async (userId: string) => {
     try {
       console.log('Fetching profile for user:', userId);
+      
+      // Check current session
+      const { data: session } = await supabase.auth.getSession();
+      console.log('Current session in fetchProfile:', session);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -54,6 +59,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        console.error('Error details:', error.message, error.code, error.details);
         return null;
       }
 
@@ -99,19 +105,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         try {
           const profileData = await fetchProfile(session.user.id);
+          setProfile(profileData);
           if (profileData) {
-            setProfile(profileData);
             console.log('useAuth: Profile loaded successfully', profileData);
           } else {
-            console.error('useAuth: Failed to load profile, clearing session');
-            setSession(null);
-            setUser(null);
-            setProfile(null);
+            console.warn('useAuth: No profile found, but continuing with session');
           }
         } catch (error) {
-          console.error('useAuth: Error loading profile, clearing session', error);
-          setSession(null);
-          setUser(null);
+          console.error('useAuth: Error loading profile:', error);
           setProfile(null);
         } finally {
           setLoading(false);
@@ -138,19 +139,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       try {
         const profileData = await fetchProfile(session.user.id);
+        setProfile(profileData);
         if (profileData) {
-          setProfile(profileData);
           console.log('useAuth: Profile loaded from existing session', profileData);
         } else {
-          console.error('useAuth: Failed to load profile from existing session');
-          setSession(null);
-          setUser(null);
-          setProfile(null);
+          console.warn('useAuth: No profile found from existing session, but continuing');
         }
       } catch (error) {
         console.error('useAuth: Error loading profile from existing session', error);
-        setSession(null);
-        setUser(null);
         setProfile(null);
       } finally {
         setLoading(false);
