@@ -208,8 +208,10 @@ export const MediaMessageTab: React.FC<MediaMessageTabProps> = ({
       const file = files[0];
       // إنشاء event وهمي لاستخدام نفس دالة handleFileUpload
       const fakeEvent = {
-        target: { files: [file] }
-      } as React.ChangeEvent<HTMLInputElement>;
+        target: { files: [file] },
+        preventDefault: () => {},
+        stopPropagation: () => {}
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
       handleFileUpload(fakeEvent);
     }
   };

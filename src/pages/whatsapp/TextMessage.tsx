@@ -387,8 +387,8 @@ export default function TextMessage() {
           await new Promise(resolve => setTimeout(resolve, 1000));
           
         } catch (error) {
-          console.error(`خطأ في إرسال رسالة للعميل ${contactId}:`, error);
-          errors.push(`فشل الإرسال للعميل ${contactId}: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+          console.error(`خطأ في إرسال رسالة للعميل ${contact.name}:`, error);
+          errors.push(`فشل الإرسال للعميل ${contact.name}: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
           errorCount++;
         }
       }

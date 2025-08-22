@@ -16,7 +16,7 @@ export default function TestAdvanced() {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-green-50 rounded-lg">
                 <h3 className="font-bold text-green-800">البدائل النصية</h3>
-                <p className="text-sm text-green-600">نظام {أهلاً|مرحباً|هاي} جاهز</p>
+                <p className="text-sm text-green-600">نظام {"أهلاً|مرحباً|هاي"} جاهز</p>
               </div>
               
               <div className="p-4 bg-blue-50 rounded-lg">
