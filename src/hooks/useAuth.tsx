@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       // Check current session
       const { data: session } = await supabase.auth.getSession();
-      console.log('Current session in fetchProfile:', session);
+      console.log('Current session in fetchProfile:', session?.session?.user?.email);
       
       const { data, error } = await supabase
         .from('profiles')

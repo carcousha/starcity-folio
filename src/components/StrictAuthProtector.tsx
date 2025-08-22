@@ -24,9 +24,9 @@ export const StrictAuthProtector = ({ children }: { children: React.ReactNode })
         return;
       }
       
-      // فحص Profile
-      if (!loading && (!profile || !profile.is_active)) {
-        console.log('StrictAuthProtector: Invalid or inactive profile, redirecting');
+      // فحص Profile - السماح بالمرور حتى لو لم يوجد profile
+      if (!loading && profile && !profile.is_active) {
+        console.log('StrictAuthProtector: Profile exists but inactive, redirecting');
         localStorage.clear();
         sessionStorage.clear();
         window.location.replace('/');
@@ -52,14 +52,14 @@ export const StrictAuthProtector = ({ children }: { children: React.ReactNode })
     );
   }
 
-  // منع مطلق لأي محتوى بدون مصادقة صحيحة
-  if (!session || !user || !profile) {
+  // منع مطلق لأي محتوى بدون مصادقة صحيحة (جلسة ومستخدم فقط)
+  if (!session || !user) {
     window.location.href = '/';
     return null;
   }
 
-  // منع مطلق للمستخدمين غير النشطين
-  if (!profile.is_active) {
+  // منع مطلق للمستخدمين غير النشطين (إذا وجد profile)
+  if (profile && !profile.is_active) {
     window.location.href = '/';
     return null;
   }
