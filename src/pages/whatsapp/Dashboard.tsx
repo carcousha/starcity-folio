@@ -310,17 +310,105 @@ export default function WhatsAppDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button className="h-auto p-4 flex flex-col items-center space-y-2" variant="outline">
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/quick-send'}
+            >
               <Send className="h-6 w-6" />
               <span>إرسال رسالة سريعة</span>
             </Button>
-            <Button className="h-auto p-4 flex flex-col items-center space-y-2" variant="outline">
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/campaigns'}
+            >
               <Target className="h-6 w-6" />
               <span>إنشاء حملة جديدة</span>
             </Button>
-            <Button className="h-auto p-4 flex flex-col items-center space-y-2" variant="outline">
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/contacts'}
+            >
               <UserPlus className="h-6 w-6" />
               <span>إضافة جهة اتصال</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Testing Tools */}
+      <Card>
+        <CardHeader>
+          <CardTitle>أدوات الاختبار والتطوير</CardTitle>
+          <CardDescription>صفحات اختبار النظام والتشخيص</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/test-advanced'}
+            >
+              <Zap className="h-6 w-6" />
+              <span>النظام المتطور</span>
+            </Button>
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/media-test'}
+            >
+              <FileText className="h-6 w-6" />
+              <span>اختبار رسائل الوسائط</span>
+            </Button>
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/test-send'}
+            >
+              <Activity className="h-6 w-6" />
+              <span>اختبار الإرسال</span>
+            </Button>
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/simple-test'}
+            >
+              <CheckCircle className="h-6 w-6" />
+              <span>اختبار بسيط</span>
+            </Button>
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/test-media'}
+            >
+              <FileText className="h-6 w-6" />
+              <span>اختبار المرفقات</span>
+            </Button>
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/test-bucket'}
+            >
+              <Calendar className="h-6 w-6" />
+              <span>اختبار Bucket</span>
+            </Button>
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/test-media-simple'}
+            >
+              <FileText className="h-6 w-6" />
+              <span>اختبار مرفقات مبسط</span>
+            </Button>
+            <Button 
+              className="h-auto p-4 flex flex-col items-center space-y-2" 
+              variant="outline"
+              onClick={() => window.location.href = '/whatsapp/test-media-final'}
+            >
+              <CheckCircle className="h-6 w-6" />
+              <span>اختبار مرفقات نهائي</span>
             </Button>
           </div>
         </CardContent>
