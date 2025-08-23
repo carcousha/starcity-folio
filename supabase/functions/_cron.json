@@ -2,7 +2,7 @@
   "version": 2,
   "jobs": [
     {
-      "name": "remindersJob",
+      "name": "reminders-processor",
       "schedule": "0 9 * * *",
       "endpoint": "/remindersJob",
       "method": "POST"
