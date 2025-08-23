@@ -116,36 +116,27 @@ export function AppSidebar() {
     return null;
   }, [currentPath]);
 
-  // حفظ حالة الشريط الجانبي في localStorage
+  // لا نحفظ أو نستعيد حالة الأقسام المفتوحة - نبدأ بكل شيء مغلق
   useEffect(() => {
-    const savedExpandedSections = localStorage.getItem('sidebar-expanded-sections');
-    if (savedExpandedSections) {
-      try {
-        const parsed = JSON.parse(savedExpandedSections);
-        if (Array.isArray(parsed)) {
-          console.log('Restoring saved sidebar state:', parsed);
-          setExpandedSections(parsed);
-        }
-      } catch (error) {
-        console.error('Error parsing saved sidebar state:', error);
-      }
-    }
+    // أغلق جميع الأقسام في البداية
+    setExpandedSections([]);
   }, []);
 
-  // تحديث القسم المفتوح عند تغيير الرابط
+  // تحديث القسم المفتوح عند تغيير الرابط - فقط عند التنقل بين الصفحات
   useEffect(() => {
     console.log('Route changed - getActiveSection:', getActiveSection);
     if (getActiveSection) {
       console.log('Setting active section:', getActiveSection);
+      // فتح القسم النشط فقط وإغلاق البقية
       setExpandedSections([getActiveSection]);
       localStorage.setItem('sidebar-expanded-sections', JSON.stringify([getActiveSection]));
-    } else if (expandedSections.length > 0) {
+    } else {
       // إذا كنا في الصفحة الرئيسية، أغلق جميع الأقسام
       console.log('On main page, closing all sections');
       setExpandedSections([]);
       localStorage.removeItem('sidebar-expanded-sections');
     }
-  }, [getActiveSection]); // فقط getActiveSection
+  }, [getActiveSection]);
 
   // حفظ حالة الشريط الجانبي عند تغييرها
   useEffect(() => {
@@ -206,11 +197,13 @@ export function AppSidebar() {
 
   // الحصول على اسم القسم من العنوان
   const getSectionKey = useCallback((title: string) => {
-    console.log('Getting section key for title:', title); // للتأكد من أن الدالة تعمل
+    console.log('Getting section key for title:', title);
     if (title === 'إدارة العلاقات العامة') return 'crm';
     if (title === 'إدارة الحسابات') return 'accounting';
     if (title === 'وحدة الإيجارات') return 'rental';
-
+    if (title === 'وحدة بيع الأراضي') return 'land-sales';
+    if (title === 'وحدة الواتساب') return 'whatsapp';
+    if (title === 'مركز الذكاء الاصطناعي') return 'ai';
     if (title === '💼 العمليات') return 'operations';
     if (title === '💵 المالية') return 'finance';
     if (title === '🚗 الخدمات الإدارية') return 'admin-services';
