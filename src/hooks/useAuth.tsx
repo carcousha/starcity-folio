@@ -85,83 +85,68 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     console.log('useAuth: Setting up auth state listener');
+    let isInitialized = false;
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
-        console.log('useAuth: Full session object:', session);
-        
-        if (!session) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-          console.log('useAuth: No session, clearing all state');
-          return;
-        }
-        
-        console.log('useAuth: Setting session and user');
-        setSession(session);
-        setUser(session.user);
-        
-        try {
-          console.log('useAuth: About to fetch profile for user:', session.user.id);
-          const profileData = await fetchProfile(session.user.id);
-          console.log('useAuth: Profile fetch result:', profileData);
-          setProfile(profileData);
-          if (profileData) {
-            console.log('useAuth: Profile loaded successfully', profileData);
-          } else {
-            console.warn('useAuth: No profile found, but continuing with session');
-          }
-        } catch (error) {
-          console.error('useAuth: Error loading profile:', error);
-          setProfile(null);
-        } finally {
-          console.log('useAuth: Setting loading to false');
-          setLoading(false);
-        }
-      }
-    );
-
-    // Check for existing session
-    console.log('useAuth: Checking for existing session');
+    // Check for existing session first
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('useAuth: Existing session check result:', { userId: session?.user?.id });
-      console.log('useAuth: Full existing session:', session);
+      console.log('useAuth: Initial session check:', { userId: session?.user?.id });
       
       if (!session) {
         setSession(null);
         setUser(null);
         setProfile(null);
         setLoading(false);
-        console.log('useAuth: No existing session found');
+        isInitialized = true;
         return;
       }
       
-      console.log('useAuth: Found existing session, setting user');
       setSession(session);
       setUser(session.user);
       
       try {
-        console.log('useAuth: About to fetch profile for existing session user:', session.user.id);
+        console.log('useAuth: Fetching profile for user:', session.user.id);
         const profileData = await fetchProfile(session.user.id);
-        console.log('useAuth: Profile fetch for existing session result:', profileData);
+        console.log('useAuth: Profile result:', profileData);
         setProfile(profileData);
-        if (profileData) {
-          console.log('useAuth: Profile loaded from existing session', profileData);
-        } else {
-          console.warn('useAuth: No profile found from existing session, but continuing');
-        }
       } catch (error) {
-        console.error('useAuth: Error loading profile from existing session', error);
+        console.error('useAuth: Profile fetch error:', error);
         setProfile(null);
       } finally {
-        console.log('useAuth: Setting loading to false for existing session');
         setLoading(false);
+        isInitialized = true;
       }
     });
+
+    // Set up auth state listener for future changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('useAuth: Auth state changed', { event, userId: session?.user?.id, isInitialized });
+        
+        // Skip if this is the initial load (already handled above)
+        if (!isInitialized) return;
+        
+        if (!session) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+        
+        setSession(session);
+        setUser(session.user);
+        
+        try {
+          const profileData = await fetchProfile(session.user.id);
+          setProfile(profileData);
+        } catch (error) {
+          console.error('useAuth: Profile fetch error:', error);
+          setProfile(null);
+        } finally {
+          setLoading(false);
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
