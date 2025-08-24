@@ -35,7 +35,7 @@ import {
   Settings,
   Play,
   Pause,
-  Stop
+  StopCircle
 } from 'lucide-react';
 
 export default function DeduplicationReport() {
@@ -59,7 +59,7 @@ export default function DeduplicationReport() {
         { source: 'rental_tenants', count: 190, quality: 79 }
       ];
       
-      const report = createDataAnalysisReport(mockContacts);
+      const report = createDataAnalysisReport(mockContacts as any);
       setDataAnalysis(report);
       
       setTimeout(() => setIsGenerating(false), 2000);
@@ -80,7 +80,7 @@ export default function DeduplicationReport() {
         { priority: 'low', count: 120, estimated_savings: 3.1 }
       ];
       
-      const plan = createDeduplicationPlan(mockDuplicates);
+      const plan = createDeduplicationPlan(mockDuplicates as any);
       setDeduplicationPlan(plan);
       
       setTimeout(() => setIsGenerating(false), 2000);
@@ -94,7 +94,7 @@ export default function DeduplicationReport() {
   const generatePerformanceReport = async () => {
     setIsGenerating(true);
     try {
-      const report = createPerformanceReport();
+      const report = createPerformanceReport({} as any, {} as any, {} as any);
       setPerformanceReport(report);
       
       setTimeout(() => setIsGenerating(false), 2000);
@@ -114,9 +114,9 @@ export default function DeduplicationReport() {
     };
     
     if (format === 'csv') {
-      exportToCSV(reportData, 'deduplication-report');
+      exportToCSV([reportData] as any, 'deduplication-report');
     } else {
-      exportToJSON(reportData, 'deduplication-report');
+      exportToJSON([reportData] as any, 'deduplication-report');
     }
   };
 

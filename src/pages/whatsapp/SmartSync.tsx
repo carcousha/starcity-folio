@@ -29,7 +29,7 @@ import {
   Settings,
   Play,
   Pause,
-  Stop,
+  StopCircle,
   Info,
   Clock,
   BarChart3,

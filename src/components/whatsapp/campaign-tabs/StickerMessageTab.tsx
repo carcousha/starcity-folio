@@ -367,7 +367,7 @@ export const StickerMessageTab: React.FC<StickerMessageTabProps> = ({
                       const input = document.createElement('input');
                       input.type = 'file';
                       input.accept = 'image/*';
-                      input.onchange = handleFileInput;
+                      input.addEventListener('change', (e) => handleFileInput(e as any));
                       input.click();
                     }}
                     disabled={uploadStatus === 'uploading'}

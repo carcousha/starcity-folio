@@ -45,8 +45,9 @@ import {
   Upload,
   Play,
   Pause,
-  Stop,
-  TestTube
+  StopCircle,
+  TestTube,
+  Shuffle
 } from 'lucide-react';
 
 export default function ContactDeduplication() {
@@ -345,7 +346,7 @@ export default function ContactDeduplication() {
                        variant="outline"
                        className="border-green-200 text-green-700 hover:bg-green-50"
                      >
-                       <Link className="h-4 w-4 mr-2" />
+                       <Shuffle className="h-4 w-4 mr-2" />
                        المزامنة الذكية - حذف المكررات التلقائي
                      </Button>
             
