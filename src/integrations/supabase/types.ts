@@ -4592,6 +4592,42 @@ export type Database = {
           },
         ]
       }
+      whatsapp_reminders: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          id: string
+          lead_id: string | null
+          remind_at: string
+          stage: string
+          surfaced: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          lead_id?: string | null
+          remind_at: string
+          stage: string
+          surfaced?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          lead_id?: string | null
+          remind_at?: string
+          stage?: string
+          surfaced?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_settings: {
         Row: {
           api_key: string

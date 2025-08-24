@@ -20,6 +20,7 @@ import { QuickPerformanceFix } from "@/components/QuickPerformanceFix";
 // Lazy Loading Components
 const Auth = lazy(() => import("./pages/Auth"));
 const CRMIndex = lazy(() => import("./pages/crm/index"));
+const EnhancedContacts = lazy(() => import("./pages/crm/EnhancedContacts"));
 const Clients = lazy(() => import("./pages/crm/Clients"));
 const Leads = lazy(() => import("./pages/crm/Leads"));
 const CRMProperties = lazy(() => import("./pages/crm/Properties"));
@@ -193,14 +194,22 @@ const AppProtector = () => {
                      <CRMIndex />
                    </Suspense>
                  </ProtectedRoute>
-               } />
+                } />
 
-               <Route path="/crm/clients" element={
-                 <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
-                     <Clients />
-                   </Suspense>
-                 </ProtectedRoute>
+                <Route path="/crm/enhanced-contacts" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <EnhancedContacts />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/crm/clients" element={
+                  <ProtectedRoute requiredPermission="crmAccess">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Clients />
+                    </Suspense>
+                  </ProtectedRoute>
                } />
                <Route path="/crm/leads" element={
                  <ProtectedRoute requiredPermission="crmAccess">
