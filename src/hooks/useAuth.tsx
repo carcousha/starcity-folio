@@ -45,11 +45,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
-      
-      // Check current session
-      const { data: session } = await supabase.auth.getSession();
-      console.log('Current session in fetchProfile:', session?.session?.user?.email);
+      console.log('🔄 Fetching profile for user:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -58,20 +54,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching profile:', error);
-        console.error('Error details:', error.message, error.code, error.details);
+        console.error('❌ Error fetching profile:', error.message);
         return null;
       }
 
       if (!data) {
-        console.error('No profile found for user:', userId);
+        console.warn('⚠️ No profile found for user:', userId);
         return null;
       }
 
-      console.log('Profile fetched successfully:', data);
+      console.log('✅ Profile fetched successfully for:', data.email || data.full_name);
       return data;
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('💥 Fatal error fetching profile:', error);
       return null;
     }
   };

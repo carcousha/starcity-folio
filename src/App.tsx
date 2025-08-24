@@ -15,6 +15,7 @@ import { StrictAuthProtector } from "@/components/StrictAuthProtector";
 import { DashboardHome } from "@/components/DashboardHome";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { GlobalSelectedBrokersProvider } from "@/hooks/useGlobalSelectedBrokers";
+import { QuickPerformanceFix } from "@/components/QuickPerformanceFix";
 
 // Lazy Loading Components
 const Auth = lazy(() => import("./pages/Auth"));
@@ -104,7 +105,9 @@ const App = () => {
             <BrowserRouter>
               <GlobalSelectedBrokersProvider>
                 <StrictAuthProtector>
-                  <AppProtector />
+                  <QuickPerformanceFix>
+                    <AppProtector />
+                  </QuickPerformanceFix>
                 </StrictAuthProtector>
               </GlobalSelectedBrokersProvider>
             </BrowserRouter>

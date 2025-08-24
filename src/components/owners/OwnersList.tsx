@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign, Grid3X3, Table, RefreshCw } from "lucide-react";
+import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign, Grid3X3, Table, RefreshCw, ArrowRight } from "lucide-react";
+import { contactSyncService } from "@/services/contactSyncService";
 import { OwnerForm } from "./OwnerForm";
 import { OwnerDetails } from "./OwnerDetails";
 import { OwnersTable } from "./OwnersTable";
@@ -238,8 +239,90 @@ export const OwnersList = () => {
     );
   }
 
+  // مزامنة جميع الملاك مع WhatsApp
+  const syncAllToWhatsApp = async () => {
+    try {
+      let syncedCount = 0;
+      for (const owner of owners) {
+        if (owner.mobile_numbers && owner.mobile_numbers.length > 0) {
+          const ownerContact = {
+            id: owner.id,
+            name: owner.full_name,
+            phone: owner.mobile_numbers[0],
+            email: owner.email,
+            whatsapp_number: owner.mobile_numbers[0],
+            id_number: owner.id_number,
+            notes: owner.internal_notes
+          };
+          
+          const result = await contactSyncService.syncOwnerToWhatsApp(ownerContact);
+          if (result) syncedCount++;
+        }
+      }
+      
+      toast({
+        title: "تمت المزامنة بنجاح",
+        description: `تم مزامنة ${syncedCount} مالك مع WhatsApp`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "خطأ في المزامنة",
+        description: "فشل في مزامنة الملاك مع WhatsApp",
+      });
+    }
+  };
+
+  // مزامنة من WhatsApp إلى الملاك
+  const syncFromWhatsApp = async () => {
+    try {
+      const result = await contactSyncService.syncAllWhatsAppContacts();
+      toast({
+        title: "تمت المزامنة بنجاح",
+        description: `تم مزامنة ${result.owners} مالك من WhatsApp`,
+      });
+      fetchOwners(); // إعادة تحميل البيانات
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "خطأ في المزامنة",
+        description: "فشل في مزامنة الملاك من WhatsApp",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* أزرار المزامنة مع WhatsApp */}
+      <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-purple-600" />
+            <span className="font-medium text-purple-800">مزامنة WhatsApp</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={syncAllToWhatsApp}
+              variant="outline"
+              size="sm"
+              className="border-purple-300 text-purple-700 hover:bg-purple-100"
+            >
+              <ArrowRight className="h-4 w-4 mr-2" />
+              مزامنة الملاك إلى WhatsApp
+            </Button>
+            <Button
+              onClick={syncFromWhatsApp}
+              variant="outline"
+              size="sm"
+              className="border-purple-300 text-purple-700 hover:bg-purple-100"
+            >
+              <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+              مزامنة من WhatsApp إلى الملاك
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Header and Controls */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">

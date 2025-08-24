@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface FinancialSummary {
@@ -21,46 +21,30 @@ interface EmployeeFinancialData {
 
 export function useFinancialIntegration() {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // تبدأ false بدلاً من true
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const fetchFinancialSummary = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Loading financial summary...');
 
-      // Get total revenues
-      const { data: revenues } = await supabase
-        .from('revenues')
-        .select('amount');
-
-      // Get total expenses
-      const { data: expenses } = await supabase
-        .from('expenses')
-        .select('amount');
-
-      // Get treasury balance
-      const { data: treasuryAccounts } = await supabase
-        .from('treasury_accounts')
-        .select('current_balance')
-        .eq('is_active', true);
-
-      // Get pending commissions
-      const { data: commissions } = await supabase
-        .from('commissions')
-        .select('total_commission')
-        .eq('status', 'pending');
-
-      // Get pending debts
-      const { data: debts } = await supabase
-        .from('debts')
-        .select('amount')
-        .eq('status', 'pending');
-
-      // Get recent activities
-      const { data: activities } = await supabase
-        .from('activity_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // تحميل البيانات المالية بشكل متوازي لتحسين السرعة
+      const [
+        { data: revenues },
+        { data: expenses },
+        { data: treasuryAccounts },
+        { data: commissions },
+        { data: debts },
+        { data: activities }
+      ] = await Promise.all([
+        supabase.from('revenues').select('amount'),
+        supabase.from('expenses').select('amount'),
+        supabase.from('treasury_accounts').select('current_balance').eq('is_active', true),
+        supabase.from('commissions').select('total_commission').eq('status', 'pending'),
+        supabase.from('debts').select('amount').eq('status', 'pending'),
+        supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(5)
+      ]);
 
       const totalRevenues = revenues?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
       const totalExpenses = expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
@@ -143,14 +127,21 @@ export function useFinancialIntegration() {
     }
   };
 
-  useEffect(() => {
-    fetchFinancialSummary();
-  }, []);
+  // تحميل مؤجل للبيانات المالية - فقط عند الحاجة
+  const initializeFinancialData = useCallback(() => {
+    if (!isInitialized) {
+      setIsInitialized(true);
+      fetchFinancialSummary();
+    }
+  }, [isInitialized]);
+
+  // لا نحمل البيانات تلقائياً عند التهيئة
 
   return {
     summary,
     loading,
     fetchFinancialSummary,
+    initializeFinancialData, // دالة للتحميل المؤجل
     fetchEmployeeFinancialData,
     logActivity,
     syncDebtsWithJournal

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار المصادقة - ستار سيتي</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        h1 {
+            color: #1f2937;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        .status {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .status-item {
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid;
+        }
+        .success {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1e40af;
+        }
+        .warning {
+            background: #fef3c7;
+            border-color: #fbbf24;
+            color: #92400e;
+        }
+        .error {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+        .info {
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #166534;
+        }
+        .button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background: #2563eb;
+        }
+        .button.secondary {
+            background: #6b7280;
+        }
+        .button.secondary:hover {
+            background: #4b5563;
+        }
+        .button.danger {
+            background: #ef4444;
+        }
+        .button.danger:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار المصادقة</h1>
+        <p>صفحة اختبار لتشخيص مشكلة المصادقة</p>
+        
+        <div class="status">
+            <div class="status-item success">
+                <h3>✅ الخادم</h3>
+                <p>يعمل على المنفذ 3000</p>
+            </div>
+            <div class="status-item info">
+                <h3>✅ HTML</h3>
+                <p>يعمل بنجاح</p>
+            </div>
+            <div class="status-item warning">
+                <h3>⚠️ React</h3>
+                <p>تحتاج اختبار</p>
+            </div>
+            <div class="status-item warning">
+                <h3>⚠️ المصادقة</h3>
+                <p>تحتاج اختبار</p>
+            </div>
+        </div>
+        
+        <div>
+            <a href="/test-auth" class="button">🧪 اختبار المصادقة React</a>
+            <a href="/" class="button secondary">🔐 تسجيل الدخول</a>
+            <a href="/test_simple.html" class="button secondary">📄 صفحة HTML بسيطة</a>
+        </div>
+        
+        <div style="margin-top: 2rem; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.9rem; color: #6b7280;">
+                URL الحالي: <span id="current-url"></span>
+            </p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #6b7280;">
+                الوقت: <span id="current-time"></span>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('current-time').textContent = new Date().toLocaleString('ar-SA');
+    </script>
+</body>
+</html>
