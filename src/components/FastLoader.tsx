@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface FastLoaderProps {
@@ -46,7 +46,7 @@ const FastLoader: React.FC<FastLoaderProps> = ({
       // مسارات محددة للوحدات الرئيسية
       switch (path) {
         case 'whatsapp/dashboard':
-          LazyComponent = lazy(() => import('@/pages/whatsapp/WhatsAppDashboard'));
+          LazyComponent = lazy(() => import('@/pages/whatsapp/Dashboard'));
           break;
         case 'whatsapp/contacts':
           LazyComponent = lazy(() => import('@/pages/whatsapp/Contacts'));
@@ -117,7 +117,7 @@ const FastLoader: React.FC<FastLoaderProps> = ({
     };
 
     // تشغيل المعالجة مع تأخير
-    setTimeout(processQueue, priorityLevel === 'high' ? 100 : 1000);
+    setTimeout(processQueue, priority === 'high' ? 100 : 1000);
   };
 
   useEffect(() => {

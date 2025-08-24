@@ -499,7 +499,7 @@ class AdvancedCampaignService {
       },
       
       peakTimes: [],
-      failedMessages: failedMessages
+      failedMessagesList: failedMessages
     };
   }
 
