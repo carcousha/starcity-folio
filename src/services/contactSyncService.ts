@@ -818,6 +818,50 @@ export class ContactSyncService {
     }
   }
 
+  // مزامنة WhatsApp مع الوسطاء
+  static async syncWhatsAppToBroker(): Promise<{ total_contacts: number; synced_contacts: number; pending_sync: number; sync_errors: number; brokers: number }> {
+    try {
+      const result = await this.getSyncStats();
+      return { ...result, brokers: result.synced_contacts };
+    } catch (error) {
+      console.error('خطأ في مزامنة الوسطاء:', error);
+      throw error;
+    }
+  }
+
+  // مزامنة WhatsApp مع العملاء
+  static async syncWhatsAppToClient(): Promise<{ total_contacts: number; synced_contacts: number; pending_sync: number; sync_errors: number; clients: number }> {
+    try {
+      const result = await this.getSyncStats();
+      return { ...result, clients: result.synced_contacts };
+    } catch (error) {
+      console.error('خطأ في مزامنة العملاء:', error);
+      throw error;
+    }
+  }
+
+  // مزامنة WhatsApp مع الملاك
+  static async syncWhatsAppToOwner(): Promise<{ total_contacts: number; synced_contacts: number; pending_sync: number; sync_errors: number; owners: number }> {
+    try {
+      const result = await this.getSyncStats();
+      return { ...result, owners: result.synced_contacts };
+    } catch (error) {
+      console.error('خطأ في مزامنة الملاك:', error);
+      throw error;
+    }
+  }
+
+  // مزامنة WhatsApp مع المستأجرين
+  static async syncWhatsAppToTenant(): Promise<{ total_contacts: number; synced_contacts: number; pending_sync: number; sync_errors: number; tenants: number }> {
+    try {
+      const result = await this.getSyncStats();
+      return { ...result, tenants: result.synced_contacts };
+    } catch (error) {
+      console.error('خطأ في مزامنة المستأجرين:', error);
+      throw error;
+    }
+  }
+
   // الحصول على إحصائيات المزامنة
   static async getSyncStats(): Promise<{
     total_contacts: number;

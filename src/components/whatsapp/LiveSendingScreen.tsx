@@ -22,7 +22,11 @@ import {
   TrendingUp,
   Eye,
   Download,
-  RefreshCw
+  RefreshCw,
+  BarChart3,
+  Settings,
+  Shield,
+  Moon
 } from 'lucide-react';
 import { AdvancedSendingConfig } from './AdvancedSendingSettings';
 
