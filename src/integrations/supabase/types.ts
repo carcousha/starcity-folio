@@ -458,6 +458,44 @@ export type Database = {
           },
         ]
       }
+      contact_interactions: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          interaction_date: string | null
+          interaction_type: string
+          notes: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type: string
+          notes?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "enhanced_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_documents: {
         Row: {
           contract_id: string
@@ -1401,6 +1439,69 @@ export type Database = {
         }
         Relationships: []
       }
+      enhanced_contacts: {
+        Row: {
+          about: string | null
+          address: string | null
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["contact_category"]
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          last_contact_date: string | null
+          name: string
+          notes: string | null
+          office_name: string | null
+          phone: string
+          rating: number | null
+          search_vector: unknown | null
+          updated_at: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          about?: string | null
+          address?: string | null
+          assigned_to?: string | null
+          category: Database["public"]["Enums"]["contact_category"]
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_contact_date?: string | null
+          name: string
+          notes?: string | null
+          office_name?: string | null
+          phone: string
+          rating?: number | null
+          search_vector?: unknown | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          about?: string | null
+          address?: string | null
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["contact_category"]
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_contact_date?: string | null
+          name?: string
+          notes?: string | null
+          office_name?: string | null
+          phone?: string
+          rating?: number | null
+          search_vector?: unknown | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       expense_attachments: {
         Row: {
           expense_id: string
@@ -1915,6 +2016,7 @@ export type Database = {
           deals_count: number | null
           email: string | null
           id: string
+          language: string | null
           last_activity_date: string | null
           name: string
           office_location: string | null
@@ -1923,6 +2025,7 @@ export type Database = {
           short_name: string | null
           total_sales_amount: number | null
           updated_at: string | null
+          updated_by: string | null
           whatsapp_number: string | null
         }
         Insert: {
@@ -1933,6 +2036,7 @@ export type Database = {
           deals_count?: number | null
           email?: string | null
           id?: string
+          language?: string | null
           last_activity_date?: string | null
           name: string
           office_location?: string | null
@@ -1941,6 +2045,7 @@ export type Database = {
           short_name?: string | null
           total_sales_amount?: number | null
           updated_at?: string | null
+          updated_by?: string | null
           whatsapp_number?: string | null
         }
         Update: {
@@ -1951,6 +2056,7 @@ export type Database = {
           deals_count?: number | null
           email?: string | null
           id?: string
+          language?: string | null
           last_activity_date?: string | null
           name?: string
           office_location?: string | null
@@ -1959,6 +2065,7 @@ export type Database = {
           short_name?: string | null
           total_sales_amount?: number | null
           updated_at?: string | null
+          updated_by?: string | null
           whatsapp_number?: string | null
         }
         Relationships: []
@@ -4159,36 +4266,143 @@ export type Database = {
         }
         Relationships: []
       }
-      whatsapp_activity_logs: {
+      whatsapp_bulk_message_recipients: {
         Row: {
-          activity_type: string
+          bulk_message_id: string | null
+          contact_id: string | null
           created_at: string | null
-          description: string
+          error_message: string | null
           id: string
-          metadata: Json | null
-          related_id: string | null
-          related_table: string | null
-          user_id: string
+          max_retries: number | null
+          message_id: string | null
+          personalized_content: string | null
+          phone_number: string
+          retry_count: number | null
+          sent_at: string | null
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
-          activity_type: string
+          bulk_message_id?: string | null
+          contact_id?: string | null
           created_at?: string | null
-          description: string
+          error_message?: string | null
           id?: string
-          metadata?: Json | null
-          related_id?: string | null
-          related_table?: string | null
-          user_id: string
+          max_retries?: number | null
+          message_id?: string | null
+          personalized_content?: string | null
+          phone_number: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
-          activity_type?: string
+          bulk_message_id?: string | null
+          contact_id?: string | null
           created_at?: string | null
-          description?: string
+          error_message?: string | null
           id?: string
-          metadata?: Json | null
-          related_id?: string | null
-          related_table?: string | null
-          user_id?: string
+          max_retries?: number | null
+          message_id?: string | null
+          personalized_content?: string | null
+          phone_number?: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_bulk_message_recipients_bulk_message_id_fkey"
+            columns: ["bulk_message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_bulk_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_bulk_messages: {
+        Row: {
+          button_text: string | null
+          button_url: string | null
+          completed_at: string | null
+          created_at: string | null
+          custom_recipients: Json | null
+          failed_count: number | null
+          gradual_settings: Json | null
+          id: string
+          media_type: string | null
+          media_url: string | null
+          message_content: string
+          message_type: string | null
+          name: string
+          poll_options: Json | null
+          recipient_filters: Json | null
+          recipient_type: string | null
+          scheduled_at: string | null
+          send_type: string | null
+          sent_count: number | null
+          started_at: string | null
+          status: string | null
+          success_rate: number | null
+          template_id: string | null
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          button_text?: string | null
+          button_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          custom_recipients?: Json | null
+          failed_count?: number | null
+          gradual_settings?: Json | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_content: string
+          message_type?: string | null
+          name: string
+          poll_options?: Json | null
+          recipient_filters?: Json | null
+          recipient_type?: string | null
+          scheduled_at?: string | null
+          send_type?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_rate?: number | null
+          template_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          button_text?: string | null
+          button_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          custom_recipients?: Json | null
+          failed_count?: number | null
+          gradual_settings?: Json | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_content?: string
+          message_type?: string | null
+          name?: string
+          poll_options?: Json | null
+          recipient_filters?: Json | null
+          recipient_type?: string | null
+          scheduled_at?: string | null
+          send_type?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_rate?: number | null
+          template_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -4196,20 +4410,16 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string | null
-          created_by: string
-          delivered_count: number | null
           description: string | null
-          failed_count: number | null
           id: string
-          message_content: Json
+          messages_delivered: number | null
+          messages_failed: number | null
+          messages_sent: number | null
           name: string
-          schedule_type: string
           scheduled_at: string | null
-          sent_count: number | null
           started_at: string | null
-          status: string
-          target_contacts: Json
-          target_filters: Json | null
+          status: string | null
+          target_audience: Json
           template_id: string | null
           total_recipients: number | null
           updated_at: string | null
@@ -4217,20 +4427,16 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string | null
-          created_by: string
-          delivered_count?: number | null
           description?: string | null
-          failed_count?: number | null
           id?: string
-          message_content: Json
+          messages_delivered?: number | null
+          messages_failed?: number | null
+          messages_sent?: number | null
           name: string
-          schedule_type: string
           scheduled_at?: string | null
-          sent_count?: number | null
           started_at?: string | null
-          status?: string
-          target_contacts: Json
-          target_filters?: Json | null
+          status?: string | null
+          target_audience?: Json
           template_id?: string | null
           total_recipients?: number | null
           updated_at?: string | null
@@ -4238,20 +4444,16 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string | null
-          created_by?: string
-          delivered_count?: number | null
           description?: string | null
-          failed_count?: number | null
           id?: string
-          message_content?: Json
+          messages_delivered?: number | null
+          messages_failed?: number | null
+          messages_sent?: number | null
           name?: string
-          schedule_type?: string
           scheduled_at?: string | null
-          sent_count?: number | null
           started_at?: string | null
-          status?: string
-          target_contacts?: Json
-          target_filters?: Json | null
+          status?: string | null
+          target_audience?: Json
           template_id?: string | null
           total_recipients?: number | null
           updated_at?: string | null
@@ -4268,154 +4470,103 @@ export type Database = {
       }
       whatsapp_contacts: {
         Row: {
-          address: string | null
+          company: string | null
           contact_type: string
           created_at: string | null
-          created_by: string
           email: string | null
           id: string
           is_active: boolean | null
-          last_contact_date: string | null
+          last_contacted: string | null
           name: string
           notes: string | null
           phone: string
           tags: Json | null
           updated_at: string | null
-          whatsapp_verified: boolean | null
+          whatsapp_number: string | null
         }
         Insert: {
-          address?: string | null
-          contact_type: string
+          company?: string | null
+          contact_type?: string
           created_at?: string | null
-          created_by: string
           email?: string | null
           id?: string
           is_active?: boolean | null
-          last_contact_date?: string | null
+          last_contacted?: string | null
           name: string
           notes?: string | null
           phone: string
           tags?: Json | null
           updated_at?: string | null
-          whatsapp_verified?: boolean | null
+          whatsapp_number?: string | null
         }
         Update: {
-          address?: string | null
+          company?: string | null
           contact_type?: string
           created_at?: string | null
-          created_by?: string
           email?: string | null
           id?: string
           is_active?: boolean | null
-          last_contact_date?: string | null
+          last_contacted?: string | null
           name?: string
           notes?: string | null
           phone?: string
           tags?: Json | null
           updated_at?: string | null
-          whatsapp_verified?: boolean | null
-        }
-        Relationships: []
-      }
-      whatsapp_message_logs: {
-        Row: {
-          client_id: string | null
-          error: string | null
-          id: string
-          lang: string
-          lead_id: string | null
-          message_text: string
-          meta: Json
-          phone_e164: string
-          sent_at: string
-          sent_by: string | null
-          stage: string
-          status: string
-          template_id: string | null
-        }
-        Insert: {
-          client_id?: string | null
-          error?: string | null
-          id?: string
-          lang: string
-          lead_id?: string | null
-          message_text: string
-          meta?: Json
-          phone_e164: string
-          sent_at?: string
-          sent_by?: string | null
-          stage: string
-          status?: string
-          template_id?: string | null
-        }
-        Update: {
-          client_id?: string | null
-          error?: string | null
-          id?: string
-          lang?: string
-          lead_id?: string | null
-          message_text?: string
-          meta?: Json
-          phone_e164?: string
-          sent_at?: string
-          sent_by?: string | null
-          stage?: string
-          status?: string
-          template_id?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
       whatsapp_messages: {
         Row: {
+          additional_data: Json | null
+          api_response: Json | null
           campaign_id: string | null
           contact_id: string | null
-          content: Json
+          content: string
           created_at: string | null
-          created_by: string
           delivered_at: string | null
           error_message: string | null
-          external_id: string | null
           id: string
+          media_url: string | null
           message_type: string
-          phone: string
-          read_at: string | null
+          phone_number: string
           sent_at: string | null
-          status: string
-          updated_at: string | null
+          status: string | null
+          template_id: string | null
         }
         Insert: {
+          additional_data?: Json | null
+          api_response?: Json | null
           campaign_id?: string | null
           contact_id?: string | null
-          content: Json
+          content: string
           created_at?: string | null
-          created_by: string
           delivered_at?: string | null
           error_message?: string | null
-          external_id?: string | null
           id?: string
-          message_type: string
-          phone: string
-          read_at?: string | null
+          media_url?: string | null
+          message_type?: string
+          phone_number: string
           sent_at?: string | null
-          status?: string
-          updated_at?: string | null
+          status?: string | null
+          template_id?: string | null
         }
         Update: {
+          additional_data?: Json | null
+          api_response?: Json | null
           campaign_id?: string | null
           contact_id?: string | null
-          content?: Json
+          content?: string
           created_at?: string | null
-          created_by?: string
           delivered_at?: string | null
           error_message?: string | null
-          external_id?: string | null
           id?: string
+          media_url?: string | null
           message_type?: string
-          phone?: string
-          read_at?: string | null
+          phone_number?: string
           sent_at?: string | null
-          status?: string
-          updated_at?: string | null
+          status?: string | null
+          template_id?: string | null
         }
         Relationships: [
           {
@@ -4432,137 +4583,93 @@ export type Database = {
             referencedRelation: "whatsapp_contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "whatsapp_messages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      whatsapp_reminders: {
+      whatsapp_settings: {
         Row: {
-          created_at: string
-          created_by: string | null
-          enabled: boolean
-          id: string
-          lead_id: string
-          remind_at: string
-          stage: string
-          surfaced: boolean
-          template_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          enabled?: boolean
-          id?: string
-          lead_id: string
-          remind_at: string
-          stage: string
-          surfaced?: boolean
-          template_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          enabled?: boolean
-          id?: string
-          lead_id?: string
-          remind_at?: string
-          stage?: string
-          surfaced?: boolean
-          template_id?: string | null
-        }
-        Relationships: []
-      }
-      whatsapp_stats: {
-        Row: {
-          campaigns_count: number | null
-          contacts_added: number | null
+          api_key: string
           created_at: string | null
+          daily_limit: number | null
+          default_footer: string | null
           id: string
-          stat_date: string
-          total_delivered: number | null
-          total_failed: number | null
-          total_read: number | null
-          total_sent: number | null
+          is_active: boolean | null
+          rate_limit_per_minute: number | null
+          sender_number: string
+          updated_at: string | null
         }
         Insert: {
-          campaigns_count?: number | null
-          contacts_added?: number | null
+          api_key?: string
           created_at?: string | null
+          daily_limit?: number | null
+          default_footer?: string | null
           id?: string
-          stat_date: string
-          total_delivered?: number | null
-          total_failed?: number | null
-          total_read?: number | null
-          total_sent?: number | null
+          is_active?: boolean | null
+          rate_limit_per_minute?: number | null
+          sender_number?: string
+          updated_at?: string | null
         }
         Update: {
-          campaigns_count?: number | null
-          contacts_added?: number | null
+          api_key?: string
           created_at?: string | null
+          daily_limit?: number | null
+          default_footer?: string | null
           id?: string
-          stat_date?: string
-          total_delivered?: number | null
-          total_failed?: number | null
-          total_read?: number | null
-          total_sent?: number | null
+          is_active?: boolean | null
+          rate_limit_per_minute?: number | null
+          sender_number?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
       whatsapp_templates: {
         Row: {
-          body: string
-          category: string | null
-          content: Json | null
-          created_at: string
-          created_by: string | null
-          footer: string | null
-          header: string | null
+          buttons: Json | null
+          category: string
+          content: string
+          created_at: string | null
           id: string
           is_active: boolean | null
-          is_default: boolean
-          lang: string
-          message_type: string | null
+          media_url: string | null
           name: string
-          stage: Database["public"]["Enums"]["whatsapp_stage"]
-          updated_at: string
+          poll_options: Json | null
+          template_type: string | null
+          updated_at: string | null
           usage_count: number | null
-          variables: Json
         }
         Insert: {
-          body: string
-          category?: string | null
-          content?: Json | null
-          created_at?: string
-          created_by?: string | null
-          footer?: string | null
-          header?: string | null
+          buttons?: Json | null
+          category: string
+          content: string
+          created_at?: string | null
           id?: string
           is_active?: boolean | null
-          is_default?: boolean
-          lang: string
-          message_type?: string | null
+          media_url?: string | null
           name: string
-          stage?: Database["public"]["Enums"]["whatsapp_stage"]
-          updated_at?: string
+          poll_options?: Json | null
+          template_type?: string | null
+          updated_at?: string | null
           usage_count?: number | null
-          variables?: Json
         }
         Update: {
-          body?: string
-          category?: string | null
-          content?: Json | null
-          created_at?: string
-          created_by?: string | null
-          footer?: string | null
-          header?: string | null
+          buttons?: Json | null
+          category?: string
+          content?: string
+          created_at?: string | null
           id?: string
           is_active?: boolean | null
-          is_default?: boolean
-          lang?: string
-          message_type?: string | null
+          media_url?: string | null
           name?: string
-          stage?: Database["public"]["Enums"]["whatsapp_stage"]
-          updated_at?: string
+          poll_options?: Json | null
+          template_type?: string | null
+          updated_at?: string | null
           usage_count?: number | null
-          variables?: Json
         }
         Relationships: []
       }
@@ -4586,6 +4693,10 @@ export type Database = {
       calculate_and_apply_incentives: {
         Args: { target_id_param: string }
         Returns: Json
+      }
+      calculate_bulk_message_success_rate: {
+        Args: { bulk_msg_id: string }
+        Returns: number
       }
       calculate_commission_distribution: {
         Args: { p_commission_id: string }
@@ -4836,6 +4947,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      increment_template_usage: {
+        Args: { template_id: string }
+        Returns: undefined
+      }
       is_accountant: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -4956,6 +5071,29 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      search_enhanced_contacts: {
+        Args: {
+          contact_category?: Database["public"]["Enums"]["contact_category"]
+          limit_count?: number
+          max_rating?: number
+          min_rating?: number
+          office_filter?: string
+          search_term?: string
+        }
+        Returns: {
+          about: string
+          category: Database["public"]["Enums"]["contact_category"]
+          created_at: string
+          id: string
+          interaction_count: number
+          last_contact_date: string
+          name: string
+          office_name: string
+          phone: string
+          rating: number
+          whatsapp_number: string
+        }[]
+      }
       secure_role_change: {
         Args:
           | {
@@ -4984,6 +5122,10 @@ export type Database = {
       sync_debts_with_journal: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      update_bulk_message_stats: {
+        Args: { bulk_msg_id: string }
+        Returns: undefined
       }
       update_commission_employee_percentages: {
         Args: { p_commission_id: string; p_employee_percentages: Json }
@@ -5033,6 +5175,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "accountant" | "employee"
+      contact_category:
+        | "مسوق بيشتري"
+        | "مسوق بيسوق"
+        | "مالك بيع"
+        | "مالك ايجار"
+        | "عميل ارض"
+        | "عميل فيلا"
+        | "مؤجر"
       whatsapp_stage: "Lead" | "Negotiation" | "Closing" | "PostSale"
     }
     CompositeTypes: {
@@ -5162,6 +5312,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "accountant", "employee"],
+      contact_category: [
+        "مسوق بيشتري",
+        "مسوق بيسوق",
+        "مالك بيع",
+        "مالك ايجار",
+        "عميل ارض",
+        "عميل فيلا",
+        "مؤجر",
+      ],
       whatsapp_stage: ["Lead", "Negotiation", "Closing", "PostSale"],
     },
   },
