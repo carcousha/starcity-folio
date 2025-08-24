@@ -288,7 +288,7 @@ export function MessageVariables({ onVariablesChange, initialVariables, onPrevie
                     <Badge variant={variable.isRequired ? 'destructive' : 'secondary'}>
                       {variable.isRequired ? 'مطلوب' : 'اختياري'}
                     </Badge>
-                    <h4 className="font-semibold text-green-600">{{{variable.name}}}</h4>
+                    <h4 className="font-semibold text-green-600">{`{{${variable.name}}}`}</h4>
                   </div>
                   <div className="flex gap-2">
                     <Button
