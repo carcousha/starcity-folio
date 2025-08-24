@@ -276,7 +276,7 @@ export const OwnersList = () => {
   // مزامنة من WhatsApp إلى الملاك
   const syncFromWhatsApp = async () => {
     try {
-      const result = await ContactSyncService.getSyncStats();
+      const result = await ContactSyncService.syncWhatsAppToOwner();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.owners} مالك من WhatsApp`,

@@ -246,7 +246,7 @@ export function LandClients() {
   // مزامنة من WhatsApp إلى العملاء
   const syncFromWhatsApp = async () => {
     try {
-      const result = await ContactSyncService.getSyncStats();
+      const result = await ContactSyncService.syncWhatsAppToClient();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.clients} عميل من WhatsApp`,

@@ -79,18 +79,18 @@ export default function WhatsAppContacts() {
       // مزامنة مع الوحدات الأخرى حسب نوع جهة الاتصال
       try {
         if (data.contact_type === 'marketer') {
-          await ContactSyncService.syncWhatsAppToBroker(data);
+          await ContactSyncService.syncWhatsAppToBroker();
           toast.success('تم إضافة جهة الاتصال ومزامنتها مع الوسطاء');
         } else if (data.contact_type === 'client') {
           if (data.tags?.includes('مستأجر')) {
-            await ContactSyncService.syncWhatsAppToTenant(data);
+            await ContactSyncService.syncWhatsAppToTenant();
             toast.success('تم إضافة جهة الاتصال ومزامنتها مع المستأجرين');
           } else {
-            await ContactSyncService.syncWhatsAppToClient(data);
+            await ContactSyncService.syncWhatsAppToClient();
             toast.success('تم إضافة جهة الاتصال ومزامنتها مع العملاء');
           }
         } else if (data.contact_type === 'owner') {
-          await ContactSyncService.syncWhatsAppToOwner(data);
+          await ContactSyncService.syncWhatsAppToOwner();
           toast.success('تم إضافة جهة الاتصال ومزامنتها مع الملاك');
         } else {
           toast.success('تم إضافة جهة الاتصال بنجاح');
