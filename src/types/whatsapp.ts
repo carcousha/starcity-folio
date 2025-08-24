@@ -48,6 +48,7 @@ export interface ContactsFilter {
   priority?: string;
   created_after?: string;
   created_before?: string;
+  company?: string;
 }
 
 export interface ContactGroup {
@@ -159,6 +160,7 @@ export interface MessageTemplate {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  template_type?: string;
 }
 
 // أنواع الحملات
@@ -252,6 +254,8 @@ export interface WhatsAppSettings {
   webhook_url?: string;
   default_language: string;
   timezone: string;
+  sender_number?: string;
+  default_footer?: string;
   business_hours: {
     start: string;
     end: string;
@@ -301,6 +305,99 @@ export interface SyncStatus {
   error_message?: string;
   metadata?: Record<string, any>;
 }
+
+// إضافة أنواع مفقودة للواجهة البرمجية
+export interface WhatsAppApiResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+  message?: string;
+  status?: string | boolean;
+}
+
+export interface SendMessageRequest {
+  phone: string;
+  message: string;
+  type?: 'text' | 'media' | 'sticker';
+  media_url?: string;
+  media_type?: string;
+  api_key: string;
+  sender: string;
+  number: string;
+  footer?: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// إحصائيات WhatsApp
+export interface WhatsAppStats {
+  total_contacts: number;
+  active_contacts: number;
+  inactive_contacts: number;
+  total_messages: number;
+  sent_messages: number;
+  delivered_messages: number;
+  read_messages: number;
+  failed_messages: number;
+  campaigns_count: number;
+  templates_count: number;
+  messages_sent_today: number;
+  success_rate: number;
+  failed_rate: number;
+  active_campaigns: number;
+  contacts_by_type: Record<string, number>;
+  messages_by_status: Record<string, number>;
+  recent_activity: any[];
+}
+
+// أنواع النماذج
+export interface CreateTemplateForm {
+  name: string;
+  content: string;
+  category: string;
+  language: string;
+  variables: string[];
+}
+
+export interface CreateCampaignForm {
+  name: string;
+  description?: string;
+  message_template_id: string;
+  target_contacts: string[];
+  schedule_time?: string;
+}
+
+export interface SendSingleMessageForm {
+  contact_id: string;
+  message: string;
+  type: 'text' | 'media' | 'sticker';
+  media_url?: string;
+}
+
+// فلاتر البحث
+export interface CampaignsFilter {
+  status?: string;
+  created_after?: string;
+  created_before?: string;
+  created_by?: string;
+}
+
+export interface MessagesFilter {
+  contact_id?: string;
+  message_type?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+// أنواع النماذج والحملات
+export interface WhatsAppTemplate extends MessageTemplate {}
+
+export interface WhatsAppCampaign extends Campaign {}
 
 // أنواع النسخ الاحتياطي
 export interface BackupInfo {

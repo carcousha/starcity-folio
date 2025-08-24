@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SkeletonCard } from "@/components/ui/loading-skeleton";
 import { useEnhancedToast } from "@/components/ui/enhanced-toast";
-import ErrorBoundary from "@/components/ui/error-boundary";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { 
   TrendingUp, 
   TrendingDown, 
