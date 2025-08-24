@@ -530,8 +530,8 @@ export default function StickerMessage() {
   const handleCreateFollowupCampaign = () => {
     if (campaignReport) {
       // إنشاء حملة متابعة للرسائل الفاشلة
-      const failedContactsList = Array.isArray(campaignReport.failedMessages) 
-        ? campaignReport.failedMessages 
+      const failedContactsList = Array.isArray(campaignReport.failedMessagesList) 
+        ? campaignReport.failedMessagesList
         : [];
       
       const failedContacts = failedContactsList.map(msg => ({

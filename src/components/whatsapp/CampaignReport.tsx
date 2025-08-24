@@ -44,7 +44,7 @@ export interface CampaignReportData {
   // إحصائيات الرسائل
   totalMessages: number;
   sentMessages: number;
-  failedMessages: number;
+  failedMessagesCount: number;
   deliveredMessages: number;
   readMessages: number;
   
@@ -84,8 +84,7 @@ export interface CampaignReportData {
     successRate: number;
   }[];
   
-  // الرسائل الفاشلة
-  failedMessages: {
+  failedMessagesList: {
     id: string;
     recipientName: string;
     recipientNumber: string;
@@ -135,8 +134,8 @@ export const CampaignReport: React.FC<CampaignReportProps> = ({
 
   // تصفية الرسائل الفاشلة
   const filteredFailedMessages = failedFilter === 'all' 
-    ? reportData.failedMessages 
-    : reportData.failedMessages.filter(msg => {
+    ? reportData.failedMessagesList 
+    : reportData.failedMessagesList.filter(msg => {
         switch (failedFilter) {
           case 'network': return msg.failureReason.includes('network') || msg.failureReason.includes('شبكة');
           case 'invalid': return msg.failureReason.includes('invalid') || msg.failureReason.includes('غير صالح');
@@ -210,7 +209,7 @@ export const CampaignReport: React.FC<CampaignReportProps> = ({
               <p className="text-sm text-gray-600">تم القراءة</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{reportData.failedMessages.length}</p>
+              <p className="text-2xl font-bold text-red-600">{reportData.failedMessagesList.length}</p>
               <p className="text-sm text-gray-600">فشل</p>
             </div>
           </div>
@@ -222,7 +221,7 @@ export const CampaignReport: React.FC<CampaignReportProps> = ({
         {[
           { id: 'overview', label: 'نظرة عامة', icon: BarChart3 },
           { id: 'details', label: 'التفاصيل', icon: Activity },
-          { id: 'failed', label: `الفاشلة (${reportData.failedMessages.length})`, icon: XCircle },
+          { id: 'failed', label: `الفاشلة (${reportData.failedMessagesList.length})`, icon: XCircle },
           { id: 'analytics', label: 'التحليلات', icon: TrendingUp }
         ].map(tab => (
           <button
