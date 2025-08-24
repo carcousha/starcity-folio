@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { contactSyncService } from "@/services/contactSyncService";
+import { ContactSyncService } from "@/services/contactSyncService";
 
 interface OwnerFormProps {
   owner?: any;
@@ -137,7 +137,7 @@ export const OwnerForm = ({ owner, onSuccess, onCancel }: OwnerFormProps) => {
             notes: result.data.internal_notes
           };
           
-          await contactSyncService.syncOwnerToWhatsApp(ownerContact);
+          await ContactSyncService.syncOwnerToWhatsApp(ownerContact);
           
           toast({
             title: "نجح الحفظ",
