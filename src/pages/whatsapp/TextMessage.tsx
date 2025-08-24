@@ -37,6 +37,12 @@ import { LiveSendingScreen, SendingMessage, SendingStats } from '@/components/wh
 import { CampaignReport, CampaignReportData } from '@/components/whatsapp/CampaignReport';
 import { advancedCampaignService } from '@/services/advancedCampaignService';
 import { Progress } from '@/components/ui/progress';
+import { TextAlternatives } from '@/components/whatsapp/TextAlternatives';
+import { MessageVariables } from '@/components/whatsapp/MessageVariables';
+import { EnhancedTimingSettings, EnhancedTimingSettings as EnhancedTimingSettingsType } from '@/components/whatsapp/EnhancedTimingSettings';
+import { LiveMessagePreview } from '@/components/whatsapp/LiveMessagePreview';
+import { FirstPersonPreview } from '@/components/whatsapp/FirstPersonPreview';
+import { FailedMessageRetry } from '@/components/whatsapp/FailedMessageRetry';
 
 interface TextMessage {
   id: string;
@@ -95,6 +101,47 @@ export default function TextMessage() {
     randomMin: 3,
     randomMax: 8
   });
+  const [enhancedTimingSettings, setEnhancedTimingSettings] = useState<EnhancedTimingSettingsType>({
+    type: 'random',
+    fixedDelay: 5,
+    randomMin: 3,
+    randomMax: 10,
+    smartDelay: 7,
+    customDelays: [3, 5, 7, 10],
+    enableAntiSpam: true,
+    antiSpamDelay: 2,
+    enableBurstProtection: true,
+    burstProtectionDelay: 1,
+    enableTimeZoneAware: false,
+    preferredHours: [9, 10, 11, 14, 15, 16, 17],
+    enableWeekendProtection: false,
+    weekendDelay: 5
+  });
+  
+  // نظام البدائل النصية
+  const [textAlternatives, setTextAlternatives] = useState<any[]>([]);
+  
+  // متغيرات الرسائل
+  const [messageVariables, setMessageVariables] = useState<any[]>([]);
+  
+  // معاينة الإرسال المباشرة
+  const [liveMessages, setLiveMessages] = useState<any[]>([]);
+  const [livePreviewSettings, setLivePreviewSettings] = useState({
+    showLivePreview: true,
+    autoScroll: true,
+    filterStatus: 'all'
+  });
+  
+  // معاينة أول شخص
+  const [firstPersonPreview, setFirstPersonPreview] = useState({
+    enabled: true,
+    selectedContactId: '',
+    customVariables: {}
+  });
+  
+  // الرسائل الفاشلة
+  const [failedMessages, setFailedMessages] = useState<any[]>([]);
+  
   const [sendProgress, setSendProgress] = useState<SendProgressType[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -308,6 +355,62 @@ export default function TextMessage() {
       const contact = contacts.find(c => c.id === selectedContacts[0]);
       setSelectedContact(contact);
     }
+  };
+
+  // دوال الميزات الجديدة
+  const handleTextAlternativesChange = (alternatives: any[]) => {
+    setTextAlternatives(alternatives);
+  };
+
+  const handleMessageVariablesChange = (variables: any[]) => {
+    setMessageVariables(variables);
+  };
+
+  const handleEnhancedTimingChange = (settings: EnhancedTimingSettingsType) => {
+    setEnhancedTimingSettings(settings);
+  };
+
+  const handleRetryMessage = async (messageId: string): Promise<boolean> => {
+    try {
+      // محاكاة إعادة إرسال الرسالة
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return Math.random() > 0.3; // 70% نجاح
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const handleRetryAllMessages = async (messageIds: string[]): Promise<{ success: string[], failed: string[] }> => {
+    const results = { success: [] as string[], failed: [] as string[] };
+    
+    for (const id of messageIds) {
+      const success = await handleRetryMessage(id);
+      if (success) {
+        results.success.push(id);
+      } else {
+        results.failed.push(id);
+      }
+    }
+    
+    return results;
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    setFailedMessages(prev => prev.filter(msg => msg.id !== messageId));
+  };
+
+  const handleDeleteAllMessages = (messageIds: string[]) => {
+    setFailedMessages(prev => prev.filter(msg => !messageIds.includes(msg.id)));
+  };
+
+  const handleSendTestMessage = (contactId: string, message: string) => {
+    // محاكاة إرسال رسالة تجريبية
+    toast.success('تم إرسال رسالة تجريبية بنجاح');
+  };
+
+  const handlePreviewChange = (preview: string) => {
+    // تحديث معاينة الرسالة
+    console.log('معاينة محدثة:', preview);
   };
 
   // إرسال الحملة بالنظام المتقدم الجديد
@@ -1152,6 +1255,68 @@ export default function TextMessage() {
               config={advancedConfig}
               onChange={setAdvancedConfig}
               disabled={isLoading}
+            />
+
+            {/* نظام البدائل النصية */}
+            <TextAlternatives
+              onAlternativesChange={handleTextAlternativesChange}
+              initialAlternatives={textAlternatives}
+            />
+
+            {/* متغيرات الرسائل */}
+            <MessageVariables
+              onVariablesChange={handleMessageVariablesChange}
+              initialVariables={messageVariables}
+              onPreviewChange={handlePreviewChange}
+            />
+
+            {/* إعدادات التوقيت المحسنة */}
+            <EnhancedTimingSettings
+              settings={enhancedTimingSettings}
+              onSettingsChange={handleEnhancedTimingChange}
+              isSending={isSending}
+            />
+
+            {/* معاينة أول شخص */}
+            <FirstPersonPreview
+              messageTemplate={{
+                id: 'current',
+                content: textMessages[0]?.message || '',
+                variables: messageVariables.map(v => v.name),
+                footer: textMessages[0]?.footer || ''
+              }}
+              contacts={contacts}
+              selectedContacts={selectedContacts}
+              onSendMessage={handleSendTestMessage}
+              onPreviewChange={handlePreviewChange}
+            />
+
+            {/* معاينة الإرسال المباشرة */}
+            <LiveMessagePreview
+              messages={liveMessages}
+              onRetryMessage={handleRetryMessage}
+              onCancelMessage={handleDeleteMessage}
+              onPauseSending={() => setIsPaused(true)}
+              onResumeSending={() => setIsPaused(false)}
+              onStopSending={() => setIsSending(false)}
+              isSending={isSending}
+              isPaused={isPaused}
+              totalMessages={liveMessages.length}
+              sentMessages={liveMessages.filter(m => m.status === 'sent').length}
+              failedMessages={liveMessages.filter(m => m.status === 'failed').length}
+              currentDelay={enhancedTimingSettings.randomMin}
+              nextMessageIn={enhancedTimingSettings.randomMax}
+            />
+
+            {/* إعادة إرسال الرسائل الفاشلة */}
+            <FailedMessageRetry
+              failedMessages={failedMessages}
+              onRetryMessage={handleRetryMessage}
+              onRetryAll={handleRetryAllMessages}
+              onDeleteMessage={handleDeleteMessage}
+              onDeleteAll={handleDeleteAllMessages}
+              maxRetries={3}
+              retryDelay={5}
             />
           </div>
         </div>
