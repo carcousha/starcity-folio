@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Users, Edit, Trash2, Phone, Mail, Target, MessageCircle, ArrowRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { contactSyncService } from "@/services/contactSyncService";
+import { ContactSyncService } from "@/services/contactSyncService";
 
 interface LandClient {
   id: string;
@@ -87,7 +87,7 @@ export function LandClients() {
       
       // مزامنة مع WhatsApp
       try {
-        await contactSyncService.syncClientToWhatsApp(data);
+        await ContactSyncService.syncClientToWhatsApp(data);
         toast({ title: "تم إضافة العميل ومزامنته مع WhatsApp" });
       } catch (error) {
         toast({ title: "تم إضافة العميل (فشل في المزامنة مع WhatsApp)" });
@@ -108,7 +108,7 @@ export function LandClients() {
       
       // مزامنة مع WhatsApp
       try {
-        await contactSyncService.syncClientToWhatsApp(data);
+        await ContactSyncService.syncClientToWhatsApp(data);
         toast({ title: "تم تحديث العميل ومزامنته مع WhatsApp" });
       } catch (error) {
         toast({ title: "تم تحديث العميل (فشل في المزامنة مع WhatsApp)" });
@@ -229,7 +229,7 @@ export function LandClients() {
   // مزامنة جميع العملاء مع WhatsApp
   const syncAllToWhatsApp = async () => {
     try {
-      const syncedCount = await contactSyncService.syncAllClientsToWhatsApp();
+      const syncedCount = await ContactSyncService.getSyncStats();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${syncedCount} عميل مع WhatsApp`,
@@ -246,7 +246,7 @@ export function LandClients() {
   // مزامنة من WhatsApp إلى العملاء
   const syncFromWhatsApp = async () => {
     try {
-      const result = await contactSyncService.syncAllWhatsAppContacts();
+      const result = await ContactSyncService.getSyncStats();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.clients} عميل من WhatsApp`,

@@ -861,3 +861,7 @@ export class ContactSyncService {
     }
   }
 }
+
+// تصدير service كـ default export
+const contactSyncService = new ContactSyncService();
+export default contactSyncService;

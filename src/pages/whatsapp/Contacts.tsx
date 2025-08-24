@@ -30,7 +30,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { whatsappService } from '@/services/whatsappService';
-import { contactSyncService } from '@/services/contactSyncService';
+import { ContactSyncService } from '@/services/contactSyncService';
 import { CreateContactForm, WhatsAppContact } from '@/types/whatsapp';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -79,18 +79,18 @@ export default function WhatsAppContacts() {
       // مزامنة مع الوحدات الأخرى حسب نوع جهة الاتصال
       try {
         if (data.contact_type === 'marketer') {
-          await contactSyncService.syncWhatsAppToBroker(data);
+          await ContactSyncService.syncWhatsAppToBroker(data);
           toast.success('تم إضافة جهة الاتصال ومزامنتها مع الوسطاء');
         } else if (data.contact_type === 'client') {
           if (data.tags?.includes('مستأجر')) {
-            await contactSyncService.syncWhatsAppToTenant(data);
+            await ContactSyncService.syncWhatsAppToTenant(data);
             toast.success('تم إضافة جهة الاتصال ومزامنتها مع المستأجرين');
           } else {
-            await contactSyncService.syncWhatsAppToClient(data);
+            await ContactSyncService.syncWhatsAppToClient(data);
             toast.success('تم إضافة جهة الاتصال ومزامنتها مع العملاء');
           }
         } else if (data.contact_type === 'owner') {
-          await contactSyncService.syncWhatsAppToOwner(data);
+          await ContactSyncService.syncWhatsAppToOwner(data);
           toast.success('تم إضافة جهة الاتصال ومزامنتها مع الملاك');
         } else {
           toast.success('تم إضافة جهة الاتصال بنجاح');

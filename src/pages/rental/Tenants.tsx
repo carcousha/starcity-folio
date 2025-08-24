@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2, ArrowRight } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { contactSyncService } from "@/services/contactSyncService";
+import { ContactSyncService } from "@/services/contactSyncService";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
@@ -113,7 +113,7 @@ const RentalTenants = () => {
 
         // مزامنة مع WhatsApp
         try {
-          await contactSyncService.syncTenantToWhatsApp(result);
+          await ContactSyncService.syncTenantToWhatsApp(result);
           toast({
             title: "تم التحديث",
             description: "تم تحديث بيانات المستأجر ومزامنته مع WhatsApp",
@@ -136,7 +136,7 @@ const RentalTenants = () => {
 
         // مزامنة مع WhatsApp
         try {
-          await contactSyncService.syncTenantToWhatsApp(result);
+          await ContactSyncService.syncTenantToWhatsApp(result);
           toast({
             title: "تم الإنشاء",
             description: "تم إضافة المستأجر ومزامنته مع WhatsApp",
@@ -347,7 +347,7 @@ const RentalTenants = () => {
     try {
       let syncedCount = 0;
       for (const tenant of tenants) {
-        const result = await contactSyncService.syncTenantToWhatsApp(tenant);
+        const result = await ContactSyncService.syncTenantToWhatsApp(tenant);
         if (result) syncedCount++;
       }
       
@@ -367,7 +367,7 @@ const RentalTenants = () => {
   // مزامنة من WhatsApp إلى المستأجرين
   const syncFromWhatsApp = async () => {
     try {
-      const result = await contactSyncService.syncAllWhatsAppContacts();
+      const result = await ContactSyncService.getSyncStats();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.tenants} مستأجر من WhatsApp`,

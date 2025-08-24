@@ -469,7 +469,7 @@ class AdvancedCampaignService {
       
       totalMessages: campaign.stats.totalMessages,
       sentMessages: campaign.stats.sentMessages,
-      failedMessages: campaign.stats.failedMessages,
+      failedMessagesCount: campaign.stats.failedMessages,
       deliveredMessages: campaign.stats.sentMessages, // تقدير
       readMessages: Math.floor(campaign.stats.sentMessages * 0.8), // تقدير
       
@@ -499,7 +499,7 @@ class AdvancedCampaignService {
       },
       
       peakTimes: [],
-      failedMessages
+      failedMessages: failedMessages
     };
   }
 

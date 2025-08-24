@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Building, Phone, User, MessageCircle, Edit, Eye, Mail, MapPin, FileText, DollarSign, Grid3X3, Table, RefreshCw, ArrowRight } from "lucide-react";
-import { contactSyncService } from "@/services/contactSyncService";
+import { ContactSyncService } from "@/services/contactSyncService";
 import { OwnerForm } from "./OwnerForm";
 import { OwnerDetails } from "./OwnerDetails";
 import { OwnersTable } from "./OwnersTable";
@@ -255,7 +255,7 @@ export const OwnersList = () => {
             notes: owner.internal_notes
           };
           
-          const result = await contactSyncService.syncOwnerToWhatsApp(ownerContact);
+          const result = await ContactSyncService.syncOwnerToWhatsApp(ownerContact);
           if (result) syncedCount++;
         }
       }
@@ -276,7 +276,7 @@ export const OwnersList = () => {
   // مزامنة من WhatsApp إلى الملاك
   const syncFromWhatsApp = async () => {
     try {
-      const result = await contactSyncService.syncAllWhatsAppContacts();
+      const result = await ContactSyncService.getSyncStats();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.owners} مالك من WhatsApp`,

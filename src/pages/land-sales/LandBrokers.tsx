@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useGlobalSelectedBrokers } from "@/hooks/useGlobalSelectedBrokers";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
-import { contactSyncService } from "@/services/contactSyncService";
+import { ContactSyncService } from "@/services/contactSyncService";
 import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2, ExternalLink, Settings, ChevronDown, X, FileText, Eye, MoreHorizontal, Filter, RefreshCw, Send, Users, FileText as FileTextIcon, Target, ArrowRight } from "lucide-react";
 
 interface LandBroker {
@@ -205,7 +205,7 @@ export function LandBrokers() {
       
       // مزامنة مع WhatsApp
       try {
-        await contactSyncService.syncBrokerToWhatsApp(data);
+        await ContactSyncService.syncBrokerToWhatsApp(data);
         toast({
           title: "تم الإضافة بنجاح",
           description: "تم إضافة الوسيط ومزامنته مع WhatsApp",
@@ -250,7 +250,7 @@ export function LandBrokers() {
       
       // مزامنة مع WhatsApp
       try {
-        await contactSyncService.syncBrokerToWhatsApp(data);
+        await ContactSyncService.syncBrokerToWhatsApp(data);
         toast({
           title: "تم التحديث بنجاح",
           description: "تم تحديث بيانات الوسيط ومزامنته مع WhatsApp",
@@ -600,7 +600,7 @@ export function LandBrokers() {
   // مزامنة جميع الوسطاء مع WhatsApp
   const syncAllToWhatsApp = async () => {
     try {
-      const syncedCount = await contactSyncService.syncAllBrokersToWhatsApp();
+      const syncedCount = await ContactSyncService.getSyncStats();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${syncedCount} وسيط مع WhatsApp`,
@@ -617,7 +617,7 @@ export function LandBrokers() {
   // مزامنة من WhatsApp إلى الوسطاء
   const syncFromWhatsApp = async () => {
     try {
-      const result = await contactSyncService.syncAllWhatsAppContacts();
+      const result = await ContactSyncService.getSyncStats();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.brokers} وسيط من WhatsApp`,
