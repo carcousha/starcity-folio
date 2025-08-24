@@ -56,19 +56,22 @@ export class WhatsAppProxy {
             // التحقق من وجود كلمات تشير إلى النجاح
             if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
               resolve({
-                status: true,
+                success: true,
+                status: 'success',
                 message: 'تم إرسال الرسالة بنجاح! تحقق من واتساب للتأكد من وصول الرسالة.'
               });
             } else {
               resolve({
-                status: false,
+                success: false,
+                status: 'error',
                 message: 'فشل في إرسال الرسالة. تحقق من الإعدادات ورقم الهاتف.'
               });
             }
           } else {
             // إذا لم نتمكن من قراءة النتيجة، نفترض النجاح مع تحذير
             resolve({
-              status: true,
+              success: true,
+              status: 'warning',
               message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة. (ملاحظة: لا يمكن التأكد من النتيجة بسبب قيود المتصفح)'
             });
           }
@@ -76,7 +79,8 @@ export class WhatsAppProxy {
           console.log('Could not read iframe response:', readError);
           // إذا لم نتمكن من قراءة النتيجة، نفترض النجاح مع تحذير
           resolve({
-            status: true,
+            success: true,
+            status: 'warning',
             message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة. (ملاحظة: لا يمكن التأكد من النتيجة بسبب قيود المتصفح)'
           });
         }
@@ -88,7 +92,8 @@ export class WhatsAppProxy {
           document.body.removeChild(iframe);
         }
         resolve({
-          status: false,
+          success: false,
+          status: 'error',
           message: 'فشل في تحميل صفحة الإرسال'
         });
       };
@@ -143,31 +148,36 @@ export class WhatsAppProxy {
             // تحليل النتيجة
             if (responseText.includes('success') || responseText.includes('تم') || responseText.includes('نجح')) {
               resolve({
-                status: true,
+                success: true,
+                status: 'success',
                 message: '✅ تم الاتصال بنجاح! الإعدادات صحيحة والـ API يعمل. تحقق من واتساب للتأكد من وصول رسالة الاختبار.'
               });
             } else if (responseText.includes('error') || responseText.includes('فشل') || responseText.includes('خطأ')) {
               resolve({
-                status: false,
+                success: false,
+                status: 'error',
                 message: `❌ فشل في الاتصال: ${responseText}`
               });
             } else {
               // إذا لم نتمكن من تحديد النتيجة
               resolve({
-                status: false,
+                success: false,
+                status: 'warning',
                 message: '⚠️ لا يمكن تحديد نتيجة الاختبار. تحقق من الإعدادات ورقم الهاتف.'
               });
             }
           } else {
             resolve({
-              status: false,
+              success: false,
+              status: 'error',
               message: '⚠️ لا يمكن قراءة نتيجة الاختبار. تحقق من الإعدادات ورقم الهاتف.'
             });
           }
         } catch (error) {
           console.error('Test connection error:', error);
           resolve({
-            status: false,
+            success: false,
+            status: 'error',
             message: '❌ فشل في اختبار الاتصال. تحقق من الإعدادات ورقم الهاتف.'
           });
         }
@@ -179,7 +189,8 @@ export class WhatsAppProxy {
           document.body.removeChild(testIframe);
         }
         resolve({
-          status: false,
+          success: false,
+          status: 'error',
           message: '❌ فشل في تحميل صفحة الاختبار. تحقق من الاتصال بالإنترنت.'
         });
       };
@@ -211,14 +222,16 @@ export class WhatsAppProxy {
       // مع no-cors، لا يمكن قراءة الاستجابة
       // لكن بناءً على تجربة المستخدم، الرسائل تصل
       return {
-        status: true,
+        success: true,
+        status: 'success',
         message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة.'
       };
 
     } catch (error) {
       console.error('Alternative method failed:', error);
       return {
-        status: false,
+        success: false,
+        status: 'error',
         message: 'فشل في إرسال الرسالة: ' + (error instanceof Error ? error.message : 'خطأ غير معروف')
       };
     }
@@ -246,19 +259,22 @@ export class WhatsAppProxy {
           try {
             const response = JSON.parse(xhr.responseText);
             resolve({
-              status: response.status === true,
+              success: response.status === true,
+              status: response.status === true ? 'success' : 'error',
               message: response.msg || response.message || 'تم إرسال الرسالة بنجاح'
             });
           } catch {
             // إذا لم نتمكن من قراءة JSON، نفترض النجاح
             resolve({
-              status: true,
+              success: true,
+              status: 'success',
               message: 'تم إرسال الطلب. تحقق من واتساب للتأكد من وصول الرسالة.'
             });
           }
         } else {
           resolve({
-            status: false,
+            success: false,
+            status: 'error',
             message: `خطأ في الاستجابة: ${xhr.status}`
           });
         }
@@ -266,14 +282,16 @@ export class WhatsAppProxy {
 
       xhr.onerror = function() {
         resolve({
-          status: false,
+          success: false,
+          status: 'error',
           message: 'فشل في الاتصال بالخادم'
         });
       };
 
       xhr.ontimeout = function() {
         resolve({
-          status: false,
+          success: false,
+          status: 'error',
           message: 'انتهت مهلة الاتصال'
         });
       };

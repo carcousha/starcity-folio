@@ -617,7 +617,7 @@ export function LandBrokers() {
   // مزامنة من WhatsApp إلى الوسطاء
   const syncFromWhatsApp = async () => {
     try {
-      const result = await ContactSyncService.getSyncStats();
+      const result = await ContactSyncService.syncWhatsAppToBroker();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.brokers} وسيط من WhatsApp`,

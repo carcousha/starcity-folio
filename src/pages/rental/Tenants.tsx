@@ -367,7 +367,7 @@ const RentalTenants = () => {
   // مزامنة من WhatsApp إلى المستأجرين
   const syncFromWhatsApp = async () => {
     try {
-      const result = await ContactSyncService.getSyncStats();
+      const result = await ContactSyncService.syncWhatsAppToTenant();
       toast({
         title: "تمت المزامنة بنجاح",
         description: `تم مزامنة ${result.tenants} مستأجر من WhatsApp`,
