@@ -249,6 +249,7 @@ export interface CampaignReport {
 
 // أنواع الإعدادات
 export interface WhatsAppSettings {
+  id?: string;
   api_endpoint: string;
   api_key: string;
   webhook_url?: string;
@@ -321,6 +322,11 @@ export interface SendMessageRequest {
   type?: 'text' | 'media' | 'sticker';
   media_url?: string;
   media_type?: string;
+  url?: string;
+  button?: string;
+  option?: string;
+  name?: string;
+  countable?: boolean;
   api_key: string;
   sender: string;
   number: string;
@@ -344,6 +350,7 @@ export interface WhatsAppStats {
   read_messages: number;
   failed_messages: number;
   campaigns_count: number;
+  total_campaigns: number;
   templates_count: number;
   messages_sent_today: number;
   success_rate: number;
@@ -361,6 +368,10 @@ export interface CreateTemplateForm {
   category: string;
   language: string;
   variables: string[];
+  template_type?: string;
+  media_url?: string;
+  buttons?: any[];
+  poll_options?: any[];
 }
 
 export interface CreateCampaignForm {
@@ -368,19 +379,29 @@ export interface CreateCampaignForm {
   description?: string;
   message_template_id: string;
   target_contacts: string[];
+  target_audience?: any;
   schedule_time?: string;
 }
 
 export interface SendSingleMessageForm {
   contact_id: string;
+  phone_number?: string;
   message: string;
+  custom_message?: string;
+  template_id?: string;
   type: 'text' | 'media' | 'sticker';
+  message_type?: string;
   media_url?: string;
+  buttons?: any[];
+  poll_options?: any[];
 }
 
 // فلاتر البحث
 export interface CampaignsFilter {
+  search?: string;
   status?: string;
+  date_from?: string;
+  date_to?: string;
   created_after?: string;
   created_before?: string;
   created_by?: string;

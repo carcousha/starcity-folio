@@ -408,6 +408,7 @@ class WhatsAppService {
 
       // إعداد بيانات API
       const apiData: SendMessageRequest = {
+        phone: phoneNumber,
         api_key: settings.api_key,
         sender: settings.sender_number,
         number: phoneNumber,
@@ -429,14 +430,14 @@ class WhatsAppService {
 
       // إضافة الأزرار للرسائل التفاعلية
       if (messageData.buttons && messageData.buttons.length > 0 && messageData.message_type === 'button') {
-        apiData.button = messageData.buttons;
+        apiData.button = messageData.buttons.join(',');
       }
 
       // إضافة خيارات الاستطلاع
       if (messageData.poll_options && messageData.poll_options.length > 0 && messageData.message_type === 'poll') {
-        apiData.option = messageData.poll_options;
+        apiData.option = messageData.poll_options.join(',');
         apiData.name = 'استطلاع رأي';
-        apiData.countable = '1';
+        apiData.countable = true;
       }
 
       console.log('Sending API data:', apiData);
@@ -447,16 +448,10 @@ class WhatsAppService {
       // حفظ الرسالة في قاعدة البيانات
       const messageRecord = await this.saveMessage({
         contact_id: contact?.id,
-        template_id: template?.id,
-        phone_number: phoneNumber,
-        message_type: messageData.message_type,
+        message_type: 'text' as const,
         content: messageContent,
         media_url: messageData.media_url,
-        additional_data: {},
-        status: apiResponse.status ? 'sent' : 'failed',
-        api_response: apiResponse,
-        error_message: apiResponse.status ? undefined : apiResponse.message,
-        sent_at: apiResponse.status ? new Date().toISOString() : undefined
+        status: apiResponse.status ? 'sent' : 'failed'
       });
 
       // تحديث آخر تواصل مع جهة الاتصال
@@ -543,12 +538,20 @@ class WhatsAppService {
 
       return {
         total_contacts: contactsCount,
+        active_contacts: contactsCount,
+        inactive_contacts: 0,
+        total_messages: messagesStats.total,
+        sent_messages: messagesStats.total,
+        delivered_messages: messagesStats.total,
+        read_messages: 0,
+        failed_messages: 0,
+        campaigns_count: campaignsCount,
         total_campaigns: campaignsCount,
-        total_messages_sent: messagesStats.total,
+        templates_count: 0,
         messages_sent_today: todayMessages,
         success_rate: messagesStats.success_rate,
         failed_rate: messagesStats.failed_rate,
-        active_campaigns: campaignsCount, // يمكن تحسينها لاحقاً
+        active_campaigns: campaignsCount,
         contacts_by_type: contactsByType,
         messages_by_status: messagesByStatus,
         recent_activity: recentActivity
@@ -606,13 +609,13 @@ class WhatsAppService {
     }
 
     if (messageData.buttons && messageData.buttons.length > 0) {
-      apiData.button = messageData.buttons;
+      apiData.button = messageData.buttons.join(',');
     }
 
     if (messageData.poll_options && messageData.poll_options.length > 0) {
-      apiData.option = messageData.poll_options;
+      apiData.option = messageData.poll_options.join(',');
       apiData.name = 'استطلاع رأي';
-      apiData.countable = '1';
+      apiData.countable = true;
     }
 
     return apiData;
@@ -656,6 +659,7 @@ class WhatsAppService {
     } catch (error) {
       console.error('WhatsApp API Error:', error)
       return {
+        success: false,
         status: false,
         message: `خطأ في الاتصال: ${error.message}`
       }
@@ -1053,7 +1057,7 @@ class WhatsAppService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.supabaseService.getAnonKey()}`
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify(payload)
       });
@@ -1094,7 +1098,7 @@ class WhatsAppService {
           cost: 0.05 // تكلفة تقديرية للملصق
         };
 
-        const { error: dbError } = await this.supabaseService.getClient()
+        const { error: dbError } = await supabase
           .from('whatsapp_messages')
           .insert([messageRecord]);
 
@@ -1249,7 +1253,8 @@ class WhatsAppService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
+      warnings: []
     };
   }
 
@@ -1278,7 +1283,8 @@ class WhatsAppService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
+      warnings: []
     };
   }
 }
