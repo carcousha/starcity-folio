@@ -68,7 +68,7 @@ const messageTypes: MessageType[] = [
     description: 'ملصقات تعبيرية وتفاعلية',
     icon: Sticker,
     route: '/whatsapp/sticker-message',
-    status: 'coming-soon',
+    status: 'ready',
     color: 'text-yellow-600',
     gradient: 'from-yellow-500 to-yellow-600'
   },

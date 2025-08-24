@@ -31,6 +31,12 @@ import {
 } from 'lucide-react';
 import { whatsappService } from '@/services/whatsappService';
 import { toast } from 'sonner';
+import { AdvancedSendingSettings, AdvancedSendingConfig, defaultAdvancedSendingConfig } from '@/components/whatsapp/AdvancedSendingSettings';
+import { TemplateSelector, WhatsAppTemplate } from '@/components/whatsapp/TemplateSelector';
+import { LiveSendingScreen, SendingMessage, SendingStats } from '@/components/whatsapp/LiveSendingScreen';
+import { CampaignReport, CampaignReportData } from '@/components/whatsapp/CampaignReport';
+import { advancedCampaignService } from '@/services/advancedCampaignService';
+import { Progress } from '@/components/ui/progress';
 
 interface MediaMessage {
   id: string;
@@ -92,6 +98,27 @@ export default function MediaMessage() {
   const [isDragOver, setIsDragOver] = useState<string>('');
   const [previewMessage, setPreviewMessage] = useState<MediaMessage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // الإعدادات المتقدمة الجديدة
+  const [advancedConfig, setAdvancedConfig] = useState<AdvancedSendingConfig>(defaultAdvancedSendingConfig);
+  const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null);
+  const [currentAdvancedView, setCurrentAdvancedView] = useState<'compose' | 'sending' | 'report'>('compose');
+  const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
+  const [sendingMessages, setSendingMessages] = useState<SendingMessage[]>([]);
+  const [sendingStats, setSendingStats] = useState<SendingStats>({
+    totalMessages: 0,
+    sentMessages: 0,
+    failedMessages: 0,
+    pendingMessages: 0,
+    pausedMessages: 0,
+    currentBatch: 1,
+    totalBatches: 1,
+    elapsedTime: 0,
+    averageMessageTime: 0,
+    successRate: 0,
+    messagesPerMinute: 0
+  });
+  const [campaignReport, setCampaignReport] = useState<CampaignReportData | null>(null);
 
   // تحميل جهات الاتصال عند بداية التحميل
   useEffect(() => {
@@ -320,7 +347,270 @@ export default function MediaMessage() {
     setPreviewMessage(message);
   };
 
-  // إرسال الحملة
+  // إرسال الحملة بالنظام المتقدم الجديد
+  const handleAdvancedSendCampaign = async () => {
+    // التحقق من صحة البيانات
+    if (!campaignName.trim()) {
+      toast.error('يرجى إدخال اسم الحملة');
+      return;
+    }
+
+    // التحقق من وجود جهات اتصال
+    const hasContacts = bulkMode 
+      ? brokerPhones.length > 0 
+      : selectedContacts.length > 0;
+      
+    if (!hasContacts) {
+      toast.error(bulkMode 
+        ? 'لا توجد أرقام هواتف للوسطاء المحددين' 
+        : 'يرجى اختيار جهات اتصال على الأقل'
+      );
+      return;
+    }
+
+    const hasValidMessages = mediaMessages.some(msg => msg.mediaUrl && msg.uploadStatus === 'success');
+    if (!hasValidMessages) {
+      toast.error('يرجى رفع ملف وسائط صالح واحد على الأقل');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      console.log('🚀 بدء إرسال حملة رسائل الوسائط بالنظام المتقدم:', {
+        campaignName,
+        mediaMessages,
+        selectedContacts,
+        advancedConfig
+      });
+
+      // تحضير قائمة جهات الاتصال
+      const contactsToSend = bulkMode 
+        ? brokerPhones.map((phone, index) => ({
+            id: brokerIds[index] || `bulk_${index}`,
+            name: brokerNames[index] || 'وسيط',
+            phone: phone,
+            company: 'وسيط عقاري',
+            email: ''
+          }))
+        : await Promise.all(
+            selectedContacts.map(async (contactId) => {
+              const contact = await whatsappService.getContactById(contactId);
+              return contact;
+            })
+          ).then(contacts => contacts.filter(Boolean));
+
+      // تحضير الرسائل للإرسال
+      const messagesToSend = mediaMessages
+        .filter(msg => msg.mediaUrl && msg.uploadStatus === 'success')
+        .map(msg => ({
+          mediaType: msg.mediaType,
+          mediaUrl: msg.mediaUrl,
+          caption: msg.caption,
+          message: msg.message,
+          content: msg.caption || msg.message || 'وسائط' // للتوافق مع النظام
+        }));
+
+      // إنشاء حملة جديدة في النظام المتقدم
+      const campaignId = await advancedCampaignService.createCampaign(
+        campaignName,
+        'media',
+        messagesToSend,
+        contactsToSend,
+        advancedConfig,
+        selectedTemplate?.id
+      );
+
+      setCurrentCampaignId(campaignId);
+      
+      // تحضير إحصائيات الإرسال
+      const totalMessages = messagesToSend.length * contactsToSend.length;
+      setSendingStats({
+        totalMessages,
+        sentMessages: 0,
+        failedMessages: 0,
+        pendingMessages: totalMessages,
+        pausedMessages: 0,
+        currentBatch: 1,
+        totalBatches: Math.ceil(totalMessages / (advancedConfig.batchPause.messagesPerBatch || 50)),
+        elapsedTime: 0,
+        averageMessageTime: 0,
+        successRate: 0,
+        messagesPerMinute: 0
+      });
+
+      // إنشاء قائمة الرسائل للعرض
+      const sendingMessagesList: SendingMessage[] = [];
+      let messageIndex = 0;
+      
+      for (const contact of contactsToSend) {
+        for (const message of messagesToSend) {
+          sendingMessagesList.push({
+            id: `media_msg_${messageIndex++}`,
+            recipientName: contact.name,
+            recipientNumber: contact.phone,
+            content: message.caption || message.message || `${message.mediaType} ملف`,
+            status: 'pending',
+            retryCount: 0
+          });
+        }
+      }
+      
+      setSendingMessages(sendingMessagesList);
+
+      // التبديل إلى شاشة الإرسال المباشرة
+      setCurrentAdvancedView('sending');
+      
+      // بدء الحملة
+      const started = await advancedCampaignService.startCampaign(campaignId);
+      
+      if (started) {
+        toast.success('تم بدء حملة رسائل الوسائط بنجاح!');
+        
+        // تحديث الإحصائيات كل ثانية
+        const statsInterval = setInterval(async () => {
+          const campaign = advancedCampaignService.getCampaign(campaignId);
+          const progress = advancedCampaignService.getCampaignProgress(campaignId);
+          
+          if (campaign && progress) {
+            setSendingStats(campaign.stats);
+            setSendingMessages([...campaign.sendingMessages]);
+            
+            // إذا انتهت الحملة، أوقف التحديث واعرض التقرير
+            if (campaign.status === 'completed' || campaign.status === 'failed') {
+              clearInterval(statsInterval);
+              
+              // تحضير التقرير النهائي
+              const report = await advancedCampaignService.getCampaignReport(campaignId);
+              if (report) {
+                setCampaignReport(report);
+                setCurrentAdvancedView('report');
+                
+                if (campaign.status === 'completed') {
+                  toast.success('تم إكمال الحملة بنجاح!');
+                } else {
+                  toast.error('فشلت الحملة أو تم إيقافها');
+                }
+              }
+            }
+          }
+        }, 1000);
+        
+        // تنظيف الفاصل عند إلغاء الكومبوننت
+        return () => clearInterval(statsInterval);
+      } else {
+        throw new Error('فشل في بدء الحملة');
+      }
+      
+    } catch (error) {
+      console.error('خطأ في إرسال الحملة:', error);
+      toast.error(error instanceof Error ? error.message : 'حدث خطأ في إرسال الحملة');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // دوال التحكم في الحملة المتقدمة
+  const handlePauseCampaign = async () => {
+    if (currentCampaignId) {
+      await advancedCampaignService.pauseCampaign(currentCampaignId);
+      toast.info('تم إيقاف الحملة مؤقتاً');
+    }
+  };
+
+  const handleResumeCampaign = async () => {
+    if (currentCampaignId) {
+      try {
+        await advancedCampaignService.resumeCampaign(currentCampaignId);
+        toast.success('تم استئناف الحملة');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'فشل في استئناف الحملة');
+      }
+    }
+  };
+
+  const handleStopCampaign = async () => {
+    if (currentCampaignId) {
+      await advancedCampaignService.stopCampaign(currentCampaignId);
+      toast.info('تم إيقاف الحملة نهائياً');
+      
+      // إنشاء التقرير النهائي
+      const report = await advancedCampaignService.getCampaignReport(currentCampaignId);
+      if (report) {
+        setCampaignReport(report);
+        setCurrentAdvancedView('report');
+      }
+    }
+  };
+
+  const handleRetryFailedMessages = async (messageIds?: string[]) => {
+    if (currentCampaignId) {
+      const success = await advancedCampaignService.retryFailedMessages(currentCampaignId, messageIds);
+      if (success) {
+        toast.success('تم إعادة جدولة الرسائل الفاشلة');
+      } else {
+        toast.error('فشل في إعادة جدولة الرسائل');
+      }
+    }
+  };
+
+  // معالجة اختيار القوالب
+  const handleTemplateSelect = (template: WhatsAppTemplate) => {
+    setSelectedTemplate(template);
+    
+    // إذا كان القالب يحتوي على نص، ضعه في أول رسالة وسائط
+    if (template.content && mediaMessages.length > 0) {
+      const updatedMessages = [...mediaMessages];
+      updatedMessages[0] = {
+        ...updatedMessages[0],
+        caption: template.content,
+        message: template.content
+      };
+      setMediaMessages(updatedMessages);
+    }
+    
+    toast.success(`تم اختيار القالب: ${template.name}`);
+  };
+
+  // دوال تصدير التقرير
+  const handleExportReport = (format: 'pdf' | 'excel' | 'csv') => {
+    if (campaignReport) {
+      // هنا يمكن إضافة منطق التصدير الفعلي
+      toast.success(`سيتم تصدير التقرير بصيغة ${format.toUpperCase()}`);
+    }
+  };
+
+  const handleCreateFollowupCampaign = () => {
+    if (campaignReport) {
+      // إنشاء حملة متابعة للرسائل الفاشلة
+      const failedContactsList = Array.isArray(campaignReport.failedMessages) 
+        ? campaignReport.failedMessages 
+        : [];
+      
+      const failedContacts = failedContactsList.map(msg => ({
+        name: msg.recipientName,
+        phone: msg.recipientNumber
+      }));
+      
+      // إعداد حملة جديدة بالرسائل الفاشلة
+      setSelectedContacts([]); // مسح الاختيارات الحالية
+      // يمكن إضافة منطق لإضافة جهات الاتصال الفاشلة تلقائياً
+      
+      toast.info(`سيتم إنشاء حملة متابعة لـ ${failedContacts.length} عميل`);
+      setCurrentAdvancedView('compose');
+      setCampaignName(`${campaignReport.campaignName} - متابعة`);
+    }
+  };
+
+  // التحكم في العرض الحالي
+  const canStartAdvancedCampaign = () => {
+    return !isLoading && 
+           campaignName.trim() && 
+           (bulkMode ? brokerPhones.length > 0 : selectedContacts.length > 0) &&
+           mediaMessages.some(msg => msg.mediaUrl && msg.uploadStatus === 'success');
+  };
+
+  // إرسال الحملة (الدالة القديمة)
   const handleSendCampaign = async () => {
     // التحقق من صحة البيانات
     if (!campaignName.trim()) {
@@ -493,29 +783,65 @@ export default function MediaMessage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button
-              onClick={handleSendCampaign}
-              disabled={isLoading || (!bulkMode && selectedContacts.length === 0) || (bulkMode && brokerPhones.length === 0) || !campaignName.trim()}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  جاري الإرسال...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  إرسال الحملة ({bulkMode ? brokerPhones.length : selectedContacts.length})
-                </>
-              )}
-            </Button>
+            {/* أزرار التنقل بين الشاشات */}
+            {currentAdvancedView !== 'compose' && (
+              <Button
+                variant="outline"
+                onClick={() => setCurrentAdvancedView('compose')}
+              >
+                العودة للتحرير
+              </Button>
+            )}
+            
+            {/* أزرار الإرسال */}
+            {currentAdvancedView === 'compose' && (
+              <>
+                <Button
+                  onClick={handleAdvancedSendCampaign}
+                  disabled={!canStartAdvancedCampaign()}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      إرسال متقدم ({bulkMode ? brokerPhones.length : selectedContacts.length})
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={handleSendCampaign}
+                  disabled={isLoading || (!bulkMode && selectedContacts.length === 0) || (bulkMode && brokerPhones.length === 0) || !campaignName.trim()}
+                  variant="outline"
+                  className="border-purple-500 text-purple-600 hover:bg-purple-50"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      إرسال عادي ({bulkMode ? brokerPhones.length : selectedContacts.length})
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* المحتوى الرئيسي حسب العرض الحالي */}
+        {currentAdvancedView === 'compose' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
             {/* معلومات الحملة */}
             <Card>
               <CardHeader>
@@ -937,8 +1263,51 @@ export default function MediaMessage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* قسم القوالب الجاهزة */}
+            <TemplateSelector
+              onTemplateSelect={handleTemplateSelect}
+              selectedTemplateId={selectedTemplate?.id}
+              messageType="media"
+              disabled={isLoading}
+            />
+
+            {/* الإعدادات المتقدمة */}
+            <AdvancedSendingSettings
+              config={advancedConfig}
+              onChange={setAdvancedConfig}
+              disabled={isLoading}
+            />
           </div>
         </div>
+        )}
+
+        {/* شاشة الإرسال المباشرة */}
+        {currentAdvancedView === 'sending' && (
+          <LiveSendingScreen
+            messages={sendingMessages}
+            stats={sendingStats}
+            config={advancedConfig}
+            onStart={handleAdvancedSendCampaign}
+            onPause={handlePauseCampaign}
+            onResume={handleResumeCampaign}
+            onStop={handleStopCampaign}
+            onRetryFailed={handleRetryFailedMessages}
+            isRunning={currentCampaignId !== null}
+            isPaused={false} // يمكن تحديثها من حالة الحملة
+            canStart={canStartAdvancedCampaign()}
+          />
+        )}
+
+        {/* شاشة تقرير الحملة */}
+        {currentAdvancedView === 'report' && campaignReport && (
+          <CampaignReport
+            reportData={campaignReport}
+            onRetryFailed={handleRetryFailedMessages}
+            onExportReport={handleExportReport}
+            onCreateFollowupCampaign={handleCreateFollowupCampaign}
+          />
+        )}
 
         {/* معاينة الرسالة المنبثقة */}
         {previewMessage && (

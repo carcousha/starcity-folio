@@ -1,238 +1,343 @@
-// WhatsApp Module Types
-// أنواع البيانات الخاصة بوحدة الواتساب
+// WhatsApp Types - Enhanced with Deduplication Support
+// أنواع WhatsApp - محسّنة مع دعم إزالة التكرار
 
 export interface WhatsAppContact {
   id: string;
   name: string;
   phone: string;
   whatsapp_number?: string;
-  contact_type: 'owner' | 'marketer' | 'client';
+  contact_type: 'client' | 'marketer' | 'owner' | 'supplier' | 'other';
   email?: string;
   company?: string;
   notes?: string;
   tags: string[];
   is_active: boolean;
-  last_contacted?: string;
-  created_by: string;
   created_at: string;
   updated_at: string;
+  last_contact_date?: string;
+  total_messages?: number;
+  status: 'active' | 'inactive' | 'blocked';
+  priority: 'high' | 'medium' | 'low';
+  source?: string; // مصدر جهة الاتصال
+  external_id?: string; // معرف خارجي للربط
 }
 
-export interface WhatsAppTemplate {
-  id: string;
-  name: string;
-  content: string;
-  template_type: 'text' | 'media' | 'button' | 'poll' | 'sticker' | 'product';
-  category: 'real_estate_offer' | 'advertisement' | 'reminder' | 'other';
-  media_url?: string;
-  buttons: WhatsAppButton[];
-  poll_options: string[];
-  is_active: boolean;
-  usage_count: number;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface WhatsAppButton {
-  type: 'reply' | 'call' | 'url' | 'copy';
-  displayText: string;
-  phoneNumber?: string; // لنوع call
-  url?: string; // لنوع url
-  copyText?: string; // لنوع copy
-}
-
-export interface WhatsAppCampaign {
-  id: string;
-  name: string;
-  description?: string;
-  template_id: string;
-  template?: WhatsAppTemplate;
-  target_audience: CampaignTargetAudience;
-  scheduled_at?: string;
-  status: 'draft' | 'scheduled' | 'running' | 'completed' | 'paused' | 'cancelled';
-  total_recipients: number;
-  messages_sent: number;
-  messages_delivered: number;
-  messages_failed: number;
-  started_at?: string;
-  completed_at?: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CampaignTargetAudience {
-  contact_types: ('owner' | 'marketer' | 'client')[];
-  tags?: string[];
-  companies?: string[];
-  exclude_recent_contacts?: boolean; // استثناء من تم التواصل معهم مؤخراً
-  exclude_recent_days?: number; // عدد الأيام للاستثناء
-}
-
-export interface WhatsAppMessage {
-  id: string;
-  campaign_id?: string;
-  contact_id: string;
-  template_id?: string;
-  phone_number: string;
-  message_type: 'text' | 'media' | 'button' | 'poll' | 'sticker' | 'product';
-  content: string;
-  media_url?: string;
-  additional_data: Record<string, any>;
-  status: 'pending' | 'sent' | 'delivered' | 'failed';
-  api_response: Record<string, any>;
-  error_message?: string;
-  sent_at?: string;
-  delivered_at?: string;
-  created_by: string;
-  created_at: string;
-  contact?: WhatsAppContact;
-  template?: WhatsAppTemplate;
-}
-
-export interface WhatsAppSettings {
-  id: string;
-  api_key: string;
-  sender_number: string;
-  default_footer: string;
-  daily_limit: number;
-  rate_limit_per_minute: number;
-  is_active: boolean;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// API Request Types
-export interface SendMessageRequest {
-  api_key: string;
-  sender: string;
-  number: string;
-  message: string;
-  footer?: string;
-  url?: string; // للوسائط
-  media_type?: 'image' | 'video' | 'audio' | 'document';
-  caption?: string;
-  button?: WhatsAppButton[];
-  name?: string; // للاستطلاعات
-  option?: string[]; // للاستطلاعات
-  countable?: '1' | '0'; // للاستطلاعات
-}
-
-export interface WhatsAppApiResponse {
-  status: boolean;
-  message: string;
-  error?: string;
-}
-
-// Statistics Types
-export interface WhatsAppStats {
-  total_contacts: number;
-  total_campaigns: number;
-  total_messages_sent: number;
-  messages_sent_today: number;
-  success_rate: number;
-  failed_rate: number;
-  active_campaigns: number;
-  contacts_by_type: {
-    owners: number;
-    marketers: number;
-    clients: number;
-  };
-  messages_by_status: {
-    sent: number;
-    delivered: number;
-    failed: number;
-    pending: number;
-  };
-  recent_activity: WhatsAppMessage[];
-}
-
-// Form Types
 export interface CreateContactForm {
   name: string;
   phone: string;
   whatsapp_number?: string;
-  contact_type: 'owner' | 'marketer' | 'client';
+  contact_type: 'client' | 'marketer' | 'owner' | 'supplier' | 'other';
   email?: string;
   company?: string;
   notes?: string;
   tags: string[];
+  source?: string;
+  external_id?: string;
 }
 
-export interface CreateTemplateForm {
-  name: string;
-  content: string;
-  template_type: 'text' | 'media' | 'button' | 'poll' | 'sticker' | 'product';
-  category: 'real_estate_offer' | 'advertisement' | 'reminder' | 'other';
-  media_url?: string;
-  buttons: WhatsAppButton[];
-  poll_options: string[];
+export interface UpdateContactForm extends Partial<CreateContactForm> {
+  id: string;
 }
 
-export interface CreateCampaignForm {
-  name: string;
-  description?: string;
-  template_id: string;
-  target_audience: CampaignTargetAudience;
-  scheduled_at?: string;
-}
-
-export interface SendSingleMessageForm {
-  contact_id?: string;
-  phone_number?: string;
-  template_id?: string;
-  custom_message?: string;
-  message_type: 'text' | 'media' | 'button' | 'poll' | 'sticker' | 'product';
-  media_url?: string;
-  buttons: WhatsAppButton[];
-  poll_options: string[];
-}
-
-// Filter and Search Types
 export interface ContactsFilter {
   search?: string;
-  contact_type?: 'owner' | 'marketer' | 'client' | 'all';
-  is_active?: boolean;
-  company?: string;
+  contact_type?: string;
   tags?: string[];
+  is_active?: boolean;
+  source?: string;
+  priority?: string;
+  created_after?: string;
+  created_before?: string;
 }
 
-export interface CampaignsFilter {
-  search?: string;
-  status?: 'draft' | 'scheduled' | 'running' | 'completed' | 'paused' | 'cancelled' | 'all';
-  category?: 'real_estate_offer' | 'advertisement' | 'reminder' | 'other' | 'all';
-  date_from?: string;
-  date_to?: string;
+export interface ContactGroup {
+  id: string;
+  name: string;
+  description?: string;
+  contacts: WhatsAppContact[];
+  created_at: string;
+  updated_at: string;
 }
 
-export interface MessagesFilter {
-  search?: string;
-  status?: 'pending' | 'sent' | 'delivered' | 'failed' | 'all';
-  contact_type?: 'owner' | 'marketer' | 'client' | 'all';
-  campaign_id?: string;
-  date_from?: string;
-  date_to?: string;
+export interface ContactTag {
+  id: string;
+  name: string;
+  color: string;
+  description?: string;
+  usage_count: number;
+  created_at: string;
 }
 
-// Bulk Operations Types
-export interface BulkOperation {
-  type: 'send_message' | 'add_tag' | 'remove_tag' | 'deactivate' | 'activate';
-  contact_ids: string[];
-  data?: any; // حسب نوع العملية
+// أنواع إزالة التكرار
+export interface DuplicateContact {
+  id: string;
+  phone: string;
+  name: string;
+  email?: string;
+  source_tables: string[];
+  data: ContactSourceData[];
+  similarity_score: number;
+  merge_priority: 'high' | 'medium' | 'low';
+  last_activity?: string;
+  total_records: number;
 }
 
-// Validation Types
-export interface ValidationResult {
-  isValid: boolean;
+export interface ContactSourceData {
+  source: string;
+  source_id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  company?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  additional_data?: Record<string, any>;
+}
+
+export interface DeduplicationResult {
+  total_duplicates: number;
+  cleaned_contacts: number;
+  merged_contacts: number;
   errors: string[];
-  warnings?: string[];
+  warnings: string[];
+  processing_time: number;
+  summary: {
+    brokers: number;
+    clients: number;
+    owners: number;
+    tenants: number;
+    whatsapp: number;
+    total_saved_space: number;
+  };
+  detailed_results: {
+    successful_merges: Array<{
+      contact_name: string;
+      phone: string;
+      merged_sources: string[];
+      master_contact_id: string;
+    }>;
+    failed_merges: Array<{
+      contact_name: string;
+      phone: string;
+      error: string;
+      sources: string[];
+    }>;
+  };
 }
 
-// Export utility types
-export type ContactType = WhatsAppContact['contact_type'];
-export type MessageType = WhatsAppMessage['message_type'];
-export type CampaignStatus = WhatsAppCampaign['status'];
-export type MessageStatus = WhatsAppMessage['status'];
-export type TemplateCategory = WhatsAppTemplate['category'];
+export interface DeduplicationOptions {
+  auto_merge: boolean;
+  similarity_threshold: number;
+  preserve_data: boolean;
+  dry_run: boolean;
+  batch_size: number;
+}
+
+// أنواع الرسائل
+export interface WhatsAppMessage {
+  id: string;
+  contact_id: string;
+  message_type: 'text' | 'media' | 'sticker' | 'document' | 'location';
+  content: string;
+  media_url?: string;
+  media_type?: string;
+  file_size?: number;
+  status: 'sent' | 'delivered' | 'read' | 'failed';
+  direction: 'inbound' | 'outbound';
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  content: string;
+  category: string;
+  language: string;
+  variables: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// أنواع الحملات
+export interface Campaign {
+  id: string;
+  name: string;
+  description?: string;
+  message_template_id: string;
+  target_contacts: string[];
+  status: 'draft' | 'scheduled' | 'running' | 'paused' | 'completed' | 'cancelled';
+  schedule_time?: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  total_contacts: number;
+  sent_count: number;
+  delivered_count: number;
+  read_count: number;
+  failed_count: number;
+}
+
+export interface CampaignSettings {
+  message_interval: number; // بالثواني
+  batch_size: number;
+  pause_after_batch: boolean;
+  pause_duration: number; // بالثواني
+  do_not_disturb_start: string; // وقت بداية عدم الإزعاج
+  do_not_disturb_end: string; // وقت نهاية عدم الإزعاج
+  daily_message_cap: number;
+  error_simulation: boolean;
+  auto_reschedule_failed: boolean;
+  retry_attempts: number;
+  retry_delay: number; // بالثواني
+}
+
+// أنواع التقارير
+export interface ContactReport {
+  total_contacts: number;
+  active_contacts: number;
+  inactive_contacts: number;
+  contacts_by_type: Record<string, number>;
+  contacts_by_source: Record<string, number>;
+  contacts_by_priority: Record<string, number>;
+  recent_contacts: number;
+  duplicate_contacts: number;
+  potential_savings: number;
+}
+
+export interface MessageReport {
+  total_messages: number;
+  sent_messages: number;
+  delivered_messages: number;
+  read_messages: number;
+  failed_messages: number;
+  messages_by_type: Record<string, number>;
+  messages_by_status: Record<string, number>;
+  average_delivery_time: number;
+  success_rate: number;
+}
+
+export interface CampaignReport {
+  campaign_id: string;
+  campaign_name: string;
+  start_time: string;
+  end_time?: string;
+  duration: number; // بالثواني
+  total_contacts: number;
+  sent_count: number;
+  delivered_count: number;
+  read_count: number;
+  failed_count: number;
+  success_rate: number;
+  average_delivery_time: number;
+  cost_analysis?: {
+    total_cost: number;
+    cost_per_message: number;
+    cost_per_delivery: number;
+  };
+  performance_metrics: {
+    delivery_rate: number;
+    read_rate: number;
+    engagement_rate: number;
+    bounce_rate: number;
+  };
+}
+
+// أنواع الإعدادات
+export interface WhatsAppSettings {
+  api_endpoint: string;
+  api_key: string;
+  webhook_url?: string;
+  default_language: string;
+  timezone: string;
+  business_hours: {
+    start: string;
+    end: string;
+    days: string[];
+  };
+  auto_replies: {
+    enabled: boolean;
+    message: string;
+    schedule: {
+      start: string;
+      end: string;
+    };
+  };
+  rate_limiting: {
+    messages_per_minute: number;
+    messages_per_hour: number;
+    messages_per_day: number;
+  };
+  deduplication: {
+    enabled: boolean;
+    similarity_threshold: number;
+    auto_merge: boolean;
+    preserve_data: boolean;
+    batch_size: number;
+  };
+}
+
+// أنواع الأحداث
+export interface WhatsAppEvent {
+  id: string;
+  event_type: 'message_received' | 'message_delivered' | 'message_read' | 'contact_updated' | 'duplicate_found';
+  contact_id: string;
+  data: Record<string, any>;
+  timestamp: string;
+  processed: boolean;
+}
+
+// أنواع المزامنة
+export interface SyncStatus {
+  id: string;
+  entity_type: 'broker' | 'client' | 'owner' | 'tenant';
+  entity_id: string;
+  whatsapp_contact_id?: string;
+  sync_status: 'pending' | 'synced' | 'failed' | 'conflict';
+  last_sync: string;
+  sync_attempts: number;
+  error_message?: string;
+  metadata?: Record<string, any>;
+}
+
+// أنواع النسخ الاحتياطي
+export interface BackupInfo {
+  id: string;
+  backup_type: 'full' | 'incremental' | 'contacts_only';
+  file_path: string;
+  file_size: number;
+  created_at: string;
+  status: 'completed' | 'failed' | 'in_progress';
+  records_count: number;
+  compression_ratio: number;
+  checksum: string;
+}
+
+// أنواع المراقبة
+export interface SystemHealth {
+  database_connections: number;
+  active_campaigns: number;
+  pending_messages: number;
+  failed_operations: number;
+  system_load: number;
+  memory_usage: number;
+  disk_usage: number;
+  last_check: string;
+  status: 'healthy' | 'warning' | 'critical';
+}
+
+// أنواع التحديثات
+export interface SystemUpdate {
+  id: string;
+  version: string;
+  description: string;
+  release_date: string;
+  changelog: string[];
+  breaking_changes: string[];
+  migration_required: boolean;
+  migration_script?: string;
+  rollback_available: boolean;
+  status: 'available' | 'downloading' | 'installing' | 'completed' | 'failed';
+}

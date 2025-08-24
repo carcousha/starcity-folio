@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { contactSyncService } from "@/services/contactSyncService";
 
 interface OwnerFormProps {
   owner?: any;
@@ -107,22 +108,48 @@ export const OwnerForm = ({ owner, onSuccess, onCancel }: OwnerFormProps) => {
         result = await supabase
           .from("property_owners")
           .update(ownerData)
-          .eq("id", owner.id);
+          .eq("id", owner.id)
+          .select()
+          .single();
       } else {
         // Create new owner
         result = await supabase
           .from("property_owners")
-          .insert([ownerData]);
+          .insert([ownerData])
+          .select()
+          .single();
       }
 
       if (result.error) {
         throw result.error;
       }
 
-      toast({
-        title: "نجح الحفظ",
-        description: owner?.id ? "تم تحديث بيانات المالك بنجاح" : "تم إضافة المالك بنجاح",
-      });
+      // مزامنة مع WhatsApp
+      try {
+        if (result.data) {
+          const ownerContact = {
+            id: result.data.id,
+            name: result.data.full_name,
+            phone: result.data.mobile_numbers[0], // أول رقم هاتف
+            email: result.data.email,
+            whatsapp_number: result.data.mobile_numbers[0],
+            id_number: result.data.id_number,
+            notes: result.data.internal_notes
+          };
+          
+          await contactSyncService.syncOwnerToWhatsApp(ownerContact);
+          
+          toast({
+            title: "نجح الحفظ",
+            description: owner?.id ? "تم تحديث بيانات المالك ومزامنته مع WhatsApp" : "تم إضافة المالك ومزامنته مع WhatsApp",
+          });
+        }
+      } catch (syncError) {
+        toast({
+          title: "نجح الحفظ",
+          description: owner?.id ? "تم تحديث بيانات المالك (فشل في المزامنة مع WhatsApp)" : "تم إضافة المالك (فشل في المزامنة مع WhatsApp)",
+        });
+      }
 
       onSuccess?.();
     } catch (error: any) {

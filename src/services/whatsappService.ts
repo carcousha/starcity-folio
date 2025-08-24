@@ -28,6 +28,8 @@ class WhatsAppService {
   
   async getContacts(filter: ContactsFilter = {}): Promise<WhatsAppContact[]> {
     try {
+      console.log('🔍 [WhatsAppService] Loading contacts with filter:', filter);
+      
       let query = supabase
         .from('whatsapp_contacts')
         .select('*')
@@ -56,10 +58,31 @@ class WhatsAppService {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [WhatsAppService] Database error:', error);
+        // إذا كان الخطأ متعلق بعدم وجود الجدول، أرجع مصفوفة فارغة
+        if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('does not exist')) {
+          console.warn('⚠️ [WhatsAppService] Table might not exist, returning empty array');
+          return [];
+        }
+        throw error;
+      }
+
+      console.log(`✅ [WhatsAppService] Loaded ${data?.length || 0} contacts`);
       return data || [];
     } catch (error) {
-      console.error('Error fetching contacts:', error);
+      console.error('💥 [WhatsAppService] Fatal error fetching contacts:', error);
+      
+      // في حالة الخطأ الشديد، أرجع مصفوفة فارغة بدلاً من توقف التطبيق
+      if (error instanceof Error && (
+        error.message.includes('relation') || 
+        error.message.includes('does not exist') ||
+        error.message.includes('permission denied')
+      )) {
+        console.warn('⚠️ [WhatsAppService] Returning empty array due to database issue');
+        return [];
+      }
+      
       throw error;
     }
   }
@@ -82,28 +105,47 @@ class WhatsAppService {
 
   async createContact(contactData: CreateContactForm): Promise<WhatsAppContact> {
     try {
+      console.log('🔄 [WhatsAppService] Starting contact creation:', {
+        name: contactData.name,
+        phone: contactData.phone,
+        type: contactData.contact_type
+      });
+
       // التحقق من عدم تكرار رقم الهاتف
+      console.log('🔍 [WhatsAppService] Checking for existing phone number...');
       const existingContact = await this.getContactByPhone(contactData.phone);
       if (existingContact) {
+        console.log('❌ [WhatsAppService] Phone already exists:', contactData.phone);
         throw new Error('رقم الهاتف موجود مسبقاً');
       }
+      console.log('✅ [WhatsAppService] Phone number is unique, proceeding...');
+
+      // تحضير البيانات للإدراج
+      const insertData = {
+        ...contactData,
+        phone: this.cleanPhoneNumber(contactData.phone),
+        whatsapp_number: contactData.whatsapp_number ? 
+          this.cleanPhoneNumber(contactData.whatsapp_number) : 
+          this.cleanPhoneNumber(contactData.phone)
+      };
+      
+      console.log('📝 [WhatsAppService] Prepared data for insert:', insertData);
 
       const { data, error } = await supabase
         .from('whatsapp_contacts')
-        .insert([{
-          ...contactData,
-          phone: this.cleanPhoneNumber(contactData.phone),
-          whatsapp_number: contactData.whatsapp_number ? 
-            this.cleanPhoneNumber(contactData.whatsapp_number) : 
-            this.cleanPhoneNumber(contactData.phone)
-        }])
+        .insert([insertData])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [WhatsAppService] Insert error:', error);
+        throw error;
+      }
+      
+      console.log('✅ [WhatsAppService] Contact created successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error creating contact:', error);
+      console.error('💥 [WhatsAppService] Fatal error creating contact:', error);
       throw error;
     }
   }
@@ -951,6 +993,138 @@ class WhatsAppService {
         success: false,
         status: false,
         message: 'خطأ في الاتصال بالخادم',
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  // ===== إرسال رسائل الملصقات =====
+
+  async sendStickerMessage(number: string, stickerUrl: string): Promise<any> {
+    try {
+      console.log('🔍 [sendStickerMessage] Starting sticker message send process...');
+      console.log('📱 [sendStickerMessage] Target number:', number);
+      console.log('🖼️ [sendStickerMessage] Sticker URL:', stickerUrl);
+      
+      // الحصول على الإعدادات من قاعدة البيانات
+      console.log('⚙️ [sendStickerMessage] Fetching WhatsApp settings from database...');
+      const settings = await this.getSettings();
+      
+      if (!settings) {
+        console.error('❌ [sendStickerMessage] WhatsApp settings not found in database');
+        throw new Error('إعدادات WhatsApp غير متوفرة في قاعدة البيانات. يرجى إعدادها أولاً.');
+      }
+
+      if (!settings.api_key || !settings.sender_number) {
+        console.error('❌ [sendStickerMessage] Incomplete settings:', {
+          hasApiKey: !!settings.api_key,
+          hasSenderNumber: !!settings.sender_number,
+          apiKeyLength: settings.api_key?.length || 0,
+          senderNumber: settings.sender_number || 'NOT SET'
+        });
+        throw new Error('مفتاح API أو رقم المرسل غير مكتمل في إعدادات WhatsApp.');
+      }
+
+      console.log('✅ [sendStickerMessage] Settings loaded successfully:', {
+        apiKey: `${settings.api_key.substring(0, 8)}...`,
+        senderNumber: settings.sender_number
+      });
+
+      // إعداد الـ payload للملصق
+      const payload = {
+        type: 'sticker',
+        data: {
+          api_key: settings.api_key,
+          sender: settings.sender_number,
+          number: number,
+          url: stickerUrl
+        }
+      };
+
+      console.log('📤 [sendStickerMessage] Sending request to Edge Function with payload:', {
+        type: payload.type,
+        number: payload.data.number,
+        senderNumber: payload.data.sender,
+        stickerUrl: payload.data.url
+      });
+
+      // استخدام نفس الـ Edge Function مع نوع sticker
+      const response = await fetch(`${this.apiBaseUrl}/whatsapp-enhanced`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.supabaseService.getAnonKey()}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      console.log('📬 [sendStickerMessage] Edge Function response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [sendStickerMessage] Edge Function error response:', errorText);
+        throw new Error(`فشل في الاتصال بخادم الإرسال: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('🎯 [sendStickerMessage] Edge Function response:', result);
+
+      if (!result.status) {
+        console.error('❌ [sendStickerMessage] Message sending failed:', result.message);
+        throw new Error(result.message || 'فشل في إرسال الملصق');
+      }
+
+      console.log('✅ [sendStickerMessage] Sticker message sent successfully!');
+      
+      // حفظ سجل الرسالة في قاعدة البيانات
+      try {
+        console.log('💾 [sendStickerMessage] Saving message record to database...');
+        
+        const messageRecord = {
+          recipient_number: number,
+          sender_number: settings.sender_number,
+          message_type: 'sticker',
+          content: 'ملصق',
+          media_url: stickerUrl,
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          api_response: result,
+          campaign_id: null, // يمكن إضافته لاحقاً إذا كان جزء من حملة
+          template_id: null,
+          cost: 0.05 // تكلفة تقديرية للملصق
+        };
+
+        const { error: dbError } = await this.supabaseService.getClient()
+          .from('whatsapp_messages')
+          .insert([messageRecord]);
+
+        if (dbError) {
+          console.error('⚠️ [sendStickerMessage] Warning: Failed to save message record:', dbError);
+          // لا نرمي خطأ هنا لأن الرسالة تم إرسالها بنجاح
+        } else {
+          console.log('✅ [sendStickerMessage] Message record saved successfully');
+        }
+      } catch (dbError) {
+        console.error('⚠️ [sendStickerMessage] Warning: Database error:', dbError);
+        // لا نرمي خطأ هنا لأن الرسالة تم إرسالها بنجاح
+      }
+
+      return {
+        success: true,
+        status: true,
+        message: 'تم إرسال الملصق بنجاح',
+        data: result,
+        messageId: result.data?.id,
+        timestamp: new Date().toISOString()
+      };
+
+    } catch (error) {
+      console.error('💥 [sendStickerMessage] Fatal error in sendStickerMessage:', error);
+      
+      return {
+        success: false,
+        status: false,
+        message: 'خطأ في إرسال الملصق',
         error: error instanceof Error ? error.message : String(error)
       };
     }

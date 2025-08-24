@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useGlobalSelectedBrokers } from "@/hooks/useGlobalSelectedBrokers";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { contactSyncService } from "@/services/contactSyncService";
 import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2, ExternalLink, Settings, ChevronDown, X, FileText, Eye, MoreHorizontal, Filter, RefreshCw, Send, Users, FileText as FileTextIcon, Target, ArrowRight } from "lucide-react";
 
 interface LandBroker {
@@ -183,10 +184,13 @@ export function LandBrokers() {
   // Add broker mutation
   const addBrokerMutation = useMutation({
     mutationFn: async (data: BrokerFormData) => {
+      // استبعاد حقل notes مؤقتاً حتى يتم إضافة العمود في قاعدة البيانات
+      const { notes, ...brokerData } = data;
+      
       const { data: result, error } = await supabase
         .from('land_brokers')
         .insert([{
-          ...data,
+          ...brokerData,
           deals_count: 0,
           total_sales_amount: 0
         }])
@@ -196,12 +200,23 @@ export function LandBrokers() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
-      toast({
-        title: "تم الإضافة بنجاح",
-        description: "تم إضافة الوسيط بنجاح",
-      });
+      
+      // مزامنة مع WhatsApp
+      try {
+        await contactSyncService.syncBrokerToWhatsApp(data);
+        toast({
+          title: "تم الإضافة بنجاح",
+          description: "تم إضافة الوسيط ومزامنته مع WhatsApp",
+        });
+      } catch (error) {
+        toast({
+          title: "تم الإضافة بنجاح",
+          description: "تم إضافة الوسيط (فشل في المزامنة مع WhatsApp)",
+        });
+      }
+      
       setIsAddDialogOpen(false);
       resetForm();
     },
@@ -217,9 +232,12 @@ export function LandBrokers() {
   // Update broker mutation
   const updateBrokerMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<BrokerFormData> }) => {
+      // استبعاد حقل notes مؤقتاً حتى يتم إضافة العمود في قاعدة البيانات
+      const { notes, ...brokerData } = data;
+      
       const { data: result, error } = await supabase
         .from('land_brokers')
-        .update(data)
+        .update(brokerData)
         .eq('id', id)
         .select()
         .single();
@@ -227,12 +245,23 @@ export function LandBrokers() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
-      toast({
-        title: "تم التحديث بنجاح",
-        description: "تم تحديث بيانات الوسيط بنجاح",
-      });
+      
+      // مزامنة مع WhatsApp
+      try {
+        await contactSyncService.syncBrokerToWhatsApp(data);
+        toast({
+          title: "تم التحديث بنجاح",
+          description: "تم تحديث بيانات الوسيط ومزامنته مع WhatsApp",
+        });
+      } catch (error) {
+        toast({
+          title: "تم التحديث بنجاح",
+          description: "تم تحديث بيانات الوسيط (فشل في المزامنة مع WhatsApp)",
+        });
+      }
+      
       setIsEditDialogOpen(false);
       setSelectedBroker(null);
       resetForm();
@@ -568,12 +597,77 @@ export function LandBrokers() {
     );
   }
 
+  // مزامنة جميع الوسطاء مع WhatsApp
+  const syncAllToWhatsApp = async () => {
+    try {
+      const syncedCount = await contactSyncService.syncAllBrokersToWhatsApp();
+      toast({
+        title: "تمت المزامنة بنجاح",
+        description: `تم مزامنة ${syncedCount} وسيط مع WhatsApp`,
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ في المزامنة",
+        description: "فشل في مزامنة الوسطاء مع WhatsApp",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // مزامنة من WhatsApp إلى الوسطاء
+  const syncFromWhatsApp = async () => {
+    try {
+      const result = await contactSyncService.syncAllWhatsAppContacts();
+      toast({
+        title: "تمت المزامنة بنجاح",
+        description: `تم مزامنة ${result.brokers} وسيط من WhatsApp`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
+    } catch (error) {
+      toast({
+        title: "خطأ في المزامنة",
+        description: "فشل في مزامنة الوسطاء من WhatsApp",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
       <PageHeader
         title="الوسطاء"
         description="إدارة وسطاء الأراضي والعقارات"
       />
+
+      {/* أزرار المزامنة مع WhatsApp */}
+      <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-green-600" />
+            <span className="font-medium text-green-800">مزامنة WhatsApp</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={syncAllToWhatsApp}
+              variant="outline"
+              size="sm"
+              className="border-green-300 text-green-700 hover:bg-green-100"
+            >
+              <ArrowRight className="h-4 w-4 mr-2" />
+              مزامنة الوسطاء إلى WhatsApp
+            </Button>
+            <Button
+              onClick={syncFromWhatsApp}
+              variant="outline"
+              size="sm"
+              className="border-green-300 text-green-700 hover:bg-green-100"
+            >
+              <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+              مزامنة من WhatsApp إلى الوسطاء
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Bulk Actions Toolbar */}
       {bulkSelection.selectedCount > 0 && (
