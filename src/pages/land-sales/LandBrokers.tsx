@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, Suspense, lazy, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,10 +54,21 @@ interface BrokerFormData {
 export function LandBrokers() {
   const navigate = useNavigate();
   const { addBrokers, selectedBrokers: globalSelectedBrokers, selectedCount, isTransferring, setIsTransferring } = useGlobalSelectedBrokers();
+  // تحسين state للبحث مع debouncing
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
   const [languageFilter, setLanguageFilter] = useState<'all' | 'arabic' | 'english'>('all');
+
+  // Debounce search term لتقليل عدد الاستعلامات
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [displayLimit, setDisplayLimit] = useState(50); // عرض 50 عنصر في البداية
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -82,27 +94,32 @@ export function LandBrokers() {
 
   const queryClient = useQueryClient();
 
-  // Fetch brokers
+  // Fetch brokers with optimized query
   const { data: brokers = [], isLoading, error: queryError, refetch } = useQuery({
-    queryKey: ['land-brokers', searchTerm, activityFilter, languageFilter],
+    queryKey: ['land-brokers', debouncedSearchTerm, activityFilter, languageFilter],
     queryFn: async () => {
-      console.log('🔍 [LandBrokers] Fetching brokers with filters:', { searchTerm, activityFilter, languageFilter });
+      console.log('🔍 [LandBrokers] Fetching brokers with filters:', { debouncedSearchTerm, activityFilter, languageFilter });
       
       let query = supabase.from('land_brokers').select('*');
       
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,short_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      // استخدام full-text search المحسن للبحث السريع
+      if (debouncedSearchTerm) {
+        // استخدام tsquery للبحث المحسن
+        const searchWords = debouncedSearchTerm.trim().split(/\s+/).join(' | ');
+        query = query.or(`search_vector.fts.${searchWords},phone.eq.${debouncedSearchTerm},email.eq.${debouncedSearchTerm}`);
       }
       
-      if (activityFilter !== 'all') {
+      // استخدام الفهارس المركبة للفلترة
+      if (activityFilter !== 'all' && languageFilter !== 'all') {
+        query = query.eq('activity_status', activityFilter).eq('language', languageFilter);
+      } else if (activityFilter !== 'all') {
         query = query.eq('activity_status', activityFilter);
-      }
-      
-      if (languageFilter !== 'all') {
+      } else if (languageFilter !== 'all') {
         query = query.eq('language', languageFilter);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // ترتيب محسن للأداء
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(500);
       
       if (error) {
         console.error('❌ [LandBrokers] Error fetching brokers:', error);
@@ -111,22 +128,19 @@ export function LandBrokers() {
       
       console.log('✅ [LandBrokers] Brokers fetched successfully:', {
         count: data?.length || 0,
-        brokers: data?.map(b => ({ id: b.id, name: b.name, phone: b.phone })) || []
+        brokers: data?.slice(0, 5).map(b => ({ id: b.id, name: b.name, phone: b.phone })) || []
       });
       
       return data as LandBroker[];
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // زيادة وقت الـ cache
+    gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false
+    refetchOnMount: 'always', // تأكد من التحديث عند التحميل
+    retry: 2 // إعادة المحاولة مرتين فقط
   });
 
-  // Bulk selection hook
-  const bulkSelection = useBulkSelection({
-    items: brokers,
-    getItemId: (broker) => broker.id
-  });
+  // Bulk selection hook - سيتم نقله لاحقاً
 
   // Bulk messaging functions
   const handleBulkTextMessage = () => {
@@ -345,21 +359,41 @@ export function LandBrokers() {
     }
   };
 
+  // تحسين عملية الفلترة لتقليل الحمل على الواجهة  
   const filteredBrokers = useMemo(() => {
-    return brokers.filter(broker => {
-      const matchesSearch = !searchTerm || 
-        broker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        broker.short_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        broker.phone.includes(searchTerm) ||
-        broker.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        broker.office_name?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesActivity = activityFilter === 'all' || broker.activity_status === activityFilter;
-      const matchesLanguage = languageFilter === 'all' || broker.language === languageFilter;
-      
-      return matchesSearch && matchesActivity && matchesLanguage;
-    });
-  }, [brokers, searchTerm, activityFilter, languageFilter]);
+    // إذا لم يكن هناك بحث حالي أو دائم، استخدم البيانات من الخادم مباشرة
+    if (!searchTerm || searchTerm === debouncedSearchTerm) {
+      return brokers;
+    }
+    
+    // فلترة محلية سريعة للكتابة الحية فقط
+    if (searchTerm.length >= 2) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      return brokers.filter(broker => {
+        return broker.name.toLowerCase().includes(lowerSearchTerm) ||
+          broker.short_name?.toLowerCase().includes(lowerSearchTerm) ||
+          broker.phone.includes(searchTerm);
+      });
+    }
+    
+    return brokers;
+  }, [brokers, searchTerm, debouncedSearchTerm]);
+
+  // تحسين عرض البيانات مع pagination محلي للأداء
+  const displayedBrokers = useMemo(() => {
+    return filteredBrokers.slice(0, displayLimit);
+  }, [filteredBrokers, displayLimit]);
+
+  // تحسين bulk selection لتجنب إعادة الحساب المتكررة
+  const bulkSelection = useBulkSelection({
+    items: displayedBrokers,
+    getItemId: useCallback((broker) => broker.id, [])
+  });
+
+  // Load more function
+  const loadMore = useCallback(() => {
+    setDisplayLimit(prev => Math.min(prev + 50, filteredBrokers.length));
+  }, [filteredBrokers.length]);
 
   // Export functionality
   const handleExport = useCallback(() => {
