@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { ContactSyncService } from "@/services/contactSyncService";
 
 interface OwnerFormProps {
   owner?: any;
@@ -108,48 +107,22 @@ export const OwnerForm = ({ owner, onSuccess, onCancel }: OwnerFormProps) => {
         result = await supabase
           .from("property_owners")
           .update(ownerData)
-          .eq("id", owner.id)
-          .select()
-          .single();
+          .eq("id", owner.id);
       } else {
         // Create new owner
         result = await supabase
           .from("property_owners")
-          .insert([ownerData])
-          .select()
-          .single();
+          .insert([ownerData]);
       }
 
       if (result.error) {
         throw result.error;
       }
 
-      // مزامنة مع WhatsApp
-      try {
-        if (result.data) {
-          const ownerContact = {
-            id: result.data.id,
-            name: result.data.full_name,
-            phone: result.data.mobile_numbers[0], // أول رقم هاتف
-            email: result.data.email,
-            whatsapp_number: result.data.mobile_numbers[0],
-            id_number: result.data.id_number,
-            notes: result.data.internal_notes
-          };
-          
-          await ContactSyncService.syncOwnerToWhatsApp(ownerContact);
-          
-          toast({
-            title: "نجح الحفظ",
-            description: owner?.id ? "تم تحديث بيانات المالك ومزامنته مع WhatsApp" : "تم إضافة المالك ومزامنته مع WhatsApp",
-          });
-        }
-      } catch (syncError) {
-        toast({
-          title: "نجح الحفظ",
-          description: owner?.id ? "تم تحديث بيانات المالك (فشل في المزامنة مع WhatsApp)" : "تم إضافة المالك (فشل في المزامنة مع WhatsApp)",
-        });
-      }
+      toast({
+        title: "نجح الحفظ",
+        description: owner?.id ? "تم تحديث بيانات المالك بنجاح" : "تم إضافة المالك بنجاح",
+      });
 
       onSuccess?.();
     } catch (error: any) {

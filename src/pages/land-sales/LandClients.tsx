@@ -11,9 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, Users, Edit, Trash2, Phone, Mail, Target, MessageCircle, ArrowRight } from "lucide-react";
+import { Plus, Search, Users, Edit, Trash2, Phone, Mail, Target } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { ContactSyncService } from "@/services/contactSyncService";
 
 interface LandClient {
   id: string;
@@ -75,47 +74,29 @@ export function LandClients() {
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<LandClient>) => {
-      const { data: result, error } = await supabase.from('land_clients').insert({
+      const { error } = await supabase.from('land_clients').insert({
         ...data,
         created_by: (await supabase.auth.getUser()).data.user?.id
-      }).select().single();
+      });
       if (error) throw error;
-      return result;
     },
-    onSuccess: async (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['land-clients'] });
-      
-      // مزامنة مع WhatsApp
-      try {
-        await ContactSyncService.syncClientToWhatsApp(data);
-        toast({ title: "تم إضافة العميل ومزامنته مع WhatsApp" });
-      } catch (error) {
-        toast({ title: "تم إضافة العميل (فشل في المزامنة مع WhatsApp)" });
-      }
-      
       setIsDialogOpen(false);
+      toast({ title: "تم إضافة العميل بنجاح" });
     }
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<LandClient> & { id: string }) => {
-      const { data: result, error } = await supabase.from('land_clients').update(data).eq('id', id).select().single();
+      const { error } = await supabase.from('land_clients').update(data).eq('id', id);
       if (error) throw error;
-      return result;
     },
-    onSuccess: async (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['land-clients'] });
-      
-      // مزامنة مع WhatsApp
-      try {
-        await ContactSyncService.syncClientToWhatsApp(data);
-        toast({ title: "تم تحديث العميل ومزامنته مع WhatsApp" });
-      } catch (error) {
-        toast({ title: "تم تحديث العميل (فشل في المزامنة مع WhatsApp)" });
-      }
-      
       setIsDialogOpen(false);
       setEditingClient(null);
+      toast({ title: "تم تحديث العميل بنجاح" });
     }
   });
 
@@ -226,73 +207,8 @@ export function LandClients() {
       .slice(0, 3);
   };
 
-  // مزامنة جميع العملاء مع WhatsApp
-  const syncAllToWhatsApp = async () => {
-    try {
-      const syncedCount = await ContactSyncService.getSyncStats();
-      toast({
-        title: "تمت المزامنة بنجاح",
-        description: `تم مزامنة ${syncedCount} عميل مع WhatsApp`,
-      });
-    } catch (error) {
-      toast({
-        title: "خطأ في المزامنة",
-        description: "فشل في مزامنة العملاء مع WhatsApp",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // مزامنة من WhatsApp إلى العملاء
-  const syncFromWhatsApp = async () => {
-    try {
-      const result = await ContactSyncService.syncWhatsAppToClient();
-      toast({
-        title: "تمت المزامنة بنجاح",
-        description: `تم مزامنة ${result.clients} عميل من WhatsApp`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['land-clients'] });
-    } catch (error) {
-      toast({
-        title: "خطأ في المزامنة",
-        description: "فشل في مزامنة العملاء من WhatsApp",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {/* أزرار المزامنة مع WhatsApp */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-blue-600" />
-            <span className="font-medium text-blue-800">مزامنة WhatsApp</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={syncAllToWhatsApp}
-              variant="outline"
-              size="sm"
-              className="border-blue-300 text-blue-700 hover:bg-blue-100"
-            >
-              <ArrowRight className="h-4 w-4 mr-2" />
-              مزامنة العملاء إلى WhatsApp
-            </Button>
-            <Button
-              onClick={syncFromWhatsApp}
-              variant="outline"
-              size="sm"
-              className="border-blue-300 text-blue-700 hover:bg-blue-100"
-            >
-              <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-              مزامنة من WhatsApp إلى العملاء
-            </Button>
-          </div>
-        </div>
-      </div>
-
       <div className="flex items-center justify-between">
         <PageHeader 
           title="إدارة العملاء" 

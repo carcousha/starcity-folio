@@ -6,7 +6,6 @@ import { LandClients } from "./LandClients";
 import { LandTasks } from "./LandTasks";
 import { AdvancedTasks } from "./AdvancedTasks";
 import { LandReports } from "./LandReports";
-import TestBrokerAdd from "./TestBrokerAdd";
 
 export default function LandSalesIndex() {
   return (
@@ -18,7 +17,6 @@ export default function LandSalesIndex() {
       <Route path="tasks" element={<LandTasks />} />
       <Route path="advanced-tasks" element={<AdvancedTasks />} />
       <Route path="reports" element={<LandReports />} />
-      <Route path="test-broker-add" element={<TestBrokerAdd />} />
     </Routes>
   );
 }

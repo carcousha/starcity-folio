@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import {
   MessageSquare,
   Image,
-  Sticker,
   Grid3X3,
   Zap,
   Clock,
@@ -28,10 +27,10 @@ import {
 // Components
 import { EnhancedTextMessageTab } from '@/components/whatsapp/campaign-tabs/EnhancedTextMessageTab';
 import { EnhancedMediaMessageTab } from '@/components/whatsapp/campaign-tabs/EnhancedMediaMessageTab';
-import { StickerMessageTab } from '@/components/whatsapp/campaign-tabs/StickerMessageTab';
 import { whatsappService } from '@/services/whatsappService';
 import { ProductMessageTab } from '@/components/whatsapp/campaign-tabs/ProductMessageTab';
 import { ChannelMessageTab } from '@/components/whatsapp/campaign-tabs/ChannelMessageTab';
+import { StickerMessageTab } from '@/components/whatsapp/campaign-tabs/StickerMessageTab';
 import { PollMessageTab } from '@/components/whatsapp/campaign-tabs/PollMessageTab';
 import { ListMessageTab } from '@/components/whatsapp/campaign-tabs/ListMessageTab';
 import { LocationMessageTab } from '@/components/whatsapp/campaign-tabs/LocationMessageTab';
@@ -44,7 +43,7 @@ interface AdvancedCampaignState {
   campaignData: any;
 }
 
-// تعريف التابات المتاحة - النصية والوسائط والملصقات متاحة الآن
+// تعريف التابات المتاحة - ركز على النصية والوسائط الآن
 const campaignTabs = [
   {
     id: 'text',
@@ -59,13 +58,6 @@ const campaignTabs = [
     icon: Image,
     component: EnhancedMediaMessageTab,
     description: 'رسالة مع صورة، فيديو، صوت أو مستند'
-  },
-  {
-    id: 'sticker',
-    label: 'رسالة ملصق',
-    icon: Sticker,
-    component: StickerMessageTab,
-    description: 'ملصقات تعبيرية وتفاعلية'
   },
   // الأنواع التالية ستكون متاحة في المستقبل
   /* 
@@ -284,18 +276,6 @@ export default function AdvancedCampaign() {
         mediaMsg.mediaUrl,
         mediaMsg.mediaType,
         mediaMsg.message
-      );
-    }
-  };
-
-  // دالة إرسال رسائل الملصقات
-  const sendStickerMessages = async (contact: any, stickerMessages: any[]) => {
-    for (const stickerMsg of stickerMessages) {
-      if (!stickerMsg.stickerUrl) continue;
-
-      await whatsappService.sendStickerMessage(
-        contact.phone,
-        stickerMsg.stickerUrl
       );
     }
   };
