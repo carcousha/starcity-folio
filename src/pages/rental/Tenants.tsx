@@ -8,10 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2, ArrowRight } from 'lucide-react';
+import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { ContactSyncService } from "@/services/contactSyncService";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
@@ -99,54 +98,29 @@ const RentalTenants = () => {
         created_by: user.id
       };
 
-      let result;
       if (editingTenant) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('rental_tenants')
           .update(tenantData)
-          .eq('id', editingTenant.id)
-          .select()
-          .single();
+          .eq('id', editingTenant.id);
 
         if (error) throw error;
-        result = data;
 
-        // مزامنة مع WhatsApp
-        try {
-          await ContactSyncService.syncTenantToWhatsApp(result);
-          toast({
-            title: "تم التحديث",
-            description: "تم تحديث بيانات المستأجر ومزامنته مع WhatsApp",
-          });
-        } catch (syncError) {
-          toast({
-            title: "تم التحديث",
-            description: "تم تحديث بيانات المستأجر (فشل في المزامنة مع WhatsApp)",
-          });
-        }
+        toast({
+          title: "تم التحديث",
+          description: "تم تحديث بيانات المستأجر بنجاح",
+        });
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('rental_tenants')
-          .insert([tenantData])
-          .select()
-          .single();
+          .insert([tenantData]);
 
         if (error) throw error;
-        result = data;
 
-        // مزامنة مع WhatsApp
-        try {
-          await ContactSyncService.syncTenantToWhatsApp(result);
-          toast({
-            title: "تم الإنشاء",
-            description: "تم إضافة المستأجر ومزامنته مع WhatsApp",
-          });
-        } catch (syncError) {
-          toast({
-            title: "تم الإنشاء",
-            description: "تم إضافة المستأجر (فشل في المزامنة مع WhatsApp)",
-          });
-        }
+        toast({
+          title: "تم الإنشاء",
+          description: "تم إضافة المستأجر بنجاح",
+        });
       }
 
       resetForm();
@@ -342,78 +316,8 @@ const RentalTenants = () => {
     );
   }
 
-  // مزامنة جميع المستأجرين مع WhatsApp
-  const syncAllToWhatsApp = async () => {
-    try {
-      let syncedCount = 0;
-      for (const tenant of tenants) {
-        const result = await ContactSyncService.syncTenantToWhatsApp(tenant);
-        if (result) syncedCount++;
-      }
-      
-      toast({
-        title: "تمت المزامنة بنجاح",
-        description: `تم مزامنة ${syncedCount} مستأجر مع WhatsApp`,
-      });
-    } catch (error) {
-      toast({
-        title: "خطأ في المزامنة",
-        description: "فشل في مزامنة المستأجرين مع WhatsApp",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // مزامنة من WhatsApp إلى المستأجرين
-  const syncFromWhatsApp = async () => {
-    try {
-      const result = await ContactSyncService.syncWhatsAppToTenant();
-      toast({
-        title: "تمت المزامنة بنجاح",
-        description: `تم مزامنة ${result.tenants} مستأجر من WhatsApp`,
-      });
-      fetchTenants(); // إعادة تحميل البيانات
-    } catch (error) {
-      toast({
-        title: "خطأ في المزامنة",
-        description: "فشل في مزامنة المستأجرين من WhatsApp",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* أزرار المزامنة مع WhatsApp */}
-      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-orange-600" />
-            <span className="font-medium text-orange-800">مزامنة WhatsApp</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={syncAllToWhatsApp}
-              variant="outline"
-              size="sm"
-              className="border-orange-300 text-orange-700 hover:bg-orange-100"
-            >
-              <ArrowRight className="h-4 w-4 mr-2" />
-              مزامنة المستأجرين إلى WhatsApp
-            </Button>
-            <Button
-              onClick={syncFromWhatsApp}
-              variant="outline"
-              size="sm"
-              className="border-orange-300 text-orange-700 hover:bg-orange-100"
-            >
-              <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-              مزامنة من WhatsApp إلى المستأجرين
-            </Button>
-          </div>
-        </div>
-      </div>
-
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">إدارة المستأجرين</h1>

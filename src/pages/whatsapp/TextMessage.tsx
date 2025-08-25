@@ -31,18 +31,6 @@ import { TimingSettings as TimingSettingsComponent } from '@/components/whatsapp
 import { SendProgress } from '@/components/whatsapp/SendProgress';
 import { MessagePreview } from '@/components/whatsapp/MessagePreview';
 import { toast } from 'sonner';
-import { AdvancedSendingSettings, AdvancedSendingConfig, defaultAdvancedSendingConfig } from '@/components/whatsapp/AdvancedSendingSettings';
-import { TemplateSelector, WhatsAppTemplate } from '@/components/whatsapp/TemplateSelector';
-import { LiveSendingScreen, SendingMessage, SendingStats } from '@/components/whatsapp/LiveSendingScreen';
-import { CampaignReport, CampaignReportData } from '@/components/whatsapp/CampaignReport';
-import { advancedCampaignService } from '@/services/advancedCampaignService';
-import { Progress } from '@/components/ui/progress';
-import { TextAlternatives } from '@/components/whatsapp/TextAlternatives';
-import { MessageVariables } from '@/components/whatsapp/MessageVariables';
-import { EnhancedTimingSettings, EnhancedTimingSettings as EnhancedTimingSettingsType } from '@/components/whatsapp/EnhancedTimingSettings';
-import { LiveMessagePreview } from '@/components/whatsapp/LiveMessagePreview';
-import { FirstPersonPreview } from '@/components/whatsapp/FirstPersonPreview';
-import { FailedMessageRetry } from '@/components/whatsapp/FailedMessageRetry';
 
 interface TextMessage {
   id: string;
@@ -101,73 +89,11 @@ export default function TextMessage() {
     randomMin: 3,
     randomMax: 8
   });
-  const [enhancedTimingSettings, setEnhancedTimingSettings] = useState<EnhancedTimingSettingsType>({
-    type: 'random',
-    fixedDelay: 5,
-    randomMin: 3,
-    randomMax: 10,
-    smartDelay: 7,
-    customDelays: [3, 5, 7, 10],
-    enableAntiSpam: true,
-    antiSpamDelay: 2,
-    enableBurstProtection: true,
-    burstProtectionDelay: 1,
-    enableTimeZoneAware: false,
-    preferredHours: [9, 10, 11, 14, 15, 16, 17],
-    enableWeekendProtection: false,
-    weekendDelay: 5
-  });
-  
-  // نظام البدائل النصية
-  const [textAlternatives, setTextAlternatives] = useState<any[]>([]);
-  
-  // متغيرات الرسائل
-  const [messageVariables, setMessageVariables] = useState<any[]>([]);
-  
-  // معاينة الإرسال المباشرة
-  const [liveMessages, setLiveMessages] = useState<any[]>([]);
-  const [livePreviewSettings, setLivePreviewSettings] = useState({
-    showLivePreview: true,
-    autoScroll: true,
-    filterStatus: 'all'
-  });
-  
-  // معاينة أول شخص
-  const [firstPersonPreview, setFirstPersonPreview] = useState({
-    enabled: true,
-    selectedContactId: '',
-    customVariables: {}
-  });
-  
-  // الرسائل الفاشلة
-  const [failedMessages, setFailedMessages] = useState<any[]>([]);
-  
   const [sendProgress, setSendProgress] = useState<SendProgressType[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentView, setCurrentView] = useState<'compose' | 'preview' | 'sending'>('compose');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-
-  // الإعدادات المتقدمة الجديدة
-  const [advancedConfig, setAdvancedConfig] = useState<AdvancedSendingConfig>(defaultAdvancedSendingConfig);
-  const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null);
-  const [currentAdvancedView, setCurrentAdvancedView] = useState<'compose' | 'sending' | 'report'>('compose');
-  const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
-  const [sendingMessages, setSendingMessages] = useState<SendingMessage[]>([]);
-  const [sendingStats, setSendingStats] = useState<SendingStats>({
-    totalMessages: 0,
-    sentMessages: 0,
-    failedMessages: 0,
-    pendingMessages: 0,
-    pausedMessages: 0,
-    currentBatch: 1,
-    totalBatches: 1,
-    elapsedTime: 0,
-    averageMessageTime: 0,
-    successRate: 0,
-    messagesPerMinute: 0
-  });
-  const [campaignReport, setCampaignReport] = useState<CampaignReportData | null>(null);
 
   // قوالب الرسائل الجاهزة
   const messageTemplates = [
@@ -357,325 +283,7 @@ export default function TextMessage() {
     }
   };
 
-  // دوال الميزات الجديدة
-  const handleTextAlternativesChange = (alternatives: any[]) => {
-    setTextAlternatives(alternatives);
-  };
-
-  const handleMessageVariablesChange = (variables: any[]) => {
-    setMessageVariables(variables);
-  };
-
-  const handleEnhancedTimingChange = (settings: EnhancedTimingSettingsType) => {
-    setEnhancedTimingSettings(settings);
-  };
-
-  const handleRetryMessage = async (messageId: string): Promise<boolean> => {
-    try {
-      // محاكاة إعادة إرسال الرسالة
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return Math.random() > 0.3; // 70% نجاح
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const handleRetryAllMessages = async (messageIds: string[]): Promise<{ success: string[], failed: string[] }> => {
-    const results = { success: [] as string[], failed: [] as string[] };
-    
-    for (const id of messageIds) {
-      const success = await handleRetryMessage(id);
-      if (success) {
-        results.success.push(id);
-      } else {
-        results.failed.push(id);
-      }
-    }
-    
-    return results;
-  };
-
-  const handleDeleteMessage = (messageId: string) => {
-    setFailedMessages(prev => prev.filter(msg => msg.id !== messageId));
-  };
-
-  const handleDeleteAllMessages = (messageIds: string[]) => {
-    setFailedMessages(prev => prev.filter(msg => !messageIds.includes(msg.id)));
-  };
-
-  const handleSendTestMessage = (contactId: string, message: string) => {
-    // محاكاة إرسال رسالة تجريبية
-    toast.success('تم إرسال رسالة تجريبية بنجاح');
-  };
-
-  const handlePreviewChange = (preview: string) => {
-    // تحديث معاينة الرسالة
-    console.log('معاينة محدثة:', preview);
-  };
-
-  // إرسال الحملة بالنظام المتقدم الجديد
-  const handleAdvancedSendCampaign = async () => {
-    // التحقق من صحة البيانات
-    if (!campaignName.trim()) {
-      toast.error('يرجى إدخال اسم الحملة');
-      return;
-    }
-
-    // التحقق من وجود جهات اتصال
-    const hasContacts = bulkMode 
-      ? brokerPhones.length > 0 
-      : selectedContacts.length > 0;
-      
-    if (!hasContacts) {
-      toast.error(bulkMode 
-        ? 'لا توجد أرقام هواتف للوسطاء المحددين' 
-        : 'يرجى اختيار جهات اتصال على الأقل'
-      );
-      return;
-    }
-
-    const hasValidMessages = textMessages.some(msg => msg.message.trim());
-    if (!hasValidMessages) {
-      toast.error('يرجى إدخال رسالة واحدة على الأقل');
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      console.log('🚀 بدء إرسال حملة الرسائل النصية بالنظام المتقدم:', {
-        campaignName,
-        textMessages,
-        selectedContacts,
-        advancedConfig
-      });
-
-      // تحضير قائمة جهات الاتصال
-      const contactsToSend = bulkMode 
-        ? brokerPhones.map((phone, index) => ({
-            id: brokerIds[index] || `bulk_${index}`,
-            name: brokerNames[index] || 'وسيط',
-            phone: phone,
-            company: 'وسيط عقاري',
-            email: ''
-          }))
-        : await Promise.all(
-            selectedContacts.map(async (contactId) => {
-              const contact = await whatsappService.getContactById(contactId);
-              return contact;
-            })
-          ).then(contacts => contacts.filter(Boolean));
-
-      // تحضير الرسائل للإرسال
-      const messagesToSend = textMessages
-        .filter(msg => msg.message.trim())
-        .map(msg => ({
-          message: msg.message,
-          footer: msg.footer,
-          variables: msg.variables,
-          content: msg.message // للتوافق مع النظام
-        }));
-
-      // إنشاء حملة جديدة في النظام المتقدم
-      const campaignId = await advancedCampaignService.createCampaign(
-        campaignName,
-        'text',
-        messagesToSend,
-        contactsToSend,
-        advancedConfig,
-        selectedTemplate?.id
-      );
-
-      setCurrentCampaignId(campaignId);
-      
-      // تحضير إحصائيات الإرسال
-      const totalMessages = messagesToSend.length * contactsToSend.length;
-      setSendingStats({
-        totalMessages,
-        sentMessages: 0,
-        failedMessages: 0,
-        pendingMessages: totalMessages,
-        pausedMessages: 0,
-        currentBatch: 1,
-        totalBatches: Math.ceil(totalMessages / (advancedConfig.batchPause.messagesPerBatch || 50)),
-        elapsedTime: 0,
-        averageMessageTime: 0,
-        successRate: 0,
-        messagesPerMinute: 0
-      });
-
-      // إنشاء قائمة الرسائل للعرض
-      const sendingMessagesList: SendingMessage[] = [];
-      let messageIndex = 0;
-      
-      for (const contact of contactsToSend) {
-        for (const message of messagesToSend) {
-          sendingMessagesList.push({
-            id: `text_msg_${messageIndex++}`,
-            recipientName: contact.name,
-            recipientNumber: contact.phone,
-            content: message.message,
-            status: 'pending',
-            retryCount: 0
-          });
-        }
-      }
-      
-      setSendingMessages(sendingMessagesList);
-
-      // التبديل إلى شاشة الإرسال المباشرة
-      setCurrentAdvancedView('sending');
-      
-      // بدء الحملة
-      const started = await advancedCampaignService.startCampaign(campaignId);
-      
-      if (started) {
-        toast.success('تم بدء حملة الرسائل النصية بنجاح!');
-        
-        // تحديث الإحصائيات كل ثانية
-        const statsInterval = setInterval(async () => {
-          const campaign = advancedCampaignService.getCampaign(campaignId);
-          const progress = advancedCampaignService.getCampaignProgress(campaignId);
-          
-          if (campaign && progress) {
-            setSendingStats(campaign.stats);
-            setSendingMessages([...campaign.sendingMessages]);
-            
-            // إذا انتهت الحملة، أوقف التحديث واعرض التقرير
-            if (campaign.status === 'completed' || campaign.status === 'failed') {
-              clearInterval(statsInterval);
-              
-              // تحضير التقرير النهائي
-              const report = await advancedCampaignService.getCampaignReport(campaignId);
-              if (report) {
-                setCampaignReport(report);
-                setCurrentAdvancedView('report');
-                
-                if (campaign.status === 'completed') {
-                  toast.success('تم إكمال الحملة بنجاح!');
-                } else {
-                  toast.error('فشلت الحملة أو تم إيقافها');
-                }
-              }
-            }
-          }
-        }, 1000);
-        
-        // تنظيف الفاصل عند إلغاء الكومبوننت
-        return () => clearInterval(statsInterval);
-      } else {
-        throw new Error('فشل في بدء الحملة');
-      }
-      
-    } catch (error) {
-      console.error('خطأ في إرسال الحملة:', error);
-      toast.error(error instanceof Error ? error.message : 'حدث خطأ في إرسال الحملة');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // دوال التحكم في الحملة المتقدمة
-  const handlePauseCampaign = async () => {
-    if (currentCampaignId) {
-      await advancedCampaignService.pauseCampaign(currentCampaignId);
-      toast.info('تم إيقاف الحملة مؤقتاً');
-    }
-  };
-
-  const handleResumeCampaign = async () => {
-    if (currentCampaignId) {
-      try {
-        await advancedCampaignService.resumeCampaign(currentCampaignId);
-        toast.success('تم استئناف الحملة');
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'فشل في استئناف الحملة');
-      }
-    }
-  };
-
-  const handleStopCampaign = async () => {
-    if (currentCampaignId) {
-      await advancedCampaignService.stopCampaign(currentCampaignId);
-      toast.info('تم إيقاف الحملة نهائياً');
-      
-      // إنشاء التقرير النهائي
-      const report = await advancedCampaignService.getCampaignReport(currentCampaignId);
-      if (report) {
-        setCampaignReport(report);
-        setCurrentAdvancedView('report');
-      }
-    }
-  };
-
-  const handleRetryFailedMessages = async (messageIds?: string[]) => {
-    if (currentCampaignId) {
-      const success = await advancedCampaignService.retryFailedMessages(currentCampaignId, messageIds);
-      if (success) {
-        toast.success('تم إعادة جدولة الرسائل الفاشلة');
-      } else {
-        toast.error('فشل في إعادة جدولة الرسائل');
-      }
-    }
-  };
-
-  // معالجة اختيار القوالب
-  const handleTemplateSelect = (template: WhatsAppTemplate) => {
-    setSelectedTemplate(template);
-    
-    // إذا كان القالب يحتوي على نص، ضعه في أول رسالة
-    if (template.content && textMessages.length > 0) {
-      const updatedMessages = [...textMessages];
-      updatedMessages[0] = {
-        ...updatedMessages[0],
-        message: template.content,
-        variables: template.variables || []
-      };
-      setTextMessages(updatedMessages);
-    }
-    
-    toast.success(`تم اختيار القالب: ${template.name}`);
-  };
-
-  // دوال تصدير التقرير
-  const handleExportReport = (format: 'pdf' | 'excel' | 'csv') => {
-    if (campaignReport) {
-      // هنا يمكن إضافة منطق التصدير الفعلي
-      toast.success(`سيتم تصدير التقرير بصيغة ${format.toUpperCase()}`);
-    }
-  };
-
-  const handleCreateFollowupCampaign = () => {
-    if (campaignReport) {
-      // إنشاء حملة متابعة للرسائل الفاشلة
-      const failedContactsList = Array.isArray(campaignReport.failedMessagesList) 
-        ? campaignReport.failedMessagesList
-        : [];
-      
-      const failedContacts = failedContactsList.map(msg => ({
-        name: msg.recipientName,
-        phone: msg.recipientNumber
-      }));
-      
-      // إعداد حملة جديدة بالرسائل الفاشلة
-      setSelectedContacts([]); // مسح الاختيارات الحالية
-      // يمكن إضافة منطق لإضافة جهات الاتصال الفاشلة تلقائياً
-      
-      toast.info(`سيتم إنشاء حملة متابعة لـ ${failedContacts.length} عميل`);
-      setCurrentAdvancedView('compose');
-      setCampaignName(`${campaignReport.campaignName} - متابعة`);
-    }
-  };
-
-  // التحكم في العرض الحالي
-  const canStartAdvancedCampaign = () => {
-    return !isLoading && 
-           campaignName.trim() && 
-           (bulkMode ? brokerPhones.length > 0 : selectedContacts.length > 0) &&
-           textMessages.some(msg => msg.message.trim());
-  };
-
-  // إرسال الحملة المتقدم (الدالة القديمة)
+  // إرسال الحملة المتقدم
   const handleSendCampaign = async () => {
     setCurrentView('sending');
     setIsSending(true);
@@ -867,65 +475,29 @@ export default function TextMessage() {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* أزرار التنقل بين الشاشات */}
-            {currentAdvancedView !== 'compose' && (
-              <Button
-                variant="outline"
-                onClick={() => setCurrentAdvancedView('compose')}
-              >
-                العودة للتحرير
-              </Button>
-            )}
-            
-            {/* أزرار الإرسال */}
-            {currentAdvancedView === 'compose' && (
-              <>
-                <Button
-                  onClick={handleAdvancedSendCampaign}
-                  disabled={!canStartAdvancedCampaign()}
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      جاري الإرسال...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      إرسال متقدم ({bulkMode ? brokerPhones.length : selectedContacts.length})
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  onClick={handleSendCampaign}
-                  disabled={isLoading || (!bulkMode && selectedContacts.length === 0) || (bulkMode && brokerPhones.length === 0) || !campaignName.trim()}
-                  variant="outline"
-                  className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                      جاري الإرسال...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      إرسال عادي ({bulkMode ? brokerPhones.length : selectedContacts.length})
-                    </>
-                  )}
-                </Button>
-              </>
-            )}
+            <Button
+              onClick={handleSendCampaign}
+              disabled={isLoading || (!bulkMode && selectedContacts.length === 0) || (bulkMode && brokerPhones.length === 0) || !campaignName.trim()}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  جاري الإرسال...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  إرسال الحملة ({bulkMode ? brokerPhones.length : selectedContacts.length})
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
-        {/* المحتوى الرئيسي حسب العرض الحالي */}
-        {currentAdvancedView === 'compose' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
             {/* معلومات الحملة */}
             <Card>
               <CardHeader>
@@ -1241,113 +813,8 @@ export default function TextMessage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* قسم القوالب الجاهزة */}
-            <TemplateSelector
-              onTemplateSelect={handleTemplateSelect}
-              selectedTemplateId={selectedTemplate?.id}
-              messageType="text"
-              disabled={isLoading}
-            />
-
-            {/* الإعدادات المتقدمة */}
-            <AdvancedSendingSettings
-              config={advancedConfig}
-              onChange={setAdvancedConfig}
-              disabled={isLoading}
-            />
-
-            {/* نظام البدائل النصية */}
-            <TextAlternatives
-              onAlternativesChange={handleTextAlternativesChange}
-              initialAlternatives={textAlternatives}
-            />
-
-            {/* متغيرات الرسائل */}
-            <MessageVariables
-              onVariablesChange={handleMessageVariablesChange}
-              initialVariables={messageVariables}
-              onPreviewChange={handlePreviewChange}
-            />
-
-            {/* إعدادات التوقيت المحسنة */}
-            <EnhancedTimingSettings
-              settings={enhancedTimingSettings}
-              onSettingsChange={handleEnhancedTimingChange}
-              isSending={isSending}
-            />
-
-            {/* معاينة أول شخص */}
-            <FirstPersonPreview
-              messageTemplate={{
-                id: 'current',
-                content: textMessages[0]?.message || '',
-                variables: messageVariables.map(v => v.name),
-                footer: textMessages[0]?.footer || ''
-              }}
-              contacts={contacts}
-              selectedContacts={selectedContacts}
-              onSendMessage={handleSendTestMessage}
-              onPreviewChange={handlePreviewChange}
-            />
-
-            {/* معاينة الإرسال المباشرة */}
-            <LiveMessagePreview
-              messages={liveMessages}
-              onRetryMessage={handleRetryMessage}
-              onCancelMessage={handleDeleteMessage}
-              onPauseSending={() => setIsPaused(true)}
-              onResumeSending={() => setIsPaused(false)}
-              onStopSending={() => setIsSending(false)}
-              isSending={isSending}
-              isPaused={isPaused}
-              totalMessages={liveMessages.length}
-              sentMessages={liveMessages.filter(m => m.status === 'sent').length}
-              failedMessages={liveMessages.filter(m => m.status === 'failed').length}
-              currentDelay={enhancedTimingSettings.randomMin}
-              nextMessageIn={enhancedTimingSettings.randomMax}
-            />
-
-            {/* إعادة إرسال الرسائل الفاشلة */}
-            <FailedMessageRetry
-              failedMessages={failedMessages}
-              onRetryMessage={handleRetryMessage}
-              onRetryAll={handleRetryAllMessages}
-              onDeleteMessage={handleDeleteMessage}
-              onDeleteAll={handleDeleteAllMessages}
-              maxRetries={3}
-              retryDelay={5}
-            />
           </div>
         </div>
-        )}
-
-        {/* شاشة الإرسال المباشرة */}
-        {currentAdvancedView === 'sending' && (
-          <LiveSendingScreen
-            messages={sendingMessages}
-            stats={sendingStats}
-            config={advancedConfig}
-            onStart={handleAdvancedSendCampaign}
-            onPause={handlePauseCampaign}
-            onResume={handleResumeCampaign}
-            onStop={handleStopCampaign}
-            onRetryFailed={handleRetryFailedMessages}
-            isRunning={currentCampaignId !== null}
-            isPaused={false} // يمكن تحديثها من حالة الحملة
-            canStart={canStartAdvancedCampaign()}
-          />
-        )}
-
-        {/* شاشة تقرير الحملة */}
-        {currentAdvancedView === 'report' && campaignReport && (
-          <CampaignReport
-            reportData={campaignReport}
-            onRetryFailed={handleRetryFailedMessages}
-            onExportReport={handleExportReport}
-            onCreateFollowupCampaign={handleCreateFollowupCampaign}
-          />
-        )}
 
         {/* معاينة الرسالة المنبثقة */}
         {previewMessage && (

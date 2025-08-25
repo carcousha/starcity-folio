@@ -243,7 +243,6 @@ export function AppSidebar() {
       icon: Brain,
       hasSubmenu: true,
       submenu: [
-        { title: "جهات الاتصال المطورة", url: "/crm/enhanced-contacts", icon: Users },
         { title: "العملاء", url: "/crm/clients", icon: Users },
         { title: "الليدات", url: "/crm/leads", icon: Target },
         { title: "العقارات", url: "/crm/properties", icon: Building },

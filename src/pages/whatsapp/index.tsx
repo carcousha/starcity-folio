@@ -25,19 +25,8 @@ import MediaMessageTest from './MediaMessageTest';
 import MessageTypeSelector from './MessageTypeSelector';
 import TextMessage from './TextMessage';
 import MediaMessage from './MediaMessage';
-import StickerMessage from './StickerMessage';
 import AdvancedTextMessage from './AdvancedTextMessage';
 import TestAdvanced from './TestAdvanced';
-import TestContactAdd from './TestContactAdd';
-import DiagnoseContacts from './DiagnoseContacts';
-import ContactDeduplication from './ContactDeduplication';
-import DeduplicationTest from './DeduplicationTest';
-import AlgorithmTest from './AlgorithmTest';
-import DeduplicationReport from './DeduplicationReport';
-import WorkingDeduplication from './WorkingDeduplication';
-import TestPage from './TestPage';
-import RealDeduplication from './RealDeduplication';
-import SmartSync from './SmartSync';
 
 export default function WhatsAppModule() {
   console.log('WhatsAppModule: Router component loaded');
@@ -71,44 +60,14 @@ export default function WhatsAppModule() {
       {/* Media Message Campaign */}
       <Route path="media-message" element={<MediaMessage />} />
       
-      {/* Sticker Message Campaign */}
-      <Route path="sticker-message" element={<StickerMessage />} />
-      
       {/* Advanced Text Message Campaign */}
       <Route path="advanced-text-message" element={<AdvancedTextMessage />} />
       
       {/* Test Advanced Features */}
       <Route path="test-advanced" element={<TestAdvanced />} />
       
-      {/* Test Contact Add */}
-      <Route path="test-contact-add" element={<TestContactAdd />} />
-      
-      {/* Diagnose Contacts */}
-      <Route path="diagnose-contacts" element={<DiagnoseContacts />} />
-      
-      {/* Contact Deduplication */}
-      <Route path="contact-deduplication" element={<ContactDeduplication />} />
-      
-      {/* Deduplication Test */}
-      <Route path="deduplication-test" element={<DeduplicationTest />} />
-      
-      {/* Algorithm Test */}
-      <Route path="algorithm-test" element={<AlgorithmTest />} />
-      
-      {/* Deduplication Report */}
-      <Route path="deduplication-report" element={<DeduplicationReport />} />
-      
-      {/* Working Deduplication */}
-      <Route path="working-deduplication" element={<WorkingDeduplication />} />
-      
-      {/* Real Deduplication */}
-      <Route path="real-deduplication" element={<RealDeduplication />} />
-      
-      {/* Smart Sync */}
-      <Route path="smart-sync" element={<SmartSync />} />
-      
-      {/* Test Page */}
-      <Route path="test" element={<TestPage />} />
+      {/* Simple Test Page */}
+      <Route path="simple-test" element={<SimpleTest />} />
       
       {/* Contacts */}
       <Route path="contacts" element={<WhatsAppContacts />} />
@@ -142,6 +101,9 @@ export default function WhatsAppModule() {
       
       {/* Test Media Final */}
       <Route path="test-media-final" element={<TestMediaFinal />} />
+      
+      {/* Test Page */}
+      <Route path="test" element={<SimpleTest />} />
       
       {/* Catch all - redirect to dashboard */}
       <Route path="*" element={<Navigate to="dashboard" replace />} />
