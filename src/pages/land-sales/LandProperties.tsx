@@ -15,7 +15,7 @@ import { Plus, Grid, List, MapPin, Edit, Trash2, Upload, X, Loader2, FileText, F
 import { formatCurrency } from "@/lib/utils";
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
-// Remove lodash import since it's not installed
+import { LandImageUpload } from '@/components/land-sales/LandImageUpload';
 
 interface LandProperty {
   id: string;
@@ -57,7 +57,7 @@ export function LandProperties() {
   const {
     data,
     isLoading,
-    error,  // <-- Add error to destructuring
+    error,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -83,11 +83,12 @@ export function LandProperties() {
         nextPage: properties?.length === ITEMS_PER_PAGE ? pageParam + 1 : null,
       };
     },
+    initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 
   const properties = React.useMemo(() => {
-    return data?.pages.flatMap(page => page.items) ?? [];
+    return data?.pages.flatMap((page: any) => page.items) ?? [];
   }, [data]);
 
   // Custom debounce implementation for search
@@ -126,106 +127,6 @@ export function LandProperties() {
     return !!data; // true if exists, false if not
   };
 
-  const uploadImages = async (files: File[]): Promise<string[]> => {
-    setIsUploading(true);
-    setUploadError(null);
-    const uploadedUrls: string[] = [];
-
-    // ترتيب الباكتات المحتملة (جرب الأكثر احتمالاً أولاً)
-    const candidateBuckets = ['land-images', 'images', 'documents', 'public'];
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
-
-      console.log('⌛ بدء رفع الصور للمستخدم:', user.id);
-
-      for (const file of files) {
-        const fileExt = file.name.split('.').pop() || 'bin';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        let fileUploaded = false;
-        let lastBucketError: string | null = null;
-
-        for (const bucket of candidateBuckets) {
-          const filePath = `land-sales/${user.id}/${fileName}`;
-          console.log(`محاولة رفع ${file.name} إلى الباكت: ${bucket} (المسار: ${filePath})`);
-
-          // محاولة الرفع
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-          if (uploadError) {
-            console.warn(`خطأ في رفع إلى ${bucket}:`, uploadError);
-            lastBucketError = uploadError.message || String(uploadError);
-
-            // إذا الباكت غير موجود نجرب الباكت التالي
-            if ((uploadError.message || '').toLowerCase().includes('bucket not found')) {
-              continue; // حاول الباكت التالي
-            }
-
-            // إذا خطأ RLS (row-level security) أعرض إرشاد واضح
-            if ((uploadError.message || '').toLowerCase().includes('row-level') ||
-                (uploadError.message || '').toLowerCase().includes('violates row-level')) {
-              setUploadError('الرفع محجوب بسياسات RLS. تأكد من سياسة storage.objects أو اجعل الباكت مؤقتًا public للاختبار.');
-              throw uploadError;
-            }
-
-            // أخطاء أخرى: حاول الباكت التالي أيضاً
-            continue;
-          }
-
-          // لو تم الرفع بنجاح، نحاول الحصول على رابط عام
-          try {
-            const { data: publicData, error: publicErr } = supabase.storage
-              .from(bucket)
-              .getPublicUrl(filePath);
-
-            const publicUrl = (publicData as any)?.publicUrl ?? null;
-            if (publicErr) {
-              console.warn('خطأ عند الحصول على publicUrl:', publicErr);
-            }
-
-            uploadedUrls.push(publicUrl ?? '');
-            fileUploaded = true;
-
-            toast({
-              title: "تم رفع الصورة",
-              description: file.name,
-            });
-
-            console.log(`✅ تم رفع ${file.name} إلى ${bucket}`, { publicUrl });
-            break; // لا حاجة لتجرّب باكت آخر لهذا الملف
-          } catch (errPublic) {
-            console.warn('تحذير: لم نتمكن من الحصول على publicUrl بعد الرفع:', errPublic);
-            uploadedUrls.push(''); // نضيف عنصر فارغ للحفاظ على الترتيب
-            fileUploaded = true;
-            break;
-          }
-        }
-
-        if (!fileUploaded) {
-          const msg = lastBucketError || `Upload failed for ${file.name}: no usable bucket/permissions.`;
-          console.error(msg);
-          setUploadError(`خطأ في رفع ${file.name}: ${msg}`);
-          // نتابع لباقي الملفات بدل الإنهاء فوراً
-        }
-      }
-    } catch (err: any) {
-      console.error('خطأ عام أثناء الرفع:', err);
-      setUploadError(err.message || 'حدث خطأ أثناء رفع الصور');
-      toast({
-        title: "خطأ في رفع الصور",
-        description: err.message || "حدث خطأ أثناء رفع الصور",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-      console.log('🏁 انتهت عملية الرفع؛ روابط:', uploadedUrls);
-    }
-
-    return uploadedUrls;
-  };
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<LandProperty>) => {
@@ -406,38 +307,6 @@ export function LandProperties() {
     }
   };
 
-  // معالجة رفع الصور
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    // التحقق من حجم الملفات
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const validFiles = Array.from(files).filter(file => {
-      if (file.size > maxSize) {
-        toast({
-          title: "ملف كبير جداً",
-          description: `${file.name} أكبر من 5MB`,
-          variant: "destructive"
-        });
-        return false;
-      }
-      return true;
-    });
-    
-    if (validFiles.length === 0) return;
-    
-    const urls = await uploadImages(validFiles);
-    setUploadedImages(prev => [...prev, ...urls]);
-    
-    // إعادة تعيين input
-    e.target.value = '';
-  };
-
-  // حذف صورة
-  const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
-  };
 
   // دالة معالجة النشر
   const handlePublish = (propertyId: string) => {
@@ -464,6 +333,10 @@ export function LandProperties() {
     setEditingProperty(null);
     setUploadedImages([]);
     setIsSubmitting(false);
+    setIsUploading(false);
+    setUploadError(null);
+    setImageUrl('');
+    setImageUrlError(null);
   };
 
   // إظهار/إخفاء حقل الموقع المخصص
@@ -851,68 +724,44 @@ export function LandProperties() {
 
               {/* رفع الصور */}
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border border-purple-100">
-                <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full ml-2"></div>
-                  صور الأرض
-                </h3>
+                <LandImageUpload
+                  uploadedImages={uploadedImages}
+                  onImagesChange={setUploadedImages}
+                  isUploading={isUploading}
+                  onUploadingChange={setIsUploading}
+                />
                 
-                {/* عرض الصور المرفوعة */}
-                {uploadedImages.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    {uploadedImages.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image}
-                          alt={`صورة ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* زر رفع الصور */}
-                <div className="space-y-3">
-                  <Label htmlFor="images">رفع صور الأرض</Label>
-                  <div className="flex items-center space-x-4 space-x-reverse">
+                {/* إضافة صورة برابط مباشر */}
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor="imageUrl">أو أضف صورة برابط مباشر</Label>
+                  <div className="flex space-x-2 space-x-reverse">
                     <Input
-                      id="images"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageUpload}
+                      id="imageUrl"
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
                       disabled={isUploading}
                     />
-                    {isUploading && (
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm text-muted-foreground">جاري رفع الصور...</span>
-                      </div>
-                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        if (imageUrl.trim()) {
+                          setUploadedImages(prev => [...prev, imageUrl.trim()]);
+                          setImageUrl('');
+                          toast({ title: "تم إضافة الصورة", description: "تم إضافة الصورة من الرابط" });
+                        }
+                      }}
+                      disabled={!imageUrl.trim() || isUploading}
+                    >
+                      إضافة
+                    </Button>
                   </div>
-
-                  {/* NEW: show upload error / guidance */}
-                  {uploadError && (
-                    <div className="mt-2 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
-                      <div className="font-medium">خطأ في رفع الصور</div>
-                      <div>{uploadError}</div>
-                      <div className="mt-2 text-xs text-red-600">
-                        تحقق من وجود bucket باسم "images" في Supabase وأن إعدادات RLS/permissions تسمح بالرفع.
-                        (يمكن مؤقتاً تحويل الباكت إلى public للاختبار)
-                      </div>
-                    </div>
+                  
+                  {imageUrlError && (
+                    <div className="text-red-600 text-sm">{imageUrlError}</div>
                   )}
-
-                  <p className="text-sm text-muted-foreground">
-                    يمكنك رفع عدة صور في نفس الوقت
-                  </p>
                 </div>
               </div>
 
