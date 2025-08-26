@@ -1,522 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 اختبار وحدة الحملة المتقدمة</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .card-shadow {
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .text-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .bounce-in {
-            animation: bounceIn 0.6s ease-out;
-        }
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .feature-card {
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: #667eea;
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.2);
-        }
-    </style>
-</head>
-<body class="bg-gray-50 font-sans">
-    <!-- Header -->
-    <div class="gradient-bg text-white py-8">
-        <div class="max-w-6xl mx-auto px-4 text-center">
-            <h1 class="text-4xl font-bold mb-4 bounce-in">🚀 وحدة الحملة المتقدمة</h1>
-            <p class="text-xl opacity-90">نظام إنشاء وإرسال حملات واتساب متقدمة</p>
-            <div class="mt-6">
-                <span class="bg-white/20 px-4 py-2 rounded-full text-sm">
-                    ✅ مكتمل - جاهز للاستخدام
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Status Cards -->
-    <div class="max-w-6xl mx-auto px-4 -mt-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg p-6 card-shadow text-center">
-                <div class="text-3xl mb-2">📝</div>
-                <h3 class="font-bold text-lg text-gray-800">رسائل نصية</h3>
-                <p class="text-green-600 font-medium">✅ مكتمل</p>
-                <p class="text-sm text-gray-600 mt-2">مع متغيرات وقوالب جاهزة</p>
-            </div>
-            <div class="bg-white rounded-lg p-6 card-shadow text-center">
-                <div class="text-3xl mb-2">🎬</div>
-                <h3 class="font-bold text-lg text-gray-800">رسائل وسائط</h3>
-                <p class="text-green-600 font-medium">✅ مكتمل</p>
-                <p class="text-sm text-gray-600 mt-2">صور، فيديو، صوت، ومستندات</p>
-            </div>
-            <div class="bg-white rounded-lg p-6 card-shadow text-center">
-                <div class="text-3xl mb-2">🚀</div>
-                <h3 class="font-bold text-lg text-gray-800">إرسال الحملات</h3>
-                <p class="text-green-600 font-medium">✅ مكتمل</p>
-                <p class="text-sm text-gray-600 mt-2">إرسال شامل مع تقارير</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <!-- Features Overview -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-gradient">✨ الميزات المطورة</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Text Messages Features -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-bold text-blue-600 flex items-center gap-2">
-                        📝 الرسائل النصية المتقدمة
-                    </h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>قوالب رسائل جاهزة (ترحيب، عروض، تذكير، متابعة)</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>متغيرات ذكية: {name}, {company}, {date}, {time}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>معاينة فورية مع بيانات العملاء</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>كشف تلقائي للمتغيرات من النص</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>إحصائيات الرسالة (عدد الأحرف والمتغيرات)</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>رسائل متعددة في حملة واحدة</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Media Messages Features -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-bold text-purple-600 flex items-center gap-2">
-                        🎬 رسائل الوسائط المتقدمة
-                    </h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>دعم جميع أنواع الوسائط (صور، فيديو، صوت، مستندات)</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>رفع الملفات بالسحب والإفلات</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>معاينة فورية للوسائط المرفوعة</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>تحقق من نوع وحجم الملفات</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>متكامل مع نظام رفع الملفات المطور</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>رسائل وسائط متعددة في حملة واحدة</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Campaign System Features -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-gradient">🏗️ نظام الحملات المتكامل</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Campaign Creation -->
-                <div class="feature-card p-6 rounded-lg border">
-                    <div class="text-2xl mb-3 text-center">📋</div>
-                    <h3 class="font-bold text-lg mb-3 text-center">إنشاء الحملة</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>اسم ووصف الحملة</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>اختيار نوع الرسالة</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>واجهة بتبويبات سهلة</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Contact Management -->
-                <div class="feature-card p-6 rounded-lg border">
-                    <div class="text-2xl mb-3 text-center">👥</div>
-                    <h3 class="font-bold text-lg mb-3 text-center">إدارة جهات الاتصال</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>تحديد عدة جهات اتصال</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>بحث وفلترة</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>اختيار الكل/إلغاء الكل</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Campaign Sending -->
-                <div class="feature-card p-6 rounded-lg border">
-                    <div class="text-2xl mb-3 text-center">🚀</div>
-                    <h3 class="font-bold text-lg mb-3 text-center">إرسال الحملة</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>تحقق من البيانات</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>إرسال شامل للجميع</span>
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <span class="text-green-500">✅</span>
-                            <span>تقارير نجاح وفشل</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Technical Implementation -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-gradient">⚙️ التنفيذ التقني</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h3 class="text-lg font-bold text-indigo-600 mb-4">🔧 المكونات الرئيسية</h3>
-                    <div class="bg-gray-50 p-4 rounded-lg text-sm font-mono">
-                        <div class="mb-2"><strong>📄 الملفات المطورة:</strong></div>
-                        <div class="pl-4 space-y-1">
-                            <div>• src/pages/whatsapp/AdvancedCampaign.tsx</div>
-                            <div>• EnhancedTextMessageTab.tsx</div>
-                            <div>• EnhancedMediaMessageTab.tsx</div>
-                        </div>
-                        <div class="mt-4 mb-2"><strong>🔗 التكامل:</strong></div>
-                        <div class="pl-4 space-y-1">
-                            <div>• whatsappService.ts</div>
-                            <div>• MediaMessageTest.tsx (متكامل)</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 class="text-lg font-bold text-green-600 mb-4">✨ الميزات التقنية</h3>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✅</span>
-                            <div>
-                                <strong>استبدال المتغيرات الذكي:</strong>
-                                <div class="text-gray-600">تطبيق بيانات العملاء على القوالب تلقائياً</div>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✅</span>
-                            <div>
-                                <strong>رفع الوسائط المحسن:</strong>
-                                <div class="text-gray-600">نفس النظام المطور في صفحة الاختبار</div>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✅</span>
-                            <div>
-                                <strong>إرسال بالدفعات:</strong>
-                                <div class="text-gray-600">إرسال للعديد من العملاء مع تأخير ذكي</div>
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-2">
-                            <span class="text-green-500 mt-1">✅</span>
-                            <div>
-                                <strong>معالجة الأخطاء:</strong>
-                                <div class="text-gray-600">تتبع النجاح والفشل مع تقارير مفصلة</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Text Message Templates -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-gradient">📝 قوالب الرسائل النصية</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                    <h4 class="font-bold text-blue-700 mb-2">🎉 قالب الترحيب</h4>
-                    <div class="text-sm font-mono bg-white p-3 rounded">
-                        مرحباً {name}، نحن سعداء لانضمامك إلينا في {company}. نتطلع للعمل معك!
-                    </div>
-                    <div class="text-xs text-blue-600 mt-2">
-                        المتغيرات: name, company
-                    </div>
-                </div>
-
-                <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                    <h4 class="font-bold text-green-700 mb-2">🏷️ قالب العروض</h4>
-                    <div class="text-sm font-mono bg-white p-3 rounded">
-                        عرض خاص لك {name}! احصل على خصم {discount}% على جميع منتجاتنا. صالح حتى {date}.
-                    </div>
-                    <div class="text-xs text-green-600 mt-2">
-                        المتغيرات: name, discount, date
-                    </div>
-                </div>
-
-                <div class="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
-                    <h4 class="font-bold text-purple-700 mb-2">⏰ قالب التذكير</h4>
-                    <div class="text-sm font-mono bg-white p-3 rounded">
-                        تذكير ودود {name}: لديك موعد في {date} في تمام الساعة {time}. نتطلع لرؤيتك!
-                    </div>
-                    <div class="text-xs text-purple-600 mt-2">
-                        المتغيرات: name, date, time
-                    </div>
-                </div>
-
-                <div class="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
-                    <h4 class="font-bold text-orange-700 mb-2">🔄 قالب المتابعة</h4>
-                    <div class="text-sm font-mono bg-white p-3 rounded">
-                        شكراً لك {name} على زيارتك لنا. هل تحتاج أي مساعدة إضافية بخصوص {service}؟
-                    </div>
-                    <div class="text-xs text-orange-600 mt-2">
-                        المتغيرات: name, service
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- How to Use -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-gradient">📖 كيفية الاستخدام</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Text Campaign -->
-                <div>
-                    <h3 class="text-lg font-bold text-blue-600 mb-4">📝 إنشاء حملة نصية</h3>
-                    <ol class="space-y-3 text-sm">
-                        <li class="flex items-start gap-3">
-                            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
-                            <div>
-                                <strong>اذهب لصفحة الحملة المتقدمة</strong>
-                                <div class="text-gray-600">من قائمة واتساب</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span>
-                            <div>
-                                <strong>أدخل معلومات الحملة</strong>
-                                <div class="text-gray-600">الاسم والوصف</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">3</span>
-                            <div>
-                                <strong>اختر قالب أو اكتب نص</strong>
-                                <div class="text-gray-600">استخدم المتغيرات مثل {name}</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">4</span>
-                            <div>
-                                <strong>اختر جهات الاتصال</strong>
-                                <div class="text-gray-600">من قائمة العملاء</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">5</span>
-                            <div>
-                                <strong>أرسل الحملة</strong>
-                                <div class="text-gray-600">واتابع التقارير</div>
-                            </div>
-                        </li>
-                    </ol>
-                </div>
-
-                <!-- Media Campaign -->
-                <div>
-                    <h3 class="text-lg font-bold text-purple-600 mb-4">🎬 إنشاء حملة وسائط</h3>
-                    <ol class="space-y-3 text-sm">
-                        <li class="flex items-start gap-3">
-                            <span class="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
-                            <div>
-                                <strong>اختر تبويب "رسالة وسائط"</strong>
-                                <div class="text-gray-600">من الصفحة الرئيسية</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span>
-                            <div>
-                                <strong>أدخل معلومات الحملة</strong>
-                                <div class="text-gray-600">الاسم والوصف</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">3</span>
-                            <div>
-                                <strong>اختر نوع الوسائط</strong>
-                                <div class="text-gray-600">صورة، فيديو، صوت، أو مستند</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">4</span>
-                            <div>
-                                <strong>ارفع الملف</strong>
-                                <div class="text-gray-600">بالسحب والإفلات أو النقر</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">5</span>
-                            <div>
-                                <strong>أضف نص اختياري</strong>
-                                <div class="text-gray-600">وصف أو تعليق على الوسائط</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <span class="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">6</span>
-                            <div>
-                                <strong>اختر العملاء وأرسل</strong>
-                                <div class="text-gray-600">مثل الحملة النصية</div>
-                            </div>
-                        </li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-
-        <!-- Future Development -->
-        <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-8 border border-purple-200 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-gradient">🔮 التطوير المستقبلي</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <div class="text-2xl mb-2">🛍️</div>
-                    <h4 class="font-bold text-gray-800 mb-2">رسائل المنتجات</h4>
-                    <p class="text-sm text-gray-600">عرض منتجات مع أسعار وصور</p>
-                </div>
-
-                <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <div class="text-2xl mb-2">🔘</div>
-                    <h4 class="font-bold text-gray-800 mb-2">رسائل تفاعلية</h4>
-                    <p class="text-sm text-gray-600">أزرار للتفاعل المباشر</p>
-                </div>
-
-                <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <div class="text-2xl mb-2">📋</div>
-                    <h4 class="font-bold text-gray-800 mb-2">رسائل القوائم</h4>
-                    <p class="text-sm text-gray-600">قوائم خيارات متعددة</p>
-                </div>
-
-                <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <div class="text-2xl mb-2">📍</div>
-                    <h4 class="font-bold text-gray-800 mb-2">رسائل المواقع</h4>
-                    <p class="text-sm text-gray-600">مشاركة المواقع الجغرافية</p>
-                </div>
-
-                <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <div class="text-2xl mb-2">👤</div>
-                    <h4 class="font-bold text-gray-800 mb-2">رسائل جهات الاتصال</h4>
-                    <p class="text-sm text-gray-600">مشاركة معلومات الاتصال</p>
-                </div>
-
-                <div class="bg-white p-4 rounded-lg border border-gray-200">
-                    <div class="text-2xl mb-2">⏰</div>
-                    <h4 class="font-bold text-gray-800 mb-2">جدولة الحملات</h4>
-                    <p class="text-sm text-gray-600">إرسال في أوقات محددة</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Success Message -->
-        <div class="text-center py-8">
-            <div class="inline-flex items-center gap-2 bg-green-100 text-green-800 px-6 py-3 rounded-full font-medium">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                🎉 وحدة الحملة المتقدمة جاهزة للاستخدام!
-            </div>
-            <p class="text-gray-600 mt-4">
-                تم تطوير نظام شامل لإنشاء وإرسال حملات واتساب نصية ووسائطية بمميزات متقدمة
-            </p>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="bg-gray-800 text-white py-6">
-        <div class="max-w-6xl mx-auto px-4 text-center">
-            <p class="text-sm opacity-75">
-                🚀 تم تطوير وحدة الحملة المتقدمة بنجاح • جاهزة للإنتاج • 
-                <span class="text-green-400">StarCity Folio</span>
-            </p>
-        </div>
-    </div>
-
-    <script>
-        // Add some interactivity
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add bounce animation to feature cards
-            const featureCards = document.querySelectorAll('.feature-card');
-            featureCards.forEach((card, index) => {
-                setTimeout(() => {
-                    card.classList.add('bounce-in');
-                }, index * 100);
-            });
-
-            // Console log for developers
-            console.log(`
-🚀 وحدة الحملة المتقدمة - تقرير التطوير
-
-📝 الميزات المطورة:
-✅ رسائل نصية مع متغيرات وقوالب
-✅ رسائل وسائط متكاملة مع نظام الرفع
-✅ إدارة جهات الاتصال المتقدمة
-✅ إرسال بالدفعات مع تتبع النتائج
-✅ واجهة مستخدم حديثة ومتجاوبة
-
-🔧 الملفات المطورة:
-• src/pages/whatsapp/AdvancedCampaign.tsx
-• src/components/whatsapp/campaign-tabs/EnhancedTextMessageTab.tsx
-• src/components/whatsapp/campaign-tabs/EnhancedMediaMessageTab.tsx
-
-🎯 الحالة: مكتمل وجاهز للاستخدام!
-            `);
-        });
-    </script>
-</body>
-</html>

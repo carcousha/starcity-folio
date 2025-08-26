@@ -1,321 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔧 إصلاح القائمة الفرعية للمهام</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
-        .card-shadow {
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .bounce-in {
-            animation: bounceIn 0.6s ease-out;
-        }
-        @keyframes bounceIn {
-            0% { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.9); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .code-block {
-            background: #1e293b;
-            color: #e2e8f0;
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-        .code-diff {
-            background: #0f172a;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .code-removed {
-            background: #7f1d1d;
-            color: #fecaca;
-        }
-        .code-added {
-            background: #14532d;
-            color: #bbf7d0;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 font-sans">
-    <!-- Header -->
-    <div class="gradient-bg text-white py-8">
-        <div class="max-w-6xl mx-auto px-4 text-center">
-            <h1 class="text-4xl font-bold mb-4 bounce-in">🔧 إصلاح القائمة الفرعية</h1>
-            <p class="text-xl opacity-90">حل مشكلة عدم ظهور قائمة أنواع الرسائل</p>
-            <div class="mt-6">
-                <span class="bg-white/20 px-4 py-2 rounded-full text-sm">
-                    ✅ تم الإصلاح
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Problem & Solution -->
-    <div class="max-w-6xl mx-auto px-4 -mt-8">
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Problem -->
-                <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
-                    <h3 class="text-lg font-bold text-red-700 mb-4">❌ المشكلة</h3>
-                    <ul class="space-y-2 text-sm text-red-600">
-                        <li>• الضغط على "المهام" لا يظهر قائمة فرعية</li>
-                        <li>• يتم الدخول مباشرة لصفحة الحملة المتقدمة</li>
-                        <li>• استخدام DropdownMenu متداخلة بشكل خاطئ</li>
-                        <li>• عدم ظهور خيارات أنواع الرسائل</li>
-                    </ul>
-                </div>
-
-                <!-- Solution -->
-                <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
-                    <h3 class="text-lg font-bold text-green-700 mb-4">✅ الحل</h3>
-                    <ul class="space-y-2 text-sm text-green-600">
-                        <li>• استخدام DropdownMenuSub الصحيحة</li>
-                        <li>• تطبيق DropdownMenuSubTrigger</li>
-                        <li>• استخدام DropdownMenuSubContent</li>
-                        <li>• قائمة فرعية تعمل بشكل مثالي</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Technical Fix -->
-    <div class="max-w-6xl mx-auto px-4 py-8">
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">🔧 الإصلاح التقني</h2>
-            
-            <!-- Code Changes -->
-            <div class="space-y-6">
-                <!-- Import Fix -->
-                <div>
-                    <h3 class="text-lg font-bold text-blue-600 mb-3">1. إضافة الإستيرادات المطلوبة</h3>
-                    <div class="code-diff">
-                        <div class="code-removed p-3">
-                            <span class="text-red-300">- </span>import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-                        </div>
-                        <div class="code-added p-3">
-                            <span class="text-green-300">+ </span>import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, <strong>DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent</strong> } from "@/components/ui/dropdown-menu";
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Implementation Fix -->
-                <div>
-                    <h3 class="text-lg font-bold text-blue-600 mb-3">2. تصحيح التنفيذ</h3>
-                    
-                    <!-- Before -->
-                    <div class="mb-4">
-                        <h4 class="text-md font-semibold text-red-600 mb-2">❌ الكود الخاطئ:</h4>
-                        <div class="code-block code-removed">
-&lt;DropdownMenu&gt;
-  &lt;DropdownMenuTrigger asChild&gt;
-    &lt;DropdownMenuItem className="cursor-pointer"&gt;
-      &lt;Target className="h-4 w-4 mr-2" /&gt;
-      المهام
-      &lt;ChevronDown className="h-4 w-4 mr-auto" /&gt;
-    &lt;/DropdownMenuItem&gt;
-  &lt;/DropdownMenuTrigger&gt;
-  &lt;DropdownMenuContent side="left" align="start"&gt;
-    {/* محتوى القائمة */}
-  &lt;/DropdownMenuContent&gt;
-&lt;/DropdownMenu&gt;
-                        </div>
-                    </div>
-
-                    <!-- After -->
-                    <div>
-                        <h4 class="text-md font-semibold text-green-600 mb-2">✅ الكود الصحيح:</h4>
-                        <div class="code-block code-added">
-&lt;DropdownMenuSub&gt;
-  &lt;DropdownMenuSubTrigger&gt;
-    &lt;Target className="h-4 w-4 mr-2" /&gt;
-    المهام
-  &lt;/DropdownMenuSubTrigger&gt;
-  &lt;DropdownMenuSubContent&gt;
-    &lt;DropdownMenuLabel&gt;أنواع الرسائل&lt;/DropdownMenuLabel&gt;
-    &lt;DropdownMenuSeparator /&gt;
-    &lt;DropdownMenuItem onClick={...}&gt;
-      &lt;MessageCircle className="h-4 w-4 mr-2" /&gt;
-      رسالة نصية
-    &lt;/DropdownMenuItem&gt;
-    &lt;DropdownMenuItem onClick={...}&gt;
-      &lt;FileTextIcon className="h-4 w-4 mr-2" /&gt;
-      رسالة وسائط
-    &lt;/DropdownMenuItem&gt;
-    &lt;DropdownMenuSeparator /&gt;
-    &lt;DropdownMenuItem onClick={...}&gt;
-      &lt;ArrowRight className="h-4 w-4 mr-2" /&gt;
-      جميع الأنواع
-    &lt;/DropdownMenuItem&gt;
-  &lt;/DropdownMenuSubContent&gt;
-&lt;/DropdownMenuSub&gt;
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- How it Works Now -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">⚙️ كيف يعمل الآن</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Step 1 -->
-                <div class="text-center p-6 bg-blue-50 rounded-lg">
-                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-2xl font-bold">1</div>
-                    <h3 class="font-bold text-blue-700 mb-2">اختر الوسيط</h3>
-                    <p class="text-sm text-blue-600">من صفحة الوسطاء، اضغط على زر الإجراءات (⋯)</p>
-                </div>
-                
-                <!-- Step 2 -->
-                <div class="text-center p-6 bg-green-50 rounded-lg">
-                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500 text-white flex items-center justify-center text-2xl font-bold">2</div>
-                    <h3 class="font-bold text-green-700 mb-2">اضغط على المهام</h3>
-                    <p class="text-sm text-green-600">ستظهر قائمة فرعية بأنواع الرسائل</p>
-                </div>
-                
-                <!-- Step 3 -->
-                <div class="text-center p-6 bg-purple-50 rounded-lg">
-                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-500 text-white flex items-center justify-center text-2xl font-bold">3</div>
-                    <h3 class="font-bold text-purple-700 mb-2">اختر النوع</h3>
-                    <p class="text-sm text-purple-600">رسالة نصية، وسائط، أو جميع الأنواع</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Available Options -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">📋 الخيارات المتاحة</h2>
-            
-            <div class="space-y-4">
-                <!-- Text Message -->
-                <div class="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
-                        <span class="text-white text-xl">📝</span>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-bold text-green-700">رسالة نصية</h3>
-                        <p class="text-sm text-green-600">إنشاء رسالة نصية بمتغيرات ذكية وقوالب جاهزة</p>
-                    </div>
-                    <div class="text-xs text-gray-500 font-mono">
-                        /whatsapp/text-message?brokerId=...
-                    </div>
-                </div>
-
-                <!-- Media Message -->
-                <div class="flex items-center gap-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                    <div class="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center">
-                        <span class="text-white text-xl">🎬</span>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-bold text-purple-700">رسالة وسائط</h3>
-                        <p class="text-sm text-purple-600">إرسال صور، فيديوهات، ملفات صوتية، ومستندات</p>
-                    </div>
-                    <div class="text-xs text-gray-500 font-mono">
-                        /whatsapp/media-message?brokerId=...
-                    </div>
-                </div>
-
-                <!-- All Types -->
-                <div class="flex items-center gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center">
-                        <span class="text-white text-xl">🎯</span>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-bold text-blue-700">جميع الأنواع</h3>
-                        <p class="text-sm text-blue-600">صفحة اختيار شاملة لجميع أنواع الرسائل المتاحة</p>
-                    </div>
-                    <div class="text-xs text-gray-500 font-mono">
-                        /whatsapp/message-types?brokerId=...
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Technical Components -->
-        <div class="bg-white rounded-lg p-8 card-shadow mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">🧩 المكونات المستخدمة</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- DropdownMenuSub -->
-                <div class="p-4 bg-gray-50 rounded-lg">
-                    <h3 class="font-bold text-gray-700 mb-2">DropdownMenuSub</h3>
-                    <p class="text-sm text-gray-600">المكون الرئيسي للقائمة الفرعية من Radix UI</p>
-                </div>
-
-                <!-- DropdownMenuSubTrigger -->
-                <div class="p-4 bg-gray-50 rounded-lg">
-                    <h3 class="font-bold text-gray-700 mb-2">DropdownMenuSubTrigger</h3>
-                    <p class="text-sm text-gray-600">العنصر الذي يتم النقر عليه لفتح القائمة الفرعية</p>
-                </div>
-
-                <!-- DropdownMenuSubContent -->
-                <div class="p-4 bg-gray-50 rounded-lg">
-                    <h3 class="font-bold text-gray-700 mb-2">DropdownMenuSubContent</h3>
-                    <p class="text-sm text-gray-600">محتوى القائمة الفرعية مع العناصر والخيارات</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Success Message -->
-        <div class="text-center py-8">
-            <div class="inline-flex items-center gap-2 bg-green-100 text-green-800 px-6 py-3 rounded-full font-medium">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                🎉 تم إصلاح القائمة الفرعية بنجاح!
-            </div>
-            <p class="text-gray-600 mt-4">
-                الآن عند الضغط على "المهام" ستظهر قائمة فرعية بأنواع الرسائل
-            </p>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="bg-gray-800 text-white py-6">
-        <div class="max-w-6xl mx-auto px-4 text-center">
-            <p class="text-sm opacity-75">
-                🔧 إصلاح تقني ناجح • قائمة فرعية تعمل بشكل مثالي • 
-                <span class="text-green-400">StarCity Folio</span>
-            </p>
-        </div>
-    </div>
-
-    <script>
-        // Add some interactivity
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log(`
-🔧 إصلاح القائمة الفرعية - تقرير النجاح
-
-❌ المشكلة:
-• الضغط على "المهام" لا يظهر قائمة فرعية
-• استخدام DropdownMenu متداخلة بشكل خاطئ
-• عدم ظهور خيارات أنواع الرسائل
-
-✅ الحل:
-• إضافة الإستيرادات المطلوبة: DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent
-• تصحيح التنفيذ لاستخدام المكونات الصحيحة
-• قائمة فرعية تعمل بشكل مثالي
-
-🎯 النتيجة:
-الآن عند اختيار وسيط والضغط على "المهام" ستظهر قائمة فرعية بخيارات:
-• رسالة نصية
-• رسالة وسائط  
-• جميع الأنواع
-
-🔧 الملفات المعدلة:
-• src/pages/land-sales/LandBrokers.tsx
-            `);
-        });
-    </script>
-</body>
-</html>
