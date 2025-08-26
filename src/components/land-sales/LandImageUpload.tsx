@@ -24,75 +24,68 @@ export function LandImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  const uploadFile = useCallback(async (file: File): Promise<string> => {
+    console.log('🔍 LandImageUpload - Starting upload for file:', file.name);
+    console.log('🔍 LandImageUpload - File size:', file.size, 'bytes');
+    console.log('🔍 LandImageUpload - File type:', file.type);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'land-images');
+
+      console.log('🔍 LandImageUpload - Calling edge function');
+      const { data, error } = await supabase.functions.invoke('upload-file', {
+        body: formData,
+      });
+
+      console.log('🔍 LandImageUpload - Edge function response:', { data, error });
+
+      if (error) {
+        console.error('🚨 LandImageUpload - Edge function error:', error);
+        throw error;
+      }
+
+      if (!data || !data.success) {
+        console.error('🚨 LandImageUpload - Upload failed:', data?.error);
+        throw new Error(data?.error || 'فشل في رفع الملف');
+      }
+
+      console.log('✅ LandImageUpload - Upload successful:', data.file);
+
+      return data.file?.url || data.file?.publicUrl || data.url || '';
+
+    } catch (error: any) {
+      console.error('🚨 LandImageUpload - Upload error:', error);
+      throw error;
+    }
+  }, []);
+
   const uploadImages = useCallback(async (files: File[]): Promise<string[]> => {
     onUploadingChange(true);
     const uploadedUrls: string[] = [];
     
-    // ترتيب الباكتات المحتملة
-    const candidateBuckets = ['land-images', 'images', 'documents', 'public'];
+    console.log('🔍 LandImageUpload - Starting upload for', files.length, 'files');
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
-
-      console.log('⌛ بدء رفع الصور للمستخدم:', user.id);
-
       for (const file of files) {
-        const fileExt = file.name.split('.').pop() || 'bin';
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        let fileUploaded = false;
-        let lastBucketError: string | null = null;
-
-        for (const bucket of candidateBuckets) {
-          const filePath = `land-sales/${user.id}/${fileName}`;
-          console.log(`محاولة رفع ${file.name} إلى الباكت: ${bucket}`);
-
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-          if (uploadError) {
-            console.warn(`خطأ في رفع إلى ${bucket}:`, uploadError);
-            lastBucketError = uploadError.message || String(uploadError);
-            
-            if ((uploadError.message || '').toLowerCase().includes('bucket not found')) {
-              continue;
-            }
-            continue;
-          }
-
-          // الحصول على رابط عام
-          const { data: publicData } = supabase.storage
-            .from(bucket)
-            .getPublicUrl(filePath);
-
-          const publicUrl = publicData?.publicUrl ?? '';
-          if (publicUrl) {
-            uploadedUrls.push(publicUrl);
-            fileUploaded = true;
-            
-            toast({
-              title: "تم رفع الصورة",
-              description: file.name,
-            });
-
-            console.log(`✅ تم رفع ${file.name} إلى ${bucket}`, { publicUrl });
-            break;
-          }
-        }
-
-        if (!fileUploaded) {
-          const msg = lastBucketError || `Upload failed for ${file.name}`;
-          console.error(msg);
+        console.log('🔍 LandImageUpload - Processing file:', file.name);
+        
+        const url = await uploadFile(file);
+        if (url && url.trim() !== '') {
+          uploadedUrls.push(url);
+          console.log('✅ LandImageUpload - Successfully uploaded:', file.name, 'URL:', url);
+          
           toast({
-            title: "خطأ في رفع الصورة",
-            description: `خطأ في رفع ${file.name}: ${msg}`,
-            variant: "destructive"
+            title: "تم رفع الصورة",
+            description: file.name,
           });
+        } else {
+          console.warn('⚠️ LandImageUpload - Empty URL returned for:', file.name);
         }
       }
     } catch (err: any) {
-      console.error('خطأ عام أثناء الرفع:', err);
+      console.error('🚨 LandImageUpload - Upload error:', err);
       toast({
         title: "خطأ في رفع الصور",
         description: err.message || "حدث خطأ أثناء رفع الصور",
@@ -100,11 +93,11 @@ export function LandImageUpload({
       });
     } finally {
       onUploadingChange(false);
-      console.log('🏁 انتهت عملية الرفع؛ روابط:', uploadedUrls);
+      console.log('🏁 LandImageUpload - Upload process completed. URLs:', uploadedUrls);
     }
 
     return uploadedUrls;
-  }, [onUploadingChange, toast]);
+  }, [uploadFile, onUploadingChange, toast]);
 
   const handleFileSelect = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
