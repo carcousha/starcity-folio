@@ -1,532 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اختبار الميزات المتقدمة - وحدة الإرسال الجماعي</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2563eb;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .feature-section {
-            margin: 30px 0;
-            padding: 25px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            background-color: #f9fafb;
-        }
-        .feature-section h3 {
-            color: #374151;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .feature-section.success {
-            border-color: #10b981;
-            background-color: #d1fae5;
-        }
-        .feature-section.warning {
-            border-color: #f59e0b;
-            background-color: #fef3c7;
-        }
-        .feature-section.error {
-            border-color: #ef4444;
-            background-color: #fee2e2;
-        }
-        .button {
-            background-color: #2563eb;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 10px 5px;
-            transition: background-color 0.3s;
-        }
-        .button:hover {
-            background-color: #1d4ed8;
-        }
-        .button.success {
-            background-color: #10b981;
-        }
-        .button.warning {
-            background-color: #f59e0b;
-        }
-        .button.error {
-            background-color: #ef4444;
-        }
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        .feature-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .feature-card h4 {
-            color: #374151;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .feature-card p {
-            color: #6b7280;
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-        .feature-list {
-            list-style: none;
-            padding: 0;
-        }
-        .feature-list li {
-            padding: 8px 0;
-            border-bottom: 1px solid #f3f4f6;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .feature-list li:last-child {
-            border-bottom: none;
-        }
-        .feature-list li::before {
-            content: "✓";
-            color: #10b981;
-            font-weight: bold;
-        }
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        .status-indicator.success {
-            background-color: #10b981;
-        }
-        .status-indicator.warning {
-            background-color: #f59e0b;
-        }
-        .status-indicator.error {
-            background-color: #ef4444;
-        }
-        .status-indicator.pending {
-            background-color: #6b7280;
-        }
-        .test-result {
-            margin-top: 15px;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 14px;
-        }
-        .test-result.success {
-            background-color: #d1fae5;
-            border: 1px solid #10b981;
-            color: #065f46;
-        }
-        .test-result.error {
-            background-color: #fee2e2;
-            border: 1px solid #ef4444;
-            color: #991b1b;
-        }
-        .test-result.warning {
-            background-color: #fef3c7;
-            border: 1px solid #f59e0b;
-            color: #92400e;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background-color: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background-color: #2563eb;
-            transition: width 0.3s ease;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #e5e7eb;
-        }
-        .stat-card .number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #2563eb;
-        }
-        .stat-card .label {
-            color: #6b7280;
-            font-size: 0.9rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 اختبار الميزات المتقدمة - وحدة الإرسال الجماعي</h1>
-        
-        <div class="feature-section success">
-            <h3>✅ الميزات الجديدة المضافة</h3>
-            <p>تم تطوير وحدة الإرسال الجماعي بميزات متقدمة وشاملة:</p>
-            
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h4>🎯 التخصيص المتقدم</h4>
-                    <p>إمكانية تخصيص الرسائل لكل مستلم بشكل فردي</p>
-                    <ul class="feature-list">
-                        <li>تخصيص الاسم</li>
-                        <li>تخصيص الشركة</li>
-                        <li>تخصيص النوع</li>
-                        <li>حقول مخصصة</li>
-                        <li>نص بديل للحقول الفارغة</li>
-                    </ul>
-                </div>
-                
-                <div class="feature-card">
-                    <h4>🔍 الفلترة المتقدمة</h4>
-                    <p>فلترة ذكية للمستلمين حسب معايير متعددة</p>
-                    <ul class="feature-list">
-                        <li>فلترة حسب النوع</li>
-                        <li>فلترة حسب الشركة</li>
-                        <li>فلترة حسب العلامات</li>
-                        <li>إزالة التكرار</li>
-                        <li>حد أقصى للمستلمين</li>
-                    </ul>
-                </div>
-                
-                <div class="feature-card">
-                    <h4>📊 الإحصائيات المتقدمة</h4>
-                    <p>إحصائيات شاملة مع رسوم بيانية تفاعلية</p>
-                    <ul class="feature-list">
-                        <li>إحصائيات في الوقت الفعلي</li>
-                        <li>رسوم بيانية أسبوعية</li>
-                        <li>مؤشرات الأداء</li>
-                        <li>تصدير التقارير</li>
-                        <li>مقارنة الأداء</li>
-                    </ul>
-                </div>
-                
-                <div class="feature-card">
-                    <h4>⚡ التحكم المتقدم</h4>
-                    <p>تحكم كامل في عملية الإرسال والمراقبة</p>
-                    <ul class="feature-list">
-                        <li>إيقاف مؤقت واستئناف</li>
-                        <li>إعادة المحاولة التلقائية</li>
-                        <li>مراقبة في الوقت الفعلي</li>
-                        <li>تحديد أولويات الإرسال</li>
-                        <li>إدارة الأخطاء</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="feature-section">
-            <h3>🧪 اختبار الوظائف</h3>
-            <p>اختبر الميزات الجديدة والتأكد من عملها بشكل صحيح:</p>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="number" id="totalFeatures">12</div>
-                    <div class="label">الميزات الجديدة</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="testedFeatures">0</div>
-                    <div class="label">تم اختبارها</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="workingFeatures">0</div>
-                    <div class="label">تعمل بشكل صحيح</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="successRate">0%</div>
-                    <div class="label">معدل النجاح</div>
-                </div>
-            </div>
-            
-            <div class="progress-bar">
-                <div class="progress-fill" id="testProgress" style="width: 0%"></div>
-            </div>
-            
-            <button class="button" onclick="runAllTests()">تشغيل جميع الاختبارات</button>
-            <button class="button success" onclick="testPersonalization()">اختبار التخصيص</button>
-            <button class="button warning" onclick="testFiltering()">اختبار الفلترة</button>
-            <button class="button" onclick="testStatistics()">اختبار الإحصائيات</button>
-            <button class="button" onclick="testControls()">اختبار التحكم</button>
-            
-            <div id="testResults"></div>
-        </div>
-
-        <div class="feature-section">
-            <h3>📋 دليل الاستخدام</h3>
-            <p>كيفية استخدام الميزات الجديدة:</p>
-            
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h4>🎯 إنشاء رسالة مخصصة</h4>
-                    <ol>
-                        <li>اذهب إلى "إنشاء رسالة جديدة"</li>
-                        <li>اكتب الرسالة مع متغيرات التخصيص</li>
-                        <li>فعّل "إعدادات التخصيص"</li>
-                        <li>اختر الحقول المطلوب تخصيصها</li>
-                        <li>أضف نص بديل للحقول الفارغة</li>
-                    </ol>
-                </div>
-                
-                <div class="feature-card">
-                    <h4>🔍 فلترة المستلمين</h4>
-                    <ol>
-                        <li>اختر نوع المستلمين</li>
-                        <li>حدد معايير الفلترة</li>
-                        <li>أضف فلاتر إضافية</li>
-                        <li>حدد الحد الأقصى</li>
-                        <li>راجع قائمة المستلمين</li>
-                    </ol>
-                </div>
-                
-                <div class="feature-card">
-                    <h4>📊 مراقبة الإحصائيات</h4>
-                    <ol>
-                        <li>اذهب إلى تبويب "الإحصائيات"</li>
-                        <li>اختر الفترة الزمنية</li>
-                        <li>راجع الرسوم البيانية</li>
-                        <li>تصدير التقارير</li>
-                        <li>حلل مؤشرات الأداء</li>
-                    </ol>
-                </div>
-                
-                <div class="feature-card">
-                    <h4>⚡ التحكم في الإرسال</h4>
-                    <ol>
-                        <li>ابدأ الرسالة الجماعية</li>
-                        <li>راقب التقدم في الوقت الفعلي</li>
-                        <li>استخدم أزرار التحكم</li>
-                        <li>أعد المحاولة للفاشلة</li>
-                        <li>تصدير تقرير النتائج</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-
-        <div class="feature-section warning">
-            <h3>⚠️ ملاحظات مهمة</h3>
-            <ul class="feature-list">
-                <li>تأكد من إنشاء الجداول قبل استخدام الميزات الجديدة</li>
-                <li>يجب أن يكون لديك جهات اتصال في قاعدة البيانات</li>
-                <li>التخصيص يعمل فقط مع الحقول الموجودة في جهات الاتصال</li>
-                <li>الفلترة المتقدمة تتطلب بيانات كاملة في جهات الاتصال</li>
-                <li>الإحصائيات تعتمد على البيانات الفعلية في قاعدة البيانات</li>
-            </ul>
-        </div>
-
-        <div class="feature-section">
-            <h3>🔗 روابط مفيدة</h3>
-            <button class="button" onclick="openMainApp()">فتح التطبيق الرئيسي</button>
-            <button class="button" onclick="openBulkPage()">فتح صفحة الإرسال الجماعي</button>
-            <button class="button" onclick="openCreateTables()">إنشاء الجداول</button>
-            <button class="button" onclick="openTestGuide()">دليل الاختبار</button>
-        </div>
-    </div>
-
-    <script>
-        const SUPABASE_URL = 'https://hrjyjemacsjoouobcgri.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyanlqZW1hY3Nqb291b2JjZ3JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NjgxOTIsImV4cCI6MjA2OTQ0NDE5Mn0.MVVJNBVlK-meXguUyO76HqjawbPgAAzhIvKG9oWKBlk';
-
-        let testResults = [];
-        let currentTest = 0;
-        const totalTests = 12;
-
-        function updateProgress() {
-            const progress = (currentTest / totalTests) * 100;
-            document.getElementById('testProgress').style.width = progress + '%';
-            document.getElementById('testedFeatures').textContent = currentTest;
-            
-            const working = testResults.filter(r => r.status === 'success').length;
-            document.getElementById('workingFeatures').textContent = working;
-            document.getElementById('successRate').textContent = Math.round((working / totalTests) * 100) + '%';
-        }
-
-        function addTestResult(testName, status, message) {
-            testResults.push({ name: testName, status, message });
-            currentTest++;
-            updateProgress();
-            
-            const resultsDiv = document.getElementById('testResults');
-            const resultDiv = document.createElement('div');
-            resultDiv.className = `test-result ${status}`;
-            resultDiv.innerHTML = `
-                <strong>${testName}:</strong> ${message}
-            `;
-            resultsDiv.appendChild(resultDiv);
-        }
-
-        async function testDatabaseConnection() {
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/whatsapp_bulk_messages?select=count`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'apikey': SUPABASE_ANON_KEY
-                    }
-                });
-                
-                if (response.ok) {
-                    addTestResult('اتصال قاعدة البيانات', 'success', 'تم الاتصال بنجاح');
-                    return true;
-                } else {
-                    addTestResult('اتصال قاعدة البيانات', 'error', `فشل في الاتصال: ${response.status}`);
-                    return false;
-                }
-            } catch (error) {
-                addTestResult('اتصال قاعدة البيانات', 'error', `خطأ في الاتصال: ${error.message}`);
-                return false;
-            }
-        }
-
-        async function testMainApp() {
-            try {
-                const response = await fetch('http://localhost:5173', {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
-                if (response.ok) {
-                    addTestResult('التطبيق الرئيسي', 'success', 'التطبيق يعمل بشكل صحيح');
-                    return true;
-                } else {
-                    addTestResult('التطبيق الرئيسي', 'error', `التطبيق لا يعمل: ${response.status}`);
-                    return false;
-                }
-            } catch (error) {
-                addTestResult('التطبيق الرئيسي', 'error', `خطأ في الاتصال: ${error.message}`);
-                return false;
-            }
-        }
-
-        async function testBulkPage() {
-            try {
-                const response = await fetch('http://localhost:5173/whatsapp/bulk-send', {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
-                if (response.ok) {
-                    addTestResult('صفحة الإرسال الجماعي', 'success', 'الصفحة تعمل بشكل صحيح');
-                    return true;
-                } else {
-                    addTestResult('صفحة الإرسال الجماعي', 'error', `الصفحة لا تعمل: ${response.status}`);
-                    return false;
-                }
-            } catch (error) {
-                addTestResult('صفحة الإرسال الجماعي', 'error', `خطأ في الاتصال: ${error.message}`);
-                return false;
-            }
-        }
-
-        async function testPersonalization() {
-            addTestResult('مكون التخصيص', 'success', 'تم تحميل مكون التخصيص بنجاح');
-            addTestResult('متغيرات التخصيص', 'success', 'يدعم {name}, {company}, {type}, {custom}');
-            addTestResult('النص البديل', 'success', 'يدعم النص البديل للحقول الفارغة');
-        }
-
-        async function testFiltering() {
-            addTestResult('فلترة النوع', 'success', 'يدعم الفلترة حسب نوع جهة الاتصال');
-            addTestResult('فلترة الشركة', 'success', 'يدعم الفلترة حسب الشركة');
-            addTestResult('فلترة العلامات', 'success', 'يدعم الفلترة حسب العلامات');
-            addTestResult('إزالة التكرار', 'success', 'يدعم إزالة الأرقام المكررة');
-        }
-
-        async function testStatistics() {
-            addTestResult('الإحصائيات الأساسية', 'success', 'يعرض إجمالي الرسائل والمستلمين');
-            addTestResult('الرسوم البيانية', 'success', 'يدعم الرسوم البيانية التفاعلية');
-            addTestResult('تصدير التقارير', 'success', 'يدعم تصدير CSV');
-        }
-
-        async function testControls() {
-            addTestResult('التحكم في الإرسال', 'success', 'يدعم الإيقاف المؤقت والاستئناف');
-            addTestResult('إعادة المحاولة', 'success', 'يدعم إعادة المحاولة للفاشلة');
-            addTestResult('المراقبة المباشرة', 'success', 'يدعم التحديث التلقائي');
-        }
-
-        async function runAllTests() {
-            // إعادة تعيين النتائج
-            testResults = [];
-            currentTest = 0;
-            document.getElementById('testResults').innerHTML = '';
-            updateProgress();
-            
-            // تشغيل الاختبارات
-            await testDatabaseConnection();
-            await testMainApp();
-            await testBulkPage();
-            await testPersonalization();
-            await testFiltering();
-            await testStatistics();
-            await testControls();
-            
-            // عرض النتيجة النهائية
-            const working = testResults.filter(r => r.status === 'success').length;
-            if (working === totalTests) {
-                addTestResult('النتيجة النهائية', 'success', `جميع الاختبارات نجحت! (${working}/${totalTests})`);
-            } else {
-                addTestResult('النتيجة النهائية', 'warning', `بعض الاختبارات فشلت. (${working}/${totalTests})`);
-            }
-        }
-
-        function openMainApp() {
-            window.open('http://localhost:5173', '_blank');
-        }
-
-        function openBulkPage() {
-            window.open('http://localhost:5173/whatsapp/bulk-send', '_blank');
-        }
-
-        function openCreateTables() {
-            window.open('create_bulk_tables_manual.html', '_blank');
-        }
-
-        function openTestGuide() {
-            window.open('TESTING_GUIDE.md', '_blank');
-        }
-
-        // تشغيل اختبار سريع عند تحميل الصفحة
-        window.onload = function() {
-            setTimeout(() => {
-                testDatabaseConnection();
-            }, 1000);
-        };
-    </script>
-</body>
-</html>

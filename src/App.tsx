@@ -70,7 +70,6 @@ const MyTasks = lazy(() => import("./pages/employee/MyTasks"));
 const MyProperties = lazy(() => import("./pages/employee/MyProperties"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Settings = lazy(() => import("./pages/Settings"));
-const TestPage = lazy(() => import("./pages/TestPage"));
 const SecurityAuditPage = lazy(() => import("./pages/SecurityAudit"));
 
 
@@ -120,15 +119,6 @@ const AppProtector = () => {
   const { user, session, profile, loading } = useAuth();
   const location = useLocation();
 
-  // صفحة اختبار بدون مصادقة
-  if (location.pathname === "/test-app") {
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        <TestPage />
-      </Suspense>
-    );
-  }
-
   // إذا كان المسار صفحة تسجيل الدخول، اعرضها فقط
   if (location.pathname === "/") {
     return (
@@ -140,7 +130,6 @@ const AppProtector = () => {
 
   // فحص فوري وصارم: إذا لم يكن هناك session صالح
   if (!loading && (!session || !user)) {
-    console.log('AppProtector: No valid session detected, redirecting to login');
     // تنظيف كامل لأي بيانات مخزنة محلياً
     localStorage.clear();
     sessionStorage.clear();
@@ -150,7 +139,6 @@ const AppProtector = () => {
 
   // إذا كان التحميل جاري، أظهر شاشة تحميل بسيطة
   if (loading) {
-    console.log('AppProtector: Loading is true, showing loading screen', { user: !!user, session: !!session, profile: !!profile, loading });
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
@@ -163,7 +151,6 @@ const AppProtector = () => {
 
   // فحص ثانوي: إذا لم يوجد profile، وجه للوحة الادارة افتراضياً
   if (!profile) {
-    console.log('AppProtector: No profile found, continuing with default admin access');
     // لا نريد إعادة توجيه، بل نسمح بالمرور للوحة الادارة الافتراضية
   }
 
