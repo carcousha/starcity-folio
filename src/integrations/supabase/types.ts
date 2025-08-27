@@ -458,6 +458,240 @@ export type Database = {
           },
         ]
       }
+      contact_activities: {
+        Row: {
+          activity_type: string
+          assigned_to: string | null
+          completed_at: string | null
+          contact_id: string
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          priority: string | null
+          scheduled_at: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          activity_type: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          priority?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          activity_type?: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          priority?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_attachments: {
+        Row: {
+          contact_id: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          is_public: boolean | null
+          metadata: Json | null
+          mime_type: string | null
+          uploaded_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          contact_id: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          uploaded_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          contact_id?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_public?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_attachments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_attachments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_audit_logs: {
+        Row: {
+          action: string
+          changed_at: string | null
+          changed_by: string
+          contact_id: string
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string | null
+          changed_by: string
+          contact_id: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string | null
+          changed_by?: string
+          contact_id?: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_audit_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_audit_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_channels: {
+        Row: {
+          channel_status: string | null
+          contact_id: string
+          created_at: string | null
+          id: string
+          last_used: string | null
+          meta: Json | null
+          normalized: string | null
+          notification_settings: Json | null
+          preferred: boolean | null
+          primary_channel: boolean | null
+          type: string
+          value: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          channel_status?: string | null
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          last_used?: string | null
+          meta?: Json | null
+          normalized?: string | null
+          notification_settings?: Json | null
+          preferred?: boolean | null
+          primary_channel?: boolean | null
+          type: string
+          value?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          channel_status?: string | null
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          last_used?: string | null
+          meta?: Json | null
+          normalized?: string | null
+          notification_settings?: Json | null
+          preferred?: boolean | null
+          primary_channel?: boolean | null
+          type?: string
+          value?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_channels_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_channels_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_interactions: {
         Row: {
           contact_id: string | null
@@ -492,6 +726,283 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "enhanced_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_permissions: {
+        Row: {
+          active: boolean | null
+          contact_id: string
+          expires_at: string | null
+          granted_at: string | null
+          granted_by: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          contact_id: string
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          contact_id?: string
+          expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_permissions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_permissions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_sync_log: {
+        Row: {
+          contact_id: string
+          id: string
+          retry_count: number | null
+          sync_action: string
+          sync_data: Json | null
+          sync_error: string | null
+          sync_source: string
+          sync_status: string
+          synced_at: string | null
+        }
+        Insert: {
+          contact_id: string
+          id?: string
+          retry_count?: number | null
+          sync_action: string
+          sync_data?: Json | null
+          sync_error?: string | null
+          sync_source: string
+          sync_status: string
+          synced_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          id?: string
+          retry_count?: number | null
+          sync_action?: string
+          sync_data?: Json | null
+          sync_error?: string | null
+          sync_source?: string
+          sync_status?: string
+          synced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_sync_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sync_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tags: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      contact_tags_mapping: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string
+          contact_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by: string
+          contact_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string
+          contact_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tags_mapping_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tags_mapping_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_tags_mapping_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "contact_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          activity_log: Json | null
+          attachments: Json | null
+          bio: string | null
+          channels: Json
+          company: string | null
+          contact_type: string | null
+          created_at: string | null
+          created_by: string | null
+          data_source: string | null
+          external_ids: Json | null
+          id: string
+          is_duplicate: boolean | null
+          last_contact_date: string | null
+          master_contact_id: string | null
+          name: string
+          next_contact_date: string | null
+          notes: Json | null
+          office: string | null
+          preferences: Json | null
+          rating: number | null
+          reminders: Json | null
+          roles: string[] | null
+          sla_status: string | null
+          status: string | null
+          tags: string[] | null
+          updated_at: string | null
+          updated_by: string | null
+          version: number | null
+        }
+        Insert: {
+          activity_log?: Json | null
+          attachments?: Json | null
+          bio?: string | null
+          channels?: Json
+          company?: string | null
+          contact_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_source?: string | null
+          external_ids?: Json | null
+          id?: string
+          is_duplicate?: boolean | null
+          last_contact_date?: string | null
+          master_contact_id?: string | null
+          name: string
+          next_contact_date?: string | null
+          notes?: Json | null
+          office?: string | null
+          preferences?: Json | null
+          rating?: number | null
+          reminders?: Json | null
+          roles?: string[] | null
+          sla_status?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+        }
+        Update: {
+          activity_log?: Json | null
+          attachments?: Json | null
+          bio?: string | null
+          channels?: Json
+          company?: string | null
+          contact_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_source?: string | null
+          external_ids?: Json | null
+          id?: string
+          is_duplicate?: boolean | null
+          last_contact_date?: string | null
+          master_contact_id?: string | null
+          name?: string
+          next_contact_date?: string | null
+          notes?: Json | null
+          office?: string | null
+          preferences?: Json | null
+          rating?: number | null
+          reminders?: Json | null
+          roles?: string[] | null
+          sla_status?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_master_contact_id_fkey"
+            columns: ["master_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contact_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_master_contact_id_fkey"
+            columns: ["master_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -4711,9 +5222,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      contact_dashboard: {
+        Row: {
+          activity_count: number | null
+          attachment_count: number | null
+          company: string | null
+          contact_type: string | null
+          created_at: string | null
+          id: string | null
+          last_contact_date: string | null
+          name: string | null
+          next_activity_date: string | null
+          next_contact_date: string | null
+          rating: number | null
+          sla_status: string | null
+          status: string | null
+          tag_count: number | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      add_contact_tags: {
+        Args: { contact_id: string; tag_names: string[] }
+        Returns: Json
+      }
       advance_workflow_stage: {
         Args: { service_id_param: string }
         Returns: boolean
@@ -4813,6 +5347,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      contact_api_event: {
+        Args: { contact_id: string; data: Json; event_type: string }
+        Returns: undefined
+      }
       convert_existing_personal_expenses_to_debts: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -4877,6 +5415,14 @@ export type Database = {
       }
       delete_vehicle_with_expenses: {
         Args: { vehicle_id_param: string }
+        Returns: Json
+      }
+      detect_duplicate_contacts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      export_contacts: {
+        Args: { contact_ids: string[]; export_format: string }
         Returns: Json
       }
       fix_data_integrity: {
@@ -4979,6 +5525,10 @@ export type Database = {
           | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
         Returns: boolean
       }
+      import_contacts: {
+        Args: { import_data: Json }
+        Returns: Json
+      }
       import_existing_contacts: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -5063,6 +5613,10 @@ export type Database = {
         }
         Returns: string
       }
+      merge_contacts: {
+        Args: { duplicate_ids: string[]; master_id: string }
+        Returns: Json
+      }
       pay_commission: {
         Args: { commission_id_param: string }
         Returns: Json
@@ -5086,6 +5640,10 @@ export type Database = {
           p_payment_method?: string
         }
         Returns: boolean
+      }
+      remove_contact_tags: {
+        Args: { contact_id: string; tag_names: string[] }
+        Returns: Json
       }
       reset_financial_data: {
         Args: Record<PropertyKey, never>
@@ -5154,6 +5712,10 @@ export type Database = {
           employee_id_param: string
         }
         Returns: string
+      }
+      sync_contact_relations: {
+        Args: { relation_type: string; source_id: string; target_id: string }
+        Returns: undefined
       }
       sync_debts_with_journal: {
         Args: Record<PropertyKey, never>
