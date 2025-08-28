@@ -4,12 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
+import { ContactForm } from '@/components/contacts/ContactForm';
+import { useContactSync } from '@/hooks/useContactSync';
 import { toast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -85,6 +85,7 @@ export default function WhatsAppContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
+  const { syncContactFromOtherTables } = useContactSync();
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['enhanced-contacts', searchTerm, statusFilter, roleFilter],
@@ -134,6 +135,15 @@ export default function WhatsAppContacts() {
     mutationFn: async (data: Partial<EnhancedContact> & { channels?: Partial<ContactChannel>[] }) => {
       const { channels, ...contactData } = data;
       
+      // البحث عن التكرار قبل الإنشاء
+      const duplicateContact = await findDuplicateByPhone(
+        channels?.find(ch => ch.channel_type === 'phone')?.value
+      );
+      
+      if (duplicateContact) {
+        throw new Error(`جهة اتصال موجودة بالفعل: ${duplicateContact.name}`);
+      }
+      
       const { data: contact, error } = await supabase
         .from('enhanced_contacts')
         .insert({
@@ -166,6 +176,13 @@ export default function WhatsAppContacts() {
       setIsDialogOpen(false);
       setEditingContact(null);
       toast({ title: "تم إضافة جهة الاتصال بنجاح" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ في الإضافة",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   });
 
@@ -201,50 +218,29 @@ export default function WhatsAppContacts() {
     }
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  // البحث عن التكرار بناءً على رقم الهاتف
+  const findDuplicateByPhone = async (phoneNumber?: string) => {
+    if (!phoneNumber) return null;
     
-    const contactData = {
-      name: formData.get('name') as string,
-      first_name: formData.get('first_name') as string || undefined,
-      last_name: formData.get('last_name') as string || undefined,
-      company_name: formData.get('company_name') as string || undefined,
-      office: formData.get('office') as string || undefined,
-      bio: formData.get('bio') as string || undefined,
-      roles: (formData.get('roles') as string)?.split(',').map(r => r.trim()).filter(Boolean) || [],
-      status: formData.get('status') as 'active' | 'inactive' | 'archived' || 'active',
-      follow_up_status: formData.get('follow_up_status') as any || 'new',
-      priority: formData.get('priority') as any || 'medium',
-      rating: formData.get('rating') ? Number(formData.get('rating')) : undefined,
-      assigned_to: formData.get('assigned_to') as string || undefined,
-      notes: formData.get('notes') as string || undefined,
-      tags: (formData.get('tags') as string)?.split(',').map(t => t.trim()).filter(Boolean) || [],
-      next_contact_date: formData.get('next_contact_date') as string || undefined,
-    };
+    const { data } = await supabase
+      .from('enhanced_contacts')
+      .select(`
+        *,
+        enhanced_contact_channels!inner(*)
+      `)
+      .eq('enhanced_contact_channels.channel_type', 'phone')
+      .eq('enhanced_contact_channels.value', phoneNumber)
+      .eq('is_duplicate', false)
+      .single();
+    
+    return data || null;
+  };
 
-    const channels = [
-      {
-        channel_type: 'phone' as const,
-        value: formData.get('phone') as string,
-        is_primary: true,
-        is_active: true,
-        preferred_for_calls: true,
-        preferred_for_messages: true
-      },
-      {
-        channel_type: 'email' as const,
-        value: formData.get('email') as string,
-        is_primary: false,
-        is_active: true,
-        preferred_for_emails: true
-      }
-    ].filter(channel => channel.value);
-
+  const handleFormSubmit = (contactData: any) => {
     if (editingContact) {
       updateMutation.mutate({ id: editingContact.id, ...contactData });
     } else {
-      createMutation.mutate({ ...contactData, channels });
+      createMutation.mutate(contactData);
     }
   };
 
@@ -324,232 +320,19 @@ export default function WhatsAppContacts() {
                 إضافة جهة اتصال
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingContact ? 'تعديل جهة الاتصال' : 'إضافة جهة اتصال جديدة'}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* البيانات الأساسية */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">البيانات الأساسية</h3>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="first_name">الاسم الأول</Label>
-                        <Input 
-                          id="first_name" 
-                          name="first_name" 
-                          defaultValue={editingContact?.first_name}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="last_name">اسم العائلة</Label>
-                        <Input 
-                          id="last_name" 
-                          name="last_name" 
-                          defaultValue={editingContact?.last_name}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="name">الاسم الكامل *</Label>
-                      <Input 
-                        id="name" 
-                        name="name" 
-                        defaultValue={editingContact?.name}
-                        required 
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="company_name">اسم الشركة</Label>
-                        <Input 
-                          id="company_name" 
-                          name="company_name" 
-                          defaultValue={editingContact?.company_name}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="office">المكتب</Label>
-                        <Input 
-                          id="office" 
-                          name="office" 
-                          defaultValue={editingContact?.office}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="bio">النبذة الشخصية</Label>
-                      <Textarea 
-                        id="bio" 
-                        name="bio"
-                        defaultValue={editingContact?.bio}
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-
-                  {/* قنوات الاتصال والبيانات الإضافية */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">قنوات الاتصال</h3>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">رقم الهاتف</Label>
-                      <Input 
-                        id="phone" 
-                        name="phone" 
-                        defaultValue={editingContact ? getContactChannel(editingContact, 'phone') : ''}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">البريد الإلكتروني</Label>
-                      <Input 
-                        id="email" 
-                        name="email" 
-                        type="email"
-                        defaultValue={editingContact ? getContactChannel(editingContact, 'email') : ''}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="roles">الأدوار (مفصولة بفواصل)</Label>
-                      <Input 
-                        id="roles" 
-                        name="roles" 
-                        placeholder="client, broker, owner"
-                        defaultValue={editingContact?.roles?.join(', ')}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="status">الحالة</Label>
-                        <Select name="status" defaultValue={editingContact?.status || 'active'}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">نشط</SelectItem>
-                            <SelectItem value="inactive">غير نشط</SelectItem>
-                            <SelectItem value="archived">مؤرشف</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="follow_up_status">حالة المتابعة</Label>
-                        <Select name="follow_up_status" defaultValue={editingContact?.follow_up_status || 'new'}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="new">جديد</SelectItem>
-                            <SelectItem value="contacted">تم التواصل</SelectItem>
-                            <SelectItem value="interested">مهتم</SelectItem>
-                            <SelectItem value="negotiating">تفاوض</SelectItem>
-                            <SelectItem value="closed">مغلق</SelectItem>
-                            <SelectItem value="lost">ضائع</SelectItem>
-                            <SelectItem value="inactive">غير نشط</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="priority">الأولوية</Label>
-                        <Select name="priority" defaultValue={editingContact?.priority || 'medium'}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">منخفضة</SelectItem>
-                            <SelectItem value="medium">متوسطة</SelectItem>
-                            <SelectItem value="high">عالية</SelectItem>
-                            <SelectItem value="urgent">عاجلة</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="rating">التقييم (1-5)</Label>
-                        <Select name="rating" defaultValue={editingContact?.rating?.toString()}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر التقييم" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1 نجمة</SelectItem>
-                            <SelectItem value="2">2 نجمة</SelectItem>
-                            <SelectItem value="3">3 نجوم</SelectItem>
-                            <SelectItem value="4">4 نجوم</SelectItem>
-                            <SelectItem value="5">5 نجوم</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="assigned_to">مُعين إلى</Label>
-                      <Select name="assigned_to" defaultValue={editingContact?.assigned_to}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر موظف" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {employees.map((emp) => (
-                            <SelectItem key={emp.user_id} value={emp.user_id}>
-                              {emp.first_name} {emp.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="next_contact_date">موعد المتابعة التالي</Label>
-                      <Input 
-                        id="next_contact_date" 
-                        name="next_contact_date" 
-                        type="datetime-local"
-                        defaultValue={editingContact?.next_contact_date}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="tags">الوسوم (مفصولة بفواصل)</Label>
-                      <Input 
-                        id="tags" 
-                        name="tags" 
-                        placeholder="عميل مهم, وسيط نشط"
-                        defaultValue={editingContact?.tags?.join(', ')}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">ملاحظات</Label>
-                      <Textarea 
-                        id="notes" 
-                        name="notes"
-                        defaultValue={editingContact?.notes}
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-2 space-x-reverse">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    إلغاء
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                    {editingContact ? 'تحديث' : 'إضافة'}
-                  </Button>
-                </div>
-              </form>
+              <ContactForm
+                editingContact={editingContact}
+                onSubmit={handleFormSubmit}
+                onCancel={() => {
+                  setIsDialogOpen(false);
+                  setEditingContact(null);
+                }}
+                isLoading={createMutation.isPending || updateMutation.isPending}
+              />
             </DialogContent>
           </Dialog>
         </div>
