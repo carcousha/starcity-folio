@@ -1950,24 +1950,83 @@ export type Database = {
         }
         Relationships: []
       }
+      enhanced_contact_channels: {
+        Row: {
+          channel_type: Database["public"]["Enums"]["contact_channel_type"]
+          contact_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          is_verified: boolean | null
+          label: string | null
+          preferred_for_calls: boolean | null
+          preferred_for_emails: boolean | null
+          preferred_for_messages: boolean | null
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          channel_type: Database["public"]["Enums"]["contact_channel_type"]
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          label?: string | null
+          preferred_for_calls?: boolean | null
+          preferred_for_emails?: boolean | null
+          preferred_for_messages?: boolean | null
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          channel_type?: Database["public"]["Enums"]["contact_channel_type"]
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          is_verified?: boolean | null
+          label?: string | null
+          preferred_for_calls?: boolean | null
+          preferred_for_emails?: boolean | null
+          preferred_for_messages?: boolean | null
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enhanced_contact_channels_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "enhanced_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enhanced_contacts: {
         Row: {
           about: string | null
           address: string | null
           assigned_to: string | null
-          category: Database["public"]["Enums"]["contact_category"]
+          category: Database["public"]["Enums"]["contact_category"] | null
           created_at: string | null
           created_by: string | null
           email: string | null
           id: string
           is_active: boolean | null
           last_contact_date: string | null
+          metadata: Json | null
           name: string
           notes: string | null
           office_name: string | null
           phone: string
           rating: number | null
+          roles: Database["public"]["Enums"]["contact_role"][] | null
           search_vector: unknown | null
+          short_name: string | null
           updated_at: string | null
           whatsapp_number: string | null
         }
@@ -1975,19 +2034,22 @@ export type Database = {
           about?: string | null
           address?: string | null
           assigned_to?: string | null
-          category: Database["public"]["Enums"]["contact_category"]
+          category?: Database["public"]["Enums"]["contact_category"] | null
           created_at?: string | null
           created_by?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
           last_contact_date?: string | null
+          metadata?: Json | null
           name: string
           notes?: string | null
           office_name?: string | null
           phone: string
           rating?: number | null
+          roles?: Database["public"]["Enums"]["contact_role"][] | null
           search_vector?: unknown | null
+          short_name?: string | null
           updated_at?: string | null
           whatsapp_number?: string | null
         }
@@ -1995,19 +2057,22 @@ export type Database = {
           about?: string | null
           address?: string | null
           assigned_to?: string | null
-          category?: Database["public"]["Enums"]["contact_category"]
+          category?: Database["public"]["Enums"]["contact_category"] | null
           created_at?: string | null
           created_by?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
           last_contact_date?: string | null
+          metadata?: Json | null
           name?: string
           notes?: string | null
           office_name?: string | null
           phone?: string
           rating?: number | null
+          roles?: Database["public"]["Enums"]["contact_role"][] | null
           search_vector?: unknown | null
+          short_name?: string | null
           updated_at?: string | null
           whatsapp_number?: string | null
         }
@@ -2522,14 +2587,17 @@ export type Database = {
         Row: {
           activity_status: string | null
           areas_specialization: Json | null
+          commission_percentage: number | null
+          contact_id: string | null
           created_at: string | null
-          created_by: string
+          created_by: string | null
           deals_count: number | null
           email: string | null
           id: string
           language: string | null
           last_activity_date: string | null
           name: string
+          notes: string | null
           office_location: string | null
           office_name: string | null
           phone: string
@@ -2542,14 +2610,17 @@ export type Database = {
         Insert: {
           activity_status?: string | null
           areas_specialization?: Json | null
+          commission_percentage?: number | null
+          contact_id?: string | null
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           deals_count?: number | null
           email?: string | null
           id?: string
           language?: string | null
           last_activity_date?: string | null
           name: string
+          notes?: string | null
           office_location?: string | null
           office_name?: string | null
           phone: string
@@ -2562,14 +2633,17 @@ export type Database = {
         Update: {
           activity_status?: string | null
           areas_specialization?: Json | null
+          commission_percentage?: number | null
+          contact_id?: string | null
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           deals_count?: number | null
           email?: string | null
           id?: string
           language?: string | null
           last_activity_date?: string | null
           name?: string
+          notes?: string | null
           office_location?: string | null
           office_name?: string | null
           phone?: string
@@ -2579,7 +2653,15 @@ export type Database = {
           updated_by?: string | null
           whatsapp_number?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "land_brokers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "enhanced_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       land_client_interactions: {
         Row: {
@@ -5665,29 +5747,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      search_enhanced_contacts: {
-        Args: {
-          contact_category?: Database["public"]["Enums"]["contact_category"]
-          limit_count?: number
-          max_rating?: number
-          min_rating?: number
-          office_filter?: string
-          search_term?: string
-        }
-        Returns: {
-          about: string
-          category: Database["public"]["Enums"]["contact_category"]
-          created_at: string
-          id: string
-          interaction_count: number
-          last_contact_date: string
-          name: string
-          office_name: string
-          phone: string
-          rating: number
-          whatsapp_number: string
-        }[]
-      }
       secure_role_change: {
         Args:
           | {
@@ -5720,6 +5779,10 @@ export type Database = {
       sync_debts_with_journal: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      sync_existing_data_to_contacts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_bulk_message_stats: {
         Args: { bulk_msg_id: string }
@@ -5773,14 +5836,30 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "accountant" | "employee"
-      contact_category:
-        | "مسوق بيشتري"
-        | "مسوق بيسوق"
-        | "مالك بيع"
-        | "مالك ايجار"
-        | "عميل ارض"
-        | "عميل فيلا"
-        | "مؤجر"
+      contact_category: "individual" | "company" | "organization"
+      contact_channel_type:
+        | "phone"
+        | "whatsapp"
+        | "email"
+        | "address"
+        | "website"
+        | "social"
+      contact_role:
+        | "client"
+        | "broker"
+        | "owner"
+        | "tenant"
+        | "supplier"
+        | "partner"
+        | "employee"
+      follow_up_status:
+        | "new"
+        | "contacted"
+        | "interested"
+        | "negotiating"
+        | "closed"
+        | "lost"
+        | "inactive"
       whatsapp_stage: "Lead" | "Negotiation" | "Closing" | "PostSale"
     }
     CompositeTypes: {
@@ -5910,14 +5989,32 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "accountant", "employee"],
-      contact_category: [
-        "مسوق بيشتري",
-        "مسوق بيسوق",
-        "مالك بيع",
-        "مالك ايجار",
-        "عميل ارض",
-        "عميل فيلا",
-        "مؤجر",
+      contact_category: ["individual", "company", "organization"],
+      contact_channel_type: [
+        "phone",
+        "whatsapp",
+        "email",
+        "address",
+        "website",
+        "social",
+      ],
+      contact_role: [
+        "client",
+        "broker",
+        "owner",
+        "tenant",
+        "supplier",
+        "partner",
+        "employee",
+      ],
+      follow_up_status: [
+        "new",
+        "contacted",
+        "interested",
+        "negotiating",
+        "closed",
+        "lost",
+        "inactive",
       ],
       whatsapp_stage: ["Lead", "Negotiation", "Closing", "PostSale"],
     },
