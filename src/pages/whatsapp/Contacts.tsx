@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { PageHeader } from '@/components/ui/page-header';
@@ -36,7 +38,10 @@ import {
   Clock,
   RefreshCw,
   Database,
-  AlertTriangle
+  AlertTriangle,
+  Table as TableIcon,
+  Grid3X3,
+  List
 } from 'lucide-react';
 
 interface EnhancedContact {
@@ -88,6 +93,7 @@ export default function WhatsAppContacts() {
   const [editingContact, setEditingContact] = useState<EnhancedContact | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [contactToDelete, setContactToDelete] = useState<EnhancedContact | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table'); // العرض الافتراضي هو الجدول
 
   const queryClient = useQueryClient();
   
@@ -317,26 +323,83 @@ export default function WhatsAppContacts() {
             <SelectItem value="supplier">مورد</SelectItem>
           </SelectContent>
         </Select>
+        
+        {/* أزرار التبديل بين طرق العرض */}
+        <div className="flex border rounded-lg p-1 bg-muted">
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+            className="h-8 px-3"
+          >
+            <TableIcon className="h-4 w-4 ml-1" />
+            جدول
+          </Button>
+          <Button
+            variant={viewMode === 'cards' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('cards')}
+            className="h-8 px-3"
+          >
+            <Grid3X3 className="h-4 w-4 ml-1" />
+            كروت
+          </Button>
+        </div>
       </div>
 
       {/* عرض جهات الاتصال */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-muted rounded"></div>
-                  <div className="h-3 bg-muted rounded w-2/3"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        viewMode === 'table' ? (
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12"></TableHead>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead>الشركة</TableHead>
+                    <TableHead>الأدوار</TableHead>
+                    <TableHead>الحالة</TableHead>
+                    <TableHead>الأولوية</TableHead>
+                    <TableHead>التقييم</TableHead>
+                    <TableHead>الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(6)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-muted rounded"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
       ) : contacts.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
@@ -347,6 +410,150 @@ export default function WhatsAppContacts() {
               <Plus className="h-4 w-4 ml-2" />
               إضافة أول جهة اتصال
             </Button>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'table' ? (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox />
+                  </TableHead>
+                  <TableHead>الاسم</TableHead>
+                  <TableHead>الشركة</TableHead>
+                  <TableHead>الأدوار</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead>الأولوية</TableHead>
+                  <TableHead>التقييم</TableHead>
+                  <TableHead className="text-center">الإجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contacts.map((contact) => (
+                  <TableRow key={contact.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <Checkbox />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className="font-medium">{contact.name}</div>
+                          {getContactChannel(contact, 'phone') && (
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {getContactChannel(contact, 'phone')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {contact.company_name && (
+                        <div className="flex items-center gap-1">
+                          <Building className="h-3 w-3 text-muted-foreground" />
+                          {contact.company_name}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {contact.roles && contact.roles.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {contact.roles.slice(0, 2).map((role, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {role === 'client' ? 'عميل' :
+                               role === 'broker' ? 'وسيط' :
+                               role === 'owner' ? 'مالك' :
+                               role === 'tenant' ? 'مستأجر' : role}
+                            </Badge>
+                          ))}
+                          {contact.roles.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{contact.roles.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${getStatusColor(contact.status)} text-white text-xs`}>
+                        {contact.status === 'active' ? 'نشط' : contact.status === 'inactive' ? 'غير نشط' : 'مؤرشف'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${getPriorityColor(contact.priority)} text-white text-xs`}>
+                        {contact.priority === 'urgent' ? 'عاجل' : 
+                         contact.priority === 'high' ? 'عالي' :
+                         contact.priority === 'medium' ? 'متوسط' : 'منخفض'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {renderStars(contact.rating)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedContact(contact);
+                            setIsDialogOpen(true);
+                          }}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Activity className="h-3 w-3" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                هل أنت متأكد من حذف جهة الاتصال "{contact.name}"؟ هذا الإجراء لا يمكن التراجع عنه.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteContact.mutate(contact.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                حذف
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       ) : (

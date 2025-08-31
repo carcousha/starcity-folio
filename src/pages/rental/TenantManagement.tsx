@@ -94,26 +94,26 @@ const AddTenantForm = () => {
     },
     onSuccess: async (tenant) => {
       // مزامنة مع نظام جهات الاتصال الموحد
-      await syncContact({
-        name: tenant.full_name,
-        phone: tenant.phone,
+      await addContact({
+        full_name: tenant.full_name,
+        phone_primary: tenant.phone,
         email: tenant.email,
-        role: 'tenant',
+        roles: ['tenant'],
         language: 'ar',
-        rating: 0,
+        rating_1_5: 3,
         notes: '',
-        metadata: {
-          nationality: tenant.nationality,
-          emirates_id: tenant.emirates_id,
-          passport_number: tenant.passport_number,
-          emergency_contact_name: tenant.emergency_contact_name,
-          emergency_contact_phone: tenant.emergency_contact_phone,
-          employer_name: tenant.employer_name,
-          monthly_salary: tenant.monthly_salary,
-          job_title: tenant.job_title,
-          current_address: tenant.current_address,
-          visa_status: tenant.visa_status
-        }
+        nationality: tenant.nationality,
+        id_number: tenant.emirates_id,
+        passport_number: tenant.passport_number,
+        emergency_contact_name: tenant.emergency_contact_name,
+        emergency_contact_phone: tenant.emergency_contact_phone,
+        employer_name: tenant.employer_name,
+        monthly_salary: tenant.monthly_salary,
+        job_title: tenant.job_title,
+        address: tenant.current_address,
+        visa_status: tenant.visa_status,
+        status: 'active',
+        priority: 'medium'
       });
       
       toast({
