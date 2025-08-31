@@ -78,6 +78,7 @@ const AIHubDashboard = lazy(() => import("./components/ai/AIHubDashboard"));
 
 // WhatsApp Module
 const WhatsAppModule = lazy(() => import("./pages/whatsapp/index"));
+const WhatsAppContacts = lazy(() => import("./pages/whatsapp/Contacts"));
 
 // Land Sales Module
 const LandSalesIndex = lazy(() => import("./pages/land-sales/index"));
@@ -213,6 +214,15 @@ const AppProtector = () => {
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
                   <Suspense fallback={<LoadingSpinner />}>
                     <TasksIndex />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              
+              {/* Contacts Route - Standalone */}
+              <Route path="/contacts" element={
+                <ProtectedRoute requiredPermission="crmAccess">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <WhatsAppContacts />
                   </Suspense>
                 </ProtectedRoute>
               } />

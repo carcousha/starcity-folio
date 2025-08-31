@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useContactSync } from "@/hooks/useContactSync";
 import { ContractStepDialog } from "@/components/rental/ContractStepDialog";
 
 interface TenantFormData {
@@ -38,6 +39,7 @@ interface TenantFormData {
 }
 
 const AddTenantForm = () => {
+  const { syncContact } = useContactSync();
   const [formData, setFormData] = useState<TenantFormData>({
     tenant_name: '',
     nationality: '',
@@ -89,7 +91,30 @@ const AddTenantForm = () => {
       if (error) throw error;
       return tenant;
     },
-    onSuccess: (tenant) => {
+    onSuccess: async (tenant) => {
+      // مزامنة مع نظام جهات الاتصال الموحد
+      await syncContact({
+        name: tenant.full_name,
+        phone: tenant.phone,
+        email: tenant.email,
+        role: 'tenant',
+        language: 'ar',
+        rating: 0,
+        notes: '',
+        metadata: {
+          nationality: tenant.nationality,
+          emirates_id: tenant.emirates_id,
+          passport_number: tenant.passport_number,
+          emergency_contact_name: tenant.emergency_contact_name,
+          emergency_contact_phone: tenant.emergency_contact_phone,
+          employer_name: tenant.employer_name,
+          monthly_salary: tenant.monthly_salary,
+          job_title: tenant.job_title,
+          current_address: tenant.current_address,
+          visa_status: tenant.visa_status
+        }
+      });
+      
       toast({
         title: "تم إضافة المستأجر بنجاح",
         description: "هل تريد إنشاء عقد إيجار للمستأجر الآن؟"

@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { useUnifiedContacts } from "@/hooks/useUnifiedContacts";
+import { useAutoSync } from "@/hooks/useUnifiedContacts";
 import { useGlobalSelectedBrokers } from "@/hooks/useGlobalSelectedBrokers";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { Plus, Search, MessageCircle, Mail, Edit, Trash2, Phone, Grid3X3, List, Download, Building2, ExternalLink, Settings, ChevronDown, X, FileText, Eye, MoreHorizontal, Filter, RefreshCw, Send, Users, FileText as FileTextIcon, Target, ArrowRight } from "lucide-react";
@@ -53,6 +55,8 @@ interface BrokerFormData {
 
 export function LandBrokers() {
   const navigate = useNavigate();
+  const { contacts, isLoading, error, refetch, addContact, updateContact, deleteContact, syncBrokers, isSyncing } = useUnifiedContacts();
+  const { hasAutoSynced } = useAutoSync();
   const { addBrokers, selectedBrokers: globalSelectedBrokers, selectedCount, isTransferring, setIsTransferring } = useGlobalSelectedBrokers();
   // تحسين state للبحث مع debouncing
   const [searchTerm, setSearchTerm] = useState('');
@@ -94,51 +98,40 @@ export function LandBrokers() {
 
   const queryClient = useQueryClient();
 
-  // Fetch brokers with optimized query
-  const { data: brokers = [], isLoading, error: queryError, refetch } = useQuery({
-    queryKey: ['land-brokers', debouncedSearchTerm, activityFilter, languageFilter],
-    queryFn: async () => {
-      console.log('🔍 [LandBrokers] Fetching brokers with filters:', { debouncedSearchTerm, activityFilter, languageFilter });
-      
-      let query = supabase.from('land_brokers').select('*');
-      
-      // استخدام full-text search المحسن للبحث السريع
-      if (debouncedSearchTerm) {
-        // استخدام tsquery للبحث المحسن
-        const searchWords = debouncedSearchTerm.trim().split(/\s+/).join(' | ');
-        query = query.or(`search_vector.fts.${searchWords},phone.eq.${debouncedSearchTerm},email.eq.${debouncedSearchTerm}`);
-      }
-      
-      // استخدام الفهارس المركبة للفلترة
-      if (activityFilter !== 'all' && languageFilter !== 'all') {
-        query = query.eq('activity_status', activityFilter).eq('language', languageFilter);
-      } else if (activityFilter !== 'all') {
-        query = query.eq('activity_status', activityFilter);
-      } else if (languageFilter !== 'all') {
-        query = query.eq('language', languageFilter);
-      }
-      
-      // ترتيب محسن للأداء
-      const { data, error } = await query.order('created_at', { ascending: false }).limit(500);
-      
-      if (error) {
-        console.error('❌ [LandBrokers] Error fetching brokers:', error);
-        throw error;
-      }
-      
-      console.log('✅ [LandBrokers] Brokers fetched successfully:', {
-        count: data?.length || 0,
-        brokers: data?.slice(0, 5).map(b => ({ id: b.id, name: b.name, phone: b.phone })) || []
+  // تحويل جهات الاتصال إلى تنسيق الوسطاء
+  const brokers = useMemo(() => {
+    return contacts
+      .filter(contact => contact.role === 'broker')
+      .map(contact => ({
+        id: contact.id,
+        name: contact.name,
+        short_name: contact.metadata?.short_name || '',
+        phone: contact.phone,
+        email: contact.email || '',
+        whatsapp_number: contact.metadata?.whatsapp_number || '',
+        areas_specialization: contact.metadata?.areas_specialization || [],
+        office_name: contact.metadata?.office_name || '',
+        office_location: contact.metadata?.office_location || '',
+        activity_status: contact.metadata?.activity_status || 'active',
+        deals_count: contact.metadata?.deals_count || 0,
+        total_sales_amount: contact.metadata?.total_sales_amount || 0,
+        created_at: contact.created_at,
+        notes: contact.notes || '',
+        language: contact.language || 'arabic'
+      } as LandBroker))
+      .filter(broker => {
+        // تطبيق فلاتر البحث
+        const matchesSearch = !debouncedSearchTerm || 
+          broker.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+          broker.phone.includes(debouncedSearchTerm) ||
+          (broker.email && broker.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+        
+        const matchesActivity = activityFilter === 'all' || broker.activity_status === activityFilter;
+        const matchesLanguage = languageFilter === 'all' || broker.language === languageFilter;
+        
+        return matchesSearch && matchesActivity && matchesLanguage;
       });
-      
-      return data as LandBroker[];
-    },
-    staleTime: 10 * 60 * 1000, // زيادة وقت الـ cache
-    gcTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: 'always', // تأكد من التحديث عند التحميل
-    retry: 2 // إعادة المحاولة مرتين فقط
-  });
+  }, [contacts, debouncedSearchTerm, activityFilter, languageFilter]);
 
   // Bulk selection hook - سيتم نقله لاحقاً
 
@@ -197,21 +190,27 @@ export function LandBrokers() {
   // Add broker mutation
   const addBrokerMutation = useMutation({
     mutationFn: async (data: BrokerFormData) => {
-      const { data: result, error } = await supabase
-        .from('land_brokers')
-        .insert([{
-          ...data,
+      return addContact({
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        role: 'broker',
+        language: data.language === 'arabic' ? 'ar' : 'en',
+        rating: 0,
+        notes: data.notes,
+        metadata: {
+          short_name: data.short_name,
+          whatsapp_number: data.whatsapp_number,
+          areas_specialization: data.areas_specialization,
+          office_name: data.office_name,
+          office_location: data.office_location,
+          activity_status: data.activity_status,
           deals_count: 0,
           total_sales_amount: 0
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return result;
+        }
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
       toast({
         title: "تم الإضافة بنجاح",
         description: "تم إضافة الوسيط بنجاح",
@@ -231,18 +230,30 @@ export function LandBrokers() {
   // Update broker mutation
   const updateBrokerMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<BrokerFormData> }) => {
-      const { data: result, error } = await supabase
-        .from('land_brokers')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return result;
+      return updateContact({
+        id,
+        updates: { 
+          name: data.name,
+          phone: data.phone,
+          email: data.email
+        },
+        role: 'broker',
+        language: data.language,
+        rating: 0,
+        notes: data.notes,
+        metadata: {
+          short_name: data.short_name,
+          whatsapp_number: data.whatsapp_number,
+          areas_specialization: data.areas_specialization,
+          office_name: data.office_name,
+          office_location: data.office_location,
+          activity_status: data.activity_status,
+          deals_count: 0,
+          total_sales_amount: 0
+        }
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
       toast({
         title: "تم التحديث بنجاح",
         description: "تم تحديث بيانات الوسيط بنجاح",
@@ -263,15 +274,9 @@ export function LandBrokers() {
   // Delete broker mutation
   const deleteBrokerMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('land_brokers')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      return deleteContact(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['land-brokers'] });
       toast({
         title: "تم الحذف بنجاح",
         description: "تم حذف الوسيط بنجاح",
@@ -585,7 +590,7 @@ export function LandBrokers() {
     );
   }
 
-  if (queryError) {
+  if (error) {
     return (
       <div className="container mx-auto p-6">
         <PageHeader
@@ -764,6 +769,21 @@ export function LandBrokers() {
             {isTransferring ? "جاري النقل..." : `نقل للمهام (${selectedBrokersForBulk.length})`}
           </Button>
           
+          <Button
+            onClick={() => {
+              syncBrokers();
+              toast({
+                title: "تم بدء المزامنة",
+                description: "جاري مزامنة جهات الاتصال...",
+              });
+            }}
+            variant="outline"
+            disabled={isSyncing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? "جاري المزامنة..." : "مزامنة"}
+          </Button>
+          
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -774,6 +794,9 @@ export function LandBrokers() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>إضافة وسيط جديد</DialogTitle>
+                <DialogDescription>
+                  قم بإدخال بيانات الوسيط الجديد في النموذج أدناه
+                </DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1228,6 +1251,9 @@ export function LandBrokers() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>تعديل بيانات الوسيط</DialogTitle>
+            <DialogDescription>
+              قم بتعديل بيانات الوسيط في النموذج أدناه
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -1350,6 +1376,9 @@ export function LandBrokers() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>تفاصيل الوسيط</DialogTitle>
+            <DialogDescription>
+              عرض تفاصيل الوسيط المحدد
+            </DialogDescription>
           </DialogHeader>
           {selectedBroker && (
             <div className="space-y-4">
@@ -1431,6 +1460,9 @@ export function LandBrokers() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>إرسال رسائل جماعية</DialogTitle>
+            <DialogDescription>
+              إرسال رسائل جماعية للوسطاء المحددين
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -1492,6 +1524,9 @@ export function LandBrokers() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>تصدير البيانات</DialogTitle>
+            <DialogDescription>
+              اختر تنسيق التصدير المطلوب
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>

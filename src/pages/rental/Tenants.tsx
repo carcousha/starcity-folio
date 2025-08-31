@@ -8,11 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2, RotateCw } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useUnifiedContacts } from "@/hooks/useUnifiedContacts";
+// TODO: Create useAutoSync hook or remove this import if not needed
+const useAutoSync = () => ({ isAutoSyncEnabled: false });
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -36,10 +39,11 @@ interface RentalTenant {
   created_at: string;
 }
 
-const RentalTenants = () => {
+const Tenants = () => {
   const { user } = useAuth();
-  const [tenants, setTenants] = useState<RentalTenant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { contacts, addContact, updateContact, deleteContact, isLoading, syncTenants } = useUnifiedContacts();
+  const { isAutoSyncEnabled } = useAutoSync();
+  const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<RentalTenant | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,60 +67,71 @@ const RentalTenants = () => {
     notes: ''
   });
 
-  useEffect(() => {
-    fetchTenants();
-  }, []);
-
-  const fetchTenants = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('rental_tenants')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTenants(data || []);
-    } catch (error) {
-      console.error('Error fetching tenants:', error);
-      toast({
-        title: "خطأ",
-        description: "فشل في تحميل المستأجرين",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // تحويل جهات الاتصال إلى تنسيق المستأجرين
+  const tenants = contacts
+    .filter(contact => contact.role === 'tenant')
+    .map(contact => ({
+      id: contact.id,
+      full_name: contact.name,
+      phone: contact.phone,
+      email: contact.email,
+      nationality: contact.metadata?.nationality,
+      emirates_id: contact.metadata?.emirates_id,
+      passport_number: contact.metadata?.passport_number,
+      visa_status: contact.metadata?.visa_status,
+      emergency_contact_name: contact.metadata?.emergency_contact_name,
+      emergency_contact_phone: contact.metadata?.emergency_contact_phone,
+      current_address: contact.metadata?.current_address,
+      preferred_language: contact.language || 'ar',
+      status: contact.metadata?.status || 'new',
+      lead_source: contact.metadata?.lead_source,
+      notes: contact.notes,
+      created_at: contact.created_at
+    }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
-      const tenantData = {
-        ...formData,
-        created_by: user.id
+      const contactData = {
+        name: formData.full_name,
+        phone: formData.phone,
+        email: formData.email,
+        role: 'tenant' as const,
+        language: formData.preferred_language,
+        rating: 0,
+        notes: formData.notes,
+        metadata: {
+          nationality: formData.nationality,
+          emirates_id: formData.emirates_id,
+          passport_number: formData.passport_number,
+          visa_status: formData.visa_status,
+          emergency_contact_name: formData.emergency_contact_name,
+          emergency_contact_phone: formData.emergency_contact_phone,
+          current_address: formData.current_address,
+          status: formData.status,
+          lead_source: formData.lead_source
+        }
       };
 
       if (editingTenant) {
-        const { error } = await supabase
-          .from('rental_tenants')
-          .update(tenantData)
-          .eq('id', editingTenant.id);
-
-        if (error) throw error;
-
+        updateContact({ 
+          id: editingTenant.id, 
+          updates: {
+            ...contactData,
+            language: contactData.language as "en" | "ar" // Type assertion to match expected language type
+          }
+        });
         toast({
-          title: "تم التحديث",
+          title: "Updated Successfully",
           description: "تم تحديث بيانات المستأجر بنجاح",
         });
       } else {
-        const { error } = await supabase
-          .from('rental_tenants')
-          .insert([tenantData]);
-
-        if (error) throw error;
-
+        addContact({
+          ...contactData,
+          language: contactData.language as "en" | "ar" // Type assertion to match expected language type
+        });
         toast({
           title: "تم الإنشاء",
           description: "تم إضافة المستأجر بنجاح",
@@ -125,7 +140,6 @@ const RentalTenants = () => {
 
       resetForm();
       setIsDialogOpen(false);
-      fetchTenants();
     } catch (error) {
       console.error('Error saving tenant:', error);
       toast({
@@ -181,12 +195,7 @@ const RentalTenants = () => {
     if (!tenantToDelete) return;
     
     try {
-      const { error } = await supabase
-        .from('rental_tenants')
-        .delete()
-        .eq('id', tenantToDelete.id);
-
-      if (error) throw error;
+      deleteContact(tenantToDelete.id);
 
       toast({
         title: "تم الحذف",
@@ -195,7 +204,6 @@ const RentalTenants = () => {
 
       setDeleteDialogOpen(false);
       setTenantToDelete(null);
-      fetchTenants();
     } catch (error) {
       console.error('Error deleting tenant:', error);
       toast({
@@ -308,7 +316,7 @@ const RentalTenants = () => {
     (tenant.nationality && tenant.nationality.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">جاري التحميل...</div>
@@ -325,13 +333,22 @@ const RentalTenants = () => {
             إدارة بيانات العملاء والمستأجرين المحتملين
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة مستأجر جديد
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => syncTenants()} 
+            variant="outline"
+            disabled={isLoading}
+          >
+            <Sync className={`h-4 w-4 ml-2 ${isLoading ? 'animate-spin' : ''}`} />
+            مزامنة المستأجرين
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة مستأجر جديد
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>
@@ -692,4 +709,5 @@ const RentalTenants = () => {
   );
 };
 
-export default RentalTenants;
+export default Tenants;
+export { Tenants };

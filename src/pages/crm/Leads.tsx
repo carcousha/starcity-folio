@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
@@ -430,6 +430,9 @@ export default function Leads() {
                   <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>إضافة ليد جديد</DialogTitle>
+                      <DialogDescription>
+                        إضافة عميل محتمل جديد إلى النظام
+                      </DialogDescription>
                     </DialogHeader>
                     <LeadForm 
                       onSuccess={() => {
@@ -681,6 +684,9 @@ export default function Leads() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>تفاصيل الليد</DialogTitle>
+            <DialogDescription>
+              عرض وإدارة تفاصيل العميل المحتمل
+            </DialogDescription>
           </DialogHeader>
           {selectedLead && (
             <Tabs defaultValue="details" className="w-full">

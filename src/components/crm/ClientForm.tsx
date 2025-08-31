@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useContactSync } from "@/hooks/useContactSync";
 
 interface ClientFormData {
   name: string;
@@ -103,6 +104,7 @@ const PAYMENT_METHODS = [
 export default function ClientForm({ client, onSuccess, onCancel }: ClientFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { syncContact } = useContactSync();
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
 
@@ -163,8 +165,6 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
 
     setLoading(true);
     
-
-    
     try {
       const clientData = {
         ...data,
@@ -175,7 +175,7 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
         assigned_to: user?.id
       };
 
-
+      let savedClient;
 
       if (client) {
         const { error } = await supabase
@@ -184,6 +184,7 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
           .eq('id', client.id);
 
         if (error) throw error;
+        savedClient = { ...client, ...clientData };
 
         toast({
           title: "تم التحديث بنجاح",
@@ -193,13 +194,41 @@ export default function ClientForm({ client, onSuccess, onCancel }: ClientFormPr
         const { data: insertedData, error } = await supabase
           .from('clients')
           .insert(clientData)
-          .select();
+          .select()
+          .single();
 
         if (error) throw error;
+        savedClient = insertedData;
 
         toast({
           title: "تم الإضافة بنجاح",
           description: "تم إضافة العميل الجديد بنجاح",
+        });
+      }
+
+      // مزامنة البيانات مع نظام جهات الاتصال الموحد
+      if (savedClient) {
+        await syncContact({
+          id: savedClient.id,
+          name: savedClient.name,
+          phone: savedClient.phone,
+          email: savedClient.email,
+          role: 'client',
+          language: savedClient.preferred_language || 'ar',
+          rating: 0, // يمكن تحديثه لاحقاً بناءً على تقييم العميل
+          notes: savedClient.notes,
+          metadata: {
+            nationality: savedClient.nationality,
+            preferred_contact_method: savedClient.preferred_contact_method,
+            property_type_interest: savedClient.property_type_interest,
+            purchase_purpose: savedClient.purchase_purpose,
+            budget_min: savedClient.budget_min,
+            budget_max: savedClient.budget_max,
+            preferred_location: savedClient.preferred_location,
+            client_status: savedClient.client_status,
+            source: savedClient.source,
+            previous_deals_count: savedClient.previous_deals_count
+          }
         });
       }
 

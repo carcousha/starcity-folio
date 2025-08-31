@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { ContactForm } from '@/components/contacts/ContactForm';
-import { useContactSync } from '@/hooks/useContactSync';
+import { useUnifiedContacts, useAutoSync, useContactStats } from '@/hooks/useUnifiedContacts';
 import { toast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -32,7 +32,9 @@ import {
   Eye,
   Activity,
   Tags,
-  Clock
+  Clock,
+  RefreshCw,
+  Database
 } from 'lucide-react';
 
 interface EnhancedContact {
@@ -85,38 +87,36 @@ export default function WhatsAppContacts() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
-  const { syncContactFromOtherTables } = useContactSync();
-
-  const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ['enhanced-contacts', searchTerm, statusFilter, roleFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from('enhanced_contacts')
-        .select(`
-          *,
-          enhanced_contact_channels(*)
-        `);
-      
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%,bio.ilike.%${searchTerm}%`);
-      }
-      
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-      
-      if (roleFilter !== 'all') {
-        query = query.contains('roles', [roleFilter]);
-      }
-      
-      const { data, error } = await query
-        .eq('is_duplicate', false)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as EnhancedContact[];
-    }
+  
+  // استخدام الخدمة الموحدة الجديدة
+  const {
+    contacts,
+    isLoading,
+    syncAll,
+    syncClients,
+    syncBrokers,
+    syncOwners,
+    syncTenants,
+    isSyncing,
+    addContact,
+    updateContact,
+    deleteContact,
+    isAdding,
+    isUpdating,
+    isDeleting
+  } = useUnifiedContacts({
+    search: searchTerm,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    role: roleFilter !== 'all' ? roleFilter : undefined
   });
+  
+  // إحصائيات جهات الاتصال
+  const stats = useContactStats();
+  
+  // المزامنة التلقائية عند تحميل الصفحة
+  useAutoSync(true);
+
+  // تم استبدال هذا الكود بالخدمة الموحدة أعلاه
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees-for-assignment'],
@@ -131,92 +131,11 @@ export default function WhatsAppContacts() {
     }
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: Partial<EnhancedContact> & { channels?: Partial<ContactChannel>[] }) => {
-      const { channels, ...contactData } = data;
-      
-      // البحث عن التكرار قبل الإنشاء
-      const duplicateContact = await findDuplicateByPhone(
-        channels?.find(ch => ch.channel_type === 'phone')?.value
-      );
-      
-      if (duplicateContact) {
-        throw new Error(`جهة اتصال موجودة بالفعل: ${duplicateContact.name}`);
-      }
-      
-      const { data: contact, error } = await supabase
-        .from('enhanced_contacts')
-        .insert({
-          ...contactData,
-          created_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      // إضافة قنوات الاتصال
-      if (channels && channels.length > 0) {
-        const channelData = channels.map(channel => ({
-          ...channel,
-          contact_id: contact.id
-        }));
-        
-        const { error: channelError } = await supabase
-          .from('enhanced_contact_channels')
-          .insert(channelData);
-        
-        if (channelError) throw channelError;
-      }
-      
-      return contact;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
-      setIsDialogOpen(false);
-      setEditingContact(null);
-      toast({ title: "تم إضافة جهة الاتصال بنجاح" });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "خطأ في الإضافة",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
+  // تم استبدال هذا بالخدمة الموحدة
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<EnhancedContact> & { id: string }) => {
-      const { error } = await supabase
-        .from('enhanced_contacts')
-        .update(data)
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
-      setIsDialogOpen(false);
-      setEditingContact(null);
-      toast({ title: "تم تحديث جهة الاتصال بنجاح" });
-    }
-  });
+  // تم استبدال هذا بالخدمة الموحدة
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('enhanced_contacts')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enhanced-contacts'] });
-      toast({ title: "تم حذف جهة الاتصال بنجاح" });
-    }
-  });
+  // تم استبدال هذا بالخدمة الموحدة
 
   // البحث عن التكرار بناءً على رقم الهاتف
   const findDuplicateByPhone = async (phoneNumber?: string) => {
@@ -238,10 +157,12 @@ export default function WhatsAppContacts() {
 
   const handleFormSubmit = (contactData: any) => {
     if (editingContact) {
-      updateMutation.mutate({ id: editingContact.id, ...contactData });
+      updateContact({ id: editingContact.id, updates: contactData });
     } else {
-      createMutation.mutate(contactData);
+      addContact(contactData);
     }
+    setIsDialogOpen(false);
+    setEditingContact(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -331,7 +252,7 @@ export default function WhatsAppContacts() {
                   setIsDialogOpen(false);
                   setEditingContact(null);
                 }}
-                isLoading={createMutation.isPending || updateMutation.isPending}
+                isLoading={isAdding || isUpdating}
               />
             </DialogContent>
           </Dialog>
@@ -544,7 +465,7 @@ export default function WhatsAppContacts() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => deleteMutation.mutate(contact.id)}
+                    onClick={() => deleteContact(contact.id)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>

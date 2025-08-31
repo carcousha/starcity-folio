@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar, CalendarIcon, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Bell, Users, CreditCard } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
@@ -340,6 +340,9 @@ const AdvancedDebts = () => {
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>إضافة دين جديد</DialogTitle>
+                <DialogDescription>
+                  إضافة دين جديد إلى النظام مع تفاصيل الأقساط والإشعارات
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddDebt} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

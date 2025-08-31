@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Phone, Mail, MapPin, Calendar, Edit, Trash2, Users, Globe, DollarSign, Building, FileText, MessageSquare, Eye } from "lucide-react";
+import { Plus, Search, Filter, Phone, Mail, MapPin, Calendar, Edit, Trash2, Users, Globe, DollarSign, Building, FileText, MessageSquare, Eye, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import ClientForm from "@/components/crm/ClientForm";
+import { useUnifiedContacts, useAutoSync } from "@/hooks/useUnifiedContacts";
 
 
 interface Client {
@@ -60,8 +61,6 @@ const SOURCES = [
 ];
 
 export default function Clients() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -70,44 +69,59 @@ export default function Clients() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
+  // استخدام الخدمة الموحدة
+  const { 
+    contacts, 
+    isLoading, 
+    isSyncing,
+    syncClients, 
+    addContact, 
+    updateContact, 
+    deleteContact,
+    refetch 
+  } = useUnifiedContacts({
+    search: searchTerm,
+    role: 'client',
+    status: statusFilter || undefined,
+    source: sourceFilter || undefined
+  });
 
-  const fetchClients = async () => {
-    try {
-      let query = supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
+  // المزامنة التلقائية عند تحميل الصفحة
+  useAutoSync();
 
-      if (statusFilter && statusFilter !== "all") {
-        query = query.eq('client_status', statusFilter);
-      }
+  // تحويل جهات الاتصال إلى تنسيق العملاء
+  const clients = contacts?.map(contact => ({
+    id: contact.id,
+    name: contact.name,
+    phone: contact.enhanced_contact_channels?.find(ch => ch.channel_type === 'phone')?.value || '',
+    email: contact.enhanced_contact_channels?.find(ch => ch.channel_type === 'email')?.value,
+    address: contact.address,
+    nationality: contact.nationality,
+    preferred_language: contact.preferred_language,
+    preferred_contact_method: contact.preferred_contact_method,
+    property_type_interest: contact.property_type_interest,
+    purchase_purpose: contact.purchase_purpose,
+    budget_min: contact.budget_min,
+    budget_max: contact.budget_max,
+    preferred_location: contact.preferred_location,
+    planned_purchase_date: contact.planned_purchase_date,
+    client_status: contact.follow_up_status,
+    source: contact.source,
+    preferred_payment_method: contact.preferred_payment_method,
+    last_contacted: contact.last_contacted,
+    previous_deals_count: contact.previous_deals_count,
+    preferences: contact.preferences,
+    notes: contact.notes,
+    internal_notes: contact.internal_notes,
+    created_at: contact.created_at,
+    updated_at: contact.updated_at,
+    assigned_to: contact.assigned_to,
+    created_by: contact.created_by
+  })) || [];
 
-      if (sourceFilter && sourceFilter !== "all") {
-        query = query.eq('source', sourceFilter);
-      }
+  const loading = isLoading;
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setClients(data || []);
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ في تحميل بيانات العملاء",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, [statusFilter, sourceFilter]);
+  // تم استبدال هذا بالخدمة الموحدة
 
   const handleEdit = (client: Client) => {
     setEditingClient(client);
@@ -118,29 +132,11 @@ export default function Clients() {
     if (!confirm('هل أنت متأكد من حذف هذا العميل؟')) {
       return;
     }
+    deleteContact(clientId);
+  };
 
-    try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', clientId);
-
-      if (error) throw error;
-      
-      toast({
-        title: "تم الحذف بنجاح",
-        description: "تم حذف العميل بنجاح",
-      });
-      
-      fetchClients();
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ في حذف العميل",
-        variant: "destructive",
-      });
-    }
+  const handleSyncClients = () => {
+    syncClients();
   };
 
   const canEditClient = (client: Client) => {
@@ -203,16 +199,31 @@ export default function Clients() {
           <p className="text-muted-foreground">إدارة قاعدة بيانات العملاء والتواصل معهم</p>
         </div>
         
-        <Button 
-          onClick={() => {
-            setEditingClient(null);
-            setIsDialogOpen(true);
-          }}
-          className="bg-yellow-500 hover:bg-yellow-600 text-white"
-        >
-          <Plus className="h-4 w-4 ml-2" />
-          إضافة عميل جديد
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleSyncClients}
+            disabled={isSyncing}
+            variant="outline"
+            className="text-blue-600 border-blue-600 hover:bg-blue-50"
+          >
+            {isSyncing ? (
+              <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 ml-2" />
+            )}
+            مزامنة العملاء
+          </Button>
+          <Button 
+            onClick={() => {
+              setEditingClient(null);
+              setIsDialogOpen(true);
+            }}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white"
+          >
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة عميل جديد
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter */}
@@ -388,15 +399,20 @@ export default function Clients() {
       {/* Client Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="sr-only">
-            {editingClient ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}
-          </DialogTitle>
+          <DialogHeader>
+            <DialogTitle>
+              {editingClient ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingClient ? 'تعديل بيانات العميل المحدد' : 'إضافة عميل جديد إلى النظام'}
+            </DialogDescription>
+          </DialogHeader>
           <ClientForm
             client={editingClient}
             onSuccess={() => {
               setIsDialogOpen(false);
               setEditingClient(null);
-              fetchClients();
+              refetch();
             }}
             onCancel={() => {
               setIsDialogOpen(false);

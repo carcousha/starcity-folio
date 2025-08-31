@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnifiedContacts, useAutoSync } from "@/hooks/useUnifiedContacts";
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 
@@ -53,15 +54,30 @@ interface PropertyOwnerForm {
   status: string;
 }
 
-// تخزين مؤقت للبيانات
-const rentalOwnersCache = {
-  data: null as PropertyOwner[] | null,
-  lastFetch: 0,
-  cacheExpiry: 5 * 60 * 1000, // 5 دقائق
-};
-
 const PropertyOwners = () => {
   const { user } = useAuth();
+  const { contacts, isLoading, addContact, updateContact, deleteContact, syncOwners } = useUnifiedContacts();
+  const { hasAutoSynced } = useAutoSync();
+  
+  // تحويل بيانات جهات الاتصال الموحدة إلى تنسيق الملاك
+  const ownersData = contacts?.filter(contact => contact.roles?.includes('owner')).map(contact => ({
+    id: contact.id,
+    full_name: contact.full_name,
+    phone: contact.phone_numbers?.[0] || '',
+    email: contact.email_addresses?.[0] || '',
+    birth_date: contact.birth_date,
+    nationality: contact.nationality || '',
+    id_passport_number: contact.id_passport_number || '',
+    mailing_address: contact.address || '',
+    preferred_contact_method: contact.preferred_contact_method || 'phone',
+    preferred_language: contact.preferred_language || 'ar',
+    internal_notes: contact.notes || '',
+    status: contact.status || 'active',
+    created_at: contact.created_at,
+    updated_at: contact.updated_at
+  })) || [];
+  
+  const loading = isLoading;
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<PropertyOwner | null>(null);
@@ -83,61 +99,7 @@ const PropertyOwners = () => {
     status: 'active'
   });
 
-  // استعادة الحالة من localStorage
-  useEffect(() => {
-    const savedSearchTerm = localStorage.getItem('rental-owners-search-term');
-    if (savedSearchTerm) {
-      setSearchTerm(savedSearchTerm);
-    }
-  }, []);
-
-  // حفظ الحالة في localStorage
-  useEffect(() => {
-    localStorage.setItem('rental-owners-search-term', searchTerm);
-  }, [searchTerm]);
-
-  const queryClient = useQueryClient();
-
-  // استخدام React Query لجلب البيانات مع caching تلقائي
-  const { data: ownersData = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['rental-property-owners'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rental_property_owners")
-        .select('*')
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as PropertyOwner[];
-    },
-    staleTime: 5 * 60 * 1000, // البيانات صالحة لمدة 5 دقائق
-    gcTime: 10 * 60 * 1000, // حفظ في cache لمدة 10 دقائق
-    refetchOnWindowFocus: false, // لا تعيد fetch عند التركيز على النافذة
-    refetchOnMount: false, // لا تعيد fetch عند mount المكون
-  });
-
-  // تحديث البيانات يدوياً
-  const refreshData = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  // تنظيف التخزين المؤقت عند تسجيل الخروج
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth-session' && !e.newValue) {
-        // تم تسجيل الخروج، امسح التخزين المؤقت
-        rentalOwnersCache.data = null;
-        rentalOwnersCache.lastFetch = 0;
-        localStorage.removeItem('rental-owners-search-term');
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+  // تم استبدال هذا بالخدمة الموحدة
 
   // Reset form
   const resetForm = () => {
@@ -172,60 +134,29 @@ const PropertyOwners = () => {
     try {
       let result;
       
+      const contactData = {
+        full_name: formData.full_name,
+        phone_numbers: [formData.phone],
+        email_addresses: [formData.email],
+        roles: ['owner'],
+        nationality: formData.nationality,
+        id_passport_number: formData.id_passport_number,
+        address: formData.mailing_address,
+        preferred_contact_method: formData.preferred_contact_method,
+        preferred_language: formData.preferred_language,
+        notes: formData.internal_notes,
+        status: formData.status,
+        birth_date: formData.birth_date?.toISOString()
+      };
+
       if (editingOwner) {
-        // تحديث مالك موجود
-        const { error } = await supabase
-          .from("rental_property_owners")
-          .update({
-            full_name: formData.full_name,
-            phone: formData.phone,
-            email: formData.email,
-            birth_date: formData.birth_date?.toISOString(),
-            nationality: formData.nationality,
-            id_passport_number: formData.id_passport_number,
-            mailing_address: formData.mailing_address,
-            preferred_contact_method: formData.preferred_contact_method,
-            preferred_language: formData.preferred_language,
-            internal_notes: formData.internal_notes,
-            status: formData.status,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", editingOwner.id);
-
-        if (error) throw error;
+        updateContact({ id: editingOwner.id, updates: contactData });
       } else {
-        // إضافة مالك جديد
-        const { error } = await supabase
-          .from("rental_property_owners")
-          .insert({
-            full_name: formData.full_name,
-            phone: formData.phone,
-            email: formData.email,
-            birth_date: formData.birth_date?.toISOString(),
-            nationality: formData.nationality,
-            id_passport_number: formData.id_passport_number,
-            mailing_address: formData.mailing_address,
-            preferred_contact_method: formData.preferred_contact_method,
-            preferred_language: formData.preferred_language,
-            internal_notes: formData.internal_notes,
-            status: formData.status,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-
-        if (error) throw error;
+        addContact(contactData);
       }
-      
-      toast({
-        title: "تم الحفظ",
-        description: editingOwner ? "تم تحديث بيانات المالك بنجاح" : "تم إضافة المالك بنجاح",
-      });
       
       setDialogOpen(false);
       resetForm();
-      // تحديث cache React Query
-      queryClient.invalidateQueries({ queryKey: ['rental-property-owners'] });
     } catch (error: any) {
       console.error('Error saving owner:', error);
       toast({
@@ -259,33 +190,9 @@ const PropertyOwners = () => {
   const handleDelete = async () => {
     if (!ownerToDelete) return;
     
-    try {
-      // حذف من Supabase
-      const { error } = await supabase
-        .from('rental_property_owners')
-        .delete()
-        .eq('id', ownerToDelete.id);
-
-      if (error) throw error;
-      
-      // تحديث cache React Query
-      queryClient.invalidateQueries({ queryKey: ['rental-property-owners'] });
-      
-      toast({
-        title: "تم الحذف",
-        description: "تم حذف المالك بنجاح",
-      });
-      
-      setDeleteDialogOpen(false);
-      setOwnerToDelete(null);
-    } catch (error: any) {
-      console.error('Error deleting owner:', error);
-      toast({
-        title: "خطأ",
-        description: error.message || "فشل في حذف المالك",
-        variant: "destructive",
-      });
-    }
+    deleteContact(ownerToDelete.id);
+    setDeleteDialogOpen(false);
+    setOwnerToDelete(null);
   };
 
   // WhatsApp message
@@ -371,34 +278,12 @@ const PropertyOwners = () => {
 
   // تحديث حالة المالك
   const toggleOwnerStatus = async (owner: PropertyOwner) => {
-    try {
-      const newStatus = owner.status === 'active' ? 'inactive' : 'active';
-      
-      const { error } = await supabase
-        .from('rental_property_owners')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', owner.id);
-
-      if (error) throw error;
-
-      // تحديث cache React Query
-      queryClient.invalidateQueries({ queryKey: ['rental-property-owners'] });
-
-      toast({
-        title: "تم التحديث",
-        description: `تم ${newStatus === 'active' ? 'تفعيل' : 'إلغاء تفعيل'} المالك بنجاح`,
-      });
-    } catch (error: any) {
-      console.error('Error updating owner status:', error);
-      toast({
-        title: "خطأ",
-        description: error.message || "فشل في تحديث حالة المالك",
-        variant: "destructive",
-      });
-    }
+    const newStatus = owner.status === 'active' ? 'inactive' : 'active';
+    
+    updateContact({
+      id: owner.id,
+      updates: { status: newStatus }
+    });
   };
 
   // Filtered owners
@@ -737,23 +622,16 @@ const PropertyOwners = () => {
                 />
               </div>
               
-              {/* زر تحديث البيانات */}
+              {/* زر مزامنة البيانات */}
               <Button
-                onClick={refreshData}
+                onClick={() => syncOwners()}
                 disabled={isLoading}
                 variant="outline"
                 className="flex items-center gap-2"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                <span>تحديث البيانات</span>
+                <span>مزامنة البيانات</span>
               </Button>
-
-              {/* عرض آخر تحديث */}
-              {!isLoading && (
-                <Badge variant="secondary" className="text-xs">
-                  آخر تحديث: {new Date().toLocaleTimeString('ar-SA')}
-                </Badge>
-              )}
 
               <Button
                 variant="outline"
@@ -890,7 +768,7 @@ const PropertyOwners = () => {
           cancelText="إلغاء"
           variant="destructive"
           onConfirm={handleDelete}
-                          loading={isLoading}
+                          loading={loading}
         />
       </div>
     </div>

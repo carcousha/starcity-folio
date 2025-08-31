@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Plus, Search, Filter, Building2, Eye, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { PropertyForm } from '@/components/crm/PropertyForm';
@@ -191,6 +191,9 @@ export default function Properties() {
               <DialogTitle>
                 {selectedProperty ? 'تعديل العقار' : 'إضافة عقار جديد'}
               </DialogTitle>
+              <DialogDescription>
+                {selectedProperty ? 'تعديل بيانات العقار المحدد' : 'إضافة عقار جديد إلى النظام'}
+              </DialogDescription>
             </DialogHeader>
             <PropertyForm 
               property={selectedProperty}
