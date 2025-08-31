@@ -784,6 +784,15 @@ export function LandBrokers() {
             {isSyncing ? "جاري المزامنة..." : "مزامنة"}
           </Button>
           
+          <Button
+            variant="outline"
+            onClick={() => navigate('/contacts')}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            جهات الاتصال
+          </Button>
+          
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>

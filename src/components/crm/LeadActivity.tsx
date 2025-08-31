@@ -179,6 +179,9 @@ export function LeadActivity({ leadId }: LeadActivityProps) {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>إضافة نشاط جديد</DialogTitle>
+              <DialogDescription>
+                إضافة نشاط أو متابعة جديدة للعميل المحتمل
+              </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

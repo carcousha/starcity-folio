@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { ContactForm } from '@/components/contacts/ContactForm';
 import { useUnifiedContacts, useAutoSync, useContactStats } from '@/hooks/useUnifiedContacts';
@@ -34,7 +35,8 @@ import {
   Tags,
   Clock,
   RefreshCw,
-  Database
+  Database,
+  AlertTriangle
 } from 'lucide-react';
 
 interface EnhancedContact {
@@ -85,6 +87,7 @@ export default function WhatsAppContacts() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<EnhancedContact | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [contactToDelete, setContactToDelete] = useState<EnhancedContact | null>(null);
 
   const queryClient = useQueryClient();
   
@@ -163,6 +166,22 @@ export default function WhatsAppContacts() {
     }
     setIsDialogOpen(false);
     setEditingContact(null);
+  };
+
+  const handleDeleteContact = () => {
+    if (contactToDelete) {
+      deleteContact(contactToDelete.id);
+      setContactToDelete(null);
+      toast({
+        title: "تم حذف جهة الاتصال",
+        description: `تم حذف ${contactToDelete.name} بنجاح`,
+      });
+    }
+  };
+
+  const handleEditContact = (contact: EnhancedContact) => {
+    setEditingContact(contact);
+    setIsDialogOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -443,32 +462,59 @@ export default function WhatsAppContacts() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      setEditingContact(contact);
-                      setIsDialogOpen(true);
-                    }}
+                    onClick={() => handleEditContact(contact)}
+                    title="تعديل جهة الاتصال"
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    title="عرض التفاصيل"
                   >
                     <Eye className="h-3 w-3" />
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    title="عرض النشاطات"
                   >
                     <Activity className="h-3 w-3" />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteContact(contact.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        title="حذف جهة الاتصال"
+                        onClick={() => setContactToDelete(contact)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-red-500" />
+                          تأكيد حذف جهة الاتصال
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          هل أنت متأكد من حذف جهة الاتصال <strong>{contact.name}</strong>؟
+                          <br />
+                          هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع البيانات المرتبطة بهذه الجهة.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteContact}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          حذف نهائي
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>

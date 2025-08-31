@@ -2009,70 +2009,130 @@ export type Database = {
       enhanced_contacts: {
         Row: {
           about: string | null
+          account_number: string | null
           address: string | null
           assigned_to: string | null
+          bank_name: string | null
+          bio: string | null
           category: Database["public"]["Enums"]["contact_category"] | null
+          cr_expiry_date: string | null
+          cr_number: string | null
           created_at: string | null
           created_by: string | null
           email: string | null
+          follow_up_status: string | null
+          full_name: string | null
+          iban: string | null
           id: string
+          id_expiry_date: string | null
+          id_number: string | null
+          id_type: string | null
           is_active: boolean | null
+          job_title: string | null
+          language: string | null
           last_contact_date: string | null
           metadata: Json | null
           name: string
+          nationality: string | null
           notes: string | null
+          office_classification: string | null
           office_name: string | null
           phone: string
+          preferred_contact_method: string | null
+          priority: string | null
           rating: number | null
+          rating_1_5: number | null
           roles: Database["public"]["Enums"]["contact_role"][] | null
           search_vector: unknown | null
           short_name: string | null
+          status: string | null
+          units_count: number | null
           updated_at: string | null
           whatsapp_number: string | null
         }
         Insert: {
           about?: string | null
+          account_number?: string | null
           address?: string | null
           assigned_to?: string | null
+          bank_name?: string | null
+          bio?: string | null
           category?: Database["public"]["Enums"]["contact_category"] | null
+          cr_expiry_date?: string | null
+          cr_number?: string | null
           created_at?: string | null
           created_by?: string | null
           email?: string | null
+          follow_up_status?: string | null
+          full_name?: string | null
+          iban?: string | null
           id?: string
+          id_expiry_date?: string | null
+          id_number?: string | null
+          id_type?: string | null
           is_active?: boolean | null
+          job_title?: string | null
+          language?: string | null
           last_contact_date?: string | null
           metadata?: Json | null
           name: string
+          nationality?: string | null
           notes?: string | null
+          office_classification?: string | null
           office_name?: string | null
           phone: string
+          preferred_contact_method?: string | null
+          priority?: string | null
           rating?: number | null
+          rating_1_5?: number | null
           roles?: Database["public"]["Enums"]["contact_role"][] | null
           search_vector?: unknown | null
           short_name?: string | null
+          status?: string | null
+          units_count?: number | null
           updated_at?: string | null
           whatsapp_number?: string | null
         }
         Update: {
           about?: string | null
+          account_number?: string | null
           address?: string | null
           assigned_to?: string | null
+          bank_name?: string | null
+          bio?: string | null
           category?: Database["public"]["Enums"]["contact_category"] | null
+          cr_expiry_date?: string | null
+          cr_number?: string | null
           created_at?: string | null
           created_by?: string | null
           email?: string | null
+          follow_up_status?: string | null
+          full_name?: string | null
+          iban?: string | null
           id?: string
+          id_expiry_date?: string | null
+          id_number?: string | null
+          id_type?: string | null
           is_active?: boolean | null
+          job_title?: string | null
+          language?: string | null
           last_contact_date?: string | null
           metadata?: Json | null
           name?: string
+          nationality?: string | null
           notes?: string | null
+          office_classification?: string | null
           office_name?: string | null
           phone?: string
+          preferred_contact_method?: string | null
+          priority?: string | null
           rating?: number | null
+          rating_1_5?: number | null
           roles?: Database["public"]["Enums"]["contact_role"][] | null
           search_vector?: unknown | null
           short_name?: string | null
+          status?: string | null
+          units_count?: number | null
           updated_at?: string | null
           whatsapp_number?: string | null
         }

@@ -95,6 +95,9 @@ export function ClientDialog({ open, onOpenChange, client, mode }: ClientDialogP
           <DialogTitle>
             {mode === 'create' ? 'إضافة عميل جديد' : 'تعديل بيانات العميل'}
           </DialogTitle>
+          <DialogDescription>
+            {mode === 'create' ? 'إدخال بيانات عميل جديد في النظام' : 'تحديث معلومات العميل الحالية'}
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">

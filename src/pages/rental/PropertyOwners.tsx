@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { User, Phone, Mail, Globe, Calendar as CalendarIcon, IdCard, MapPin, MessageSquare, Languages, FileText, CheckCircle, X, Plus, Edit, Download, Search, MessageCircle, Trash2, RefreshCw } from 'lucide-react';
+import { User, Phone, Mail, Globe, Calendar as CalendarIcon, IdCard, MapPin, MessageSquare, Languages, FileText, CheckCircle, X, Plus, Edit, Download, Search, MessageCircle, Trash2, RefreshCw, Users } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -55,6 +56,7 @@ interface PropertyOwnerForm {
 }
 
 const PropertyOwners = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { contacts, isLoading, addContact, updateContact, deleteContact, syncOwners } = useUnifiedContacts();
   const { hasAutoSynced } = useAutoSync();
@@ -309,7 +311,16 @@ const PropertyOwners = () => {
                   قائمة بجميع ملاك العقارات المسجلين في النظام
                 </CardDescription>
               </div>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/contacts')}
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  جهات الاتصال
+                </Button>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
                   <Button 
                     onClick={resetForm}
@@ -599,6 +610,7 @@ const PropertyOwners = () => {
                   </form>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
           </CardHeader>
         </Card>

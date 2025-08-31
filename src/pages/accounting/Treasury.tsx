@@ -542,6 +542,9 @@ export default function Treasury() {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>إضافة حركة مالية</DialogTitle>
+                    <DialogDescription>
+                      أدخل تفاصيل الحركة المالية الجديدة
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
@@ -655,6 +658,9 @@ export default function Treasury() {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>{editingAccount ? 'تعديل الحساب' : 'إضافة حساب جديد'}</DialogTitle>
+                    <DialogDescription>
+                      {editingAccount ? 'تعديل بيانات الحساب المحدد' : 'إنشاء حساب مالي جديد'}
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>

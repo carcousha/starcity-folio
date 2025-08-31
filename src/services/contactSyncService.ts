@@ -55,7 +55,7 @@ export class ContactSyncService {
   private static async syncToBrokers(contactId: string, contactData: Contact) {
     const brokerData = {
       contact_id: contactId,
-      name: contactData.full_name,
+      name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
       office_name: contactData.office_name,
       office_classification: contactData.office_classification,
@@ -100,7 +100,7 @@ export class ContactSyncService {
   private static async syncToOwners(contactId: string, contactData: Contact) {
     const ownerData = {
       contact_id: contactId,
-      name: contactData.full_name,
+      name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
       nationality: contactData.nationality,
       id_type: contactData.id_type,
@@ -143,7 +143,7 @@ export class ContactSyncService {
   private static async syncToTenants(contactId: string, contactData: Contact) {
     const tenantData = {
       contact_id: contactId,
-      name: contactData.full_name,
+      name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
       phone: this.extractChannelValue(contactData, 'mobile'),
       whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
@@ -179,7 +179,7 @@ export class ContactSyncService {
   private static async syncToClients(contactId: string, contactData: Contact) {
     const clientData = {
       contact_id: contactId,
-      name: contactData.full_name,
+      name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
       phone: this.extractChannelValue(contactData, 'mobile'),
       whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
@@ -216,7 +216,7 @@ export class ContactSyncService {
   private static async syncToSuppliers(contactId: string, contactData: Contact) {
     const supplierData = {
       contact_id: contactId,
-      name: contactData.full_name,
+      name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
       phone: this.extractChannelValue(contactData, 'mobile'),
       whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
@@ -274,6 +274,7 @@ export class ContactSyncService {
       
       // إنشاء أو تحديث جهة الاتصال
       const contactData: ContactInsert = {
+        name: pageData.name,
         full_name: pageData.name,
         short_name: pageData.short_name || pageData.name,
         language: pageData.language || 'ar',

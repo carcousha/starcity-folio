@@ -125,6 +125,9 @@ const CommissionEditDialog = ({ commission, isOpen, onClose, onSave }: Commissio
             <Save className="h-5 w-5" />
             تعديل العمولة
           </DialogTitle>
+          <DialogDescription>
+            قم بتعديل بيانات العمولة المحددة
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

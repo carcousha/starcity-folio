@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -509,6 +510,7 @@ const TenantsList = () => {
 };
 
 export default function TenantManagement() {
+  const navigate = useNavigate();
   const { checkPermission } = useRoleAccess();
 
   if (!checkPermission('canManageCommissions')) {
@@ -529,6 +531,14 @@ export default function TenantManagement() {
           <h1 className="text-3xl font-bold">إدارة المستأجرين</h1>
           <p className="text-muted-foreground">إضافة وإدارة بيانات المستأجرين</p>
         </div>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/contacts')}
+          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+        >
+          <Users className="h-4 w-4 mr-2" />
+          جهات الاتصال
+        </Button>
       </div>
 
       <Tabs defaultValue="add-tenant" className="w-full">

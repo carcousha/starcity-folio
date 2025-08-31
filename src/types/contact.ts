@@ -23,25 +23,83 @@ export interface EnhancedContact {
   tags: string[];
   created_at: string;
   updated_at: string;
-  // حقول إضافية من قاعدة البيانات
+  
+  // الحقول الأساسية المحدثة
   short_name?: string;
   language?: 'ar' | 'en';
   rating_1_5?: number;
   office_name?: string;
+  office_location?: string;
   office_classification?: 'platinum' | 'gold' | 'silver' | 'bronze';
+  
+  // معلومات الاتصال الإضافية
+  email?: string;
+  preferred_contact_method?: 'phone' | 'whatsapp' | 'email' | 'sms';
+  
+  // المعلومات الشخصية والهوية
+  nationality?: string;
+  emirates_id?: string;
+  passport_number?: string;
+  id_number?: string;
+  residence_status?: 'citizen' | 'resident' | 'visitor' | 'investor';
+  owner_type?: 'individual' | 'company' | 'government' | 'investment_fund';
+  address?: string;
+  
+  // المعلومات المهنية
+  employer_name?: string;
   job_title?: string;
+  monthly_salary?: number;
+  license_number?: string;
+  license_expiry_date?: string;
   cr_number?: string;
   cr_expiry_date?: string;
+  visa_status?: 'valid' | 'expired' | 'pending' | 'cancelled';
+  
+  // معلومات العقارات والاستثمار
+  property_type_interest?: string;
+  purchase_purpose?: 'investment' | 'personal_use' | 'resale' | 'rental';
+  budget_min?: number;
+  budget_max?: number;
+  preferred_location?: string;
+  planned_purchase_date?: string;
+  preferred_payment_method?: 'cash' | 'mortgage' | 'installments' | 'bank_transfer';
+  area_min?: number;
+  area_max?: number;
   units_count?: number;
-  nationality?: string;
-  id_type?: 'national_id' | 'iqama' | 'passport';
-  id_number?: string;
-  id_expiry_date?: string;
+  property_value?: number;
+  
+  // المعلومات المالية والمصرفية
   bank_name?: string;
   account_number?: string;
   iban?: string;
+  
+  // الحالات والمصادر
+  client_status?: 'lead' | 'prospect' | 'active' | 'closed' | 'inactive';
+  source?: 'website' | 'social_media' | 'referral' | 'advertisement' | 'walk_in' | 'phone_call' | 'email' | 'exhibition' | 'other';
+  
+  // الإحصائيات والأرقام
+  deals_count?: number;
+  total_sales?: number;
+  previous_deals_count?: number;
+  
+  // التواريخ المهمة
+  last_contacted?: string;
+  next_follow_up?: string;
+  birth_date?: string;
+  
+  // جهة اتصال الطوارئ
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relation?: string;
+  
+  // الملاحظات والتفضيلات
+  internal_notes?: string;
+  preferences?: string;
+  
+  // معلومات النظام
   organization_id?: string;
-  preferred_contact_method?: 'phone' | 'whatsapp' | 'email' | 'sms';
+  id_type?: 'national_id' | 'iqama' | 'passport';
+  id_expiry_date?: string;
 }
 
 export interface ContactChannel {

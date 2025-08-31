@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -31,9 +32,10 @@ interface LandClient {
   created_at: string;
 }
 
-export function LandClients() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+export default function LandClients() {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<LandClient | null>(null);
 
@@ -215,13 +217,24 @@ export function LandClients() {
           description="متابعة العملاء المهتمين وتفضيلاتهم"
         />
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingClient(null)}>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة عميل جديد
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/contacts')}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+          >
+            <Users className="h-4 w-4 ml-2" />
+            جهات الاتصال
+          </Button>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingClient(null)}>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة عميل جديد
+              </Button>
+            </DialogTrigger>
+        </div>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>{editingClient ? 'تعديل العميل' : 'إضافة عميل جديد'}</DialogTitle>

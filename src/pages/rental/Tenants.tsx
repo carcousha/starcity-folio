@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2, RotateCw } from 'lucide-react';
+import { Users, Plus, Edit, Phone, Mail, Globe, MessageCircle, FileDown, FileSpreadsheet, Trash2, RotateCw, Sync } from 'lucide-react';
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -349,7 +349,7 @@ const Tenants = () => {
                 إضافة مستأجر جديد
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>
                 {editingTenant ? 'تعديل المستأجر' : 'إضافة مستأجر جديد'}
@@ -710,4 +710,3 @@ const Tenants = () => {
 };
 
 export default Tenants;
-export { Tenants };

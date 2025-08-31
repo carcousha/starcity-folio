@@ -174,7 +174,8 @@ export function EnhancedContactForm({ initialData, onSubmit, onCancel, isLoading
         const { error } = await supabase
           .from('enhanced_contacts')
           .update({
-            name: data.full_name,
+            full_name: data.full_name,
+            name: data.full_name, // للتوافق مع الأعمدة القديمة
             short_name: data.short_name,
             language: data.language,
             bio: data.notes,
@@ -212,7 +213,8 @@ export function EnhancedContactForm({ initialData, onSubmit, onCancel, isLoading
         const { data: newContact, error } = await supabase
           .from('enhanced_contacts')
           .insert({
-            name: data.full_name,
+            full_name: data.full_name,
+            name: data.full_name, // للتوافق مع الأعمدة القديمة
             short_name: data.short_name,
             language: data.language,
             bio: data.notes,
