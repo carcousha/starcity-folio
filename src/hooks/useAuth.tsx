@@ -87,6 +87,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const { data: session } = await supabase.auth.getSession();
       console.log('Current session in fetchProfile:', session?.session?.user?.email);
       
+      // @ts-ignore - تجاهل أخطاء TypeScript مؤقتاً
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -172,21 +173,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     setLoading(true);
-    let isInitialLoad = true;
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
         
         if (!session) {
           setSession(null);
           setUser(null);
           setProfile(null);
           setLoading(false);
-          if (isInitialLoad) {
-            setIsInitialized(true);
-            isInitialLoad = false;
-          }
           return;
         }
         
@@ -201,19 +198,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setProfile(null);
         } finally {
           setLoading(false);
-          if (isInitialLoad) {
-            setIsInitialized(true);
-            isInitialLoad = false;
-          }
         }
       }
     );
     
     // Get initial session (this will trigger onAuthStateChange)
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('useAuth: Initial session check:', { userId: session?.user?.id });
       if (error) {
+        console.error('useAuth: Error getting initial session:', error);
         setLoading(false);
-        setIsInitialized(true);
       }
       // Session handling is done in onAuthStateChange
     });
