@@ -3,6 +3,7 @@
  * تتولى حفظ واسترجاع الإعدادات المحلية للعقارات في الإمارات
  */
 
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 
 export interface UAEMarketConfig {

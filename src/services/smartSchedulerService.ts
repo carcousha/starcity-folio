@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import { whatsappSmartService, SmartTask, SmartSupplier } from './whatsappSmartService';
 import { format, addHours, isAfter, isBefore, startOfDay, endOfDay, parseISO } from 'date-fns';

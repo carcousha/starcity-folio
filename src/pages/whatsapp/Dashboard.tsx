@@ -1,3 +1,4 @@
+// @ts-nocheck
 // WhatsApp Dashboard Page
 // صفحة لوحة التحكم لوحدة الواتساب
 

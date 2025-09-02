@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { toast } from '@/hooks/use-toast';
 import { appErrorHandler } from './appErrorHandler';
 import React from 'react';

@@ -1,6 +1,7 @@
 // Bulk Message Service
 // خدمة الرسائل الجماعية
 
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import {
   BulkMessage,

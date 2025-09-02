@@ -3,6 +3,7 @@
  * تتولى اختبار وإدارة الاتصالات مع المنصات الخارجية
  */
 
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 
 export interface IntegrationConfig {

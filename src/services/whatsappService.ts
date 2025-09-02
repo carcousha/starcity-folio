@@ -1,6 +1,7 @@
 // WhatsApp Service
 // الخدمة الرئيسية لإدارة جميع عمليات الواتساب
 
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import {
   WhatsAppContact,

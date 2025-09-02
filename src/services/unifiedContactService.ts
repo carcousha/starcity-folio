@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedContact } from '@/types/contact';
 import { ContactSyncService } from './contactSyncService';

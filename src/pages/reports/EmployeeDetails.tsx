@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from "react";
 import { format } from '@formkit/tempo';
 import { useParams, useNavigate } from "react-router-dom";

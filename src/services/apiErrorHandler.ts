@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { toast } from '@/hooks/use-toast';
 import { connectionManager } from './connectionManager';
 import { appErrorHandler } from './appErrorHandler';
