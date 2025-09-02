@@ -84,83 +84,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       console.log('Fetching profile for user:', userId);
       
-      // Check current session
-      const { data: session } = await supabase.auth.getSession();
-      console.log('Current session in fetchProfile:', session?.session?.user?.email);
+      // تحديد timeout قصير
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 3000);
+      });
       
-      // @ts-ignore - تجاهل أخطاء TypeScript مؤقتاً
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
+      
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) {
-        console.error('Profile fetch error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          userId,
-          retryCount
-        });
+        console.error('Profile fetch error:', error.message);
         
-        // إعادة المحاولة فقط للأخطاء المؤقتة
-        const shouldRetry = retryCount < 2 && (
-          error.message?.includes('fetch') ||
-          error.message?.includes('network') ||
-          error.message?.includes('timeout') ||
-          error.code === 'PGRST301'
-        );
-        
-        if (shouldRetry) {
-          console.log(`Retrying fetchProfile... Attempt ${retryCount + 1}/2`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        // إعادة المحاولة مرة واحدة فقط
+        if (retryCount < 1) {
+          console.log('Retrying profile fetch...');
+          await new Promise(resolve => setTimeout(resolve, 500));
           return fetchProfile(userId, retryCount + 1);
         }
         
-        // إذا كان الخطأ PGRST116 (لا توجد صفوف)، أنشئ ملف شخصي افتراضي
-        if (error.code === 'PGRST116') {
-          console.log('No profile found for user (PGRST116), creating default profile:', userId);
-          const userEmail = session?.session?.user?.email || '';
-          return await createDefaultProfile(userId, userEmail);
-        }
-        
-        // في حالة الأخطاء الأخرى، ارجع null بدلاً من إعادة المحاولة إلى ما لا نهاية
-        console.log('Profile fetch failed, returning null');
         return null;
       }
 
       if (!data) {
-        console.log('No profile found for user, creating default profile:', userId);
-        const userEmail = session?.session?.user?.email || '';
+        console.log('No profile found, creating default...');
+        const session = await supabase.auth.getSession();
+        const userEmail = session?.data?.session?.user?.email || '';
         return await createDefaultProfile(userId, userEmail);
       }
 
-      console.log('Profile fetched successfully:', data);
+      console.log('Profile fetched successfully');
       return data;
     } catch (error) {
-      console.error('fetchProfile catch error:', {
-        message: error?.message,
-        name: error?.name,
-        userId,
-        retryCount
-      });
+      console.error('fetchProfile catch error:', error?.message);
       
-      // إعادة المحاولة فقط مرة واحدة للأخطاء الشبكية
-      const shouldRetry = retryCount < 1 && (
-        error instanceof TypeError ||
-        error?.message?.includes('fetch') ||
-        error?.message?.includes('network')
-      );
-      
-      if (shouldRetry) {
-        console.log(`Retrying fetchProfile after catch... Attempt ${retryCount + 1}/1`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (retryCount < 1) {
+        console.log('Retrying after catch...');
+        await new Promise(resolve => setTimeout(resolve, 500));
         return fetchProfile(userId, retryCount + 1);
       }
       
-      console.log('Profile fetch failed after retries, returning null');
       return null;
     }
   };
@@ -173,66 +140,61 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
-    setLoading(true);
     console.log('useAuth: Setting up auth listener...');
+    setLoading(true);
     
-    // Set up auth state listener
+    // Set up auth state listener - simplified version
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
         
+        // Immediate state updates only - no async operations
+        setSession(session);
+        setUser(session?.user ?? null);
+        
         if (!session) {
-          console.log('useAuth: No session, clearing state');
-          setSession(null);
-          setUser(null);
+          console.log('useAuth: No session, clearing all state');
           setProfile(null);
           setLoading(false);
           return;
         }
         
-        console.log('useAuth: Session found, setting user');
-        setSession(session);
-        setUser(session.user);
-        
-        // Add timeout for profile fetch
-        const profileTimeout = setTimeout(() => {
-          console.log('useAuth: Profile fetch timeout, proceeding with redirect');
-          setLoading(false);
-        }, 5000); // 5 seconds timeout
-        
-        try {
-          console.log('useAuth: Fetching profile...');
-          const profileData = await fetchProfile(session.user.id);
-          clearTimeout(profileTimeout);
-          console.log('useAuth: Profile fetched successfully:', profileData ? 'found' : 'null');
-          setProfile(profileData);
-        } catch (error) {
-          clearTimeout(profileTimeout);
-          console.error('useAuth: Error fetching profile:', error);
-          setProfile(null);
-        } finally {
-          setLoading(false);
-          console.log('useAuth: Auth setup complete, loading = false');
-        }
+        console.log('useAuth: Session found, deferring profile fetch');
+        // Defer profile fetch to avoid blocking auth flow
+        setTimeout(async () => {
+          try {
+            const profileData = await fetchProfile(session.user.id);
+            setProfile(profileData);
+          } catch (error) {
+            console.error('useAuth: Profile fetch failed:', error);
+            setProfile(null);
+          } finally {
+            setLoading(false);
+          }
+        }, 100);
       }
     );
     
-    // Get initial session (this will trigger onAuthStateChange)
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('useAuth: Initial session check:', { userId: session?.user?.id });
+      console.log('useAuth: Initial session check:', { userId: session?.user?.id, error });
       if (error) {
         console.error('useAuth: Error getting initial session:', error);
         setLoading(false);
       }
-      // If no session found initially, stop loading
-      if (!session) {
-        console.log('useAuth: No initial session found, stopping loading');
-        setLoading(false);
-      }
-      // Session handling is done in onAuthStateChange
+      // onAuthStateChange will handle the session
     });
 
-    return () => subscription.unsubscribe();
+    // Failsafe timeout to prevent infinite loading
+    const failsafeTimeout = setTimeout(() => {
+      console.log('useAuth: Failsafe timeout reached, forcing completion');
+      setLoading(false);
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(failsafeTimeout);
+    };
   }, []);
 
   const signOut = async () => {

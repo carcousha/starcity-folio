@@ -15,70 +15,37 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // حماية فورية عند تغيير المسار
+  // حماية بسيطة بدون loops
   useEffect(() => {
     const isLoginPage = location.pathname === '/';
     
-    if (!loading && !isLoginPage) {
-      if (!session || !user || !profile) {
-        console.log('AuthGuard: Unauthorized access detected, redirecting immediately');
-        navigate('/', { replace: true });
-        return;
-      }
-      
-      // فحص إضافي للتأكد من صحة البيانات
-      if (!profile.is_active) {
-        console.log('AuthGuard: Inactive user detected, redirecting');
-        navigate('/', { replace: true });
-        return;
-      }
+    // فقط إعادة التوجيه إذا لم يكن في صفحة تسجيل الدخول وليس هناك session
+    if (!isLoginPage && !loading && !session) {
+      console.log('AuthGuard: No session, redirecting to login');
+      navigate('/', { replace: true });
     }
-  }, [loading, session, user, profile, location.pathname]);
-
-  // فحص دوري مشدد للتأكد من صحة الجلسة
-  useEffect(() => {
-    if (location.pathname === '/') return;
-
-    const checkAuthStrict = () => {
-      if (!session || !user || !profile) {
-        console.log('AuthGuard: Periodic check failed, redirecting');
-        navigate('/', { replace: true });
-      }
-    };
-
-    // فحص كل 15 ثانية للحماية المشددة
-    const interval = setInterval(checkAuthStrict, 15000);
-    
-    return () => clearInterval(interval);
-  }, [session, user, profile, location.pathname]);
+  }, [session, loading, location.pathname, navigate]);
 
   // إذا كانت صفحة تسجيل الدخول، اعرضها
   if (location.pathname === '/') {
     return <>{children}</>;
   }
 
-  // إذا كان التحميل جاري، أظهر شاشة تحميل فقط
+  // إذا كان التحميل جاري، أظهر شاشة تحميل
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">جاري التحقق من الهوية...</p>
+          <p className="text-sm text-muted-foreground">جاري التحميل...</p>
         </div>
       </div>
     );
   }
 
-  // حماية مطلقة: لا جلسة أو مستخدم أو profile = منع كامل
-  if (!session || !user || !profile) {
-    navigate('/', { replace: true });
-    return null;
-  }
-
-  // فحص إضافي: المستخدم غير نشط
-  if (!profile.is_active) {
-    navigate('/', { replace: true });
-    return null;
+  // حماية بسيطة: لا session = منع
+  if (!session || !user) {
+    return null; // سيتم التعامل معه في useEffect
   }
 
   return <>{children}</>;

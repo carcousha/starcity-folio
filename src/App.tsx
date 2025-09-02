@@ -150,8 +150,8 @@ const AppProtector = () => {
   }
 
   // فحص فوري وصارم: إذا لم يكن هناك session صالح
-  if (!loading && (!session || !user)) {
-    // تنظيف كامل لأي بيانات مخزنة محلياً
+  if (!loading && !authTimeout && (!session || !user)) {
+    console.log('App: No valid session, redirecting to login');
     localStorage.clear();
     sessionStorage.clear();
     window.location.replace('/');
@@ -164,15 +164,16 @@ const AppProtector = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">جاري التحقق من صحة الهوية...</p>
+          <p className="text-sm text-muted-foreground">جاري التحميل...</p>
+          <p className="text-xs text-muted-foreground">إذا استمر التحميل أكثر من 10 ثوان، حدث الصفحة</p>
         </div>
       </div>
     );
   }
 
-  // فحص ثانوي: إذا لم يوجد profile، وجه للوحة الادارة افتراضياً
-  if (!profile) {
-    // لا نريد إعادة توجيه، بل نسمح بالمرور للوحة الادارة الافتراضية
+  // إذا انتهت مهلة التحميل أو كان لديك session صالح، تابع بدون profile
+  if (authTimeout || (session && user)) {
+    console.log('App: Proceeding with or without profile', { hasProfile: !!profile, authTimeout });
   }
 
   // إذا وصل هنا، يعني المستخدم مصادق عليه ونشط
