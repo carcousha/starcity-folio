@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +41,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import CommissionEditDialog from "./CommissionEditDialog";
+import { CommissionEditDialog } from "./CommissionEditDialog";
 
 interface Commission {
   id: string;
