@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { LandSalesDashboard } from "./LandSalesDashboard";
 import { LandProperties } from "./LandProperties";
 import { LandBrokers } from "./LandBrokers";
-import { LandClients } from "./LandClients";
+import LandClients from "./LandClients";
 import { LandTasks } from "./LandTasks";
 import { AdvancedTasks } from "./AdvancedTasks";
 import { LandReports } from "./LandReports";
