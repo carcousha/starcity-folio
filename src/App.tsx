@@ -127,13 +127,18 @@ const AppProtector = () => {
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (loading) {
-        console.log('Auth timeout reached, proceeding...');
+        console.log('App: Auth timeout reached, proceeding...');
         setAuthTimeout(true);
       }
-    }, 8000); // 8 ثوان timeout
+    }, 6000); // 6 ثوان timeout
     
     return () => clearTimeout(timeoutId);
   }, [loading]);
+  
+  // إضافة logging للتشخيص
+  React.useEffect(() => {
+    console.log('App: Auth state changed', { loading, user: !!user, session: !!session, profile: !!profile });
+  }, [loading, user, session, profile]);
 
   // إذا كان المسار صفحة تسجيل الدخول، اعرضها فقط
   if (location.pathname === "/") {

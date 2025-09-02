@@ -174,6 +174,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     setLoading(true);
+    console.log('useAuth: Setting up auth listener...');
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -181,6 +182,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log('useAuth: Auth state changed', { event, userId: session?.user?.id });
         
         if (!session) {
+          console.log('useAuth: No session, clearing state');
           setSession(null);
           setUser(null);
           setProfile(null);
@@ -188,17 +190,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
         
+        console.log('useAuth: Session found, setting user');
         setSession(session);
         setUser(session.user);
         
+        // Add timeout for profile fetch
+        const profileTimeout = setTimeout(() => {
+          console.log('useAuth: Profile fetch timeout, proceeding with redirect');
+          setLoading(false);
+        }, 5000); // 5 seconds timeout
+        
         try {
+          console.log('useAuth: Fetching profile...');
           const profileData = await fetchProfile(session.user.id);
+          clearTimeout(profileTimeout);
+          console.log('useAuth: Profile fetched successfully:', profileData ? 'found' : 'null');
           setProfile(profileData);
         } catch (error) {
+          clearTimeout(profileTimeout);
           console.error('useAuth: Error fetching profile:', error);
           setProfile(null);
         } finally {
           setLoading(false);
+          console.log('useAuth: Auth setup complete, loading = false');
         }
       }
     );
@@ -208,6 +222,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log('useAuth: Initial session check:', { userId: session?.user?.id });
       if (error) {
         console.error('useAuth: Error getting initial session:', error);
+        setLoading(false);
+      }
+      // If no session found initially, stop loading
+      if (!session) {
+        console.log('useAuth: No initial session found, stopping loading');
         setLoading(false);
       }
       // Session handling is done in onAuthStateChange
