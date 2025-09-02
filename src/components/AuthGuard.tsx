@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -13,6 +13,7 @@ interface AuthGuardProps {
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const { user, session, profile, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // حماية فورية عند تغيير المسار
   useEffect(() => {
@@ -21,14 +22,14 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     if (!loading && !isLoginPage) {
       if (!session || !user || !profile) {
         console.log('AuthGuard: Unauthorized access detected, redirecting immediately');
-        window.location.href = '/';
+        navigate('/', { replace: true });
         return;
       }
       
       // فحص إضافي للتأكد من صحة البيانات
       if (!profile.is_active) {
         console.log('AuthGuard: Inactive user detected, redirecting');
-        window.location.href = '/';
+        navigate('/', { replace: true });
         return;
       }
     }
@@ -41,7 +42,7 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
     const checkAuthStrict = () => {
       if (!session || !user || !profile) {
         console.log('AuthGuard: Periodic check failed, redirecting');
-        window.location.href = '/';
+        navigate('/', { replace: true });
       }
     };
 
@@ -70,13 +71,13 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
 
   // حماية مطلقة: لا جلسة أو مستخدم أو profile = منع كامل
   if (!session || !user || !profile) {
-    window.location.href = '/';
+    navigate('/', { replace: true });
     return null;
   }
 
   // فحص إضافي: المستخدم غير نشط
   if (!profile.is_active) {
-    window.location.href = '/';
+    navigate('/', { replace: true });
     return null;
   }
 

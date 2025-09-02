@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { ContactForm } from '@/components/contacts/ContactForm';
+import { EnhancedContactForm } from '@/components/contacts/EnhancedContactForm';
 import { useUnifiedContacts, useAutoSync, useContactStats } from '@/hooks/useUnifiedContacts';
 import { toast } from '@/hooks/use-toast';
 import { 
@@ -92,6 +92,7 @@ export default function WhatsAppContacts() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<EnhancedContact | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [selectedContact, setSelectedContact] = useState<EnhancedContact | null>(null);
   const [contactToDelete, setContactToDelete] = useState<EnhancedContact | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table'); // العرض الافتراضي هو الجدول
 
@@ -174,28 +175,78 @@ export default function WhatsAppContacts() {
     setEditingContact(null);
   };
 
-  const handleDeleteContact = () => {
-    if (contactToDelete) {
-      deleteContact(contactToDelete.id);
+  const handleDeleteContact = (contact = contactToDelete) => {
+    if (contact) {
+      deleteContact(contact.id);
       setContactToDelete(null);
       toast({
         title: "تم حذف جهة الاتصال",
-        description: `تم حذف ${contactToDelete.name} بنجاح`,
+        description: `تم حذف ${contact.name} بنجاح`,
       });
     }
   };
 
-  const handleEditContact = (contact: EnhancedContact) => {
-    setEditingContact(contact);
+  const handleEditContact = async (contact: EnhancedContact) => {
+    console.log('تحرير جهة اتصال:', contact);
+    
+    // الحصول على قنوات الاتصال لجهة الاتصال
+    const { data: channels } = await supabase
+      .from('enhanced_contact_channels')
+      .select('*')
+      .eq('contact_id', contact.id);
+    
+    console.log('قنوات الاتصال:', channels);
+    
+    // إضافة قنوات الاتصال إلى جهة الاتصال
+    const contactWithChannels = {
+      ...contact,
+      channels: channels || []
+    };
+    
+    setEditingContact(contactWithChannels);
     setIsDialogOpen(true);
   };
 
+  const handleBulkDelete = () => {
+    if (selectedContacts.length === 0) return;
+    
+    // حذف جميع جهات الاتصال المحددة
+    selectedContacts.forEach(id => {
+      deleteContact(id);
+    });
+    
+    // إعادة تعيين القائمة المحددة
+    setSelectedContacts([]);
+    
+    toast({
+      title: "تم حذف جهات الاتصال",
+      description: `تم حذف ${selectedContacts.length} جهة اتصال بنجاح`,
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedContacts.length === contacts.length) {
+      setSelectedContacts([]);
+    } else {
+      setSelectedContacts(contacts.map(contact => contact.id));
+    }
+  };
+
+  const toggleSelectContact = (id: string) => {
+    if (selectedContacts.includes(id)) {
+      setSelectedContacts(selectedContacts.filter(contactId => contactId !== id));
+    } else {
+      setSelectedContacts([...selectedContacts, id]);
+    }
+  };
+
+  // دوال مساعدة للألوان
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-500';
-      case 'inactive': return 'bg-yellow-500';
-      case 'archived': return 'bg-gray-500';
-      default: return 'bg-gray-500';
+      case 'inactive': return 'bg-gray-500';
+      case 'archived': return 'bg-red-500';
+      default: return 'bg-blue-500';
     }
   };
 
@@ -204,438 +255,479 @@ export default function WhatsAppContacts() {
       case 'new': return 'bg-blue-500';
       case 'contacted': return 'bg-purple-500';
       case 'interested': return 'bg-green-500';
-      case 'negotiating': return 'bg-orange-500';
-      case 'closed': return 'bg-green-600';
+      case 'negotiating': return 'bg-amber-500';
+      case 'closed': return 'bg-green-700';
       case 'lost': return 'bg-red-500';
       case 'inactive': return 'bg-gray-500';
-      default: return 'bg-gray-500';
+      default: return 'bg-blue-500';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-500';
+      case 'low': return 'bg-blue-500';
+      case 'medium': return 'bg-amber-500';
       case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case 'urgent': return 'bg-red-500';
+      default: return 'bg-blue-500';
     }
   };
 
+  // عرض النجوم للتقييم
   const renderStars = (rating?: number) => {
     if (!rating) return null;
+    
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Star 
+          key={i}
+          className={`h-3 w-3 ${i <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+        />
+      );
+    }
+    
     return (
-      <div className="flex">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`h-3 w-3 ${
-              star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-            }`}
-          />
-        ))}
+      <div className="flex items-center">
+        {stars}
       </div>
     );
   };
 
-  const getContactChannel = (contact: any, type: string) => {
-    return contact.enhanced_contact_channels?.find((ch: any) => ch.channel_type === type)?.value || '';
+  // الحصول على قناة اتصال معينة
+  const getContactChannel = (contact: EnhancedContact, channelType: string) => {
+    if (!contact.metadata || !contact.metadata.channels) return null;
+    
+    const channel = contact.metadata.channels.find((c: any) => c.channel_type === channelType && c.is_primary);
+    return channel ? channel.value : null;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <PageHeader 
-          title="مركز جهات الاتصال الموحد" 
-          description="إدارة شاملة لجميع جهات الاتصال مع مزامنة ثنائية"
-        />
-        
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 ml-1" />
+    <div className="container mx-auto py-6 space-y-6">
+      <PageHeader
+        title="جهات الاتصال"
+        description="إدارة جهات الاتصال والعملاء والوسطاء والملاك والمستأجرين"
+        icon={<Users className="h-6 w-6" />}
+      >
+        <div className="flex items-center gap-2">
+          <Button onClick={() => { setEditingContact(null); setIsDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            إضافة جهة اتصال
+          </Button>
+          <Button variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
             استيراد
           </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 ml-1" />
+          <Button variant="outline">
+            <Download className="h-4 w-4 mr-2" />
             تصدير
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingContact(null)}>
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة جهة اتصال
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingContact ? 'تعديل جهة الاتصال' : 'إضافة جهة اتصال جديدة'}</DialogTitle>
-              </DialogHeader>
-              <ContactForm
-                editingContact={editingContact}
-                onSubmit={handleFormSubmit}
-                onCancel={() => {
-                  setIsDialogOpen(false);
-                  setEditingContact(null);
-                }}
-                isLoading={isAdding || isUpdating}
-              />
-            </DialogContent>
-          </Dialog>
+        </div>
+      </PageHeader>
+
+      {/* نافذة إضافة/تحرير جهة اتصال */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingContact ? 'تحرير جهة اتصال' : 'إضافة جهة اتصال جديدة'}
+            </DialogTitle>
+          </DialogHeader>
+          <EnhancedContactForm 
+            onSubmit={handleFormSubmit} 
+            initialData={editingContact || undefined}
+            employees={employees}
+            isLoading={isAdding || isUpdating}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تأكيد الحذف الجماعي */}
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button 
+            variant="destructive" 
+            className={`${selectedContacts.length === 0 ? 'hidden' : 'flex'} items-center gap-2`}
+          >
+            <Trash2 className="h-4 w-4" />
+            حذف المحدد ({selectedContacts.length})
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              تأكيد حذف جهات الاتصال
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف {selectedContacts.length} جهة اتصال؟
+              <br />
+              هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع البيانات المرتبطة بهذه الجهات.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* أدوات البحث والتصفية */}
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="بحث عن جهة اتصال..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 w-full"
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="الحالة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="active">نشط</SelectItem>
+              <SelectItem value="inactive">غير نشط</SelectItem>
+              <SelectItem value="archived">مؤرشف</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="الدور" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الأدوار</SelectItem>
+              <SelectItem value="client">عميل</SelectItem>
+              <SelectItem value="broker">وسيط</SelectItem>
+              <SelectItem value="owner">مالك</SelectItem>
+              <SelectItem value="tenant">مستأجر</SelectItem>
+              <SelectItem value="supplier">مورد</SelectItem>
+              <SelectItem value="employee">موظف</SelectItem>
+              <SelectItem value="other">أخرى</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setViewMode('table')}
+              title="عرض الجدول"
+            >
+              <TableIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setViewMode('cards')}
+              title="عرض البطاقات"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+            disabled={isSyncing}
+            onClick={() => syncAll()}
+          >
+            <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+            مزامنة
+          </Button>
         </div>
       </div>
 
-      {/* الفلاتر */}
-      <div className="flex flex-wrap gap-4">
-        <div className="flex-1 min-w-[300px]">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="البحث في الأسماء والشركات والملاحظات..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10"
-            />
-          </div>
-        </div>
-
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="الحالة" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">جميع الحالات</SelectItem>
-            <SelectItem value="active">نشط</SelectItem>
-            <SelectItem value="inactive">غير نشط</SelectItem>
-            <SelectItem value="archived">مؤرشف</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="الدور" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">جميع الأدوار</SelectItem>
-            <SelectItem value="client">عميل</SelectItem>
-            <SelectItem value="broker">وسيط</SelectItem>
-            <SelectItem value="owner">مالك</SelectItem>
-            <SelectItem value="tenant">مستأجر</SelectItem>
-            <SelectItem value="supplier">مورد</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        {/* أزرار التبديل بين طرق العرض */}
-        <div className="flex border rounded-lg p-1 bg-muted">
-          <Button
-            variant={viewMode === 'table' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('table')}
-            className="h-8 px-3"
-          >
-            <TableIcon className="h-4 w-4 ml-1" />
-            جدول
-          </Button>
-          <Button
-            variant={viewMode === 'cards' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('cards')}
-            className="h-8 px-3"
-          >
-            <Grid3X3 className="h-4 w-4 ml-1" />
-            كروت
-          </Button>
-        </div>
+      {/* إحصائيات جهات الاتصال */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-500" />
+              إجمالي جهات الاتصال
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Building className="h-4 w-4 text-green-500" />
+              العملاء
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.clients || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-amber-500" />
+              الوسطاء
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.brokers || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4 text-red-500" />
+              بحاجة للمتابعة
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.needsFollowUp || 0}</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* عرض جهات الاتصال */}
       {isLoading ? (
-        viewMode === 'table' ? (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead>الشركة</TableHead>
-                    <TableHead>الأدوار</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>الأولوية</TableHead>
-                    <TableHead>التقييم</TableHead>
-                    <TableHead>الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[...Array(6)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-muted rounded animate-pulse"></div></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded"></div>
-                    <div className="h-3 bg-muted rounded w-2/3"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
       ) : contacts.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Contact className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">لا توجد جهات اتصال</h3>
-            <p className="text-muted-foreground mb-4">لم يتم العثور على جهات اتصال تطابق معايير البحث</p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة أول جهة اتصال
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Database className="h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium">لا توجد جهات اتصال</h3>
+          <p className="text-sm text-gray-500 mt-2 mb-4">
+            لم يتم العثور على جهات اتصال تطابق معايير البحث الخاصة بك.
+          </p>
+          <Button onClick={() => { setEditingContact(null); setIsDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            إضافة جهة اتصال
+          </Button>
+        </div>
       ) : viewMode === 'table' ? (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox />
-                  </TableHead>
-                  <TableHead>الاسم</TableHead>
-                  <TableHead>الشركة</TableHead>
-                  <TableHead>الأدوار</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الأولوية</TableHead>
-                  <TableHead>التقييم</TableHead>
-                  <TableHead className="text-center">الإجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contacts.map((contact) => (
-                  <TableRow key={contact.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <Checkbox />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div>
-                          <div className="font-medium">{contact.name}</div>
-                          {getContactChannel(contact, 'phone') && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {getContactChannel(contact, 'phone')}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {contact.company_name && (
-                        <div className="flex items-center gap-1">
-                          <Building className="h-3 w-3 text-muted-foreground" />
-                          {contact.company_name}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {contact.roles && contact.roles.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {contact.roles.slice(0, 2).map((role, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {role === 'client' ? 'عميل' :
-                               role === 'broker' ? 'وسيط' :
-                               role === 'owner' ? 'مالك' :
-                               role === 'tenant' ? 'مستأجر' : role}
-                            </Badge>
-                          ))}
-                          {contact.roles.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{contact.roles.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${getStatusColor(contact.status)} text-white text-xs`}>
-                        {contact.status === 'active' ? 'نشط' : contact.status === 'inactive' ? 'غير نشط' : 'مؤرشف'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${getPriorityColor(contact.priority)} text-white text-xs`}>
-                        {contact.priority === 'urgent' ? 'عاجل' : 
-                         contact.priority === 'high' ? 'عالي' :
-                         contact.priority === 'medium' ? 'متوسط' : 'منخفض'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {renderStars(contact.rating)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedContact(contact);
-                            setIsDialogOpen(true);
-                          }}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <Activity className="h-3 w-3" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                هل أنت متأكد من حذف جهة الاتصال "{contact.name}"؟ هذا الإجراء لا يمكن التراجع عنه.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteContact.mutate(contact.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                حذف
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {contacts.map((contact) => (
-            <Card key={contact.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {contact.name}
-                      {renderStars(contact.rating)}
-                    </CardTitle>
-                    {contact.company_name && (
-                      <div className="flex items-center text-sm text-muted-foreground mt-1">
-                        <Building className="h-3 w-3 ml-1" />
-                        {contact.company_name}
+        <div className="bg-white rounded-md border shadow-sm overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox 
+                    checked={selectedContacts.length === contacts.length && contacts.length > 0} 
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>الاسم</TableHead>
+                <TableHead>الدور</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead>المتابعة</TableHead>
+                <TableHead>الأولوية</TableHead>
+                <TableHead>التقييم</TableHead>
+                <TableHead>رقم الهاتف</TableHead>
+                <TableHead>البريد الإلكتروني</TableHead>
+                <TableHead>آخر تواصل</TableHead>
+                <TableHead>التواصل القادم</TableHead>
+                <TableHead className="text-left">الإجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {contacts.map((contact) => (
+                <TableRow key={contact.id}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedContacts.includes(contact.id)} 
+                      onCheckedChange={() => toggleSelectContact(contact.id)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{contact.name}</TableCell>
+                  <TableCell>
+                    {contact.roles && contact.roles.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {contact.roles.map((role, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {role === 'client' ? 'عميل' :
+                             role === 'broker' ? 'وسيط' :
+                             role === 'owner' ? 'مالك' :
+                             role === 'tenant' ? 'مستأجر' :
+                             role === 'supplier' ? 'مورد' :
+                             role === 'employee' ? 'موظف' : role}
+                          </Badge>
+                        ))}
                       </div>
                     )}
-                  </div>
-                  <div className="flex flex-col gap-1">
+                  </TableCell>
+                  <TableCell>
                     <Badge className={`${getStatusColor(contact.status)} text-white text-xs`}>
-                      {contact.status === 'active' ? 'نشط' : contact.status === 'inactive' ? 'غير نشط' : 'مؤرشف'}
+                      {contact.status === 'active' ? 'نشط' :
+                       contact.status === 'inactive' ? 'غير نشط' : 'مؤرشف'}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={`${getFollowUpStatusColor(contact.follow_up_status)} text-white text-xs`}>
+                      {contact.follow_up_status === 'new' ? 'جديد' :
+                       contact.follow_up_status === 'contacted' ? 'تم التواصل' :
+                       contact.follow_up_status === 'interested' ? 'مهتم' :
+                       contact.follow_up_status === 'negotiating' ? 'قيد التفاوض' :
+                       contact.follow_up_status === 'closed' ? 'مغلق' :
+                       contact.follow_up_status === 'lost' ? 'مفقود' : 'غير نشط'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Badge className={`${getPriorityColor(contact.priority)} text-white text-xs`}>
-                      {contact.priority === 'urgent' ? 'عاجل' : 
-                       contact.priority === 'high' ? 'عالي' :
-                       contact.priority === 'medium' ? 'متوسط' : 'منخفض'}
+                      {contact.priority === 'low' ? 'منخفضة' :
+                       contact.priority === 'medium' ? 'متوسطة' :
+                       contact.priority === 'high' ? 'عالية' : 'عاجلة'}
                     </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* الأدوار */}
-                  {contact.roles && contact.roles.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {contact.roles.slice(0, 3).map((role, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {role === 'client' ? 'عميل' :
-                           role === 'broker' ? 'وسيط' :
-                           role === 'owner' ? 'مالك' :
-                           role === 'tenant' ? 'مستأجر' : role}
-                        </Badge>
-                      ))}
-                      {contact.roles.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{contact.roles.length - 3}
-                        </Badge>
-                      )}
+                  </TableCell>
+                  <TableCell>{renderStars(contact.rating)}</TableCell>
+                  <TableCell>{getContactChannel(contact, 'phone') || '-'}</TableCell>
+                  <TableCell>{getContactChannel(contact, 'email') || '-'}</TableCell>
+                  <TableCell>
+                    {contact.last_contact_date ? new Date(contact.last_contact_date).toLocaleDateString('ar-SA') : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {contact.next_contact_date ? new Date(contact.next_contact_date).toLocaleDateString('ar-SA') : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleEditContact(contact)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                            onClick={() => setContactToDelete(contact)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2">
+                              <AlertTriangle className="h-5 w-5 text-red-500" />
+                              تأكيد حذف جهة الاتصال
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              هل أنت متأكد من حذف جهة الاتصال <strong>{contact.name}</strong>؟
+                              <br />
+                              هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع البيانات المرتبطة بهذه الجهة.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteContact()}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              حذف نهائي
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-                  )}
-
-                  {/* حالة المتابعة */}
-                  <Badge className={`${getFollowUpStatusColor(contact.follow_up_status)} text-white text-xs w-fit`}>
-                    {contact.follow_up_status === 'new' ? 'جديد' :
-                     contact.follow_up_status === 'contacted' ? 'تم التواصل' :
-                     contact.follow_up_status === 'interested' ? 'مهتم' :
-                     contact.follow_up_status === 'negotiating' ? 'تفاوض' :
-                     contact.follow_up_status === 'closed' ? 'مغلق' :
-                     contact.follow_up_status === 'lost' ? 'ضائع' : 'غير نشط'}
-                  </Badge>
-
-                  {/* قنوات الاتصال */}
-                  <div className="space-y-1">
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {contacts.map((contact) => (
+            <Card key={contact.id} className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{contact.name}</h3>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {contact.roles && contact.roles.map((role, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {role === 'client' ? 'عميل' :
+                             role === 'broker' ? 'وسيط' :
+                             role === 'owner' ? 'مالك' :
+                             role === 'tenant' ? 'مستأجر' :
+                             role === 'supplier' ? 'مورد' :
+                             role === 'employee' ? 'موظف' : role}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <Checkbox 
+                      checked={selectedContacts.includes(contact.id)} 
+                      onCheckedChange={() => toggleSelectContact(contact.id)}
+                    />
+                  </div>
+                  
+                  {/* الحالة والمتابعة والأولوية */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <Badge className={`${getStatusColor(contact.status)} text-white text-xs w-fit`}>
+                      {contact.status === 'active' ? 'نشط' :
+                       contact.status === 'inactive' ? 'غير نشط' : 'مؤرشف'}
+                    </Badge>
+                    <Badge className={`${getFollowUpStatusColor(contact.follow_up_status)} text-white text-xs w-fit`}>
+                      {contact.follow_up_status === 'new' ? 'جديد' :
+                       contact.follow_up_status === 'contacted' ? 'تم التواصل' :
+                       contact.follow_up_status === 'interested' ? 'مهتم' :
+                       contact.follow_up_status === 'negotiating' ? 'قيد التفاوض' :
+                       contact.follow_up_status === 'closed' ? 'مغلق' :
+                       contact.follow_up_status === 'lost' ? 'مفقود' : 'غير نشط'}
+                    </Badge>
+                    <Badge className={`${getPriorityColor(contact.priority)} text-white text-xs w-fit`}>
+                      {contact.priority === 'low' ? 'منخفضة' :
+                       contact.priority === 'medium' ? 'متوسطة' :
+                       contact.priority === 'high' ? 'عالية' : 'عاجلة'}
+                    </Badge>
+                    {renderStars(contact.rating)}
+                  </div>
+                  
+                  {/* معلومات الاتصال */}
+                  <div className="space-y-2 text-sm">
                     {getContactChannel(contact, 'phone') && (
-                      <div className="flex items-center text-sm">
-                        <Phone className="h-3 w-3 ml-1 text-muted-foreground" />
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-gray-500" />
                         <span>{getContactChannel(contact, 'phone')}</span>
                       </div>
                     )}
                     {getContactChannel(contact, 'email') && (
-                      <div className="flex items-center text-sm">
-                        <Mail className="h-3 w-3 ml-1 text-muted-foreground" />
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-3 w-3 text-gray-500" />
                         <span className="truncate">{getContactChannel(contact, 'email')}</span>
                       </div>
                     )}
                   </div>
-
+                  
                   {/* الوسوم */}
                   {contact.tags && contact.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mt-3">
                       {contact.tags.slice(0, 2).map((tag, index) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {tag}
@@ -648,29 +740,30 @@ export default function WhatsAppContacts() {
                       )}
                     </div>
                   )}
-
-                  {/* مواعيد المتابعة */}
+                  
+                  {/* التاريخ المستقبلي */}
                   {contact.next_contact_date && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3 ml-1" />
+                    <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
+                      <Calendar className="h-3 w-3" />
                       <span>المتابعة: {new Date(contact.next_contact_date).toLocaleDateString('ar-SA')}</span>
                     </div>
                   )}
-
-                  {/* النبذة */}
+                  
+                  {/* الوصف */}
                   {contact.bio && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <div className="mt-3 text-xs text-gray-600 line-clamp-2">
                       {contact.bio}
-                    </p>
+                    </div>
                   )}
                 </div>
                 
-                <div className="flex justify-end space-x-2 space-x-reverse mt-4 pt-4 border-t">
+                {/* أزرار الإجراءات */}
+                <div className="flex items-center justify-between border-t p-2 bg-gray-50">
                   <Button
                     size="sm"
                     variant="outline"
+                    title="تحرير جهة الاتصال"
                     onClick={() => handleEditContact(contact)}
-                    title="تعديل جهة الاتصال"
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
@@ -714,7 +807,7 @@ export default function WhatsAppContacts() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>إلغاء</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={handleDeleteContact}
+                          onClick={() => handleDeleteContact()}
                           className="bg-red-600 hover:bg-red-700"
                         >
                           حذف نهائي

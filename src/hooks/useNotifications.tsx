@@ -33,7 +33,7 @@ export interface NotificationSettings {
   enabled_types: string[];
 }
 
-export const useNotifications = () => {
+function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -152,23 +152,36 @@ export const useNotifications = () => {
   }, [settings, isDoNotDisturbTime]);
 
   // جلب التنبيهات
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (retryCount = 0) => {
     if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('system_notifications')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id as string)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
 
       const typedData = (data || []).map(item => ({
-        ...item,
-        type: item.type as SystemNotification['type'],
-        priority: item.priority as SystemNotification['priority']
+        id: item.id,
+        title: item.title,
+        message: item.message,
+        is_read: item.is_read,
+        is_browser_sent: item.is_browser_sent,
+        is_sound_played: item.is_sound_played,
+        related_table: item?.related_table || null,
+        related_id: item.related_id,
+        scheduled_for: item.scheduled_for,
+        sent_at: item.sent_at,
+        read_at: item.read_at,
+        metadata: item.metadata,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        type: (item as any).type as SystemNotification['type'],
+        priority: (item as any).priority as SystemNotification['priority']
       }));
 
       setNotifications(typedData);
@@ -180,12 +193,18 @@ export const useNotifications = () => {
       
       setUnreadCount(unread);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.log('Notifications fetch error:', error?.message || error);
+      
+      // إعادة المحاولة في حالة فشل الشبكة
+      if (retryCount < 2 && (error instanceof TypeError || error?.message?.includes('fetch'))) {
+        console.log(`Retrying fetchNotifications... Attempt ${retryCount + 1}`);
+        setTimeout(() => fetchNotifications(retryCount + 1), 1000 * (retryCount + 1));
+      }
     }
   }, [user]);
 
   // جلب الإعدادات
-  const fetchSettings = useCallback(async () => {
+  const fetchSettings = useCallback(async (retryCount = 0) => {
     if (!user) return;
 
     try {
@@ -206,9 +225,11 @@ export const useNotifications = () => {
           reminder_frequency: data.reminder_frequency,
           do_not_disturb_start: data.do_not_disturb_start,
           do_not_disturb_end: data.do_not_disturb_end,
-          enabled_types: Array.isArray(data.enabled_types) 
-            ? data.enabled_types as string[]
-            : JSON.parse(data.enabled_types as string)
+          enabled_types: data.enabled_types 
+            ? (Array.isArray(data.enabled_types) 
+                ? data.enabled_types as string[]
+                : JSON.parse(data.enabled_types as string))
+            : ['rental_due', 'contract_expiry', 'government_service', 'debt_payment']
         };
         setSettings(typedSettings);
       } else {
@@ -220,7 +241,7 @@ export const useNotifications = () => {
           sound_notifications: true,
           sound_file: 'ping',
           reminder_frequency: 60,
-          enabled_types: ['rental_due', 'contract_expiry', 'government_service', 'debt_payment']
+          enabled_types: JSON.stringify(['rental_due', 'contract_expiry', 'government_service', 'debt_payment'])
         };
 
         const { data: newSettings, error: createError } = await supabase
@@ -239,14 +260,22 @@ export const useNotifications = () => {
           reminder_frequency: newSettings.reminder_frequency,
           do_not_disturb_start: newSettings.do_not_disturb_start,
           do_not_disturb_end: newSettings.do_not_disturb_end,
-          enabled_types: Array.isArray(newSettings.enabled_types) 
-            ? newSettings.enabled_types as string[]
-            : JSON.parse(newSettings.enabled_types as string)
+          enabled_types: newSettings.enabled_types 
+            ? (Array.isArray(newSettings.enabled_types) 
+                ? newSettings.enabled_types as string[]
+                : JSON.parse(newSettings.enabled_types as string))
+            : ['rental_due', 'contract_expiry', 'government_service', 'debt_payment']
         };
         setSettings(typedNewSettings);
       }
     } catch (error) {
-      console.error('Error fetching notification settings:', error);
+      console.log('Notification settings fetch error:', error?.message || error);
+      
+      // إعادة المحاولة في حالة فشل الشبكة
+      if (retryCount < 2 && (error instanceof TypeError || error?.message?.includes('fetch'))) {
+        console.log(`Retrying fetchSettings... Attempt ${retryCount + 1}`);
+        setTimeout(() => fetchSettings(retryCount + 1), 1000 * (retryCount + 1));
+      }
     }
   }, [user]);
 
@@ -272,13 +301,15 @@ export const useNotifications = () => {
         reminder_frequency: data.reminder_frequency,
         do_not_disturb_start: data.do_not_disturb_start,
         do_not_disturb_end: data.do_not_disturb_end,
-        enabled_types: Array.isArray(data.enabled_types) 
-          ? data.enabled_types as string[]
-          : JSON.parse(data.enabled_types as string)
+        enabled_types: data.enabled_types 
+          ? (Array.isArray(data.enabled_types) 
+              ? data.enabled_types as string[]
+              : JSON.parse(data.enabled_types as string))
+          : ['rental_due', 'contract_expiry', 'government_service', 'debt_payment']
       };
       setSettings(typedUpdatedSettings);
     } catch (error) {
-      console.error('Error updating notification settings:', error);
+      console.log('Notification settings update error:', error?.message || error);
       throw error;
     }
   }, [user, settings]);
@@ -306,7 +337,7 @@ export const useNotifications = () => {
       
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.log('Mark as read error:', error?.message || error);
     }
   }, []);
 
@@ -336,7 +367,7 @@ export const useNotifications = () => {
       
       setUnreadCount(0);
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.log('Mark all as read error:', error?.message || error);
     }
   }, [user]);
 
@@ -373,7 +404,7 @@ export const useNotifications = () => {
       
       return data;
     } catch (error) {
-      console.error('Error creating notification:', error);
+      console.log('Create notification error:', error?.message || error);
       throw error;
     }
   }, [user, fetchNotifications]);
@@ -512,4 +543,6 @@ export const useNotifications = () => {
     updateSettings,
     requestNotificationPermission
   };
-};
+}
+
+export { useNotifications };

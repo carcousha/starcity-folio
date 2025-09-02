@@ -47,7 +47,10 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         description: "مرحباً بك في نظام ستار سيتي العقاري",
       });
       
-      onSuccess();
+      // انتظار قصير للسماح لـ useAuth بإكمال جلب الملف الشخصي
+      setTimeout(() => {
+        onSuccess();
+      }, 1000);
     } catch (err: any) {
       setError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
     } finally {

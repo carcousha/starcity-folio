@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { EnhancedContact } from '@/types/contact';
+import { ContactSyncService } from './contactSyncService';
 
 export interface SyncResult {
   success: boolean;
@@ -30,7 +31,6 @@ export class UnifiedContactService {
       const contactsToSync = clients.map(client => ({
         full_name: client.name,
         short_name: client.name?.split(' ')[0] || '',
-        phone_primary: client.phone,
         email: client.email,
         address: client.address,
         nationality: client.nationality,
@@ -90,8 +90,6 @@ export class UnifiedContactService {
       const contactsToSync = brokers.map(broker => ({
         full_name: broker.full_name,
         short_name: broker.short_name || broker.full_name?.split(' ')[0] || '',
-        phone_primary: broker.phone,
-        phone_secondary: broker.whatsapp_number,
         email: broker.email,
         nationality: broker.nationality,
         roles: ['broker'],
@@ -149,8 +147,6 @@ export class UnifiedContactService {
       const contactsToSync = owners.map(owner => ({
         full_name: owner.full_name,
         short_name: owner.full_name?.split(' ')[0] || '',
-        phone_primary: owner.phone_primary,
-        phone_secondary: owner.phone_secondary,
         email: owner.email,
         nationality: owner.nationality,
         roles: ['owner'],
@@ -207,7 +203,6 @@ export class UnifiedContactService {
       const contactsToSync = tenants.map(tenant => ({
         full_name: tenant.full_name,
         short_name: tenant.full_name?.split(' ')[0] || '',
-        phone_primary: tenant.phone,
         email: tenant.email,
         nationality: tenant.nationality,
         roles: ['tenant'],
@@ -360,6 +355,45 @@ export class UnifiedContactService {
    */
   static async deleteContact(id: string): Promise<SyncResult> {
     try {
+      // أولاً: الحصول على معلومات جهة الاتصال لمعرفة الجدول الأصلي والمعرف الأصلي
+      const { data: contactData, error: fetchError } = await supabase
+        .from('enhanced_contacts')
+        .select('original_table, original_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        return { success: false, message: `خطأ في جلب معلومات جهة الاتصال: ${fetchError.message}` };
+      }
+
+      // ثانياً: حذف السجل من الجدول الأصلي إذا كان موجوداً
+      if (contactData?.original_table && contactData?.original_id) {
+        const { error: originalDeleteError } = await supabase
+          .from(contactData.original_table)
+          .delete()
+          .eq('id', contactData.original_id);
+
+        if (originalDeleteError) {
+          console.error(`خطأ في حذف السجل الأصلي: ${originalDeleteError.message}`);
+          // نستمر في الحذف حتى لو فشل حذف السجل الأصلي
+        }
+      }
+
+      // ثالثاً: حذف السجلات المرتبطة في الجداول الأخرى باستخدام ContactSyncService
+      // مع تحديد الجدول الأصلي لتجنب حذفه مرة أخرى
+      await ContactSyncService.deleteSyncedRecords(id, contactData?.original_table);
+
+      // وضع علامة أن جهة الاتصال قيد الحذف لمنع المزامنة العكسية
+      const { error: updateError } = await supabase
+        .from('enhanced_contacts')
+        .update({ is_being_deleted: true })
+        .eq('id', id);
+
+      if (updateError) {
+        console.error(`خطأ في تحديث حالة الحذف: ${updateError.message}`);
+      }
+
+      // أخيراً: حذف جهة الاتصال نفسها
       const { error } = await supabase
         .from('enhanced_contacts')
         .delete()
@@ -371,7 +405,7 @@ export class UnifiedContactService {
 
       return {
         success: true,
-        message: 'تم حذف جهة الاتصال بنجاح'
+        message: 'تم حذف جهة الاتصال والسجلات المرتبطة بنجاح'
       };
     } catch (error) {
       return {
@@ -404,7 +438,7 @@ export class UnifiedContactService {
       }
 
       if (filters?.search) {
-        query = query.or(`full_name.ilike.%${filters.search}%,phone_primary.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+        query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });

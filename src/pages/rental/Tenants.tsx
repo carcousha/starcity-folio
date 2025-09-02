@@ -18,693 +18,625 @@ import { useUnifiedContacts } from "@/hooks/useUnifiedContacts";
 const useAutoSync = () => ({ isAutoSyncEnabled: false });
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-
-interface RentalTenant {
-  id: string;
-  full_name: string;
-  phone: string;
-  email?: string;
-  nationality?: string;
-  emirates_id?: string;
-  passport_number?: string;
-  visa_status?: string;
-  emergency_contact_name?: string;
-  emergency_contact_phone?: string;
-  current_address?: string;
-  preferred_language: string;
-  status: string;
-  lead_source?: string;
-  notes?: string;
-  created_at: string;
-}
+import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const Tenants = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { contacts, addContact, updateContact, deleteContact, isLoading, syncTenants } = useUnifiedContacts();
   const { isAutoSyncEnabled } = useAutoSync();
+  const { fetchContacts } = useUnifiedContacts();
+
   const [loading, setLoading] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTenant, setEditingTenant] = useState<RentalTenant | null>(null);
+  const [tenants, setTenants] = useState([]);
+  const [filteredTenants, setFilteredTenants] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [tenantToDelete, setTenantToDelete] = useState<RentalTenant | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTenant, setEditingTenant] = useState(null);
+  const [tenantToDelete, setTenantToDelete] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('all');
+  const [properties, setProperties] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    email: '',
-    nationality: '',
-    emirates_id: '',
-    passport_number: '',
-    visa_status: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    current_address: '',
-    preferred_language: 'ar',
-    status: 'new',
-    lead_source: '',
-    notes: ''
-  });
+  useEffect(() => {
+    fetchTenants();
+    fetchProperties();
+  }, []);
 
-  // تحويل جهات الاتصال إلى تنسيق المستأجرين
-  const tenants = contacts
-    .filter(contact => contact.role === 'tenant')
-    .map(contact => ({
-      id: contact.id,
-      full_name: contact.name,
-      phone: contact.phone,
-      email: contact.email,
-      nationality: contact.metadata?.nationality,
-      emirates_id: contact.metadata?.emirates_id,
-      passport_number: contact.metadata?.passport_number,
-      visa_status: contact.metadata?.visa_status,
-      emergency_contact_name: contact.metadata?.emergency_contact_name,
-      emergency_contact_phone: contact.metadata?.emergency_contact_phone,
-      current_address: contact.metadata?.current_address,
-      preferred_language: contact.language || 'ar',
-      status: contact.metadata?.status || 'new',
-      lead_source: contact.metadata?.lead_source,
-      notes: contact.notes,
-      created_at: contact.created_at
-    }));
+  useEffect(() => {
+    if (tenants.length > 0) {
+      filterTenants();
+    }
+  }, [searchTerm, tenants, selectedTab]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
+  const fetchTenants = async () => {
+    setLoading(true);
     try {
-      const contactData = {
-        name: formData.full_name,
-        phone: formData.phone,
-        email: formData.email,
-        role: 'tenant' as const,
-        language: formData.preferred_language,
-        rating: 0,
-        notes: formData.notes,
-        metadata: {
-          nationality: formData.nationality,
-          emirates_id: formData.emirates_id,
-          passport_number: formData.passport_number,
-          visa_status: formData.visa_status,
-          emergency_contact_name: formData.emergency_contact_name,
-          emergency_contact_phone: formData.emergency_contact_phone,
-          current_address: formData.current_address,
-          status: formData.status,
-          lead_source: formData.lead_source
-        }
-      };
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('*, properties(name)')
+        .order('created_at', { ascending: false });
 
-      if (editingTenant) {
-        updateContact({ 
-          id: editingTenant.id, 
-          updates: {
-            ...contactData,
-            language: contactData.language as "en" | "ar" // Type assertion to match expected language type
-          }
-        });
-        toast({
-          title: "Updated Successfully",
-          description: "تم تحديث بيانات المستأجر بنجاح",
-        });
-      } else {
-        addContact({
-          ...contactData,
-          language: contactData.language as "en" | "ar" // Type assertion to match expected language type
-        });
-        toast({
-          title: "تم الإنشاء",
-          description: "تم إضافة المستأجر بنجاح",
-        });
-      }
-
-      resetForm();
-      setIsDialogOpen(false);
+      if (error) throw error;
+      setTenants(data || []);
+      setFilteredTenants(data || []);
     } catch (error) {
-      console.error('Error saving tenant:', error);
+      console.error('Error fetching tenants:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في حفظ بيانات المستأجر",
-        variant: "destructive",
+        title: 'خطأ في جلب المستأجرين',
+        description: error.message,
+        variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      full_name: '',
-      phone: '',
-      email: '',
-      nationality: '',
-      emirates_id: '',
-      passport_number: '',
-      visa_status: '',
-      emergency_contact_name: '',
-      emergency_contact_phone: '',
-      current_address: '',
-      preferred_language: 'ar',
-      status: 'new',
-      lead_source: '',
-      notes: ''
-    });
-    setEditingTenant(null);
+  const fetchProperties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setProperties(data || []);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    }
   };
 
-  const handleEdit = (tenant: RentalTenant) => {
+  const filterTenants = () => {
+    let filtered = tenants;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(tenant =>
+        tenant.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tenant.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tenant.phone?.includes(searchTerm) ||
+        tenant.properties?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by tab
+    if (selectedTab !== 'all') {
+      filtered = filtered.filter(tenant => tenant.status === selectedTab);
+    }
+
+    setFilteredTenants(filtered);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(e.target);
+    const tenantData = {
+      full_name: formData.get('full_name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      property_id: formData.get('property_id'),
+      lease_start: formData.get('lease_start'),
+      lease_end: formData.get('lease_end'),
+      rent_amount: formData.get('rent_amount'),
+      payment_frequency: formData.get('payment_frequency'),
+      notes: formData.get('notes'),
+      status: formData.get('status'),
+    };
+
+    try {
+      let result;
+
+      if (editingTenant) {
+        // Update existing tenant
+        result = await supabase
+          .from('tenants')
+          .update(tenantData)
+          .eq('id', editingTenant.id);
+
+        if (result.error) throw result.error;
+
+        toast({
+          title: 'تم التحديث بنجاح',
+          description: 'تم تحديث بيانات المستأجر بنجاح',
+        });
+      } else {
+        // Create new tenant
+        tenantData.created_by = user.id;
+
+        result = await supabase
+          .from('tenants')
+          .insert([tenantData]);
+
+        if (result.error) throw result.error;
+
+        toast({
+          title: 'تمت الإضافة بنجاح',
+          description: 'تم إضافة المستأجر الجديد بنجاح',
+        });
+
+        // If auto sync is enabled, add to contacts
+        if (isAutoSyncEnabled) {
+          try {
+            await fetchContacts({
+              name: tenantData.full_name,
+              phone: tenantData.phone,
+              email: tenantData.email,
+              role: 'tenant',
+            });
+          } catch (syncError) {
+            console.error('Error syncing contact:', syncError);
+          }
+        }
+      }
+
+      setIsDialogOpen(false);
+      fetchTenants();
+    } catch (error) {
+      console.error('Error saving tenant:', error);
+      toast({
+        title: 'خطأ في حفظ البيانات',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+      setEditingTenant(null);
+    }
+  };
+
+  const handleEdit = (tenant) => {
     setEditingTenant(tenant);
-    setFormData({
-      full_name: tenant.full_name,
-      phone: tenant.phone,
-      email: tenant.email || '',
-      nationality: tenant.nationality || '',
-      emirates_id: tenant.emirates_id || '',
-      passport_number: tenant.passport_number || '',
-      visa_status: tenant.visa_status || '',
-      emergency_contact_name: tenant.emergency_contact_name || '',
-      emergency_contact_phone: tenant.emergency_contact_phone || '',
-      current_address: tenant.current_address || '',
-      preferred_language: tenant.preferred_language,
-      status: tenant.status,
-      lead_source: tenant.lead_source || '',
-      notes: tenant.notes || ''
-    });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async () => {
     if (!tenantToDelete) return;
-    
+
+    setLoading(true);
     try {
-      deleteContact(tenantToDelete.id);
+      const { error } = await supabase
+        .from('tenants')
+        .delete()
+        .eq('id', tenantToDelete.id);
+
+      if (error) throw error;
 
       toast({
-        title: "تم الحذف",
-        description: "تم حذف المستأجر بنجاح",
+        title: 'تم الحذف بنجاح',
+        description: 'تم حذف المستأجر بنجاح',
       });
 
-      setDeleteDialogOpen(false);
+      setTenants(tenants.filter(t => t.id !== tenantToDelete.id));
+      setIsDeleteDialogOpen(false);
       setTenantToDelete(null);
     } catch (error) {
       console.error('Error deleting tenant:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في حذف المستأجر",
-        variant: "destructive",
+        title: 'خطأ في حذف المستأجر',
+        description: error.message,
+        variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleWhatsApp = (phone: string) => {
-    const cleanPhone = phone.replace(/[^0-9+]/g, '');
-    const whatsappUrl = `https://wa.me/${cleanPhone}`;
-    window.open(whatsappUrl, '_blank');
+  const confirmDelete = (tenant) => {
+    setTenantToDelete(tenant);
+    setIsDeleteDialogOpen(true);
   };
 
   const exportToPDF = () => {
-    const doc = new jsPDF();
-    
-    // Add Arabic font support
-    doc.setFont("helvetica");
-    doc.setFontSize(16);
-    doc.text('Tenants Report', 20, 20);
-    
-    const tableColumns = ['Name', 'Phone', 'Email', 'Nationality', 'Status'];
-    const tableRows = filteredTenants.map(tenant => [
-      tenant.full_name,
-      tenant.phone,
-      tenant.email || '',
-      tenant.nationality || '',
-      getStatusText(tenant.status)
-    ]);
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF();
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(18);
+      doc.text('قائمة المستأجرين', doc.internal.pageSize.width / 2, 20, { align: 'center' });
 
-    (doc as any).autoTable({
-      head: [tableColumns],
-      body: tableRows,
-      startY: 30,
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [41, 128, 185] }
-    });
+      const tableColumn = ['الاسم', 'رقم الهاتف', 'البريد الإلكتروني', 'العقار', 'مبلغ الإيجار', 'الحالة'];
+      const tableRows = [];
 
-    doc.save('tenants-report.pdf');
-    
-    toast({
-      title: "تم التصدير",
-      description: "تم تصدير التقرير بصيغة PDF بنجاح",
-    });
+      filteredTenants.forEach(tenant => {
+        const tenantData = [
+          tenant.full_name,
+          tenant.phone || '-',
+          tenant.email || '-',
+          tenant.properties?.name || '-',
+          `${tenant.rent_amount || 0} ريال`,
+          tenant.status === 'active' ? 'نشط' : 
+          tenant.status === 'inactive' ? 'غير نشط' : 
+          tenant.status === 'pending' ? 'قيد الانتظار' : tenant.status,
+        ];
+        tableRows.push(tenantData);
+      });
+
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 30,
+        styles: { fontSize: 10, halign: 'right' },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+        alternateRowStyles: { fillColor: [240, 240, 240] },
+      });
+
+      doc.save('tenants.pdf');
+
+      toast({
+        title: 'تم التصدير بنجاح',
+        description: 'تم تصدير قائمة المستأجرين إلى ملف PDF',
+      });
+    } catch (error) {
+      console.error('Error exporting to PDF:', error);
+      toast({
+        title: 'خطأ في التصدير',
+        description: 'حدث خطأ أثناء تصدير البيانات',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(
-      filteredTenants.map(tenant => ({
-        'الاسم الكامل': tenant.full_name,
-        'رقم الهاتف': tenant.phone,
-        'البريد الإلكتروني': tenant.email || '',
-        'الجنسية': tenant.nationality || '',
-        'الهوية الإماراتية': tenant.emirates_id || '',
-        'رقم الجواز': tenant.passport_number || '',
-        'الحالة': getStatusText(tenant.status),
-        'المصدر': tenant.lead_source || '',
-        'تاريخ الإنشاء': new Date(tenant.created_at).toLocaleDateString('ar-AE')
-      }))
-    );
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'المستأجرين');
-    XLSX.writeFile(workbook, 'tenants-report.xlsx');
-    
-    toast({
-      title: "تم التصدير",
-      description: "تم تصدير التقرير بصيغة Excel بنجاح",
-    });
+    setIsExporting(true);
+    try {
+      // This is a placeholder for Excel export functionality
+      // You would typically use a library like xlsx or exceljs
+      toast({
+        title: 'ميزة قيد التطوير',
+        description: 'تصدير Excel قيد التطوير حالياً',
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast({
+        title: 'خطأ في التصدير',
+        description: 'حدث خطأ أثناء تصدير البيانات',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const getStatusText = (status: string) => {
-    const statusMap = {
-      'new': 'جديد',
-      'interested': 'مهتم',
-      'negotiating': 'جاري التفاوض',
-      'agreed': 'تم الاتفاق',
-      'contracted': 'متعاقد',
-      'not_interested': 'غير مهتم'
-    };
-    return statusMap[status as keyof typeof statusMap] || 'جديد';
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">نشط</Badge>;
+      case 'inactive':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">غير نشط</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">قيد الانتظار</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">{status}</Badge>;
+    }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      'new': { variant: 'default' as const, label: 'جديد' },
-      'interested': { variant: 'secondary' as const, label: 'مهتم' },
-      'negotiating': { variant: 'outline' as const, label: 'جاري التفاوض' },
-      'agreed': { variant: 'default' as const, label: 'تم الاتفاق' },
-      'contracted': { variant: 'default' as const, label: 'متعاقد' },
-      'not_interested': { variant: 'destructive' as const, label: 'غير مهتم' }
-    };
-    
-    const statusInfo = variants[status as keyof typeof variants] || variants.new;
-    
-    return (
-      <Badge variant={statusInfo.variant}>
-        {statusInfo.label}
-      </Badge>
-    );
+  const getPaymentFrequencyText = (frequency) => {
+    switch (frequency) {
+      case 'monthly': return 'شهري';
+      case 'quarterly': return 'ربع سنوي';
+      case 'biannual': return 'نصف سنوي';
+      case 'annual': return 'سنوي';
+      default: return frequency;
+    }
   };
-
-  const filteredTenants = tenants.filter(tenant =>
-    tenant.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tenant.phone.includes(searchTerm) ||
-    (tenant.email && tenant.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (tenant.nationality && tenant.nationality.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">جاري التحميل...</div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">إدارة المستأجرين</h1>
-          <p className="text-muted-foreground mt-1">
-            إدارة بيانات العملاء والمستأجرين المحتملين
-          </p>
+    <div className="container mx-auto py-6 space-y-6 rtl">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">إدارة المستأجرين</h1>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/contacts')}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+          >
+            <Users className="h-4 w-4 ml-2" />
+            جهات الاتصال
+          </Button>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة مستأجر جديد
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center gap-4">
+        <div className="flex-1">
+          <Input
+            placeholder="البحث عن مستأجر..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+          />
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => syncTenants()} 
+          <Button
             variant="outline"
-            disabled={isLoading}
+            onClick={fetchTenants}
+            disabled={loading}
           >
-            <RefreshCw className={`h-4 w-4 ml-2 ${isLoading ? 'animate-spin' : ''}`} />
-            مزامنة المستأجرين
+            <RefreshCw className={`h-4 w-4 ml-2 ${loading ? 'animate-spin' : ''}`} />
+            تحديث
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة مستأجر جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTenant ? 'تعديل المستأجر' : 'إضافة مستأجر جديد'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingTenant ? 'تعديل بيانات المستأجر' : 'إضافة مستأجر جديد لنظام الإيجارات'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="full_name">الاسم الكامل *</Label>
-                  <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">رقم الهاتف *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
+          <Button
+            variant="outline"
+            onClick={exportToPDF}
+            disabled={isExporting || filteredTenants.length === 0}
+          >
+            <FileDown className="h-4 w-4 ml-2" />
+            تصدير PDF
+          </Button>
+          <Button
+            variant="outline"
+            onClick={exportToExcel}
+            disabled={isExporting || filteredTenants.length === 0}
+          >
+            <FileSpreadsheet className="h-4 w-4 ml-2" />
+            تصدير Excel
+          </Button>
+        </div>
+      </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="nationality">الجنسية</Label>
-                  <Input
-                    id="nationality"
-                    value={formData.nationality}
-                    onChange={(e) => setFormData({...formData, nationality: e.target.value})}
-                  />
-                </div>
-              </div>
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">الكل</TabsTrigger>
+          <TabsTrigger value="active">نشط</TabsTrigger>
+          <TabsTrigger value="inactive">غير نشط</TabsTrigger>
+          <TabsTrigger value="pending">قيد الانتظار</TabsTrigger>
+        </TabsList>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="emirates_id">الهوية الإماراتية</Label>
-                  <Input
-                    id="emirates_id"
-                    value={formData.emirates_id}
-                    onChange={(e) => setFormData({...formData, emirates_id: e.target.value})}
-                  />
+        <TabsContent value={selectedTab} className="mt-0">
+          <Card>
+            <CardContent className="p-0">
+              {loading && tenants.length === 0 ? (
+                <div className="p-4 space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4 rtl:space-x-reverse">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-[250px]" />
+                        <Skeleton className="h-4 w-[200px]" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <Label htmlFor="passport_number">رقم الجواز</Label>
-                  <Input
-                    id="passport_number"
-                    value={formData.passport_number}
-                    onChange={(e) => setFormData({...formData, passport_number: e.target.value})}
-                  />
+              ) : filteredTenants.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-muted-foreground">لا توجد بيانات للعرض</p>
                 </div>
-              </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>الاسم</TableHead>
+                      <TableHead>معلومات الاتصال</TableHead>
+                      <TableHead>العقار</TableHead>
+                      <TableHead>مدة الإيجار</TableHead>
+                      <TableHead>مبلغ الإيجار</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTenants.map((tenant) => (
+                      <TableRow key={tenant.id}>
+                        <TableCell className="font-medium">{tenant.full_name}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col space-y-1">
+                            {tenant.phone && (
+                              <div className="flex items-center">
+                                <Phone className="h-3 w-3 ml-1 text-muted-foreground" />
+                                <span className="text-sm">{tenant.phone}</span>
+                              </div>
+                            )}
+                            {tenant.email && (
+                              <div className="flex items-center">
+                                <Mail className="h-3 w-3 ml-1 text-muted-foreground" />
+                                <span className="text-sm">{tenant.email}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{tenant.properties?.name || '-'}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col space-y-1">
+                            <div className="text-sm">
+                              <span className="font-medium">من:</span> {tenant.lease_start ? new Date(tenant.lease_start).toLocaleDateString('ar-SA') : '-'}
+                            </div>
+                            <div className="text-sm">
+                              <span className="font-medium">إلى:</span> {tenant.lease_end ? new Date(tenant.lease_end).toLocaleDateString('ar-SA') : '-'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col space-y-1">
+                            <div className="font-medium">{tenant.rent_amount ? `${tenant.rent_amount} ريال` : '-'}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {tenant.payment_frequency ? getPaymentFrequencyText(tenant.payment_frequency) : '-'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(tenant.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2 rtl:space-x-reverse">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(tenant)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => confirmDelete(tenant)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-              <div>
-                <Label htmlFor="visa_status">حالة التأشيرة</Label>
-                <Select value={formData.visa_status} onValueChange={(value) => setFormData({...formData, visa_status: value})}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editingTenant ? 'تعديل المستأجر' : 'إضافة مستأجر جديد'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">الاسم الكامل</Label>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  defaultValue={editingTenant?.full_name}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">رقم الهاتف</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  defaultValue={editingTenant?.phone}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  defaultValue={editingTenant?.email}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="property_id">العقار</Label>
+                <Select name="property_id" defaultValue={editingTenant?.property_id?.toString()}>
                   <SelectTrigger>
-                    <SelectValue placeholder="اختر حالة التأشيرة" />
+                    <SelectValue placeholder="اختر العقار" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="resident">مقيم</SelectItem>
-                    <SelectItem value="visit">زيارة</SelectItem>
-                    <SelectItem value="tourist">سياحة</SelectItem>
-                    <SelectItem value="work">عمل</SelectItem>
-                    <SelectItem value="student">طالب</SelectItem>
-                    <SelectItem value="citizen">مواطن</SelectItem>
+                    {properties.map((property) => (
+                      <SelectItem key={property.id} value={property.id.toString()}>
+                        {property.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="emergency_contact_name">اسم جهة الاتصال الطارئ</Label>
-                  <Input
-                    id="emergency_contact_name"
-                    value={formData.emergency_contact_name}
-                    onChange={(e) => setFormData({...formData, emergency_contact_name: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emergency_contact_phone">هاتف جهة الاتصال الطارئ</Label>
-                  <Input
-                    id="emergency_contact_phone"
-                    value={formData.emergency_contact_phone}
-                    onChange={(e) => setFormData({...formData, emergency_contact_phone: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="current_address">العنوان الحالي</Label>
+              <div className="space-y-2">
+                <Label htmlFor="lease_start">تاريخ بداية الإيجار</Label>
                 <Input
-                  id="current_address"
-                  value={formData.current_address}
-                  onChange={(e) => setFormData({...formData, current_address: e.target.value})}
+                  id="lease_start"
+                  name="lease_start"
+                  type="date"
+                  defaultValue={editingTenant?.lease_start}
                 />
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="preferred_language">اللغة المفضلة</Label>
-                  <Select value={formData.preferred_language} onValueChange={(value) => setFormData({...formData, preferred_language: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ar">العربية</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="hi">हिन्दी</SelectItem>
-                      <SelectItem value="ur">اردو</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="status">حالة المستأجر</Label>
-                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">جديد</SelectItem>
-                      <SelectItem value="interested">مهتم</SelectItem>
-                      <SelectItem value="negotiating">جاري التفاوض</SelectItem>
-                      <SelectItem value="agreed">تم الاتفاق</SelectItem>
-                      <SelectItem value="contracted">متعاقد</SelectItem>
-                      <SelectItem value="not_interested">غير مهتم</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="lead_source">مصدر العميل</Label>
-                  <Select value={formData.lead_source} onValueChange={(value) => setFormData({...formData, lead_source: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المصدر" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="website">الموقع الإلكتروني</SelectItem>
-                      <SelectItem value="referral">إحالة</SelectItem>
-                      <SelectItem value="social_media">وسائل التواصل</SelectItem>
-                      <SelectItem value="advertisement">إعلان</SelectItem>
-                      <SelectItem value="walk_in">زيارة مباشرة</SelectItem>
-                      <SelectItem value="phone_call">مكالمة هاتفية</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="lease_end">تاريخ نهاية الإيجار</Label>
+                <Input
+                  id="lease_end"
+                  name="lease_end"
+                  type="date"
+                  defaultValue={editingTenant?.lease_end}
+                />
               </div>
-
-              <div>
+              <div className="space-y-2">
+                <Label htmlFor="rent_amount">مبلغ الإيجار</Label>
+                <Input
+                  id="rent_amount"
+                  name="rent_amount"
+                  type="number"
+                  defaultValue={editingTenant?.rent_amount}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment_frequency">تكرار الدفع</Label>
+                <Select name="payment_frequency" defaultValue={editingTenant?.payment_frequency || 'monthly'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر تكرار الدفع" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">شهري</SelectItem>
+                    <SelectItem value="quarterly">ربع سنوي</SelectItem>
+                    <SelectItem value="biannual">نصف سنوي</SelectItem>
+                    <SelectItem value="annual">سنوي</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">الحالة</Label>
+                <Select name="status" defaultValue={editingTenant?.status || 'active'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر الحالة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">نشط</SelectItem>
+                    <SelectItem value="inactive">غير نشط</SelectItem>
+                    <SelectItem value="pending">قيد الانتظار</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="notes">ملاحظات</Label>
                 <Textarea
                   id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  name="notes"
+                  defaultValue={editingTenant?.notes}
                   rows={3}
                 />
               </div>
-
-              <div className="flex justify-end space-x-2 space-x-reverse">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  إلغاء
-                </Button>
-                <Button type="submit">
-                  {editingTenant ? 'تحديث' : 'إضافة'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* البحث والفلاتر */}
-      <Card>
-        <CardHeader>
-          <CardTitle>البحث والفلترة</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 items-center">
-            <div className="flex-1">
-              <Input
-                placeholder="البحث في المستأجرين..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={exportToPDF} variant="outline" size="sm">
-                <FileDown className="h-4 w-4 ml-2" />
-                PDF
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                إلغاء
               </Button>
-              <Button onClick={exportToExcel} variant="outline" size="sm">
-                <FileSpreadsheet className="h-4 w-4 ml-2" />
-                Excel
+              <Button type="submit" disabled={loading}>
+                {loading && <RotateCw className="ml-2 h-4 w-4 animate-spin" />}
+                {editingTenant ? 'تحديث' : 'إضافة'}
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* جدول المستأجرين */}
-      <Card>
-        <CardHeader>
-          <CardTitle>قائمة المستأجرين</CardTitle>
-          <CardDescription>
-            إجمالي المستأجرين: {filteredTenants.length}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>المستأجر</TableHead>
-                <TableHead>التواصل</TableHead>
-                <TableHead>الهوية</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>المصدر</TableHead>
-                <TableHead>الإجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTenants.map((tenant) => (
-                <TableRow key={tenant.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{tenant.full_name}</div>
-                      {tenant.nationality && (
-                        <div className="text-sm text-muted-foreground flex items-center">
-                          <Globe className="h-3 w-3 ml-1" />
-                          {tenant.nationality}
-                        </div>
-                      )}
-                      {tenant.preferred_language !== 'ar' && (
-                        <Badge variant="outline" className="mt-1">
-                          {tenant.preferred_language === 'en' && 'English'}
-                          {tenant.preferred_language === 'hi' && 'हिन्दी'}
-                          {tenant.preferred_language === 'ur' && 'اردو'}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm">
-                        <Phone className="h-3 w-3 ml-1" />
-                        {tenant.phone}
-                      </div>
-                      {tenant.email && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3 ml-1" />
-                          {tenant.email}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {tenant.emirates_id && (
-                        <div>هوية: {tenant.emirates_id}</div>
-                      )}
-                      {tenant.passport_number && (
-                        <div>جواز: {tenant.passport_number}</div>
-                      )}
-                      {tenant.visa_status && (
-                        <Badge variant="outline" className="mt-1">
-                          {tenant.visa_status}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(tenant.status)}</TableCell>
-                  <TableCell>
-                    {tenant.lead_source && (
-                      <Badge variant="outline">
-                        {tenant.lead_source === 'website' && 'موقع إلكتروني'}
-                        {tenant.lead_source === 'referral' && 'إحالة'}
-                        {tenant.lead_source === 'social_media' && 'وسائل تواصل'}
-                        {tenant.lead_source === 'advertisement' && 'إعلان'}
-                        {tenant.lead_source === 'walk_in' && 'زيارة مباشرة'}
-                        {tenant.lead_source === 'phone_call' && 'مكالمة'}
-                      </Badge>
-                    )}
-                  </TableCell>
-                   <TableCell>
-                    <div className="flex gap-2">
-                       <Button
-                         variant="outline"
-                         size="sm"
-                         onClick={() => handleWhatsApp(tenant.phone)}
-                         title="إرسال رسالة واتس آب"
-                         className="bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
-                       >
-                         <MessageCircle className="h-4 w-4" />
-                       </Button>
-                       <Button
-                         variant="outline"
-                         size="sm"
-                         onClick={() => handleEdit(tenant)}
-                       >
-                         <Edit className="h-4 w-4 ml-2" />
-                         تعديل
-                       </Button>
-                       <Button
-                         variant="outline"
-                         size="sm"
-                         onClick={() => {
-                           setTenantToDelete(tenant);
-                           setDeleteDialogOpen(true);
-                         }}
-                         className="text-red-600 border-red-200 hover:bg-red-50"
-                       >
-                         <Trash2 className="h-4 w-4 ml-2" />
-                         حذف
-                       </Button>
-                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {filteredTenants.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>لا توجد مستأجرين</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmationDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="تأكيد الحذف"
-        description={`هل أنت متأكد من حذف المستأجر "${tenantToDelete?.full_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
-        confirmText="حذف"
-        cancelText="إلغاء"
-        variant="destructive"
-        onConfirm={handleDelete}
-        loading={loading}
-      />
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف المستأجر "{tenantToDelete?.full_name}"؟ هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={loading} className="bg-red-600 hover:bg-red-700">
+              {loading && <RotateCw className="ml-2 h-4 w-4 animate-spin" />}
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

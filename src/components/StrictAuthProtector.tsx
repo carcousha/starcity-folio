@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 /**
  * StrictAuthProtector - حماية مطلقة على مستوى الجذر
@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 export const StrictAuthProtector = ({ children }: { children: React.ReactNode }) => {
   const { user, session, profile, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
 
   // حماية فورية ومطلقة عند تحميل أي صفحة
@@ -20,7 +21,7 @@ export const StrictAuthProtector = ({ children }: { children: React.ReactNode })
         console.log('StrictAuthProtector: No valid session, clearing storage and redirecting');
         localStorage.clear();
         sessionStorage.clear();
-        window.location.replace('/');
+        navigate('/', { replace: true });
         return;
       }
       
@@ -29,7 +30,7 @@ export const StrictAuthProtector = ({ children }: { children: React.ReactNode })
         console.log('StrictAuthProtector: Profile exists but inactive, redirecting');
         localStorage.clear();
         sessionStorage.clear();
-        window.location.replace('/');
+        navigate('/', { replace: true });
         return;
       }
     }
@@ -54,13 +55,13 @@ export const StrictAuthProtector = ({ children }: { children: React.ReactNode })
 
   // منع مطلق لأي محتوى بدون مصادقة صحيحة (جلسة ومستخدم فقط)
   if (!session || !user) {
-    window.location.href = '/';
+    navigate('/', { replace: true });
     return null;
   }
 
   // منع مطلق للمستخدمين غير النشطين (إذا وجد profile)
   if (profile && !profile.is_active) {
-    window.location.href = '/';
+    navigate('/', { replace: true });
     return null;
   }
 

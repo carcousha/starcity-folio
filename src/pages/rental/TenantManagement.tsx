@@ -96,7 +96,6 @@ const AddTenantForm = () => {
       // مزامنة مع نظام جهات الاتصال الموحد
       await addContact({
         full_name: tenant.full_name,
-        phone_primary: tenant.phone,
         email: tenant.email,
         roles: ['tenant'],
         language: 'ar',

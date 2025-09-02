@@ -15,6 +15,8 @@ import { StrictAuthProtector } from "@/components/StrictAuthProtector";
 import { DashboardHome } from "@/components/DashboardHome";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { GlobalSelectedBrokersProvider } from "@/hooks/useGlobalSelectedBrokers";
+import LoadingErrorBoundary from "@/components/ui/LoadingErrorBoundary";
+import { connectionManager } from "@/services/connectionManager";
 
 // Lazy Loading Components
 const Auth = lazy(() => import("./pages/Auth"));
@@ -96,21 +98,21 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider defaultTheme="system" storageKey="starcity-theme">
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+      <ThemeProvider defaultTheme="system" storageKey="starcity-theme">
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
               <GlobalSelectedBrokersProvider>
                 <StrictAuthProtector>
                   <AppProtector />
                 </StrictAuthProtector>
               </GlobalSelectedBrokersProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </ThemeProvider>
-      </AuthProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
@@ -119,13 +121,26 @@ const App = () => {
 const AppProtector = () => {
   const { user, session, profile, loading } = useAuth();
   const location = useLocation();
+  const [authTimeout, setAuthTimeout] = React.useState(false);
+
+  // إضافة timeout لتجنب التحميل اللانهائي
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log('Auth timeout reached, proceeding...');
+        setAuthTimeout(true);
+      }
+    }, 8000); // 8 ثوان timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, [loading]);
 
   // إذا كان المسار صفحة تسجيل الدخول، اعرضها فقط
   if (location.pathname === "/") {
     return (
-      <Suspense fallback={<LoadingSpinner />}>
+      <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Auth">
         <Auth />
-      </Suspense>
+      </LoadingErrorBoundary>
     );
   }
 
@@ -138,8 +153,8 @@ const AppProtector = () => {
     return null;
   }
 
-  // إذا كان التحميل جاري، أظهر شاشة تحميل بسيطة
-  if (loading) {
+  // إذا كان التحميل جاري ولم ينته الوقت المحدد، أظهر شاشة تحميل بسيطة
+  if (loading && !authTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
@@ -165,440 +180,440 @@ const AppProtector = () => {
               <Routes>
                         <Route path="/admin-dashboard" element={
                           <ProtectedRoute requiredPermission="canManageStaff">
-                            <Suspense fallback={<LoadingSpinner />}>
+                            <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="DashboardHome">
                               <DashboardHome />
-                            </Suspense>
+                            </LoadingErrorBoundary>
                           </ProtectedRoute>
                         } />
               
               {/* CRM Routes - Admin and some for employees */}
                <Route path="/crm" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="CRMIndex">
                      <CRMIndex />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
 
                <Route path="/crm/clients" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Clients">
                      <Clients />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/crm/leads" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Leads">
                      <Leads />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                                
 
                <Route path="/crm/properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="CRMProperties">
                      <CRMProperties />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/crm/owners" element={
                   <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
+                    <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="CRMPropertyOwners">
                       <CRMPropertyOwners />
-                    </Suspense>
+                    </LoadingErrorBoundary>
                   </ProtectedRoute>
                 } />
               <Route path="/crm/tasks" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="TasksIndex">
                     <TasksIndex />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               
               {/* Contacts Route - Standalone */}
               <Route path="/contacts" element={
                 <ProtectedRoute requiredPermission="crmAccess">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="WhatsAppContacts">
                     <WhatsAppContacts />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               
               {/* Accounting Routes - Admin and Accountant */}
               <Route path="/accounting" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="AccountingIndex">
                     <AccountingIndex />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/expenses" element={
                 <ProtectedRoute requiredPermission="canManageExpenses">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Expenses">
                     <Expenses />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/revenues" element={
                 <ProtectedRoute requiredPermission="canManageRevenues">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Revenues">
                     <Revenues />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/commissions" element={
                 <ProtectedRoute requiredPermission="canManageCommissions">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Commissions">
                     <Commissions />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/debts" element={
                 <ProtectedRoute requiredPermission="canManageDebts">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Debts">
                     <Debts />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/advanced-debts" element={
                 <ProtectedRoute requiredPermission="canManageDebts">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="AdvancedDebts">
                     <AdvancedDebts />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/vehicles" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Vehicles">
                     <Vehicles />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/vehicle-expenses" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="VehicleExpenses">
                     <VehicleExpenses />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/staff" element={
                 <ProtectedRoute requiredPermission="canViewAllStaff">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Staff">
                     <Staff />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/treasury" element={
                 <ProtectedRoute requiredPermission="canViewTreasury">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Treasury">
                     <Treasury />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/daily-journal" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="DailyJournal">
                     <DailyJournal />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/accounting/activity-log" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="ActivityLogPage">
                     <ActivityLogPage />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               
                {/* Rental Routes - Admin and Accountant */}
                <Route path="/rental" element={
                  <ProtectedRoute requiredPermission="canViewFinancials">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="RentalIndex">
                      <RentalIndex />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/rental/property-owners" element={
                   <ProtectedRoute requiredPermission="canViewFinancials">
-                    <Suspense fallback={<LoadingSpinner />}>
+                    <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="RentalPropertyOwners">
                       <RentalPropertyOwners />
-                    </Suspense>
+                    </LoadingErrorBoundary>
                   </ProtectedRoute>
                 } />
               <Route path="/rental/properties" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="RentalProperties">
                     <RentalProperties />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/rental/tenants" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Tenants">
                     <Tenants />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
                <Route path="/rental/contracts" element={
                  <ProtectedRoute requiredPermission="canManageCommissions">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="RentalContracts">
                      <RentalContracts />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                 } />
                 <Route path="/rental/generated-contracts" element={
                   <ProtectedRoute requiredPermission="canViewFinancials">
-                    <Suspense fallback={<LoadingSpinner />}>
+                    <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="GeneratedContracts">
                       <GeneratedContracts />
-                    </Suspense>
+                    </LoadingErrorBoundary>
                   </ProtectedRoute>
                 } />
                 <Route path="/rental/installments" element={
                  <ProtectedRoute requiredPermission="canViewFinancials">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Installments">
                      <Installments />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/rental/government-services" element={
                  <ProtectedRoute requiredPermission="canViewFinancials">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="GovernmentServices">
                      <GovernmentServices />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
               
               {/* WhatsApp Module Routes - Admin and Accountant */}
               <Route path="/whatsapp/*" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="WhatsAppModule">
                     <WhatsAppModule />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
 
               {/* Land Sales Routes - Admin and Accountant */}
               <Route path="/land-sales/*" element={
                 <ProtectedRoute requiredPermission="canViewFinancials">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="LandSalesIndex">
                     <LandSalesIndex />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               
               {/* Reports Routes - Admin and Accountant */}
               <Route path="/reports" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="ReportsIndex">
                     <ReportsIndex />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/employees" element={
                 <ProtectedRoute requiredPermission="canViewAllStaff">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="EmployeeReports">
                     <EmployeeReports />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/employee/:employeeId" element={
                 <ProtectedRoute requiredPermission="canViewAllStaff">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="EmployeeDetails">
                     <EmployeeDetails />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/vehicles" element={
                 <ProtectedRoute requiredPermission="canViewAllVehicles">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="VehicleReports">
                     <VehicleReports />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/commissions" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="CommissionsReports">
                     <CommissionsReports />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/debts" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="DebtsReports">
                     <DebtsReports />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/expenses" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="ExpensesReports">
                     <ExpensesReports />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/revenues" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="RevenuesReports">
                     <RevenuesReports />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/reports/treasury" element={
                 <ProtectedRoute requiredPermission="canViewAllReports">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="TreasuryReports">
                     <TreasuryReports />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
                
                {/* Employee Routes */}
                <Route path="/employee/dashboard" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="EmployeeDashboard">
                      <EmployeeDashboard />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-commissions" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyCommissions">
                      <MyCommissions />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-debts" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyDebts">
                      <MyDebts />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/vehicle" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Vehicle">
                      <Vehicle />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/requests" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyRequests">
                      <MyRequests />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/complaints" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Complaints">
                      <Complaints />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/notifications" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Notifications">
                      <Notifications />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/tasks" element={
                  <ProtectedRoute requiredPermission="canViewActivityLogs">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="TasksIndex">
                      <TasksIndex />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
               <Route path="/my-goals" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyGoals">
                     <MyGoals />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               <Route path="/my-evaluation" element={
                 <ProtectedRoute requiredPermission="canViewActivityLogs">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyEvaluation">
                     <MyEvaluation />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
                } />
                <Route path="/employee/my-performance" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyPerformance">
                      <MyPerformance />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-clients" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyClients">
                      <MyClients />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-leads" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyLeads">
                      <MyLeads />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-tasks" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyTasks">
                      <MyTasks />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-properties" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyProperties">
                      <MyProperties />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/employee/my-profile" element={
                  <ProtectedRoute requiredPermission="crmAccess">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="MyProfile">
                      <MyProfile />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
               
               {/* Settings Route - Admin only */}
               <Route path="/settings" element={
                 <ProtectedRoute requiredPermission="canManageStaff">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="Settings">
                     <Settings />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               
               {/* Security Audit Route - Admin only */}
               <Route path="/security-audit" element={
                 <ProtectedRoute requiredPermission="canManageStaff">
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="SecurityAuditPage">
                     <SecurityAuditPage />
-                  </Suspense>
+                  </LoadingErrorBoundary>
                 </ProtectedRoute>
               } />
               
               {/* AI Intelligence Hub */}
                <Route path="/ai-intelligence-hub" element={
                  <ProtectedRoute requiredPermission="canManageStaff">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="AIHubDashboard">
                      <AIHubDashboard />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
                <Route path="/ai-intelligence-hub/:sub" element={
                  <ProtectedRoute requiredPermission="canManageStaff">
-                   <Suspense fallback={<LoadingSpinner />}>
+                   <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="AIIntelligenceHub">
                      <AIIntelligenceHub />
-                   </Suspense>
+                   </LoadingErrorBoundary>
                  </ProtectedRoute>
                } />
               
@@ -609,9 +624,9 @@ const AppProtector = () => {
                 path="*"
                 element={
                   <ProtectedRoute requiredPermission="crmAccess">
-                    <Suspense fallback={<LoadingSpinner />}>
+                    <LoadingErrorBoundary fallback={<LoadingSpinner />} modulePath="NotFound">
                       <NotFound />
-                    </Suspense>
+                    </LoadingErrorBoundary>
                   </ProtectedRoute>
                 }
               />

@@ -63,9 +63,9 @@ export class ContactSyncService {
       cr_number: contactData.cr_number,
       cr_expiry_date: contactData.cr_expiry_date,
       units_count: contactData.units_count,
-      phone: this.extractChannelValue(contactData, 'mobile'),
-      whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
-      email: this.extractChannelValue(contactData, 'email'),
+      phone: await this.extractChannelValue(contactId, 'mobile'),
+      whatsapp: await this.extractChannelValue(contactId, 'whatsapp'),
+      email: await this.extractChannelValue(contactId, 'email'),
       status: contactData.status,
       notes: contactData.notes,
       rating: contactData.rating_1_5,
@@ -109,9 +109,9 @@ export class ContactSyncService {
       bank_name: contactData.bank_name,
       account_number: contactData.account_number,
       iban: contactData.iban,
-      phone: this.extractChannelValue(contactData, 'mobile'),
-      whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
-      email: this.extractChannelValue(contactData, 'email'),
+      phone: await this.extractChannelValue(contactId, 'mobile'),
+      whatsapp: await this.extractChannelValue(contactId, 'whatsapp'),
+      email: await this.extractChannelValue(contactId, 'email'),
       status: contactData.status,
       notes: contactData.notes,
       rating: contactData.rating_1_5,
@@ -145,9 +145,9 @@ export class ContactSyncService {
       contact_id: contactId,
       name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
-      phone: this.extractChannelValue(contactData, 'mobile'),
-      whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
-      email: this.extractChannelValue(contactData, 'email'),
+      phone: await this.extractChannelValue(contactId, 'mobile'),
+      whatsapp: await this.extractChannelValue(contactId, 'whatsapp'),
+      email: await this.extractChannelValue(contactId, 'email'),
       status: contactData.status,
       notes: contactData.notes,
       rating: contactData.rating_1_5,
@@ -181,9 +181,9 @@ export class ContactSyncService {
       contact_id: contactId,
       name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
-      phone: this.extractChannelValue(contactData, 'mobile'),
-      whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
-      email: this.extractChannelValue(contactData, 'email'),
+      phone: await this.extractChannelValue(contactId, 'mobile'),
+      whatsapp: await this.extractChannelValue(contactId, 'whatsapp'),
+      email: await this.extractChannelValue(contactId, 'email'),
       status: contactData.status,
       notes: contactData.notes,
       rating: contactData.rating_1_5,
@@ -218,9 +218,9 @@ export class ContactSyncService {
       contact_id: contactId,
       name: contactData.name || contactData.full_name,
       short_name: contactData.short_name,
-      phone: this.extractChannelValue(contactData, 'mobile'),
-      whatsapp: this.extractChannelValue(contactData, 'whatsapp'),
-      email: this.extractChannelValue(contactData, 'email'),
+      phone: await this.extractChannelValue(contactId, 'mobile'),
+      whatsapp: await this.extractChannelValue(contactId, 'whatsapp'),
+      email: await this.extractChannelValue(contactId, 'email'),
       status: contactData.status,
       notes: contactData.notes,
       rating: contactData.rating_1_5,
@@ -247,17 +247,27 @@ export class ContactSyncService {
   }
   
   /**
-   * استخراج قيمة قناة اتصال معينة
+   * استخراج قيمة قناة اتصال معينة من جدول قنوات الاتصال
    */
-  private static extractChannelValue(contactData: Contact, channelType: string): string | null {
-    if (!contactData.channels) return null;
-    
-    const channels = Array.isArray(contactData.channels) 
-      ? contactData.channels 
-      : JSON.parse(contactData.channels as string);
-    
-    const channel = channels.find((ch: any) => ch.type === channelType);
-    return channel?.value || null;
+  private static async extractChannelValue(contactId: string, channelType: string): Promise<string | null> {
+    try {
+      const { data: channels, error } = await supabase
+        .from('enhanced_contact_channels')
+        .select('value')
+        .eq('contact_id', contactId)
+        .eq('channel_type', channelType)
+        .limit(1);
+      
+      if (error) {
+        console.error('خطأ في استخراج قناة الاتصال:', error);
+        return null;
+      }
+      
+      return channels?.[0]?.value || null;
+    } catch (error) {
+      console.error('خطأ في استخراج قناة الاتصال:', error);
+      return null;
+    }
   }
   
   /**
@@ -424,19 +434,25 @@ export class ContactSyncService {
   
   /**
    * حذف المزامنة عند حذف جهة اتصال
+   * @param contactId معرف جهة الاتصال
+   * @param originalPageType نوع الصفحة الأصلية (اختياري) - إذا تم تحديده، لن يتم حذف السجل من هذه الصفحة
    */
-  static async deleteSyncedRecords(contactId: string) {
+  static async deleteSyncedRecords(contactId: string, originalPageType?: string) {
     try {
-      // حذف من جميع الجداول المرتبطة
+      // حذف من جميع الجداول المرتبطة باستثناء الصفحة الأصلية
       const tables = ['brokers', 'owners', 'tenants', 'clients', 'suppliers'];
       
       for (const table of tables) {
+        // تخطي الجدول إذا كان هو نفس نوع الصفحة الأصلية
+        if (table === originalPageType) continue;
+        
         await supabase
           .from(table)
           .delete()
           .eq('contact_id', contactId);
       }
       
+      console.log(`تم حذف السجلات المرتبطة بجهة الاتصال: ${contactId}، باستثناء: ${originalPageType || 'لا يوجد'}`);
       return { success: true };
     } catch (error) {
       console.error('خطأ في حذف السجلات المزامنة:', error);
@@ -460,9 +476,16 @@ export class ContactSyncService {
         },
         async (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            await this.syncContactToPages(payload.new.id, payload.new as Contact);
+            // تحقق مما إذا كانت عملية الحذف قيد التنفيذ
+            const isBeingDeleted = payload.new?.is_being_deleted === true;
+            
+            // فقط قم بالمزامنة إذا لم تكن جهة الاتصال قيد الحذف
+            if (!isBeingDeleted) {
+              await this.syncContactToPages(payload.new.id, payload.new as Contact);
+            }
           } else if (payload.eventType === 'DELETE') {
-            await this.deleteSyncedRecords(payload.old.id);
+            // لا نحتاج لاستدعاء deleteSyncedRecords هنا لأننا نقوم بذلك في UnifiedContactService.deleteContact
+            // await this.deleteSyncedRecords(payload.old.id);
           }
         }
       )

@@ -34,7 +34,7 @@ const rolePermissions: Record<UserRole, PermissionKey[]> = {
   ]
 };
 
-export const useRoleAccess = () => {
+function useRoleAccess() {
   const { profile } = useAuth();
   const navigate = useNavigate();
 
@@ -88,5 +88,7 @@ export const useRoleAccess = () => {
     isAccountant,
     isEmployee,
   };
-};
+}
+
+export { useRoleAccess };
 

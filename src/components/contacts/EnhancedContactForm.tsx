@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { v4 as uuidv4 } from 'uuid';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -106,25 +107,75 @@ export function EnhancedContactForm({ initialData, onSubmit, onCancel, isLoading
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      full_name: '',
-      short_name: '',
-      language: 'ar',
-      notes: '',
-      channels: [
+      full_name: initialData?.full_name || '',
+      short_name: initialData?.short_name || '',
+      language: initialData?.language || 'ar',
+      notes: initialData?.notes || '',
+      channels: initialData?.channels || [
         { type: 'mobile', value: '', is_primary: false, label: 'الجوال' },
         { type: 'whatsapp', value: '', is_primary: true, label: 'الواتساب' },
         { type: 'email', value: '', is_primary: false, label: 'البريد الإلكتروني' }
       ],
-      roles: [],
-      status: 'new',
-      follow_up_status: 'new',
-      priority: 'medium',
-      preferred_contact_method: 'phone',
-      ...initialData,
+      roles: initialData?.roles || [],
+      status: initialData?.status || 'new',
+      follow_up_status: initialData?.follow_up_status || 'new',
+      priority: initialData?.priority || 'medium',
+      preferred_contact_method: initialData?.preferred_contact_method || 'phone',
+      office_name: initialData?.office_name || '',
+      office_classification: initialData?.office_classification,
+      job_title: initialData?.job_title || '',
+      cr_number: initialData?.cr_number || '',
+      cr_expiry_date: initialData?.cr_expiry_date || '',
+      units_count: initialData?.units_count,
+      nationality: initialData?.nationality || '',
+      id_type: initialData?.id_type,
+      id_number: initialData?.id_number || '',
+      id_expiry_date: initialData?.id_expiry_date || '',
+      bank_name: initialData?.bank_name || '',
+      account_number: initialData?.account_number || '',
+      iban: initialData?.iban || '',
+      rating_1_5: initialData?.rating_1_5,
     },
   });
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = form;
+  const { control, handleSubmit, watch, setValue, reset, formState: { errors } } = form;
+  
+  // إعادة تعيين قيم النموذج عند تغيير البيانات الأولية
+  React.useEffect(() => {
+    if (initialData) {
+      console.log('تم استلام بيانات أولية للتعديل:', initialData);
+      
+      // تحقق من وجود قنوات الاتصال
+      if (initialData.channels && initialData.channels.length > 0) {
+        console.log('تم العثور على قنوات الاتصال:', initialData.channels);
+      } else {
+        console.log('لم يتم العثور على قنوات الاتصال');
+      }
+      
+      // إعادة تعيين النموذج بالبيانات الأولية
+      reset({
+        full_name: initialData.full_name || initialData.name,
+        short_name: initialData.short_name,
+        language: initialData.language || 'ar',
+        channels: initialData.channels || [],
+        roles: initialData.roles || [],
+        status: initialData.status || 'active',
+        priority: initialData.priority || 'medium',
+        follow_up_status: initialData.follow_up_status || 'new',
+        preferred_contact_method: initialData.preferred_contact_method || 'any',
+        company_name: initialData.company_name,
+        office: initialData.office,
+        bio: initialData.bio,
+        notes: initialData.notes,
+        tags: initialData.tags || [],
+        rating: initialData.rating || 0,
+        birthday: initialData.birthday,
+        next_contact_date: initialData.next_contact_date
+      });
+      
+      console.log('تم إعادة تعيين النموذج بالبيانات');
+    }
+  }, [initialData, reset]);
   const roles = watch('roles') || [];
   const channels = watch('channels') || [];
   const fullName = watch('full_name') || '';
@@ -148,8 +199,29 @@ export function EnhancedContactForm({ initialData, onSubmit, onCancel, isLoading
   }, [fullName, setValue, watch]);
 
   const addChannel = () => {
-    setValue('channels', [...channels, { type: 'phone', value: '', is_primary: false }]);
+    const newChannel = {
+      id: uuidv4(),
+      channel_type: 'phone',
+      value: '',
+      label: '',
+      is_primary: channels.length === 0,
+      is_verified: false,
+      is_active: true,
+      preferred_for_calls: false,
+      preferred_for_messages: false,
+      preferred_for_emails: false
+    };
+    setValue('channels', [...channels, newChannel]);
+    console.log('تمت إضافة قناة جديدة، القنوات الحالية:', [...channels, newChannel]);
   };
+  
+  // تحميل قنوات الاتصال عند فتح علامة التبويب channels
+  React.useEffect(() => {
+    if (activeTab === 'channels' && initialData?.channels?.length > 0 && channels.length === 0) {
+      console.log('تحميل قنوات الاتصال من البيانات الأولية:', initialData.channels);
+      setValue('channels', initialData.channels);
+    }
+  }, [activeTab, initialData, channels, setValue]);
 
   const removeChannel = (index: number) => {
     const newChannels = [...channels];
@@ -166,43 +238,71 @@ export function EnhancedContactForm({ initialData, onSubmit, onCancel, isLoading
 
   const handleFormSubmit = async (data: ContactFormValues) => {
     try {
+      console.log('🚀 بدء عملية الحفظ...', { contactId, data });
+      
+      // فحص حالة المستخدم أولاً
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error('❌ خطأ في المصادقة:', authError);
+        toast({
+          title: "خطأ في المصادقة",
+          description: "يرجى تسجيل الدخول مرة أخرى",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('✅ المستخدم مصادق:', user.email);
+      
       // حفظ البيانات في قاعدة البيانات
       let savedContactId = contactId;
       
       if (contactId) {
+        console.log('📝 تحديث جهة اتصال موجودة:', contactId);
+        
         // تحديث جهة اتصال موجودة
-        const { error } = await supabase
+        const updateData = {
+          full_name: data.full_name,
+          name: data.full_name, // للتوافق مع الأعمدة القديمة
+          short_name: data.short_name,
+          language: data.language,
+          bio: data.notes,
+          rating_1_5: data.rating_1_5,
+          roles: data.roles,
+          status: data.status,
+          follow_up_status: data.follow_up_status,
+          priority: data.priority,
+          preferred_contact_method: data.preferred_contact_method,
+          office_name: data.office_name,
+          office_classification: data.office_classification,
+          job_title: data.job_title,
+          units_count: data.units_count,
+          cr_number: data.cr_number,
+          cr_expiry_date: data.cr_expiry_date,
+          nationality: data.nationality,
+          id_type: data.id_type,
+          id_number: data.id_number,
+          id_expiry_date: data.id_expiry_date,
+          bank_name: data.bank_name,
+          account_number: data.account_number,
+          iban: data.iban,
+          updated_at: new Date().toISOString()
+        };
+        
+        console.log('📊 بيانات التحديث:', updateData);
+        
+        const { data: updatedData, error } = await supabase
           .from('enhanced_contacts')
-          .update({
-            full_name: data.full_name,
-            name: data.full_name, // للتوافق مع الأعمدة القديمة
-            short_name: data.short_name,
-            language: data.language,
-            bio: data.notes,
-            rating_1_5: data.rating_1_5,
-            roles: data.roles,
-            status: data.status,
-            follow_up_status: data.follow_up_status,
-            priority: data.priority,
-            preferred_contact_method: data.preferred_contact_method,
-            office_name: data.office_name,
-            office_classification: data.office_classification,
-            job_title: data.job_title,
-            units_count: data.units_count,
-            cr_number: data.cr_number,
-            cr_expiry_date: data.cr_expiry_date,
-            nationality: data.nationality,
-            id_type: data.id_type,
-            id_number: data.id_number,
-            id_expiry_date: data.id_expiry_date,
-            bank_name: data.bank_name,
-            account_number: data.account_number,
-            iban: data.iban,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', contactId);
+          .update(updateData)
+          .eq('id', contactId)
+          .select();
           
-        if (error) throw error;
+        if (error) {
+          console.error('❌ خطأ في التحديث:', error);
+          throw error;
+        }
+        
+        console.log('✅ تم التحديث بنجاح:', updatedData);
         
         toast({
           title: "تم التحديث بنجاح",
@@ -308,11 +408,26 @@ export function EnhancedContactForm({ initialData, onSubmit, onCancel, isLoading
         onSubmit(data);
       }
       
-    } catch (error) {
-      console.error('Error saving contact:', error);
+    } catch (error: any) {
+      console.error('❌ خطأ في حفظ جهة الاتصال:', error);
+      
+      let errorMessage = "حدث خطأ أثناء حفظ البيانات";
+      
+      if (error?.message) {
+        if (error.message.includes('permission')) {
+          errorMessage = "ليس لديك صلاحية لتحديث هذه البيانات";
+        } else if (error.message.includes('network')) {
+          errorMessage = "مشكلة في الاتصال بالإنترنت";
+        } else if (error.message.includes('constraint')) {
+          errorMessage = "البيانات المدخلة غير صحيحة";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "خطأ في الحفظ",
-        description: "حدث خطأ أثناء حفظ البيانات",
+        description: errorMessage,
         variant: "destructive"
       });
     }

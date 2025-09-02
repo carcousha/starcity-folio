@@ -227,14 +227,16 @@ export default function LandClients() {
             جهات الاتصال
           </Button>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingClient(null)}>
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة عميل جديد
-              </Button>
-            </DialogTrigger>
+          <Button onClick={() => {
+            setEditingClient(null);
+            setIsDialogOpen(true);
+          }}>
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة عميل جديد
+          </Button>
         </div>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>{editingClient ? 'تعديل العميل' : 'إضافة عميل جديد'}</DialogTitle>

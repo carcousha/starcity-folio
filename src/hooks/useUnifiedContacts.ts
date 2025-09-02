@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UnifiedContactService, SyncResult } from '../services/unifiedContactService';
 import { EnhancedContact } from '@/types/contact';
 import { toast } from 'sonner';
+import { handleNetworkError, withErrorHandling } from '@/services/networkErrorHandler';
 
 export interface ContactFilters {
   role?: string;
@@ -25,15 +26,32 @@ export const useUnifiedContacts = (filters?: ContactFilters) => {
     refetch
   } = useQuery({
     queryKey: ['unified-contacts', filters],
-    queryFn: () => UnifiedContactService.getContacts(filters),
+    queryFn: withErrorHandling(
+      () => UnifiedContactService.getContacts(filters),
+      {
+        retry: { maxRetries: 3, retryDelay: 2000 },
+        errorMessage: 'فشل في جلب جهات الاتصال. يرجى التحقق من اتصالك بالإنترنت.'
+      }
+    ),
     staleTime: 5 * 60 * 1000, // 5 دقائق
+    retry: 2,
+    retryDelay: 1000,
+    onError: (error) => {
+      handleNetworkError(error, 'فشل في جلب جهات الاتصال');
+    }
   });
 
   const contacts = contactsData?.data || [];
 
   // مزامنة جميع البيانات
   const syncAllMutation = useMutation({
-    mutationFn: UnifiedContactService.syncAllContacts,
+    mutationFn: withErrorHandling(
+      UnifiedContactService.syncAllContacts,
+      {
+        retry: { maxRetries: 3, retryDelay: 2000 },
+        errorMessage: 'فشل في مزامنة جهات الاتصال. يرجى المحاولة مرة أخرى.'
+      }
+    ),
     onSuccess: (result: SyncResult) => {
       if (result.success) {
         toast.success(result.message);
@@ -46,13 +64,20 @@ export const useUnifiedContacts = (filters?: ContactFilters) => {
       }
     },
     onError: (error) => {
-      toast.error(`خطأ في المزامنة: ${error}`);
-    }
+      handleNetworkError(error, 'خطأ في مزامنة جميع جهات الاتصال');
+    },
+    retry: 2
   });
 
   // مزامنة العملاء
   const syncClientsMutation = useMutation({
-    mutationFn: UnifiedContactService.syncClients,
+    mutationFn: withErrorHandling(
+      UnifiedContactService.syncClients,
+      {
+        retry: { maxRetries: 3, retryDelay: 2000 },
+        errorMessage: 'فشل في مزامنة العملاء. يرجى المحاولة مرة أخرى.'
+      }
+    ),
     onSuccess: (result: SyncResult) => {
       if (result.success) {
         toast.success(result.message);
@@ -60,12 +85,22 @@ export const useUnifiedContacts = (filters?: ContactFilters) => {
       } else {
         toast.error(result.message);
       }
-    }
+    },
+    onError: (error) => {
+      handleNetworkError(error, 'خطأ في مزامنة العملاء');
+    },
+    retry: 2
   });
 
   // مزامنة الوسطاء
   const syncBrokersMutation = useMutation({
-    mutationFn: UnifiedContactService.syncBrokers,
+    mutationFn: withErrorHandling(
+      UnifiedContactService.syncBrokers,
+      {
+        retry: { maxRetries: 3, retryDelay: 2000 },
+        errorMessage: 'فشل في مزامنة الوسطاء. يرجى المحاولة مرة أخرى.'
+      }
+    ),
     onSuccess: (result: SyncResult) => {
       if (result.success) {
         toast.success(result.message);
@@ -73,12 +108,22 @@ export const useUnifiedContacts = (filters?: ContactFilters) => {
       } else {
         toast.error(result.message);
       }
-    }
+    },
+    onError: (error) => {
+      handleNetworkError(error, 'خطأ في مزامنة الوسطاء');
+    },
+    retry: 2
   });
 
   // مزامنة الملاك
   const syncOwnersMutation = useMutation({
-    mutationFn: UnifiedContactService.syncPropertyOwners,
+    mutationFn: withErrorHandling(
+      UnifiedContactService.syncPropertyOwners,
+      {
+        retry: { maxRetries: 3, retryDelay: 2000 },
+        errorMessage: 'فشل في مزامنة الملاك. يرجى المحاولة مرة أخرى.'
+      }
+    ),
     onSuccess: (result: SyncResult) => {
       if (result.success) {
         toast.success(result.message);
@@ -86,12 +131,22 @@ export const useUnifiedContacts = (filters?: ContactFilters) => {
       } else {
         toast.error(result.message);
       }
-    }
+    },
+    onError: (error) => {
+      handleNetworkError(error, 'خطأ في مزامنة الملاك');
+    },
+    retry: 2
   });
 
   // مزامنة المستأجرين
   const syncTenantsMutation = useMutation({
-    mutationFn: UnifiedContactService.syncTenants,
+    mutationFn: withErrorHandling(
+      UnifiedContactService.syncTenants,
+      {
+        retry: { maxRetries: 3, retryDelay: 2000 },
+        errorMessage: 'فشل في مزامنة المستأجرين. يرجى المحاولة مرة أخرى.'
+      }
+    ),
     onSuccess: (result: SyncResult) => {
       if (result.success) {
         toast.success(result.message);
@@ -99,7 +154,11 @@ export const useUnifiedContacts = (filters?: ContactFilters) => {
       } else {
         toast.error(result.message);
       }
-    }
+    },
+    onError: (error) => {
+      handleNetworkError(error, 'خطأ في مزامنة المستأجرين');
+    },
+    retry: 2
   });
 
   // إضافة جهة اتصال جديدة
