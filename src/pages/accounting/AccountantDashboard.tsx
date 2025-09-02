@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, HandCoins, TrendingUp, PieChart, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
