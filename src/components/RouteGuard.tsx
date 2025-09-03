@@ -38,11 +38,17 @@ export const RouteGuard = ({ children }: RouteGuardProps) => {
       return;
     }
     
-    if (!session || !user || !profile) {
+    if (!session || !user) {
       console.log(`RouteGuard: Blocking access to protected path: ${currentPath}`);
       // تخزين المسار الحالي للعودة إليه بعد تسجيل الدخول
       sessionStorage.setItem('redirectPath', currentPath);
       navigate('/', { replace: true });
+      return;
+    }
+    
+    // السماح بالوصول إذا كان هناك session و user حتى لو لم يتم جلب profile بعد
+    if (!profile) {
+      console.log(`RouteGuard: Allowing access without profile for authenticated user: ${currentPath}`);
       return;
     }
     
@@ -82,10 +88,17 @@ export const RouteGuard = ({ children }: RouteGuardProps) => {
       );
     }
     
-    if (!session || !user || !profile || !profile.is_active) {
+    if (!session || !user) {
       // تخزين المسار الحالي للعودة إليه بعد تسجيل الدخول
       sessionStorage.setItem('redirectPath', currentPath);
       // نقل navigate إلى useEffect لتجنب updating component during render
+      setTimeout(() => navigate('/', { replace: true }), 0);
+      return null;
+    }
+    
+    // التحقق من حالة نشاط المستخدم فقط إذا تم جلب profile
+    if (profile && !profile.is_active) {
+      sessionStorage.setItem('redirectPath', currentPath);
       setTimeout(() => navigate('/', { replace: true }), 0);
       return null;
     }
