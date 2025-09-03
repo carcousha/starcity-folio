@@ -1952,7 +1952,7 @@ export type Database = {
       }
       enhanced_contact_channels: {
         Row: {
-          channel_type: Database["public"]["Enums"]["contact_channel_type"]
+          channel_type: string
           contact_id: string | null
           created_at: string | null
           id: string
@@ -1967,7 +1967,7 @@ export type Database = {
           value: string
         }
         Insert: {
-          channel_type: Database["public"]["Enums"]["contact_channel_type"]
+          channel_type: string
           contact_id?: string | null
           created_at?: string | null
           id?: string
@@ -1982,7 +1982,7 @@ export type Database = {
           value: string
         }
         Update: {
-          channel_type?: Database["public"]["Enums"]["contact_channel_type"]
+          channel_type?: string
           contact_id?: string | null
           created_at?: string | null
           id?: string
@@ -2010,16 +2010,46 @@ export type Database = {
         Row: {
           about: string | null
           account_number: string | null
+          activity_status: string | null
           address: string | null
+          archived_at: string | null
+          archived_by: string | null
+          area_max: number | null
+          area_min: number | null
+          areas_specialization: string[] | null
+          assigned_agent: string | null
           assigned_to: string | null
+          average_deal_size: number | null
+          average_deal_value: number | null
           bank_name: string | null
           bio: string | null
+          budget_max: number | null
+          budget_min: number | null
           category: Database["public"]["Enums"]["contact_category"] | null
+          channels: string[] | null
+          client_stage: string | null
+          client_status: string | null
+          communication_preferences: string[] | null
+          company: string | null
+          company_name: string | null
+          conversion_rate: number | null
+          conversion_status: string | null
           cr_expiry_date: string | null
           cr_number: string | null
           created_at: string | null
           created_by: string | null
+          current_address: string | null
+          custom_fields: Json | null
+          data_source: string | null
+          deals_count: number | null
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          emergency_contact_relationship: string | null
+          external_id: string | null
+          first_contact_date: string | null
+          first_name: string | null
           follow_up_status: string | null
           full_name: string | null
           iban: string | null
@@ -2027,42 +2057,108 @@ export type Database = {
           id_expiry_date: string | null
           id_number: string | null
           id_type: string | null
+          internal_notes: string | null
+          investment_type: string | null
           is_active: boolean | null
+          is_being_deleted: boolean | null
+          is_duplicate: boolean | null
           job_title: string | null
           language: string | null
           last_contact_date: string | null
+          last_interaction_date: string | null
+          last_modified_by: string | null
+          last_name: string | null
+          last_sale_date: string | null
+          lead_source: string | null
+          lead_status: string | null
+          location_preference: string | null
           metadata: Json | null
-          name: string
+          name: string | null
           nationality: string | null
+          next_follow_up_date: string | null
           notes: string | null
+          office: string | null
           office_classification: string | null
           office_name: string | null
-          phone: string
+          original_id: string | null
+          original_table: string | null
+          phone: string | null
+          phone_primary: string | null
+          phone_secondary: string | null
+          planned_purchase_date: string | null
           preferred_contact_method: string | null
+          preferred_location: string | null
+          preferred_locations: Json | null
+          preferred_payment_method: string | null
           priority: string | null
+          property_type: string | null
+          property_type_interest: string | null
+          public_notes: string | null
+          purchase_purpose: string | null
           rating: number | null
           rating_1_5: number | null
           roles: Database["public"]["Enums"]["contact_role"][] | null
+          satisfaction_rating: number | null
           search_vector: unknown | null
           short_name: string | null
+          social_media_profiles: Json | null
+          source: string | null
           status: string | null
+          successful_deals: number | null
+          sync_status: string | null
+          tags: string[] | null
+          total_interactions: number | null
+          total_revenue: number | null
+          total_sales_count: number | null
+          total_sales_value: number | null
           units_count: number | null
           updated_at: string | null
+          version: number | null
           whatsapp_number: string | null
         }
         Insert: {
           about?: string | null
           account_number?: string | null
+          activity_status?: string | null
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          area_max?: number | null
+          area_min?: number | null
+          areas_specialization?: string[] | null
+          assigned_agent?: string | null
           assigned_to?: string | null
+          average_deal_size?: number | null
+          average_deal_value?: number | null
           bank_name?: string | null
           bio?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
           category?: Database["public"]["Enums"]["contact_category"] | null
+          channels?: string[] | null
+          client_stage?: string | null
+          client_status?: string | null
+          communication_preferences?: string[] | null
+          company?: string | null
+          company_name?: string | null
+          conversion_rate?: number | null
+          conversion_status?: string | null
           cr_expiry_date?: string | null
           cr_number?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_address?: string | null
+          custom_fields?: Json | null
+          data_source?: string | null
+          deals_count?: number | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          emergency_contact_relationship?: string | null
+          external_id?: string | null
+          first_contact_date?: string | null
+          first_name?: string | null
           follow_up_status?: string | null
           full_name?: string | null
           iban?: string | null
@@ -2070,42 +2166,108 @@ export type Database = {
           id_expiry_date?: string | null
           id_number?: string | null
           id_type?: string | null
+          internal_notes?: string | null
+          investment_type?: string | null
           is_active?: boolean | null
+          is_being_deleted?: boolean | null
+          is_duplicate?: boolean | null
           job_title?: string | null
           language?: string | null
           last_contact_date?: string | null
+          last_interaction_date?: string | null
+          last_modified_by?: string | null
+          last_name?: string | null
+          last_sale_date?: string | null
+          lead_source?: string | null
+          lead_status?: string | null
+          location_preference?: string | null
           metadata?: Json | null
-          name: string
+          name?: string | null
           nationality?: string | null
+          next_follow_up_date?: string | null
           notes?: string | null
+          office?: string | null
           office_classification?: string | null
           office_name?: string | null
-          phone: string
+          original_id?: string | null
+          original_table?: string | null
+          phone?: string | null
+          phone_primary?: string | null
+          phone_secondary?: string | null
+          planned_purchase_date?: string | null
           preferred_contact_method?: string | null
+          preferred_location?: string | null
+          preferred_locations?: Json | null
+          preferred_payment_method?: string | null
           priority?: string | null
+          property_type?: string | null
+          property_type_interest?: string | null
+          public_notes?: string | null
+          purchase_purpose?: string | null
           rating?: number | null
           rating_1_5?: number | null
           roles?: Database["public"]["Enums"]["contact_role"][] | null
+          satisfaction_rating?: number | null
           search_vector?: unknown | null
           short_name?: string | null
+          social_media_profiles?: Json | null
+          source?: string | null
           status?: string | null
+          successful_deals?: number | null
+          sync_status?: string | null
+          tags?: string[] | null
+          total_interactions?: number | null
+          total_revenue?: number | null
+          total_sales_count?: number | null
+          total_sales_value?: number | null
           units_count?: number | null
           updated_at?: string | null
+          version?: number | null
           whatsapp_number?: string | null
         }
         Update: {
           about?: string | null
           account_number?: string | null
+          activity_status?: string | null
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          area_max?: number | null
+          area_min?: number | null
+          areas_specialization?: string[] | null
+          assigned_agent?: string | null
           assigned_to?: string | null
+          average_deal_size?: number | null
+          average_deal_value?: number | null
           bank_name?: string | null
           bio?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
           category?: Database["public"]["Enums"]["contact_category"] | null
+          channels?: string[] | null
+          client_stage?: string | null
+          client_status?: string | null
+          communication_preferences?: string[] | null
+          company?: string | null
+          company_name?: string | null
+          conversion_rate?: number | null
+          conversion_status?: string | null
           cr_expiry_date?: string | null
           cr_number?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_address?: string | null
+          custom_fields?: Json | null
+          data_source?: string | null
+          deals_count?: number | null
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          emergency_contact_relationship?: string | null
+          external_id?: string | null
+          first_contact_date?: string | null
+          first_name?: string | null
           follow_up_status?: string | null
           full_name?: string | null
           iban?: string | null
@@ -2113,27 +2275,63 @@ export type Database = {
           id_expiry_date?: string | null
           id_number?: string | null
           id_type?: string | null
+          internal_notes?: string | null
+          investment_type?: string | null
           is_active?: boolean | null
+          is_being_deleted?: boolean | null
+          is_duplicate?: boolean | null
           job_title?: string | null
           language?: string | null
           last_contact_date?: string | null
+          last_interaction_date?: string | null
+          last_modified_by?: string | null
+          last_name?: string | null
+          last_sale_date?: string | null
+          lead_source?: string | null
+          lead_status?: string | null
+          location_preference?: string | null
           metadata?: Json | null
-          name?: string
+          name?: string | null
           nationality?: string | null
+          next_follow_up_date?: string | null
           notes?: string | null
+          office?: string | null
           office_classification?: string | null
           office_name?: string | null
-          phone?: string
+          original_id?: string | null
+          original_table?: string | null
+          phone?: string | null
+          phone_primary?: string | null
+          phone_secondary?: string | null
+          planned_purchase_date?: string | null
           preferred_contact_method?: string | null
+          preferred_location?: string | null
+          preferred_locations?: Json | null
+          preferred_payment_method?: string | null
           priority?: string | null
+          property_type?: string | null
+          property_type_interest?: string | null
+          public_notes?: string | null
+          purchase_purpose?: string | null
           rating?: number | null
           rating_1_5?: number | null
           roles?: Database["public"]["Enums"]["contact_role"][] | null
+          satisfaction_rating?: number | null
           search_vector?: unknown | null
           short_name?: string | null
+          social_media_profiles?: Json | null
+          source?: string | null
           status?: string | null
+          successful_deals?: number | null
+          sync_status?: string | null
+          tags?: string[] | null
+          total_interactions?: number | null
+          total_revenue?: number | null
+          total_sales_count?: number | null
+          total_sales_value?: number | null
           units_count?: number | null
           updated_at?: string | null
+          version?: number | null
           whatsapp_number?: string | null
         }
         Relationships: []
@@ -5899,6 +6097,7 @@ export type Database = {
       contact_category: "individual" | "company" | "organization"
       contact_channel_type:
         | "phone"
+        | "mobile"
         | "whatsapp"
         | "email"
         | "address"
@@ -6052,6 +6251,7 @@ export const Constants = {
       contact_category: ["individual", "company", "organization"],
       contact_channel_type: [
         "phone",
+        "mobile",
         "whatsapp",
         "email",
         "address",

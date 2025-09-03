@@ -30,7 +30,7 @@ export class UnifiedContactService {
       }
 
       const contactsToSync = clients.map(client => ({
-        full_name: client.name,
+        name: client.name,
         short_name: client.name?.split(' ')[0] || '',
         email: client.email,
         address: client.address,
@@ -43,7 +43,9 @@ export class UnifiedContactService {
         tags: ['عميل'],
         notes: `تم المزامنة من صفحة العملاء - ID: ${client.id}`,
         original_table: 'clients',
-        original_id: client.id
+        original_id: client.id,
+        created_by: client.created_by || client.assigned_to,
+        metadata: {}
       }));
 
       // إدراج أو تحديث جهات الاتصال
@@ -89,7 +91,7 @@ export class UnifiedContactService {
       }
 
       const contactsToSync = brokers.map(broker => ({
-        full_name: broker.full_name,
+        name: broker.name || broker.full_name,
         short_name: broker.short_name || broker.full_name?.split(' ')[0] || '',
         email: broker.email,
         nationality: broker.nationality,
@@ -101,7 +103,9 @@ export class UnifiedContactService {
         tags: ['وسيط', 'أراضي'],
         notes: `تم المزامنة من صفحة الوسطاء - ID: ${broker.id}`,
         original_table: 'land_brokers',
-        original_id: broker.id
+        original_id: broker.id,
+        created_by: broker.created_by,
+        metadata: {}
       }));
 
       const { data: syncedContacts, error: syncError } = await supabase
@@ -146,7 +150,7 @@ export class UnifiedContactService {
       }
 
       const contactsToSync = owners.map(owner => ({
-        full_name: owner.full_name,
+        name: owner.full_name,
         short_name: owner.full_name?.split(' ')[0] || '',
         email: owner.email,
         nationality: owner.nationality,
@@ -157,7 +161,9 @@ export class UnifiedContactService {
         tags: ['مالك', 'عقار'],
         notes: `تم المزامنة من صفحة الملاك - ID: ${owner.id}\n${owner.internal_notes || ''}`,
         original_table: 'property_owners',
-        original_id: owner.id
+        original_id: owner.id,
+        created_by: owner.created_by || owner.assigned_employee,
+        metadata: {}
       }));
 
       const { data: syncedContacts, error: syncError } = await supabase
@@ -202,7 +208,7 @@ export class UnifiedContactService {
       }
 
       const contactsToSync = tenants.map(tenant => ({
-        full_name: tenant.full_name,
+        name: tenant.full_name,
         short_name: tenant.full_name?.split(' ')[0] || '',
         email: tenant.email,
         nationality: tenant.nationality,
@@ -213,7 +219,9 @@ export class UnifiedContactService {
         tags: ['مستأجر'],
         notes: `تم المزامنة من صفحة المستأجرين - ID: ${tenant.id}`,
         original_table: 'rental_tenants',
-        original_id: tenant.id
+        original_id: tenant.id,
+        created_by: tenant.created_by,
+        metadata: {}
       }));
 
       const { data: syncedContacts, error: syncError } = await supabase
@@ -291,9 +299,17 @@ export class UnifiedContactService {
    */
   static async addContact(contact: Partial<EnhancedContact>): Promise<SyncResult> {
     try {
+      // التأكد من إضافة created_by إذا لم يكن موجوداً
+      const { data: { user } } = await supabase.auth.getUser();
+      const contactData = {
+        ...contact,
+        created_by: contact.created_by || user?.id,
+        metadata: contact.metadata || {}
+      };
+
       const { data, error } = await supabase
         .from('enhanced_contacts')
-        .insert([contact])
+        .insert([contactData])
         .select();
 
       if (error) {
@@ -439,7 +455,7 @@ export class UnifiedContactService {
       }
 
       if (filters?.search) {
-        query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
+        query = query.or(`name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
