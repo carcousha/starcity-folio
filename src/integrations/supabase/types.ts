@@ -101,6 +101,78 @@ export type Database = {
         }
         Relationships: []
       }
+      commissions: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          base_amount: number | null
+          client_id: string | null
+          commission_type: string
+          created_at: string | null
+          created_by: string
+          deal_id: string | null
+          description: string | null
+          due_date: string | null
+          earned_date: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          paid_date: string | null
+          payment_status: string | null
+          percentage: number | null
+          property_id: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          base_amount?: number | null
+          client_id?: string | null
+          commission_type: string
+          created_at?: string | null
+          created_by?: string
+          deal_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          earned_date?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_status?: string | null
+          percentage?: number | null
+          property_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          base_amount?: number | null
+          client_id?: string | null
+          commission_type?: string
+          created_at?: string | null
+          created_by?: string
+          deal_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          earned_date?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          paid_date?: string | null
+          payment_status?: string | null
+          percentage?: number | null
+          property_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       daily_tasks: {
         Row: {
           assigned_to: string | null
@@ -149,6 +221,72 @@ export type Database = {
           task_type?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      debts: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          currency: string | null
+          debt_date: string
+          debt_type: string
+          debtor_id: string | null
+          debtor_name: string
+          debtor_type: string
+          description: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          original_amount: number
+          remaining_amount: number
+          source_id: string | null
+          source_table: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string
+          currency?: string | null
+          debt_date?: string
+          debt_type: string
+          debtor_id?: string | null
+          debtor_name: string
+          debtor_type: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          original_amount: number
+          remaining_amount: number
+          source_id?: string | null
+          source_table?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          currency?: string | null
+          debt_date?: string
+          debt_type?: string
+          debtor_id?: string | null
+          debtor_name?: string
+          debtor_type?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          original_amount?: number
+          remaining_amount?: number
+          source_id?: string | null
+          source_table?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -341,6 +479,84 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          attachments: string[] | null
+          category: string
+          created_at: string | null
+          created_by: string
+          currency: string | null
+          department: string | null
+          description: string | null
+          employee_id: string | null
+          expense_date: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          receipt_url: string | null
+          reference_number: string | null
+          status: string | null
+          subcategory: string | null
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          vendor_name: string | null
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: string[] | null
+          category: string
+          created_at?: string | null
+          created_by?: string
+          currency?: string | null
+          department?: string | null
+          description?: string | null
+          employee_id?: string | null
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          reference_number?: string | null
+          status?: string | null
+          subcategory?: string | null
+          title: string
+          updated_at?: string | null
+          updated_by?: string | null
+          vendor_name?: string | null
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attachments?: string[] | null
+          category?: string
+          created_at?: string | null
+          created_by?: string
+          currency?: string | null
+          department?: string | null
+          description?: string | null
+          employee_id?: string | null
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          reference_number?: string | null
+          status?: string | null
+          subcategory?: string | null
+          title?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          vendor_name?: string | null
         }
         Relationships: []
       }
@@ -710,6 +926,378 @@ export type Database = {
         }
         Relationships: []
       }
+      revenues: {
+        Row: {
+          amount: number
+          client_id: string | null
+          contract_id: string | null
+          created_at: string | null
+          created_by: string
+          currency: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          payment_method: string | null
+          property_id: string | null
+          reference_number: string | null
+          revenue_date: string
+          source: string
+          status: string | null
+          subcategory: string | null
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          property_id?: string | null
+          reference_number?: string | null
+          revenue_date?: string
+          source: string
+          status?: string | null
+          subcategory?: string | null
+          title: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          property_id?: string | null
+          reference_number?: string | null
+          revenue_date?: string
+          source?: string
+          status?: string | null
+          subcategory?: string | null
+          title?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          assigned_date: string | null
+          assigned_to: string | null
+          color: string | null
+          created_at: string | null
+          created_by: string
+          current_value: number | null
+          id: string
+          insurance_company: string | null
+          insurance_expiry: string | null
+          insurance_policy_number: string | null
+          make: string
+          model: string
+          notes: string | null
+          plate_number: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          registration_expiry: string | null
+          registration_number: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+          vin_number: string | null
+          year: number | null
+        }
+        Insert: {
+          assigned_date?: string | null
+          assigned_to?: string | null
+          color?: string | null
+          created_at?: string | null
+          created_by?: string
+          current_value?: number | null
+          id?: string
+          insurance_company?: string | null
+          insurance_expiry?: string | null
+          insurance_policy_number?: string | null
+          make: string
+          model: string
+          notes?: string | null
+          plate_number?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          registration_expiry?: string | null
+          registration_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          vin_number?: string | null
+          year?: number | null
+        }
+        Update: {
+          assigned_date?: string | null
+          assigned_to?: string | null
+          color?: string | null
+          created_at?: string | null
+          created_by?: string
+          current_value?: number | null
+          id?: string
+          insurance_company?: string | null
+          insurance_expiry?: string | null
+          insurance_policy_number?: string | null
+          make?: string
+          model?: string
+          notes?: string | null
+          plate_number?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          registration_expiry?: string | null
+          registration_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          vin_number?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
+      whatsapp_bulk_messages: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string
+          custom_recipients: string[] | null
+          failed_count: number | null
+          id: string
+          media_type: string | null
+          media_url: string | null
+          message_content: string
+          message_type: string | null
+          name: string
+          recipient_filters: Json | null
+          recipient_type: string | null
+          scheduled_at: string | null
+          send_type: string | null
+          sent_count: number | null
+          started_at: string | null
+          status: string | null
+          success_rate: number | null
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          custom_recipients?: string[] | null
+          failed_count?: number | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_content: string
+          message_type?: string | null
+          name: string
+          recipient_filters?: Json | null
+          recipient_type?: string | null
+          scheduled_at?: string | null
+          send_type?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_rate?: number | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string
+          custom_recipients?: string[] | null
+          failed_count?: number | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_content?: string
+          message_type?: string | null
+          name?: string
+          recipient_filters?: Json | null
+          recipient_type?: string | null
+          scheduled_at?: string | null
+          send_type?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          success_rate?: number | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_campaigns: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          scheduled_at: string | null
+          status: string | null
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          name: string
+          scheduled_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          scheduled_at?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_contacts: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          created_by: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone_number: string
+          tags: string[] | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone_number: string
+          tags?: string[] | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          created_by?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone_number?: string
+          tags?: string[] | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          campaign_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          message_content: string
+          message_type: string | null
+          phone_number: string
+          sent_at: string | null
+          sent_by: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content: string
+          message_type?: string | null
+          phone_number: string
+          sent_at?: string | null
+          sent_by?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message_content?: string
+          message_type?: string | null
+          phone_number?: string
+          sent_at?: string | null
+          sent_by?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_settings: {
+        Row: {
+          api_key: string | null
+          created_at: string | null
+          default_footer: string | null
+          id: string
+          is_active: boolean | null
+          phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string | null
+          default_footer?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string | null
+          default_footer?: string | null
+          id?: string
+          is_active?: boolean | null
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_smart_logs: {
         Row: {
           created_at: string
@@ -803,6 +1391,42 @@ export type Database = {
           target_categories?: Json | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string | null
+          updated_at: string | null
+          variables: string[] | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type?: string | null
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+          variables?: string[] | null
         }
         Relationships: []
       }
