@@ -14,2421 +14,333 @@ export type Database = {
   }
   public: {
     Tables: {
-      activity_logs: {
-        Row: {
-          amount: number | null
-          created_at: string
-          description: string
-          id: string
-          metadata: Json | null
-          operation_type: string
-          related_id: string | null
-          related_table: string | null
-          source_id: string
-          source_table: string
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string
-          description: string
-          id?: string
-          metadata?: Json | null
-          operation_type: string
-          related_id?: string | null
-          related_table?: string | null
-          source_id: string
-          source_table: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string
-          description?: string
-          id?: string
-          metadata?: Json | null
-          operation_type?: string
-          related_id?: string | null
-          related_table?: string | null
-          source_id?: string
-          source_table?: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      applied_incentives: {
-        Row: {
-          achievement_percentage: number
-          applied_at: string
-          calculated_amount: number
-          created_by: string
-          employee_id: string
-          id: string
-          incentive_rule_id: string
-          notes: string | null
-          target_id: string
-        }
-        Insert: {
-          achievement_percentage: number
-          applied_at?: string
-          calculated_amount: number
-          created_by: string
-          employee_id: string
-          id?: string
-          incentive_rule_id: string
-          notes?: string | null
-          target_id: string
-        }
-        Update: {
-          achievement_percentage?: number
-          applied_at?: string
-          calculated_amount?: number
-          created_by?: string
-          employee_id?: string
-          id?: string
-          incentive_rule_id?: string
-          notes?: string | null
-          target_id?: string
-        }
-        Relationships: []
-      }
-      audit_logs: {
-        Row: {
-          action: string
-          id: string
-          new_values: Json | null
-          old_values: Json | null
-          record_id: string
-          table_name: string
-          timestamp: string
-          user_id: string
-        }
-        Insert: {
-          action: string
-          id?: string
-          new_values?: Json | null
-          old_values?: Json | null
-          record_id: string
-          table_name: string
-          timestamp?: string
-          user_id: string
-        }
-        Update: {
-          action?: string
-          id?: string
-          new_values?: Json | null
-          old_values?: Json | null
-          record_id?: string
-          table_name?: string
-          timestamp?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      auth_attempts: {
-        Row: {
-          attempt_type: string
-          created_at: string | null
-          error_message: string | null
-          id: string
-          ip_address: string | null
-          metadata: Json | null
-          success: boolean
-          user_agent: string | null
-          user_identifier: string
-        }
-        Insert: {
-          attempt_type: string
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          success: boolean
-          user_agent?: string | null
-          user_identifier: string
-        }
-        Update: {
-          attempt_type?: string
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          ip_address?: string | null
-          metadata?: Json | null
-          success?: boolean
-          user_agent?: string | null
-          user_identifier?: string
-        }
-        Relationships: []
-      }
-      budget_limits: {
-        Row: {
-          alert_threshold: number | null
-          category: string
-          created_at: string
-          created_by: string
-          id: string
-          is_active: boolean
-          monthly_limit: number | null
-          updated_at: string
-          yearly_limit: number | null
-        }
-        Insert: {
-          alert_threshold?: number | null
-          category: string
-          created_at?: string
-          created_by: string
-          id?: string
-          is_active?: boolean
-          monthly_limit?: number | null
-          updated_at?: string
-          yearly_limit?: number | null
-        }
-        Update: {
-          alert_threshold?: number | null
-          category?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          is_active?: boolean
-          monthly_limit?: number | null
-          updated_at?: string
-          yearly_limit?: number | null
-        }
-        Relationships: []
-      }
-      client_documents: {
-        Row: {
-          client_id: string
-          document_name: string
-          document_type: string
-          file_size: number | null
-          file_url: string
-          id: string
-          notes: string | null
-          uploaded_at: string
-          uploaded_by: string
-        }
-        Insert: {
-          client_id: string
-          document_name: string
-          document_type: string
-          file_size?: number | null
-          file_url: string
-          id?: string
-          notes?: string | null
-          uploaded_at?: string
-          uploaded_by: string
-        }
-        Update: {
-          client_id?: string
-          document_name?: string
-          document_type?: string
-          file_size?: number | null
-          file_url?: string
-          id?: string
-          notes?: string | null
-          uploaded_at?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_documents_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clients: {
         Row: {
           address: string | null
           assigned_to: string | null
           budget_max: number | null
           budget_min: number | null
-          client_status: string | null
-          created_at: string
+          city: string | null
+          client_type: string | null
+          company: string | null
+          created_at: string | null
           created_by: string
           email: string | null
+          full_name: string
           id: string
-          internal_notes: string | null
-          last_contacted: string | null
-          name: string
+          id_number: string | null
           nationality: string | null
           notes: string | null
-          phone: string
-          planned_purchase_date: string | null
-          preferences: string | null
-          preferred_contact_method: string | null
+          passport_number: string | null
+          phone: string | null
+          preferred_areas: string[] | null
           preferred_language: string | null
-          preferred_location: string | null
-          preferred_payment_method: string | null
-          previous_deals_count: number | null
-          property_type_interest: string | null
-          purchase_purpose: string | null
-          source: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          assigned_to?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
-          client_status?: string | null
-          created_at?: string
-          created_by: string
-          email?: string | null
-          id?: string
-          internal_notes?: string | null
-          last_contacted?: string | null
-          name: string
-          nationality?: string | null
-          notes?: string | null
-          phone: string
-          planned_purchase_date?: string | null
-          preferences?: string | null
-          preferred_contact_method?: string | null
-          preferred_language?: string | null
-          preferred_location?: string | null
-          preferred_payment_method?: string | null
-          previous_deals_count?: number | null
-          property_type_interest?: string | null
-          purchase_purpose?: string | null
-          source?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          assigned_to?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
-          client_status?: string | null
-          created_at?: string
-          created_by?: string
-          email?: string | null
-          id?: string
-          internal_notes?: string | null
-          last_contacted?: string | null
-          name?: string
-          nationality?: string | null
-          notes?: string | null
-          phone?: string
-          planned_purchase_date?: string | null
-          preferences?: string | null
-          preferred_contact_method?: string | null
-          preferred_language?: string | null
-          preferred_location?: string | null
-          preferred_payment_method?: string | null
-          previous_deals_count?: number | null
-          property_type_interest?: string | null
-          purchase_purpose?: string | null
-          source?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      commission_employees: {
-        Row: {
-          calculated_share: number
-          commission_id: string
-          created_at: string
-          custom_percentage: number | null
-          deducted_debt: number
-          employee_id: string
-          id: string
-          is_custom_distribution: boolean | null
-          net_share: number
-          percentage: number
-          updated_at: string
-        }
-        Insert: {
-          calculated_share?: number
-          commission_id: string
-          created_at?: string
-          custom_percentage?: number | null
-          deducted_debt?: number
-          employee_id: string
-          id?: string
-          is_custom_distribution?: boolean | null
-          net_share?: number
-          percentage: number
-          updated_at?: string
-        }
-        Update: {
-          calculated_share?: number
-          commission_id?: string
-          created_at?: string
-          custom_percentage?: number | null
-          deducted_debt?: number
-          employee_id?: string
-          id?: string
-          is_custom_distribution?: boolean | null
-          net_share?: number
-          percentage?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "commission_employees_commission_id_fkey"
-            columns: ["commission_id"]
-            isOneToOne: false
-            referencedRelation: "commissions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      commissions: {
-        Row: {
-          amount: number
-          approved_at: string | null
-          approved_by: string | null
-          client_name: string | null
-          created_at: string
-          deal_id: string | null
-          distribution_type: string | null
-          employee_id: string | null
-          has_custom_employee_percentages: boolean | null
-          id: string
-          notes: string | null
-          office_share: number | null
-          paid_at: string | null
-          paid_by: string | null
-          percentage: number
-          remaining_for_employees: number | null
-          status: string
-          total_commission: number | null
-          unused_employee_amount: number | null
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          approved_at?: string | null
-          approved_by?: string | null
-          client_name?: string | null
-          created_at?: string
-          deal_id?: string | null
-          distribution_type?: string | null
-          employee_id?: string | null
-          has_custom_employee_percentages?: boolean | null
-          id?: string
-          notes?: string | null
-          office_share?: number | null
-          paid_at?: string | null
-          paid_by?: string | null
-          percentage: number
-          remaining_for_employees?: number | null
-          status?: string
-          total_commission?: number | null
-          unused_employee_amount?: number | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          approved_at?: string | null
-          approved_by?: string | null
-          client_name?: string | null
-          created_at?: string
-          deal_id?: string | null
-          distribution_type?: string | null
-          employee_id?: string | null
-          has_custom_employee_percentages?: boolean | null
-          id?: string
-          notes?: string | null
-          office_share?: number | null
-          paid_at?: string | null
-          paid_by?: string | null
-          percentage?: number
-          remaining_for_employees?: number | null
-          status?: string
-          total_commission?: number | null
-          unused_employee_amount?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "commissions_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "deals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_activities: {
-        Row: {
-          activity_type: string
-          assigned_to: string | null
-          completed_at: string | null
-          contact_id: string
-          created_at: string | null
-          created_by: string
-          description: string | null
-          id: string
           priority: string | null
-          scheduled_at: string | null
-          status: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          activity_type: string
-          assigned_to?: string | null
-          completed_at?: string | null
-          contact_id: string
-          created_at?: string | null
-          created_by: string
-          description?: string | null
-          id?: string
-          priority?: string | null
-          scheduled_at?: string | null
-          status?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          activity_type?: string
-          assigned_to?: string | null
-          completed_at?: string | null
-          contact_id?: string
-          created_at?: string | null
-          created_by?: string
-          description?: string | null
-          id?: string
-          priority?: string | null
-          scheduled_at?: string | null
-          status?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_activities_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_activities_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_attachments: {
-        Row: {
-          contact_id: string
-          description: string | null
-          file_name: string
-          file_path: string
-          file_size: number | null
-          id: string
-          is_public: boolean | null
-          metadata: Json | null
-          mime_type: string | null
-          uploaded_at: string | null
-          uploaded_by: string
-        }
-        Insert: {
-          contact_id: string
-          description?: string | null
-          file_name: string
-          file_path: string
-          file_size?: number | null
-          id?: string
-          is_public?: boolean | null
-          metadata?: Json | null
-          mime_type?: string | null
-          uploaded_at?: string | null
-          uploaded_by: string
-        }
-        Update: {
-          contact_id?: string
-          description?: string | null
-          file_name?: string
-          file_path?: string
-          file_size?: number | null
-          id?: string
-          is_public?: boolean | null
-          metadata?: Json | null
-          mime_type?: string | null
-          uploaded_at?: string | null
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_attachments_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_attachments_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_audit_logs: {
-        Row: {
-          action: string
-          changed_at: string | null
-          changed_by: string
-          contact_id: string
-          id: string
-          ip_address: unknown | null
-          new_values: Json | null
-          old_values: Json | null
-          user_agent: string | null
-        }
-        Insert: {
-          action: string
-          changed_at?: string | null
-          changed_by: string
-          contact_id: string
-          id?: string
-          ip_address?: unknown | null
-          new_values?: Json | null
-          old_values?: Json | null
-          user_agent?: string | null
-        }
-        Update: {
-          action?: string
-          changed_at?: string | null
-          changed_by?: string
-          contact_id?: string
-          id?: string
-          ip_address?: unknown | null
-          new_values?: Json | null
-          old_values?: Json | null
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_audit_logs_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_audit_logs_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_channels: {
-        Row: {
-          channel_status: string | null
-          contact_id: string
-          created_at: string | null
-          id: string
-          last_used: string | null
-          meta: Json | null
-          normalized: string | null
-          notification_settings: Json | null
-          preferred: boolean | null
-          primary_channel: boolean | null
-          type: string
-          value: string | null
-          verified: boolean | null
-        }
-        Insert: {
-          channel_status?: string | null
-          contact_id: string
-          created_at?: string | null
-          id?: string
-          last_used?: string | null
-          meta?: Json | null
-          normalized?: string | null
-          notification_settings?: Json | null
-          preferred?: boolean | null
-          primary_channel?: boolean | null
-          type: string
-          value?: string | null
-          verified?: boolean | null
-        }
-        Update: {
-          channel_status?: string | null
-          contact_id?: string
-          created_at?: string | null
-          id?: string
-          last_used?: string | null
-          meta?: Json | null
-          normalized?: string | null
-          notification_settings?: Json | null
-          preferred?: boolean | null
-          primary_channel?: boolean | null
-          type?: string
-          value?: string | null
-          verified?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_channels_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_channels_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_interactions: {
-        Row: {
-          contact_id: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          interaction_date: string | null
-          interaction_type: string
-          notes: string | null
-        }
-        Insert: {
-          contact_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          interaction_date?: string | null
-          interaction_type: string
-          notes?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          interaction_date?: string | null
-          interaction_type?: string
-          notes?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_interactions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "enhanced_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_permissions: {
-        Row: {
-          active: boolean | null
-          contact_id: string
-          expires_at: string | null
-          granted_at: string | null
-          granted_by: string
-          id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          active?: boolean | null
-          contact_id: string
-          expires_at?: string | null
-          granted_at?: string | null
-          granted_by: string
-          id?: string
-          role: string
-          user_id: string
-        }
-        Update: {
-          active?: boolean | null
-          contact_id?: string
-          expires_at?: string | null
-          granted_at?: string | null
-          granted_by?: string
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_permissions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_permissions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_sync_log: {
-        Row: {
-          contact_id: string
-          id: string
-          retry_count: number | null
-          sync_action: string
-          sync_data: Json | null
-          sync_error: string | null
-          sync_source: string
-          sync_status: string
-          synced_at: string | null
-        }
-        Insert: {
-          contact_id: string
-          id?: string
-          retry_count?: number | null
-          sync_action: string
-          sync_data?: Json | null
-          sync_error?: string | null
-          sync_source: string
-          sync_status: string
-          synced_at?: string | null
-        }
-        Update: {
-          contact_id?: string
-          id?: string
-          retry_count?: number | null
-          sync_action?: string
-          sync_data?: Json | null
-          sync_error?: string | null
-          sync_source?: string
-          sync_status?: string
-          synced_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_sync_log_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_sync_log_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contact_tags: {
-        Row: {
-          color: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          name: string
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-        }
-        Update: {
-          color?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      contact_tags_mapping: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string
-          contact_id: string
-          id: string
-          tag_id: string
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by: string
-          contact_id: string
-          id?: string
-          tag_id: string
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string
-          contact_id?: string
-          id?: string
-          tag_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_tags_mapping_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_tags_mapping_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_tags_mapping_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "contact_tags"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contacts: {
-        Row: {
-          activity_log: Json | null
-          attachments: Json | null
-          bio: string | null
-          channels: Json
-          company: string | null
-          contact_type: string | null
-          created_at: string | null
-          created_by: string | null
-          data_source: string | null
-          external_ids: Json | null
-          id: string
-          is_duplicate: boolean | null
-          last_contact_date: string | null
-          master_contact_id: string | null
-          name: string
-          next_contact_date: string | null
-          notes: Json | null
-          office: string | null
-          preferences: Json | null
-          rating: number | null
-          reminders: Json | null
-          roles: string[] | null
-          sla_status: string | null
+          property_interest: string | null
+          source: string | null
           status: string | null
           tags: string[] | null
           updated_at: string | null
           updated_by: string | null
-          version: number | null
         }
         Insert: {
-          activity_log?: Json | null
-          attachments?: Json | null
-          bio?: string | null
-          channels?: Json
+          address?: string | null
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          city?: string | null
+          client_type?: string | null
           company?: string | null
-          contact_type?: string | null
           created_at?: string | null
-          created_by?: string | null
-          data_source?: string | null
-          external_ids?: Json | null
-          id?: string
-          is_duplicate?: boolean | null
-          last_contact_date?: string | null
-          master_contact_id?: string | null
-          name: string
-          next_contact_date?: string | null
-          notes?: Json | null
-          office?: string | null
-          preferences?: Json | null
-          rating?: number | null
-          reminders?: Json | null
-          roles?: string[] | null
-          sla_status?: string | null
-          status?: string | null
-          tags?: string[] | null
-          updated_at?: string | null
-          updated_by?: string | null
-          version?: number | null
-        }
-        Update: {
-          activity_log?: Json | null
-          attachments?: Json | null
-          bio?: string | null
-          channels?: Json
-          company?: string | null
-          contact_type?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          data_source?: string | null
-          external_ids?: Json | null
-          id?: string
-          is_duplicate?: boolean | null
-          last_contact_date?: string | null
-          master_contact_id?: string | null
-          name?: string
-          next_contact_date?: string | null
-          notes?: Json | null
-          office?: string | null
-          preferences?: Json | null
-          rating?: number | null
-          reminders?: Json | null
-          roles?: string[] | null
-          sla_status?: string | null
-          status?: string | null
-          tags?: string[] | null
-          updated_at?: string | null
-          updated_by?: string | null
-          version?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contacts_master_contact_id_fkey"
-            columns: ["master_contact_id"]
-            isOneToOne: false
-            referencedRelation: "contact_dashboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contacts_master_contact_id_fkey"
-            columns: ["master_contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contract_documents: {
-        Row: {
-          contract_id: string
-          document_name: string
-          document_type: string
-          expiry_date: string | null
-          file_size: number | null
-          file_url: string
-          id: string
-          is_signed: boolean | null
-          notes: string | null
-          upload_date: string
-          uploaded_by: string
-        }
-        Insert: {
-          contract_id: string
-          document_name: string
-          document_type: string
-          expiry_date?: string | null
-          file_size?: number | null
-          file_url: string
-          id?: string
-          is_signed?: boolean | null
-          notes?: string | null
-          upload_date?: string
-          uploaded_by: string
-        }
-        Update: {
-          contract_id?: string
-          document_name?: string
-          document_type?: string
-          expiry_date?: string | null
-          file_size?: number | null
-          file_url?: string
-          id?: string
-          is_signed?: boolean | null
-          notes?: string | null
-          upload_date?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contract_documents_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "rental_contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      contract_renewal_alerts: {
-        Row: {
-          alert_sent: boolean | null
-          alert_sent_at: string | null
-          contract_id: string
-          contract_type: string
-          created_at: string | null
-          days_before_expiry: number | null
-          employee_id: string
-          expiry_date: string
-          id: string
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          alert_sent?: boolean | null
-          alert_sent_at?: string | null
-          contract_id: string
-          contract_type: string
-          created_at?: string | null
-          days_before_expiry?: number | null
-          employee_id: string
-          expiry_date: string
-          id?: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          alert_sent?: boolean | null
-          alert_sent_at?: string | null
-          contract_id?: string
-          contract_type?: string
-          created_at?: string | null
-          days_before_expiry?: number | null
-          employee_id?: string
-          expiry_date?: string
-          id?: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      contract_templates: {
-        Row: {
-          created_at: string
-          created_by: string
-          description: string | null
-          file_size: number | null
-          id: string
-          is_active: boolean
-          mime_type: string | null
-          template_file_url: string
-          template_name: string
-          template_type: string
-          updated_at: string
-          uploaded_file_path: string | null
-          version: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          description?: string | null
-          file_size?: number | null
-          id?: string
-          is_active?: boolean
-          mime_type?: string | null
-          template_file_url: string
-          template_name: string
-          template_type: string
-          updated_at?: string
-          uploaded_file_path?: string | null
-          version?: string
-        }
-        Update: {
-          created_at?: string
           created_by?: string
-          description?: string | null
-          file_size?: number | null
+          email?: string | null
+          full_name: string
           id?: string
-          is_active?: boolean
-          mime_type?: string | null
-          template_file_url?: string
-          template_name?: string
-          template_type?: string
-          updated_at?: string
-          uploaded_file_path?: string | null
-          version?: string
-        }
-        Relationships: []
-      }
-      crm_properties: {
-        Row: {
-          area_community: string
-          assigned_employee: string | null
-          bathrooms: number | null
-          bedrooms: number | null
-          built_up_area: number | null
-          commission_percentage: number | null
-          created_at: string | null
-          created_by: string | null
-          developer: string | null
-          down_payment: number | null
-          emirate: string
-          exterior_features: Json | null
-          finish_quality: string | null
-          floor_number: number | null
-          floor_plan_url: string | null
-          full_address: string
-          id: string
-          interior_features: Json | null
-          internal_notes: string | null
-          is_negotiable: boolean | null
-          latitude: number | null
-          listing_date: string | null
-          longitude: number | null
-          monthly_installments: number | null
-          owner_id: string | null
-          photos: Json | null
-          plot_area: number | null
-          property_age: number | null
-          property_code: string | null
-          property_details: Json
-          property_owner_id: string | null
-          property_status: string
-          property_type: string
-          search_vector: unknown | null
-          seo_description: string
-          title: string
-          total_price: number
-          transaction_type: string
-          unit_number: string | null
-          updated_at: string | null
-          virtual_tour_video: string | null
-        }
-        Insert: {
-          area_community: string
-          assigned_employee?: string | null
-          bathrooms?: number | null
-          bedrooms?: number | null
-          built_up_area?: number | null
-          commission_percentage?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          developer?: string | null
-          down_payment?: number | null
-          emirate: string
-          exterior_features?: Json | null
-          finish_quality?: string | null
-          floor_number?: number | null
-          floor_plan_url?: string | null
-          full_address: string
-          id?: string
-          interior_features?: Json | null
-          internal_notes?: string | null
-          is_negotiable?: boolean | null
-          latitude?: number | null
-          listing_date?: string | null
-          longitude?: number | null
-          monthly_installments?: number | null
-          owner_id?: string | null
-          photos?: Json | null
-          plot_area?: number | null
-          property_age?: number | null
-          property_code?: string | null
-          property_details?: Json
-          property_owner_id?: string | null
-          property_status?: string
-          property_type: string
-          search_vector?: unknown | null
-          seo_description: string
-          title: string
-          total_price: number
-          transaction_type: string
-          unit_number?: string | null
+          id_number?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          preferred_areas?: string[] | null
+          preferred_language?: string | null
+          priority?: string | null
+          property_interest?: string | null
+          source?: string | null
+          status?: string | null
+          tags?: string[] | null
           updated_at?: string | null
-          virtual_tour_video?: string | null
+          updated_by?: string | null
         }
         Update: {
-          area_community?: string
-          assigned_employee?: string | null
-          bathrooms?: number | null
-          bedrooms?: number | null
-          built_up_area?: number | null
-          commission_percentage?: number | null
+          address?: string | null
+          assigned_to?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          city?: string | null
+          client_type?: string | null
+          company?: string | null
           created_at?: string | null
-          created_by?: string | null
-          developer?: string | null
-          down_payment?: number | null
-          emirate?: string
-          exterior_features?: Json | null
-          finish_quality?: string | null
-          floor_number?: number | null
-          floor_plan_url?: string | null
-          full_address?: string
+          created_by?: string
+          email?: string | null
+          full_name?: string
           id?: string
-          interior_features?: Json | null
-          internal_notes?: string | null
-          is_negotiable?: boolean | null
-          latitude?: number | null
-          listing_date?: string | null
-          longitude?: number | null
-          monthly_installments?: number | null
-          owner_id?: string | null
-          photos?: Json | null
-          plot_area?: number | null
-          property_age?: number | null
-          property_code?: string | null
-          property_details?: Json
-          property_owner_id?: string | null
-          property_status?: string
-          property_type?: string
-          search_vector?: unknown | null
-          seo_description?: string
-          title?: string
-          total_price?: number
-          transaction_type?: string
-          unit_number?: string | null
+          id_number?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          preferred_areas?: string[] | null
+          preferred_language?: string | null
+          priority?: string | null
+          property_interest?: string | null
+          source?: string | null
+          status?: string | null
+          tags?: string[] | null
           updated_at?: string | null
-          virtual_tour_video?: string | null
+          updated_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "crm_properties_assigned_employee_fkey"
-            columns: ["assigned_employee"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "crm_properties_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "crm_properties_property_owner_id_fkey"
-            columns: ["property_owner_id"]
-            isOneToOne: false
-            referencedRelation: "property_owners"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       daily_tasks: {
         Row: {
+          assigned_to: string | null
           completed_at: string | null
-          created_at: string | null
+          created_at: string
           created_by: string
           description: string | null
-          due_date: string | null
-          due_time: string | null
-          employee_id: string
           id: string
-          notification_sent: boolean | null
-          priority_level: number | null
-          reminder_minutes_before: number | null
-          start_time: string | null
+          reminder_time: string | null
+          scheduled_date: string
           status: string
+          target_count: number | null
+          target_suppliers: Json | null
+          task_type: string
           title: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           completed_at?: string | null
-          created_at?: string | null
+          created_at?: string
           created_by: string
           description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          employee_id: string
           id?: string
-          notification_sent?: boolean | null
-          priority_level?: number | null
-          reminder_minutes_before?: number | null
-          start_time?: string | null
+          reminder_time?: string | null
+          scheduled_date: string
           status?: string
+          target_count?: number | null
+          target_suppliers?: Json | null
+          task_type: string
           title: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           completed_at?: string | null
-          created_at?: string | null
-          created_by?: string
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          employee_id?: string
-          id?: string
-          notification_sent?: boolean | null
-          priority_level?: number | null
-          reminder_minutes_before?: number | null
-          start_time?: string | null
-          status?: string
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      deal_commissions: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          client_name: string | null
-          commission_amount: number
-          commission_rate: number
-          created_at: string
-          created_by: string
-          deal_amount: number
-          deal_id: string
-          employee_share: number
-          handled_by: string
-          id: string
-          notes: string | null
-          office_share: number
-          paid_at: string | null
-          property_title: string | null
-          status: string
-          total_amount: number
-          updated_at: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          client_name?: string | null
-          commission_amount?: number
-          commission_rate?: number
           created_at?: string
           created_by?: string
-          deal_amount?: number
-          deal_id: string
-          employee_share?: number
-          handled_by: string
-          id?: string
-          notes?: string | null
-          office_share?: number
-          paid_at?: string | null
-          property_title?: string | null
-          status?: string
-          total_amount?: number
-          updated_at?: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          client_name?: string | null
-          commission_amount?: number
-          commission_rate?: number
-          created_at?: string
-          created_by?: string
-          deal_amount?: number
-          deal_id?: string
-          employee_share?: number
-          handled_by?: string
-          id?: string
-          notes?: string | null
-          office_share?: number
-          paid_at?: string | null
-          property_title?: string | null
-          status?: string
-          total_amount?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "deal_commissions_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "deals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deal_commissions_handled_by_fkey"
-            columns: ["handled_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      deals: {
-        Row: {
-          amount: number
-          client_id: string
-          closed_at: string | null
-          commission_amount: number | null
-          commission_calculated: boolean | null
-          commission_rate: number
-          created_at: string
-          created_by: string | null
-          deal_type: string
-          handled_by: string
-          id: string
-          notes: string | null
-          property_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          client_id: string
-          closed_at?: string | null
-          commission_amount?: number | null
-          commission_calculated?: boolean | null
-          commission_rate?: number
-          created_at?: string
-          created_by?: string | null
-          deal_type: string
-          handled_by: string
-          id?: string
-          notes?: string | null
-          property_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          client_id?: string
-          closed_at?: string | null
-          commission_amount?: number | null
-          commission_calculated?: boolean | null
-          commission_rate?: number
-          created_at?: string
-          created_by?: string | null
-          deal_type?: string
-          handled_by?: string
-          id?: string
-          notes?: string | null
-          property_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "deals_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deals_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      debt_installments: {
-        Row: {
-          amount: number
-          created_at: string
-          debt_id: string
-          due_date: string
-          id: string
-          installment_number: number
-          notes: string | null
-          paid_amount: number | null
-          paid_at: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          debt_id: string
-          due_date: string
-          id?: string
-          installment_number: number
-          notes?: string | null
-          paid_amount?: number | null
-          paid_at?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          debt_id?: string
-          due_date?: string
-          id?: string
-          installment_number?: number
-          notes?: string | null
-          paid_amount?: number | null
-          paid_at?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "debt_installments_debt_id_fkey"
-            columns: ["debt_id"]
-            isOneToOne: false
-            referencedRelation: "debts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      debt_notifications: {
-        Row: {
-          created_at: string
-          debt_id: string | null
-          id: string
-          installment_id: string | null
-          is_read: boolean | null
-          message: string
-          metadata: Json | null
-          notification_type: string
-          scheduled_for: string
-          sent_at: string | null
-          status: string
-          target_user_id: string | null
-          title: string
-        }
-        Insert: {
-          created_at?: string
-          debt_id?: string | null
-          id?: string
-          installment_id?: string | null
-          is_read?: boolean | null
-          message: string
-          metadata?: Json | null
-          notification_type: string
-          scheduled_for: string
-          sent_at?: string | null
-          status?: string
-          target_user_id?: string | null
-          title: string
-        }
-        Update: {
-          created_at?: string
-          debt_id?: string | null
-          id?: string
-          installment_id?: string | null
-          is_read?: boolean | null
-          message?: string
-          metadata?: Json | null
-          notification_type?: string
-          scheduled_for?: string
-          sent_at?: string | null
-          status?: string
-          target_user_id?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "debt_notifications_debt_id_fkey"
-            columns: ["debt_id"]
-            isOneToOne: false
-            referencedRelation: "debts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "debt_notifications_installment_id_fkey"
-            columns: ["installment_id"]
-            isOneToOne: false
-            referencedRelation: "debt_installments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      debts: {
-        Row: {
-          amount: number
-          auto_deduct_from_commission: boolean | null
-          contract_reference: string | null
-          created_at: string
-          debt_category: string | null
-          debtor_id: string | null
-          debtor_name: string
-          debtor_type: string
-          description: string | null
-          due_date: string | null
-          expense_id: string | null
-          grace_period_days: number | null
-          guarantor_name: string | null
-          guarantor_phone: string | null
-          id: string
-          installment_count: number | null
-          installment_frequency: string | null
-          late_fee_amount: number | null
-          paid_at: string | null
-          payment_method: string | null
-          priority_level: number | null
-          recorded_by: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          auto_deduct_from_commission?: boolean | null
-          contract_reference?: string | null
-          created_at?: string
-          debt_category?: string | null
-          debtor_id?: string | null
-          debtor_name: string
-          debtor_type: string
           description?: string | null
-          due_date?: string | null
-          expense_id?: string | null
-          grace_period_days?: number | null
-          guarantor_name?: string | null
-          guarantor_phone?: string | null
           id?: string
-          installment_count?: number | null
-          installment_frequency?: string | null
-          late_fee_amount?: number | null
-          paid_at?: string | null
-          payment_method?: string | null
-          priority_level?: number | null
-          recorded_by: string
+          reminder_time?: string | null
+          scheduled_date?: string
           status?: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          auto_deduct_from_commission?: boolean | null
-          contract_reference?: string | null
-          created_at?: string
-          debt_category?: string | null
-          debtor_id?: string | null
-          debtor_name?: string
-          debtor_type?: string
-          description?: string | null
-          due_date?: string | null
-          expense_id?: string | null
-          grace_period_days?: number | null
-          guarantor_name?: string | null
-          guarantor_phone?: string | null
-          id?: string
-          installment_count?: number | null
-          installment_frequency?: string | null
-          late_fee_amount?: number | null
-          paid_at?: string | null
-          payment_method?: string | null
-          priority_level?: number | null
-          recorded_by?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "debts_expense_id_fkey"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      employee_complaints: {
-        Row: {
-          attachments: Json | null
-          complaint_category: string
-          created_at: string
-          department: string | null
-          description: string
-          employee_id: string
-          id: string
-          incident_date: string | null
-          manager_response: string | null
-          priority: string
-          responded_at: string | null
-          responded_by: string | null
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          attachments?: Json | null
-          complaint_category: string
-          created_at?: string
-          department?: string | null
-          description: string
-          employee_id: string
-          id?: string
-          incident_date?: string | null
-          manager_response?: string | null
-          priority?: string
-          responded_at?: string | null
-          responded_by?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          attachments?: Json | null
-          complaint_category?: string
-          created_at?: string
-          department?: string | null
-          description?: string
-          employee_id?: string
-          id?: string
-          incident_date?: string | null
-          manager_response?: string | null
-          priority?: string
-          responded_at?: string | null
-          responded_by?: string | null
-          status?: string
+          target_count?: number | null
+          target_suppliers?: Json | null
+          task_type?: string
           title?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      employee_evaluations: {
-        Row: {
-          achievements: string[] | null
-          created_at: string | null
-          created_by: string
-          employee_id: string
-          evaluation_period_end: string
-          evaluation_period_start: string
-          feedback: Json | null
-          id: string
-          manager_comments: string | null
-          overall_rating: number | null
-          performance_categories: Json | null
-          self_assessment: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          achievements?: string[] | null
-          created_at?: string | null
-          created_by: string
-          employee_id: string
-          evaluation_period_end: string
-          evaluation_period_start: string
-          feedback?: Json | null
-          id?: string
-          manager_comments?: string | null
-          overall_rating?: number | null
-          performance_categories?: Json | null
-          self_assessment?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          achievements?: string[] | null
-          created_at?: string | null
-          created_by?: string
-          employee_id?: string
-          evaluation_period_end?: string
-          evaluation_period_start?: string
-          feedback?: Json | null
-          id?: string
-          manager_comments?: string | null
-          overall_rating?: number | null
-          performance_categories?: Json | null
-          self_assessment?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      employee_requests: {
-        Row: {
-          attachments: Json | null
-          created_at: string
-          description: string | null
-          employee_id: string
-          id: string
-          manager_response: string | null
-          priority: string
-          request_type: string
-          requested_date: string | null
-          responded_at: string | null
-          responded_by: string | null
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          attachments?: Json | null
-          created_at?: string
-          description?: string | null
-          employee_id: string
-          id?: string
-          manager_response?: string | null
-          priority?: string
-          request_type: string
-          requested_date?: string | null
-          responded_at?: string | null
-          responded_by?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          attachments?: Json | null
-          created_at?: string
-          description?: string | null
-          employee_id?: string
-          id?: string
-          manager_response?: string | null
-          priority?: string
-          request_type?: string
-          requested_date?: string | null
-          responded_at?: string | null
-          responded_by?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      employee_targets: {
-        Row: {
-          achieved_at: string | null
-          commission_target: number
-          created_at: string
-          created_by: string
-          current_commission: number
-          current_deals: number
-          current_sales: number
-          deals_target: number
-          employee_id: string
-          id: string
-          is_achieved: boolean
-          sales_target: number
-          target_period: string
-          target_type: string
-          updated_at: string
-        }
-        Insert: {
-          achieved_at?: string | null
-          commission_target?: number
-          created_at?: string
-          created_by: string
-          current_commission?: number
-          current_deals?: number
-          current_sales?: number
-          deals_target?: number
-          employee_id: string
-          id?: string
-          is_achieved?: boolean
-          sales_target?: number
-          target_period: string
-          target_type: string
-          updated_at?: string
-        }
-        Update: {
-          achieved_at?: string | null
-          commission_target?: number
-          created_at?: string
-          created_by?: string
-          current_commission?: number
-          current_deals?: number
-          current_sales?: number
-          deals_target?: number
-          employee_id?: string
-          id?: string
-          is_achieved?: boolean
-          sales_target?: number
-          target_period?: string
-          target_type?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      employee_vehicles: {
-        Row: {
-          assigned_date: string
-          created_at: string | null
-          employee_id: string
-          id: string
-          notes: string | null
-          return_date: string | null
-          status: string
-          updated_at: string | null
-          vehicle_id: string
-        }
-        Insert: {
-          assigned_date?: string
-          created_at?: string | null
-          employee_id: string
-          id?: string
-          notes?: string | null
-          return_date?: string | null
-          status?: string
-          updated_at?: string | null
-          vehicle_id: string
-        }
-        Update: {
-          assigned_date?: string
-          created_at?: string | null
-          employee_id?: string
-          id?: string
-          notes?: string | null
-          return_date?: string | null
-          status?: string
-          updated_at?: string | null
-          vehicle_id?: string
         }
         Relationships: []
       }
       enhanced_contact_channels: {
         Row: {
           channel_type: string
-          contact_id: string | null
+          channel_value: string
+          contact_id: string
           created_at: string | null
           id: string
-          is_active: boolean | null
           is_primary: boolean | null
           is_verified: boolean | null
-          label: string | null
-          preferred_for_calls: boolean | null
-          preferred_for_emails: boolean | null
-          preferred_for_messages: boolean | null
+          notes: string | null
           updated_at: string | null
-          value: string
         }
         Insert: {
           channel_type: string
-          contact_id?: string | null
+          channel_value: string
+          contact_id: string
           created_at?: string | null
           id?: string
-          is_active?: boolean | null
           is_primary?: boolean | null
           is_verified?: boolean | null
-          label?: string | null
-          preferred_for_calls?: boolean | null
-          preferred_for_emails?: boolean | null
-          preferred_for_messages?: boolean | null
+          notes?: string | null
           updated_at?: string | null
-          value: string
         }
         Update: {
           channel_type?: string
-          contact_id?: string | null
+          channel_value?: string
+          contact_id?: string
           created_at?: string | null
           id?: string
-          is_active?: boolean | null
           is_primary?: boolean | null
           is_verified?: boolean | null
-          label?: string | null
-          preferred_for_calls?: boolean | null
-          preferred_for_emails?: boolean | null
-          preferred_for_messages?: boolean | null
+          notes?: string | null
           updated_at?: string | null
-          value?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "enhanced_contact_channels_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "enhanced_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       enhanced_contacts: {
         Row: {
-          about: string | null
-          account_number: string | null
-          activity_status: string | null
           address: string | null
-          archived_at: string | null
-          archived_by: string | null
           area_max: number | null
           area_min: number | null
-          areas_specialization: string[] | null
-          assigned_agent: string | null
           assigned_to: string | null
-          average_deal_size: number | null
-          average_deal_value: number | null
-          bank_name: string | null
-          bio: string | null
           budget_max: number | null
           budget_min: number | null
-          category: Database["public"]["Enums"]["contact_category"] | null
-          channels: string[] | null
+          city: string | null
           client_stage: string | null
-          client_status: string | null
-          communication_preferences: string[] | null
           company: string | null
-          company_name: string | null
-          conversion_rate: number | null
-          conversion_status: string | null
-          cr_expiry_date: string | null
-          cr_number: string | null
+          country: string | null
           created_at: string | null
-          created_by: string | null
-          current_address: string | null
+          created_by: string
           custom_fields: Json | null
-          data_source: string | null
           deals_count: number | null
           email: string | null
-          emergency_contact_name: string | null
-          emergency_contact_phone: string | null
-          emergency_contact_relation: string | null
-          emergency_contact_relationship: string | null
-          external_id: string | null
-          first_contact_date: string | null
-          first_name: string | null
+          emergency_contact: string | null
+          emergency_phone: string | null
           follow_up_status: string | null
           full_name: string | null
-          iban: string | null
           id: string
-          id_expiry_date: string | null
-          id_number: string | null
-          id_type: string | null
-          internal_notes: string | null
-          investment_type: string | null
-          is_active: boolean | null
           is_being_deleted: boolean | null
-          is_duplicate: boolean | null
-          job_title: string | null
           language: string | null
-          last_contact_date: string | null
+          last_deal_date: string | null
           last_interaction_date: string | null
-          last_modified_by: string | null
-          last_name: string | null
-          last_sale_date: string | null
           lead_source: string | null
-          lead_status: string | null
-          location_preference: string | null
           metadata: Json | null
-          name: string | null
           nationality: string | null
           next_follow_up_date: string | null
           notes: string | null
-          office: string | null
-          office_classification: string | null
-          office_name: string | null
           original_id: string | null
           original_table: string | null
           phone: string | null
           phone_primary: string | null
           phone_secondary: string | null
-          planned_purchase_date: string | null
-          preferred_contact_method: string | null
+          position: string | null
           preferred_location: string | null
-          preferred_locations: Json | null
-          preferred_payment_method: string | null
           priority: string | null
-          property_type: string | null
           property_type_interest: string | null
-          public_notes: string | null
-          purchase_purpose: string | null
           rating: number | null
-          rating_1_5: number | null
-          roles: Database["public"]["Enums"]["contact_role"][] | null
-          satisfaction_rating: number | null
+          roles: string[] | null
           search_vector: unknown | null
           short_name: string | null
-          social_media_profiles: Json | null
           source: string | null
           status: string | null
-          successful_deals: number | null
-          sync_status: string | null
           tags: string[] | null
-          total_interactions: number | null
-          total_revenue: number | null
-          total_sales_count: number | null
-          total_sales_value: number | null
-          units_count: number | null
+          total_deal_value: number | null
           updated_at: string | null
-          version: number | null
+          updated_by: string | null
           whatsapp_number: string | null
         }
         Insert: {
-          about?: string | null
-          account_number?: string | null
-          activity_status?: string | null
           address?: string | null
-          archived_at?: string | null
-          archived_by?: string | null
           area_max?: number | null
           area_min?: number | null
-          areas_specialization?: string[] | null
-          assigned_agent?: string | null
           assigned_to?: string | null
-          average_deal_size?: number | null
-          average_deal_value?: number | null
-          bank_name?: string | null
-          bio?: string | null
           budget_max?: number | null
           budget_min?: number | null
-          category?: Database["public"]["Enums"]["contact_category"] | null
-          channels?: string[] | null
+          city?: string | null
           client_stage?: string | null
-          client_status?: string | null
-          communication_preferences?: string[] | null
           company?: string | null
-          company_name?: string | null
-          conversion_rate?: number | null
-          conversion_status?: string | null
-          cr_expiry_date?: string | null
-          cr_number?: string | null
+          country?: string | null
           created_at?: string | null
-          created_by?: string | null
-          current_address?: string | null
+          created_by?: string
           custom_fields?: Json | null
-          data_source?: string | null
           deals_count?: number | null
           email?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          emergency_contact_relation?: string | null
-          emergency_contact_relationship?: string | null
-          external_id?: string | null
-          first_contact_date?: string | null
-          first_name?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
           follow_up_status?: string | null
           full_name?: string | null
-          iban?: string | null
           id?: string
-          id_expiry_date?: string | null
-          id_number?: string | null
-          id_type?: string | null
-          internal_notes?: string | null
-          investment_type?: string | null
-          is_active?: boolean | null
           is_being_deleted?: boolean | null
-          is_duplicate?: boolean | null
-          job_title?: string | null
           language?: string | null
-          last_contact_date?: string | null
+          last_deal_date?: string | null
           last_interaction_date?: string | null
-          last_modified_by?: string | null
-          last_name?: string | null
-          last_sale_date?: string | null
           lead_source?: string | null
-          lead_status?: string | null
-          location_preference?: string | null
           metadata?: Json | null
-          name?: string | null
           nationality?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
-          office?: string | null
-          office_classification?: string | null
-          office_name?: string | null
           original_id?: string | null
           original_table?: string | null
           phone?: string | null
           phone_primary?: string | null
           phone_secondary?: string | null
-          planned_purchase_date?: string | null
-          preferred_contact_method?: string | null
+          position?: string | null
           preferred_location?: string | null
-          preferred_locations?: Json | null
-          preferred_payment_method?: string | null
           priority?: string | null
-          property_type?: string | null
           property_type_interest?: string | null
-          public_notes?: string | null
-          purchase_purpose?: string | null
           rating?: number | null
-          rating_1_5?: number | null
-          roles?: Database["public"]["Enums"]["contact_role"][] | null
-          satisfaction_rating?: number | null
+          roles?: string[] | null
           search_vector?: unknown | null
           short_name?: string | null
-          social_media_profiles?: Json | null
           source?: string | null
           status?: string | null
-          successful_deals?: number | null
-          sync_status?: string | null
           tags?: string[] | null
-          total_interactions?: number | null
-          total_revenue?: number | null
-          total_sales_count?: number | null
-          total_sales_value?: number | null
-          units_count?: number | null
+          total_deal_value?: number | null
           updated_at?: string | null
-          version?: number | null
+          updated_by?: string | null
           whatsapp_number?: string | null
         }
         Update: {
-          about?: string | null
-          account_number?: string | null
-          activity_status?: string | null
           address?: string | null
-          archived_at?: string | null
-          archived_by?: string | null
           area_max?: number | null
           area_min?: number | null
-          areas_specialization?: string[] | null
-          assigned_agent?: string | null
           assigned_to?: string | null
-          average_deal_size?: number | null
-          average_deal_value?: number | null
-          bank_name?: string | null
-          bio?: string | null
           budget_max?: number | null
           budget_min?: number | null
-          category?: Database["public"]["Enums"]["contact_category"] | null
-          channels?: string[] | null
+          city?: string | null
           client_stage?: string | null
-          client_status?: string | null
-          communication_preferences?: string[] | null
           company?: string | null
-          company_name?: string | null
-          conversion_rate?: number | null
-          conversion_status?: string | null
-          cr_expiry_date?: string | null
-          cr_number?: string | null
+          country?: string | null
           created_at?: string | null
-          created_by?: string | null
-          current_address?: string | null
+          created_by?: string
           custom_fields?: Json | null
-          data_source?: string | null
           deals_count?: number | null
           email?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          emergency_contact_relation?: string | null
-          emergency_contact_relationship?: string | null
-          external_id?: string | null
-          first_contact_date?: string | null
-          first_name?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
           follow_up_status?: string | null
           full_name?: string | null
-          iban?: string | null
           id?: string
-          id_expiry_date?: string | null
-          id_number?: string | null
-          id_type?: string | null
-          internal_notes?: string | null
-          investment_type?: string | null
-          is_active?: boolean | null
           is_being_deleted?: boolean | null
-          is_duplicate?: boolean | null
-          job_title?: string | null
           language?: string | null
-          last_contact_date?: string | null
+          last_deal_date?: string | null
           last_interaction_date?: string | null
-          last_modified_by?: string | null
-          last_name?: string | null
-          last_sale_date?: string | null
           lead_source?: string | null
-          lead_status?: string | null
-          location_preference?: string | null
           metadata?: Json | null
-          name?: string | null
           nationality?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
-          office?: string | null
-          office_classification?: string | null
-          office_name?: string | null
           original_id?: string | null
           original_table?: string | null
           phone?: string | null
           phone_primary?: string | null
           phone_secondary?: string | null
-          planned_purchase_date?: string | null
-          preferred_contact_method?: string | null
+          position?: string | null
           preferred_location?: string | null
-          preferred_locations?: Json | null
-          preferred_payment_method?: string | null
           priority?: string | null
-          property_type?: string | null
           property_type_interest?: string | null
-          public_notes?: string | null
-          purchase_purpose?: string | null
           rating?: number | null
-          rating_1_5?: number | null
-          roles?: Database["public"]["Enums"]["contact_role"][] | null
-          satisfaction_rating?: number | null
+          roles?: string[] | null
           search_vector?: unknown | null
           short_name?: string | null
-          social_media_profiles?: Json | null
           source?: string | null
           status?: string | null
-          successful_deals?: number | null
-          sync_status?: string | null
           tags?: string[] | null
-          total_interactions?: number | null
-          total_revenue?: number | null
-          total_sales_count?: number | null
-          total_sales_value?: number | null
-          units_count?: number | null
+          total_deal_value?: number | null
           updated_at?: string | null
-          version?: number | null
+          updated_by?: string | null
           whatsapp_number?: string | null
-        }
-        Relationships: []
-      }
-      expense_attachments: {
-        Row: {
-          expense_id: string
-          file_name: string
-          file_path: string
-          file_size: number | null
-          file_type: string
-          id: string
-          uploaded_at: string
-          uploaded_by: string
-        }
-        Insert: {
-          expense_id: string
-          file_name: string
-          file_path: string
-          file_size?: number | null
-          file_type: string
-          id?: string
-          uploaded_at?: string
-          uploaded_by: string
-        }
-        Update: {
-          expense_id?: string
-          file_name?: string
-          file_path?: string
-          file_size?: number | null
-          file_type?: string
-          id?: string
-          uploaded_at?: string
-          uploaded_by?: string
-        }
-        Relationships: []
-      }
-      expenses: {
-        Row: {
-          amount: number
-          approved_at: string | null
-          approved_by: string | null
-          budget_category: string | null
-          category: string
-          created_at: string
-          created_by: string | null
-          description: string | null
-          expense_date: string
-          expense_type: string | null
-          id: string
-          is_approved: boolean | null
-          is_debt_related: boolean | null
-          receipt_reference: string | null
-          receipt_url: string | null
-          recorded_by: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          approved_at?: string | null
-          approved_by?: string | null
-          budget_category?: string | null
-          category: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          expense_date?: string
-          expense_type?: string | null
-          id?: string
-          is_approved?: boolean | null
-          is_debt_related?: boolean | null
-          receipt_reference?: string | null
-          receipt_url?: string | null
-          recorded_by?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          approved_at?: string | null
-          approved_by?: string | null
-          budget_category?: string | null
-          category?: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          expense_date?: string
-          expense_type?: string | null
-          id?: string
-          is_approved?: boolean | null
-          is_debt_related?: boolean | null
-          receipt_reference?: string | null
-          receipt_url?: string | null
-          recorded_by?: string | null
-          title?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -2492,1294 +404,84 @@ export type Database = {
         }
         Relationships: []
       }
-      file_uploads: {
-        Row: {
-          category: string | null
-          created_at: string
-          file_path: string
-          file_size: number | null
-          file_type: string | null
-          filename: string
-          id: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          file_path: string
-          file_size?: number | null
-          file_type?: string | null
-          filename: string
-          id?: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          file_path?: string
-          file_size?: number | null
-          file_type?: string | null
-          filename?: string
-          id?: string
-          uploaded_by?: string | null
-        }
-        Relationships: []
-      }
-      government_service_fees: {
-        Row: {
-          amount: number
-          created_at: string | null
-          due_date: string | null
-          fee_type: string
-          id: string
-          paid_amount: number | null
-          paid_at: string | null
-          payment_reference: string | null
-          service_id: string
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          amount?: number
-          created_at?: string | null
-          due_date?: string | null
-          fee_type: string
-          id?: string
-          paid_amount?: number | null
-          paid_at?: string | null
-          payment_reference?: string | null
-          service_id: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          due_date?: string | null
-          fee_type?: string
-          id?: string
-          paid_amount?: number | null
-          paid_at?: string | null
-          payment_reference?: string | null
-          service_id?: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "government_service_fees_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "government_services"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      government_service_timeline: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          notes: string | null
-          service_id: string
-          stage_name: string
-          stage_order: number | null
-          stage_status: string
-          started_at: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          notes?: string | null
-          service_id: string
-          stage_name: string
-          stage_order?: number | null
-          stage_status?: string
-          started_at?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          notes?: string | null
-          service_id?: string
-          stage_name?: string
-          stage_order?: number | null
-          stage_status?: string
-          started_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "government_service_timeline_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "government_services"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      government_service_workflow: {
-        Row: {
-          created_at: string
-          id: string
-          is_final_stage: boolean | null
-          next_stage: string | null
-          stage_name: string
-          stage_order: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_final_stage?: boolean | null
-          next_stage?: string | null
-          stage_name: string
-          stage_order: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_final_stage?: boolean | null
-          next_stage?: string | null
-          stage_name?: string
-          stage_order?: number
-        }
-        Relationships: []
-      }
-      government_services: {
-        Row: {
-          actual_completion_date: string | null
-          application_date: string | null
-          category: string | null
-          client_id: string | null
-          completion_notes: string | null
-          contract_id: string
-          contract_start_date: string | null
-          cost: number | null
-          created_at: string
-          documents_url: string[] | null
-          due_date: string | null
-          expected_completion_date: string | null
-          government_entity: string | null
-          handled_by: string
-          id: string
-          notes: string | null
-          official_fees: number | null
-          priority: string | null
-          progress_percentage: number | null
-          reference_number: string | null
-          rejection_reason: string | null
-          service_name: string
-          service_type: string
-          stage_order: number | null
-          status: string
-          timeline_stages: Json | null
-          updated_at: string
-          workflow_stage: string | null
-        }
-        Insert: {
-          actual_completion_date?: string | null
-          application_date?: string | null
-          category?: string | null
-          client_id?: string | null
-          completion_notes?: string | null
-          contract_id: string
-          contract_start_date?: string | null
-          cost?: number | null
-          created_at?: string
-          documents_url?: string[] | null
-          due_date?: string | null
-          expected_completion_date?: string | null
-          government_entity?: string | null
-          handled_by: string
-          id?: string
-          notes?: string | null
-          official_fees?: number | null
-          priority?: string | null
-          progress_percentage?: number | null
-          reference_number?: string | null
-          rejection_reason?: string | null
-          service_name: string
-          service_type: string
-          stage_order?: number | null
-          status?: string
-          timeline_stages?: Json | null
-          updated_at?: string
-          workflow_stage?: string | null
-        }
-        Update: {
-          actual_completion_date?: string | null
-          application_date?: string | null
-          category?: string | null
-          client_id?: string | null
-          completion_notes?: string | null
-          contract_id?: string
-          contract_start_date?: string | null
-          cost?: number | null
-          created_at?: string
-          documents_url?: string[] | null
-          due_date?: string | null
-          expected_completion_date?: string | null
-          government_entity?: string | null
-          handled_by?: string
-          id?: string
-          notes?: string | null
-          official_fees?: number | null
-          priority?: string | null
-          progress_percentage?: number | null
-          reference_number?: string | null
-          rejection_reason?: string | null
-          service_name?: string
-          service_type?: string
-          stage_order?: number | null
-          status?: string
-          timeline_stages?: Json | null
-          updated_at?: string
-          workflow_stage?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "government_services_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "government_services_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "rental_contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "government_services_handled_by_fkey"
-            columns: ["handled_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      incentive_rules: {
-        Row: {
-          achievement_percentage: number
-          created_at: string
-          created_by: string
-          id: string
-          incentive_type: string
-          incentive_value: number
-          is_active: boolean
-          max_incentive_amount: number | null
-          rule_name: string
-          target_type: string
-          updated_at: string
-        }
-        Insert: {
-          achievement_percentage?: number
-          created_at?: string
-          created_by: string
-          id?: string
-          incentive_type: string
-          incentive_value: number
-          is_active?: boolean
-          max_incentive_amount?: number | null
-          rule_name: string
-          target_type: string
-          updated_at?: string
-        }
-        Update: {
-          achievement_percentage?: number
-          created_at?: string
-          created_by?: string
-          id?: string
-          incentive_type?: string
-          incentive_value?: number
-          is_active?: boolean
-          max_incentive_amount?: number | null
-          rule_name?: string
-          target_type?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      journal_debt_links: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          debt_id: string
-          entry_type: string
-          id: string
-          journal_entry_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          debt_id: string
-          entry_type: string
-          id?: string
-          journal_entry_id: string
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          debt_id?: string
-          entry_type?: string
-          id?: string
-          journal_entry_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "journal_debt_links_debt_id_fkey"
-            columns: ["debt_id"]
-            isOneToOne: false
-            referencedRelation: "debts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      land_brokers: {
-        Row: {
-          activity_status: string | null
-          areas_specialization: Json | null
-          commission_percentage: number | null
-          contact_id: string | null
-          created_at: string | null
-          created_by: string | null
-          deals_count: number | null
-          email: string | null
-          id: string
-          language: string | null
-          last_activity_date: string | null
-          name: string
-          notes: string | null
-          office_location: string | null
-          office_name: string | null
-          phone: string
-          short_name: string | null
-          total_sales_amount: number | null
-          updated_at: string | null
-          updated_by: string | null
-          whatsapp_number: string | null
-        }
-        Insert: {
-          activity_status?: string | null
-          areas_specialization?: Json | null
-          commission_percentage?: number | null
-          contact_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          deals_count?: number | null
-          email?: string | null
-          id?: string
-          language?: string | null
-          last_activity_date?: string | null
-          name: string
-          notes?: string | null
-          office_location?: string | null
-          office_name?: string | null
-          phone: string
-          short_name?: string | null
-          total_sales_amount?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-          whatsapp_number?: string | null
-        }
-        Update: {
-          activity_status?: string | null
-          areas_specialization?: Json | null
-          commission_percentage?: number | null
-          contact_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          deals_count?: number | null
-          email?: string | null
-          id?: string
-          language?: string | null
-          last_activity_date?: string | null
-          name?: string
-          notes?: string | null
-          office_location?: string | null
-          office_name?: string | null
-          phone?: string
-          short_name?: string | null
-          total_sales_amount?: number | null
-          updated_at?: string | null
-          updated_by?: string | null
-          whatsapp_number?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "land_brokers_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "enhanced_contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      land_client_interactions: {
-        Row: {
-          broker_id: string | null
-          client_id: string
-          created_at: string | null
-          created_by: string
-          follow_up_date: string | null
-          follow_up_required: boolean | null
-          id: string
-          interaction_date: string | null
-          interaction_type: string
-          land_id: string | null
-          notes: string | null
-        }
-        Insert: {
-          broker_id?: string | null
-          client_id: string
-          created_at?: string | null
-          created_by: string
-          follow_up_date?: string | null
-          follow_up_required?: boolean | null
-          id?: string
-          interaction_date?: string | null
-          interaction_type: string
-          land_id?: string | null
-          notes?: string | null
-        }
-        Update: {
-          broker_id?: string | null
-          client_id?: string
-          created_at?: string | null
-          created_by?: string
-          follow_up_date?: string | null
-          follow_up_required?: boolean | null
-          id?: string
-          interaction_date?: string | null
-          interaction_type?: string
-          land_id?: string | null
-          notes?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "land_client_interactions_broker_id_fkey"
-            columns: ["broker_id"]
-            isOneToOne: false
-            referencedRelation: "land_brokers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "land_client_interactions_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "land_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "land_client_interactions_land_id_fkey"
-            columns: ["land_id"]
-            isOneToOne: false
-            referencedRelation: "land_properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      land_clients: {
-        Row: {
-          area_max: number | null
-          area_min: number | null
-          assigned_to: string | null
-          budget_max: number | null
-          budget_min: number | null
-          created_at: string | null
-          created_by: string
-          email: string | null
-          id: string
-          last_contact_date: string | null
-          name: string
-          nationality: string | null
-          notes: string | null
-          phone: string
-          preferred_locations: Json | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          area_max?: number | null
-          area_min?: number | null
-          assigned_to?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
-          created_at?: string | null
-          created_by: string
-          email?: string | null
-          id?: string
-          last_contact_date?: string | null
-          name: string
-          nationality?: string | null
-          notes?: string | null
-          phone: string
-          preferred_locations?: Json | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          area_max?: number | null
-          area_min?: number | null
-          assigned_to?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
-          created_at?: string | null
-          created_by?: string
-          email?: string | null
-          id?: string
-          last_contact_date?: string | null
-          name?: string
-          nationality?: string | null
-          notes?: string | null
-          phone?: string
-          preferred_locations?: Json | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      land_deals: {
-        Row: {
-          broker_id: string | null
-          client_id: string
-          closed_at: string | null
-          closed_by: string | null
-          commission_amount: number | null
-          created_at: string | null
-          created_by: string
-          deal_amount: number
-          deal_date: string | null
-          id: string
-          land_id: string
-          notes: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          broker_id?: string | null
-          client_id: string
-          closed_at?: string | null
-          closed_by?: string | null
-          commission_amount?: number | null
-          created_at?: string | null
-          created_by: string
-          deal_amount: number
-          deal_date?: string | null
-          id?: string
-          land_id: string
-          notes?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          broker_id?: string | null
-          client_id?: string
-          closed_at?: string | null
-          closed_by?: string | null
-          commission_amount?: number | null
-          created_at?: string | null
-          created_by?: string
-          deal_amount?: number
-          deal_date?: string | null
-          id?: string
-          land_id?: string
-          notes?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "land_deals_broker_id_fkey"
-            columns: ["broker_id"]
-            isOneToOne: false
-            referencedRelation: "land_brokers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "land_deals_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "land_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "land_deals_land_id_fkey"
-            columns: ["land_id"]
-            isOneToOne: false
-            referencedRelation: "land_properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      land_properties: {
-        Row: {
-          area_sqft: number | null
-          area_sqm: number
-          assigned_to: string | null
-          created_at: string | null
-          created_by: string
-          description: string | null
-          id: string
-          images: Json | null
-          internal_notes: string | null
-          land_location: string | null
-          land_type: string | null
-          latitude: number | null
-          location: string
-          longitude: number | null
-          plot_number: string | null
-          price: number
-          source_name: string | null
-          source_type: string
-          status: string
-          title: string
-          updated_at: string | null
-          videos: Json | null
-        }
-        Insert: {
-          area_sqft?: number | null
-          area_sqm: number
-          assigned_to?: string | null
-          created_at?: string | null
-          created_by: string
-          description?: string | null
-          id?: string
-          images?: Json | null
-          internal_notes?: string | null
-          land_location?: string | null
-          land_type?: string | null
-          latitude?: number | null
-          location: string
-          longitude?: number | null
-          plot_number?: string | null
-          price: number
-          source_name?: string | null
-          source_type: string
-          status?: string
-          title: string
-          updated_at?: string | null
-          videos?: Json | null
-        }
-        Update: {
-          area_sqft?: number | null
-          area_sqm?: number
-          assigned_to?: string | null
-          created_at?: string | null
-          created_by?: string
-          description?: string | null
-          id?: string
-          images?: Json | null
-          internal_notes?: string | null
-          land_location?: string | null
-          land_type?: string | null
-          latitude?: number | null
-          location?: string
-          longitude?: number | null
-          plot_number?: string | null
-          price?: number
-          source_name?: string | null
-          source_type?: string
-          status?: string
-          title?: string
-          updated_at?: string | null
-          videos?: Json | null
-        }
-        Relationships: []
-      }
-      land_tasks: {
-        Row: {
-          assigned_to: string
-          completed_at: string | null
-          created_at: string | null
-          created_by: string
-          description: string | null
-          due_date: string | null
-          due_time: string | null
-          id: string
-          priority: string | null
-          related_broker_id: string | null
-          related_client_id: string | null
-          related_land_id: string | null
-          status: string | null
-          task_type: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to: string
-          completed_at?: string | null
-          created_at?: string | null
-          created_by: string
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id?: string
-          priority?: string | null
-          related_broker_id?: string | null
-          related_client_id?: string | null
-          related_land_id?: string | null
-          status?: string | null
-          task_type?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string
-          completed_at?: string | null
-          created_at?: string | null
-          created_by?: string
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          id?: string
-          priority?: string | null
-          related_broker_id?: string | null
-          related_client_id?: string | null
-          related_land_id?: string | null
-          status?: string | null
-          task_type?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "land_tasks_related_broker_id_fkey"
-            columns: ["related_broker_id"]
-            isOneToOne: false
-            referencedRelation: "land_brokers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "land_tasks_related_client_id_fkey"
-            columns: ["related_client_id"]
-            isOneToOne: false
-            referencedRelation: "land_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "land_tasks_related_land_id_fkey"
-            columns: ["related_land_id"]
-            isOneToOne: false
-            referencedRelation: "land_properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lead_activities: {
-        Row: {
-          activity_date: string | null
-          activity_type: string
-          created_at: string | null
-          created_by: string
-          description: string | null
-          duration_minutes: number | null
-          id: string
-          lead_id: string
-          next_action: string | null
-          outcome: string | null
-          title: string
-        }
-        Insert: {
-          activity_date?: string | null
-          activity_type: string
-          created_at?: string | null
-          created_by: string
-          description?: string | null
-          duration_minutes?: number | null
-          id?: string
-          lead_id: string
-          next_action?: string | null
-          outcome?: string | null
-          title: string
-        }
-        Update: {
-          activity_date?: string | null
-          activity_type?: string
-          created_at?: string | null
-          created_by?: string
-          description?: string | null
-          duration_minutes?: number | null
-          id?: string
-          lead_id?: string
-          next_action?: string | null
-          outcome?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_activities_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "lead_activities_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lead_property_preferences: {
-        Row: {
-          created_at: string | null
-          feedback: string | null
-          id: string
-          interest_level: string | null
-          lead_id: string
-          property_id: string | null
-          viewing_date: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string
-          interest_level?: string | null
-          lead_id: string
-          property_id?: string | null
-          viewing_date?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string
-          interest_level?: string | null
-          lead_id?: string
-          property_id?: string | null
-          viewing_date?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_property_preferences_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_property_preferences_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       leads: {
         Row: {
           assigned_to: string | null
-          budget_max: number | null
-          budget_min: number | null
+          budget_range: string | null
+          company: string | null
           conversion_date: string | null
-          converted_client_id: string | null
-          converted_to_client: boolean | null
+          converted_to_client_id: string | null
           created_at: string | null
           created_by: string
           email: string | null
           full_name: string
           id: string
-          lead_score: number | null
-          lead_source: string
-          nationality: string | null
+          interaction_count: number | null
+          last_contact_date: string | null
           next_follow_up: string | null
           notes: string | null
-          phone: string
-          preferred_language: string
-          preferred_location: string | null
-          property_type: string
-          purchase_purpose: string
-          stage: string
+          phone: string | null
+          property_interest: string | null
+          source: string | null
+          specific_requirements: string | null
+          stage: string | null
+          status: string | null
+          tags: string[] | null
+          timeline: string | null
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           assigned_to?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
+          budget_range?: string | null
+          company?: string | null
           conversion_date?: string | null
-          converted_client_id?: string | null
-          converted_to_client?: boolean | null
+          converted_to_client_id?: string | null
           created_at?: string | null
-          created_by: string
+          created_by?: string
           email?: string | null
           full_name: string
           id?: string
-          lead_score?: number | null
-          lead_source: string
-          nationality?: string | null
+          interaction_count?: number | null
+          last_contact_date?: string | null
           next_follow_up?: string | null
           notes?: string | null
-          phone: string
-          preferred_language?: string
-          preferred_location?: string | null
-          property_type: string
-          purchase_purpose: string
-          stage?: string
+          phone?: string | null
+          property_interest?: string | null
+          source?: string | null
+          specific_requirements?: string | null
+          stage?: string | null
+          status?: string | null
+          tags?: string[] | null
+          timeline?: string | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           assigned_to?: string | null
-          budget_max?: number | null
-          budget_min?: number | null
+          budget_range?: string | null
+          company?: string | null
           conversion_date?: string | null
-          converted_client_id?: string | null
-          converted_to_client?: boolean | null
+          converted_to_client_id?: string | null
           created_at?: string | null
           created_by?: string
           email?: string | null
           full_name?: string
           id?: string
-          lead_score?: number | null
-          lead_source?: string
-          nationality?: string | null
+          interaction_count?: number | null
+          last_contact_date?: string | null
           next_follow_up?: string | null
           notes?: string | null
-          phone?: string
-          preferred_language?: string
-          preferred_location?: string | null
-          property_type?: string
-          purchase_purpose?: string
-          stage?: string
+          phone?: string | null
+          property_interest?: string | null
+          source?: string | null
+          specific_requirements?: string | null
+          stage?: string | null
+          status?: string | null
+          tags?: string[] | null
+          timeline?: string | null
           updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leads_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "leads_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      notification_logs: {
-        Row: {
-          channel: string
-          created_at: string
-          employee_id: string
-          error_message: string | null
-          id: string
-          message: string
-          metadata: Json | null
-          notification_type: string
-          sent_at: string | null
-          status: string
-          title: string
-        }
-        Insert: {
-          channel: string
-          created_at?: string
-          employee_id: string
-          error_message?: string | null
-          id?: string
-          message: string
-          metadata?: Json | null
-          notification_type: string
-          sent_at?: string | null
-          status?: string
-          title: string
-        }
-        Update: {
-          channel?: string
-          created_at?: string
-          employee_id?: string
-          error_message?: string | null
-          id?: string
-          message?: string
-          metadata?: Json | null
-          notification_type?: string
-          sent_at?: string | null
-          status?: string
-          title?: string
-        }
-        Relationships: []
-      }
-      notification_preferences: {
-        Row: {
-          commission_alerts: boolean
-          created_at: string
-          debt_alerts: boolean
-          email_notifications: boolean
-          employee_id: string
-          id: string
-          target_alerts: boolean
-          updated_at: string
-          whatsapp_notifications: boolean
-          whatsapp_number: string | null
-        }
-        Insert: {
-          commission_alerts?: boolean
-          created_at?: string
-          debt_alerts?: boolean
-          email_notifications?: boolean
-          employee_id: string
-          id?: string
-          target_alerts?: boolean
-          updated_at?: string
-          whatsapp_notifications?: boolean
-          whatsapp_number?: string | null
-        }
-        Update: {
-          commission_alerts?: boolean
-          created_at?: string
-          debt_alerts?: boolean
-          email_notifications?: boolean
-          employee_id?: string
-          id?: string
-          target_alerts?: boolean
-          updated_at?: string
-          whatsapp_notifications?: boolean
-          whatsapp_number?: string | null
-        }
-        Relationships: []
-      }
-      owner_communications: {
-        Row: {
-          communication_type: string
-          completed_date: string | null
-          created_at: string
-          created_by: string
-          description: string
-          id: string
-          owner_id: string
-          priority_level: number | null
-          reminder_date: string | null
-          scheduled_date: string | null
-          status: string
-          subject: string | null
-          updated_at: string
-        }
-        Insert: {
-          communication_type: string
-          completed_date?: string | null
-          created_at?: string
-          created_by: string
-          description: string
-          id?: string
-          owner_id: string
-          priority_level?: number | null
-          reminder_date?: string | null
-          scheduled_date?: string | null
-          status?: string
-          subject?: string | null
-          updated_at?: string
-        }
-        Update: {
-          communication_type?: string
-          completed_date?: string | null
-          created_at?: string
-          created_by?: string
-          description?: string
-          id?: string
-          owner_id?: string
-          priority_level?: number | null
-          reminder_date?: string | null
-          scheduled_date?: string | null
-          status?: string
-          subject?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "owner_communications_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "property_owners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      owner_documents: {
-        Row: {
-          document_name: string
-          document_type: string
-          expiry_date: string | null
-          file_size: number | null
-          file_url: string
-          id: string
-          is_expired: boolean | null
-          notes: string | null
-          owner_id: string
-          uploaded_at: string
-          uploaded_by: string
-        }
-        Insert: {
-          document_name: string
-          document_type: string
-          expiry_date?: string | null
-          file_size?: number | null
-          file_url: string
-          id?: string
-          is_expired?: boolean | null
-          notes?: string | null
-          owner_id: string
-          uploaded_at?: string
-          uploaded_by: string
-        }
-        Update: {
-          document_name?: string
-          document_type?: string
-          expiry_date?: string | null
-          file_size?: number | null
-          file_url?: string
-          id?: string
-          is_expired?: boolean | null
-          notes?: string | null
-          owner_id?: string
-          uploaded_at?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "owner_documents_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "property_owners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      owner_financials: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string
-          currency: string | null
-          description: string
-          id: string
-          owner_id: string
-          property_id: string | null
-          reference_number: string | null
-          transaction_date: string
-          transaction_type: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by: string
-          currency?: string | null
-          description: string
-          id?: string
-          owner_id: string
-          property_id?: string | null
-          reference_number?: string | null
-          transaction_date?: string
-          transaction_type: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string
-          currency?: string | null
-          description?: string
-          id?: string
-          owner_id?: string
-          property_id?: string | null
-          reference_number?: string | null
-          transaction_date?: string
-          transaction_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "owner_financials_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "property_owners"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "owner_financials_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "crm_properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pdf_templates: {
-        Row: {
-          created_at: string
-          created_by: string
-          field_positions: Json
-          file_path: string
-          id: string
-          is_active: boolean
-          template_name: string
-          template_type: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          field_positions?: Json
-          file_path: string
-          id?: string
-          is_active?: boolean
-          template_name: string
-          template_type?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          field_positions?: Json
-          file_path?: string
-          id?: string
-          is_active?: boolean
-          template_name?: string
-          template_type?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      permission_settings: {
-        Row: {
-          action_type: string
-          allowed_roles: string[]
-          allowed_users: string[] | null
-          created_at: string
-          created_by: string | null
-          id: string
-          is_active: boolean
-          module_name: string
-          updated_at: string
-        }
-        Insert: {
-          action_type: string
-          allowed_roles?: string[]
-          allowed_users?: string[] | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean
-          module_name: string
-          updated_at?: string
-        }
-        Update: {
-          action_type?: string
-          allowed_roles?: string[]
-          allowed_users?: string[] | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean
-          module_name?: string
-          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -3827,731 +529,237 @@ export type Database = {
       }
       properties: {
         Row: {
-          area: number | null
+          address: string | null
+          amenities: string[] | null
+          area: string | null
+          area_sqft: number | null
+          area_sqm: number | null
+          assigned_to: string | null
           bathrooms: number | null
           bedrooms: number | null
-          created_at: string
-          created_by: string | null
+          building_name: string | null
+          city: string | null
+          created_at: string | null
+          created_by: string
           description: string | null
+          documents: string[] | null
           features: string[] | null
+          floor_number: number | null
           id: string
           images: string[] | null
-          listed_by: string
-          location: string
-          price: number
+          listing_type: string | null
+          notes: string | null
+          owner_id: string | null
+          price: number | null
+          price_negotiable: boolean | null
+          price_per_sqft: number | null
           property_type: string
-          status: string
+          status: string | null
+          tags: string[] | null
           title: string
-          updated_at: string
+          unit_number: string | null
+          updated_at: string | null
+          updated_by: string | null
+          virtual_tour_url: string | null
         }
         Insert: {
-          area?: number | null
+          address?: string | null
+          amenities?: string[] | null
+          area?: string | null
+          area_sqft?: number | null
+          area_sqm?: number | null
+          assigned_to?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
-          created_at?: string
-          created_by?: string | null
+          building_name?: string | null
+          city?: string | null
+          created_at?: string | null
+          created_by?: string
           description?: string | null
+          documents?: string[] | null
           features?: string[] | null
+          floor_number?: number | null
           id?: string
           images?: string[] | null
-          listed_by: string
-          location: string
-          price: number
+          listing_type?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          price?: number | null
+          price_negotiable?: boolean | null
+          price_per_sqft?: number | null
           property_type: string
-          status?: string
+          status?: string | null
+          tags?: string[] | null
           title: string
-          updated_at?: string
+          unit_number?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          virtual_tour_url?: string | null
         }
         Update: {
-          area?: number | null
+          address?: string | null
+          amenities?: string[] | null
+          area?: string | null
+          area_sqft?: number | null
+          area_sqm?: number | null
+          assigned_to?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
-          created_at?: string
-          created_by?: string | null
+          building_name?: string | null
+          city?: string | null
+          created_at?: string | null
+          created_by?: string
           description?: string | null
+          documents?: string[] | null
           features?: string[] | null
+          floor_number?: number | null
           id?: string
           images?: string[] | null
-          listed_by?: string
-          location?: string
-          price?: number
+          listing_type?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          price?: number | null
+          price_negotiable?: boolean | null
+          price_per_sqft?: number | null
           property_type?: string
-          status?: string
+          status?: string | null
+          tags?: string[] | null
           title?: string
-          updated_at?: string
+          unit_number?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          virtual_tour_url?: string | null
         }
         Relationships: []
       }
       property_owners: {
         Row: {
           address: string | null
-          assigned_employee: string | null
-          created_at: string
-          created_by: string | null
+          assigned_to: string | null
+          best_time_to_call: string | null
+          city: string | null
+          company: string | null
+          created_at: string | null
+          created_by: string
           email: string | null
           full_name: string
           id: string
           id_number: string | null
-          internal_notes: string | null
-          is_active: boolean | null
-          last_contact_date: string | null
-          mobile_numbers: Json
-          nationality: string | null
-          owner_type: string
-          total_properties_count: number | null
-          total_properties_value: number | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          assigned_employee?: string | null
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          full_name: string
-          id?: string
-          id_number?: string | null
-          internal_notes?: string | null
-          is_active?: boolean | null
-          last_contact_date?: string | null
-          mobile_numbers?: Json
-          nationality?: string | null
-          owner_type?: string
-          total_properties_count?: number | null
-          total_properties_value?: number | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          assigned_employee?: string | null
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          full_name?: string
-          id?: string
-          id_number?: string | null
-          internal_notes?: string | null
-          is_active?: boolean | null
-          last_contact_date?: string | null
-          mobile_numbers?: Json
-          nationality?: string | null
-          owner_type?: string
-          total_properties_count?: number | null
-          total_properties_value?: number | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      rental_contracts: {
-        Row: {
-          area: string | null
-          auto_renewal: boolean | null
-          commission_amount: number | null
-          contract_duration_months: number
-          contract_number: string
-          contract_status: string
-          created_at: string
-          created_by: string
-          end_date: string
-          generated_contract_path: string | null
-          generated_pdf_path: string | null
-          id: string
-          installment_frequency: string
-          installments_count: number
-          owner_name: string | null
-          payment_method: string | null
-          pdf_template_id: string | null
-          plot_number: string | null
-          property_id: string | null
-          property_title: string | null
-          purpose_of_use: string | null
-          renewal_notice_days: number | null
-          rent_amount: number
-          security_deposit: number | null
-          special_terms: string | null
-          start_date: string
-          template_used_id: string | null
-          tenant_id: string | null
-          tenant_name: string | null
-          unit_number: string | null
-          unit_type: string | null
-          updated_at: string
-        }
-        Insert: {
-          area?: string | null
-          auto_renewal?: boolean | null
-          commission_amount?: number | null
-          contract_duration_months: number
-          contract_number: string
-          contract_status?: string
-          created_at?: string
-          created_by: string
-          end_date: string
-          generated_contract_path?: string | null
-          generated_pdf_path?: string | null
-          id?: string
-          installment_frequency?: string
-          installments_count?: number
-          owner_name?: string | null
-          payment_method?: string | null
-          pdf_template_id?: string | null
-          plot_number?: string | null
-          property_id?: string | null
-          property_title?: string | null
-          purpose_of_use?: string | null
-          renewal_notice_days?: number | null
-          rent_amount: number
-          security_deposit?: number | null
-          special_terms?: string | null
-          start_date: string
-          template_used_id?: string | null
-          tenant_id?: string | null
-          tenant_name?: string | null
-          unit_number?: string | null
-          unit_type?: string | null
-          updated_at?: string
-        }
-        Update: {
-          area?: string | null
-          auto_renewal?: boolean | null
-          commission_amount?: number | null
-          contract_duration_months?: number
-          contract_number?: string
-          contract_status?: string
-          created_at?: string
-          created_by?: string
-          end_date?: string
-          generated_contract_path?: string | null
-          generated_pdf_path?: string | null
-          id?: string
-          installment_frequency?: string
-          installments_count?: number
-          owner_name?: string | null
-          payment_method?: string | null
-          pdf_template_id?: string | null
-          plot_number?: string | null
-          property_id?: string | null
-          property_title?: string | null
-          purpose_of_use?: string | null
-          renewal_notice_days?: number | null
-          rent_amount?: number
-          security_deposit?: number | null
-          special_terms?: string | null
-          start_date?: string
-          template_used_id?: string | null
-          tenant_id?: string | null
-          tenant_name?: string | null
-          unit_number?: string | null
-          unit_type?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rental_contracts_pdf_template_id_fkey"
-            columns: ["pdf_template_id"]
-            isOneToOne: false
-            referencedRelation: "pdf_templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_contracts_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "rental_properties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_contracts_template_used_id_fkey"
-            columns: ["template_used_id"]
-            isOneToOne: false
-            referencedRelation: "contract_templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_contracts_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "rental_tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rental_installments: {
-        Row: {
-          amount: number
-          bank_name: string | null
-          cheque_number: string | null
-          contract_id: string
-          created_at: string
-          due_date: string
-          id: string
-          installment_number: number
-          notes: string | null
-          paid_amount: number | null
-          payment_date: string | null
-          payment_method: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          bank_name?: string | null
-          cheque_number?: string | null
-          contract_id: string
-          created_at?: string
-          due_date: string
-          id?: string
-          installment_number: number
-          notes?: string | null
-          paid_amount?: number | null
-          payment_date?: string | null
-          payment_method?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          bank_name?: string | null
-          cheque_number?: string | null
-          contract_id?: string
-          created_at?: string
-          due_date?: string
-          id?: string
-          installment_number?: number
-          notes?: string | null
-          paid_amount?: number | null
-          payment_date?: string | null
-          payment_method?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rental_installments_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "rental_contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rental_notifications: {
-        Row: {
-          channel: string
-          contract_id: string | null
-          created_at: string
-          id: string
-          message: string
-          metadata: Json | null
-          notification_type: string
-          recipient_id: string | null
-          recipient_type: string
-          scheduled_date: string
-          sent_date: string | null
-          status: string
-          title: string
-        }
-        Insert: {
-          channel?: string
-          contract_id?: string | null
-          created_at?: string
-          id?: string
-          message: string
-          metadata?: Json | null
-          notification_type: string
-          recipient_id?: string | null
-          recipient_type: string
-          scheduled_date: string
-          sent_date?: string | null
-          status?: string
-          title: string
-        }
-        Update: {
-          channel?: string
-          contract_id?: string | null
-          created_at?: string
-          id?: string
-          message?: string
-          metadata?: Json | null
-          notification_type?: string
-          recipient_id?: string | null
-          recipient_type?: string
-          scheduled_date?: string
-          sent_date?: string | null
-          status?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rental_notifications_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "rental_contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rental_properties: {
-        Row: {
-          agreed_rent_amount: number
-          area: number | null
-          bathrooms: number | null
-          bedrooms: number | null
-          commission_percentage: number | null
-          created_at: string
-          created_by: string
-          features: string[] | null
-          id: string
-          images: string[] | null
-          notes: string | null
-          owner_email: string | null
-          owner_name: string
-          owner_phone: string
-          property_address: string
-          property_title: string
-          property_type: string
-          status: string
-          unit_number: string | null
-          updated_at: string
-        }
-        Insert: {
-          agreed_rent_amount: number
-          area?: number | null
-          bathrooms?: number | null
-          bedrooms?: number | null
-          commission_percentage?: number | null
-          created_at?: string
-          created_by: string
-          features?: string[] | null
-          id?: string
-          images?: string[] | null
-          notes?: string | null
-          owner_email?: string | null
-          owner_name: string
-          owner_phone: string
-          property_address: string
-          property_title: string
-          property_type?: string
-          status?: string
-          unit_number?: string | null
-          updated_at?: string
-        }
-        Update: {
-          agreed_rent_amount?: number
-          area?: number | null
-          bathrooms?: number | null
-          bedrooms?: number | null
-          commission_percentage?: number | null
-          created_at?: string
-          created_by?: string
-          features?: string[] | null
-          id?: string
-          images?: string[] | null
-          notes?: string | null
-          owner_email?: string | null
-          owner_name?: string
-          owner_phone?: string
-          property_address?: string
-          property_title?: string
-          property_type?: string
-          status?: string
-          unit_number?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      rental_renewals: {
-        Row: {
-          created_at: string
-          id: string
-          new_contract_id: string | null
-          new_duration_months: number | null
-          new_rent_amount: number | null
-          original_contract_id: string
-          processed_by: string
-          renewal_date: string
-          renewal_status: string
-          renewal_terms: string | null
-          rent_increase_percentage: number | null
-          tenant_response: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          new_contract_id?: string | null
-          new_duration_months?: number | null
-          new_rent_amount?: number | null
-          original_contract_id: string
-          processed_by: string
-          renewal_date: string
-          renewal_status?: string
-          renewal_terms?: string | null
-          rent_increase_percentage?: number | null
-          tenant_response?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          new_contract_id?: string | null
-          new_duration_months?: number | null
-          new_rent_amount?: number | null
-          original_contract_id?: string
-          processed_by?: string
-          renewal_date?: string
-          renewal_status?: string
-          renewal_terms?: string | null
-          rent_increase_percentage?: number | null
-          tenant_response?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rental_renewals_new_contract_id_fkey"
-            columns: ["new_contract_id"]
-            isOneToOne: false
-            referencedRelation: "rental_contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_renewals_original_contract_id_fkey"
-            columns: ["original_contract_id"]
-            isOneToOne: false
-            referencedRelation: "rental_contracts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rental_tenants: {
-        Row: {
-          assigned_to: string | null
-          created_at: string
-          created_by: string
-          current_address: string | null
-          email: string | null
-          emergency_contact_name: string | null
-          emergency_contact_phone: string | null
-          emirates_id: string | null
-          full_name: string
-          id: string
-          lead_source: string | null
           nationality: string | null
           notes: string | null
+          owner_type: string | null
           passport_number: string | null
-          phone: string
+          phone: string | null
+          preferred_contact_method: string | null
           preferred_language: string | null
-          status: string
-          updated_at: string
-          visa_status: string | null
+          properties_count: number | null
+          status: string | null
+          tags: string[] | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
+          address?: string | null
           assigned_to?: string | null
-          created_at?: string
-          created_by: string
-          current_address?: string | null
+          best_time_to_call?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string | null
+          created_by?: string
           email?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          emirates_id?: string | null
           full_name: string
           id?: string
-          lead_source?: string | null
+          id_number?: string | null
           nationality?: string | null
           notes?: string | null
+          owner_type?: string | null
           passport_number?: string | null
-          phone: string
+          phone?: string | null
+          preferred_contact_method?: string | null
           preferred_language?: string | null
-          status?: string
-          updated_at?: string
-          visa_status?: string | null
+          properties_count?: number | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
+          address?: string | null
           assigned_to?: string | null
-          created_at?: string
+          best_time_to_call?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string | null
           created_by?: string
-          current_address?: string | null
           email?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          emirates_id?: string | null
           full_name?: string
           id?: string
-          lead_source?: string | null
+          id_number?: string | null
           nationality?: string | null
           notes?: string | null
+          owner_type?: string | null
           passport_number?: string | null
-          phone?: string
+          phone?: string | null
+          preferred_contact_method?: string | null
           preferred_language?: string | null
+          properties_count?: number | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_smart_logs: {
+        Row: {
+          created_at: string
+          id: string
+          message_sent: string
+          message_template: string
+          phone_number: string
+          sent_at: string
+          sent_by: string
+          status: string
+          supplier_id: string | null
+          task_id: string | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_sent: string
+          message_template: string
+          phone_number: string
+          sent_at?: string
+          sent_by: string
           status?: string
-          updated_at?: string
-          visa_status?: string | null
-        }
-        Relationships: []
-      }
-      revenues: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          description: string | null
-          employee_id: string | null
-          id: string
-          recorded_by: string
-          revenue_date: string
-          revenue_type: string | null
-          source: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          employee_id?: string | null
-          id?: string
-          recorded_by: string
-          revenue_date?: string
-          revenue_type?: string | null
-          source: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          employee_id?: string | null
-          id?: string
-          recorded_by?: string
-          revenue_date?: string
-          revenue_type?: string | null
-          source?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      settings: {
-        Row: {
-          category: string
-          created_at: string
-          description: string | null
-          id: string
-          key: string
-          updated_at: string
-          updated_by: string | null
-          value: Json | null
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          key: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: Json | null
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          key?: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: Json | null
-        }
-        Relationships: []
-      }
-      system_notifications: {
-        Row: {
-          created_at: string
-          id: string
-          is_browser_sent: boolean
-          is_read: boolean
-          is_sound_played: boolean
-          message: string
-          metadata: Json | null
-          priority: string
-          read_at: string | null
-          related_id: string | null
-          related_table: string | null
-          scheduled_for: string | null
-          sent_at: string | null
-          title: string
-          type: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_browser_sent?: boolean
-          is_read?: boolean
-          is_sound_played?: boolean
-          message: string
-          metadata?: Json | null
-          priority?: string
-          read_at?: string | null
-          related_id?: string | null
-          related_table?: string | null
-          scheduled_for?: string | null
-          sent_at?: string | null
-          title: string
-          type: string
-          updated_at?: string
-          user_id: string
+          supplier_id?: string | null
+          task_id?: string | null
+          whatsapp_message_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
-          is_browser_sent?: boolean
-          is_read?: boolean
-          is_sound_played?: boolean
-          message?: string
-          metadata?: Json | null
-          priority?: string
-          read_at?: string | null
-          related_id?: string | null
-          related_table?: string | null
-          scheduled_for?: string | null
-          sent_at?: string | null
-          title?: string
-          type?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      task_assignments: {
-        Row: {
-          assigned_at: string
-          assigned_by: string
-          assigned_to: string
-          id: string
-          task_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by: string
-          assigned_to: string
-          id?: string
-          task_id: string
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by?: string
-          assigned_to?: string
-          id?: string
-          task_id?: string
+          message_sent?: string
+          message_template?: string
+          phone_number?: string
+          sent_at?: string
+          sent_by?: string
+          status?: string
+          supplier_id?: string | null
+          task_id?: string | null
+          whatsapp_message_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "task_assignments_task_id_fkey"
+            foreignKeyName: "whatsapp_smart_logs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "external_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_smart_logs_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "daily_tasks"
@@ -4559,1567 +767,106 @@ export type Database = {
           },
         ]
       }
-      task_attachments: {
+      whatsapp_smart_settings: {
         Row: {
-          file_name: string
-          file_path: string
-          file_size: number | null
-          file_type: string | null
+          auto_send_enabled: boolean | null
+          daily_message_limit: number
+          daily_reminder_time: string | null
           id: string
-          task_id: string
-          uploaded_at: string
-          uploaded_by: string
-        }
-        Insert: {
-          file_name: string
-          file_path: string
-          file_size?: number | null
-          file_type?: string | null
-          id?: string
-          task_id: string
-          uploaded_at?: string
-          uploaded_by: string
-        }
-        Update: {
-          file_name?: string
-          file_path?: string
-          file_size?: number | null
-          file_type?: string | null
-          id?: string
-          task_id?: string
-          uploaded_at?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_attachments_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      task_comments: {
-        Row: {
-          comment_text: string
-          created_at: string
-          created_by: string
-          id: string
-          task_id: string
-        }
-        Insert: {
-          comment_text: string
-          created_at?: string
-          created_by: string
-          id?: string
-          task_id: string
-        }
-        Update: {
-          comment_text?: string
-          created_at?: string
-          created_by?: string
-          id?: string
-          task_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_comments_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      task_notifications: {
-        Row: {
-          created_at: string
-          id: string
-          is_read: boolean | null
-          message: string
-          notification_type: string
-          sent_via_email: boolean | null
-          sent_via_whatsapp: boolean | null
-          task_id: string
-          title: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_read?: boolean | null
-          message?: string
-          notification_type: string
-          sent_via_email?: boolean | null
-          sent_via_whatsapp?: boolean | null
-          task_id: string
-          title: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_read?: boolean | null
-          message?: string
-          notification_type?: string
-          sent_via_email?: boolean | null
-          sent_via_whatsapp?: boolean | null
-          task_id?: string
-          title?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_notifications_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "daily_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tasks: {
-        Row: {
-          automation_trigger: string | null
-          client_id: string | null
-          completed_at: string | null
-          contract_id: string | null
-          created_at: string
-          created_by: string
-          description: string | null
-          due_date: string | null
-          id: string
-          is_automated: boolean | null
-          priority: string
-          property_id: string | null
-          start_date: string | null
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          automation_trigger?: string | null
-          client_id?: string | null
-          completed_at?: string | null
-          contract_id?: string | null
-          created_at?: string
-          created_by: string
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          is_automated?: boolean | null
-          priority?: string
-          property_id?: string | null
-          start_date?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          automation_trigger?: string | null
-          client_id?: string | null
-          completed_at?: string | null
-          contract_id?: string | null
-          created_at?: string
-          created_by?: string
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          is_automated?: boolean | null
-          priority?: string
-          property_id?: string | null
-          start_date?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "rental_contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      themes: {
-        Row: {
-          colors: Json | null
-          created_at: string
-          created_by: string | null
-          fonts: Json | null
-          id: string
-          is_default: boolean | null
-          layout: Json | null
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          colors?: Json | null
-          created_at?: string
-          created_by?: string | null
-          fonts?: Json | null
-          id?: string
-          is_default?: boolean | null
-          layout?: Json | null
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          colors?: Json | null
-          created_at?: string
-          created_by?: string | null
-          fonts?: Json | null
-          id?: string
-          is_default?: boolean | null
-          layout?: Json | null
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      treasury_accounts: {
-        Row: {
-          account_number: string | null
-          account_type: string
-          bank_name: string | null
-          created_at: string
-          created_by: string
-          currency: string
-          current_balance: number
-          iban: string | null
-          id: string
-          is_active: boolean
-          name: string
-          opening_balance: number
-          updated_at: string
-        }
-        Insert: {
-          account_number?: string | null
-          account_type: string
-          bank_name?: string | null
-          created_at?: string
-          created_by: string
-          currency?: string
-          current_balance?: number
-          iban?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          opening_balance?: number
-          updated_at?: string
-        }
-        Update: {
-          account_number?: string | null
-          account_type?: string
-          bank_name?: string | null
-          created_at?: string
-          created_by?: string
-          currency?: string
-          current_balance?: number
-          iban?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          opening_balance?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      treasury_transactions: {
-        Row: {
-          amount: number
-          created_at: string
-          description: string
-          from_account_id: string | null
-          id: string
-          processed_by: string
-          reference_id: string | null
-          reference_type: string | null
-          to_account_id: string | null
-          transaction_date: string
-          transaction_type: string
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          description: string
-          from_account_id?: string | null
-          id?: string
-          processed_by: string
-          reference_id?: string | null
-          reference_type?: string | null
-          to_account_id?: string | null
-          transaction_date?: string
-          transaction_type: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          description?: string
-          from_account_id?: string | null
-          id?: string
-          processed_by?: string
-          reference_id?: string | null
-          reference_type?: string | null
-          to_account_id?: string | null
-          transaction_date?: string
-          transaction_type?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "treasury_transactions_from_account_id_fkey"
-            columns: ["from_account_id"]
-            isOneToOne: false
-            referencedRelation: "treasury_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "treasury_transactions_to_account_id_fkey"
-            columns: ["to_account_id"]
-            isOneToOne: false
-            referencedRelation: "treasury_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_notification_settings: {
-        Row: {
-          browser_notifications: boolean
-          created_at: string
-          do_not_disturb_end: string | null
-          do_not_disturb_start: string | null
-          enabled_types: Json
-          id: string
-          in_app_notifications: boolean
-          reminder_frequency: number
-          sound_file: string
-          sound_notifications: boolean
+          message_cooldown_hours: number
+          message_template_ar: string
+          message_template_en: string
+          target_categories: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          browser_notifications?: boolean
-          created_at?: string
-          do_not_disturb_end?: string | null
-          do_not_disturb_start?: string | null
-          enabled_types?: Json
+          auto_send_enabled?: boolean | null
+          daily_message_limit?: number
+          daily_reminder_time?: string | null
           id?: string
-          in_app_notifications?: boolean
-          reminder_frequency?: number
-          sound_file?: string
-          sound_notifications?: boolean
+          message_cooldown_hours?: number
+          message_template_ar?: string
+          message_template_en?: string
+          target_categories?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          browser_notifications?: boolean
-          created_at?: string
-          do_not_disturb_end?: string | null
-          do_not_disturb_start?: string | null
-          enabled_types?: Json
+          auto_send_enabled?: boolean | null
+          daily_message_limit?: number
+          daily_reminder_time?: string | null
           id?: string
-          in_app_notifications?: boolean
-          reminder_frequency?: number
-          sound_file?: string
-          sound_notifications?: boolean
+          message_cooldown_hours?: number
+          message_template_ar?: string
+          message_template_en?: string
+          target_categories?: Json | null
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      user_permissions: {
-        Row: {
-          created_at: string
-          granted: boolean | null
-          granted_by: string | null
-          id: string
-          module_name: string
-          permission_type: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          granted?: boolean | null
-          granted_by?: string | null
-          id?: string
-          module_name: string
-          permission_type: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          granted?: boolean | null
-          granted_by?: string | null
-          id?: string
-          module_name?: string
-          permission_type?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          assigned_at: string
-          assigned_by: string | null
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by?: string | null
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
-      vehicle_expenses: {
-        Row: {
-          amount: number
-          created_at: string
-          debt_assignment: string | null
-          description: string | null
-          expense_date: string
-          expense_type: string
-          id: string
-          odometer_reading: number | null
-          receipt_url: string | null
-          recorded_by: string
-          updated_at: string
-          vehicle_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          debt_assignment?: string | null
-          description?: string | null
-          expense_date?: string
-          expense_type: string
-          id?: string
-          odometer_reading?: number | null
-          receipt_url?: string | null
-          recorded_by: string
-          updated_at?: string
-          vehicle_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          debt_assignment?: string | null
-          description?: string | null
-          expense_date?: string
-          expense_type?: string
-          id?: string
-          odometer_reading?: number | null
-          receipt_url?: string | null
-          recorded_by?: string
-          updated_at?: string
-          vehicle_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vehicle_expenses_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vehicles: {
-        Row: {
-          assigned_to: string | null
-          color: string | null
-          created_at: string
-          id: string
-          insurance_expiry: string | null
-          last_maintenance: string | null
-          license_expiry: string | null
-          license_plate: string
-          make: string
-          model: string
-          next_maintenance: string | null
-          notes: string | null
-          odometer_reading: number | null
-          purchase_date: string | null
-          purchase_price: number | null
-          status: string
-          updated_at: string
-          year: number
-        }
-        Insert: {
-          assigned_to?: string | null
-          color?: string | null
-          created_at?: string
-          id?: string
-          insurance_expiry?: string | null
-          last_maintenance?: string | null
-          license_expiry?: string | null
-          license_plate: string
-          make: string
-          model: string
-          next_maintenance?: string | null
-          notes?: string | null
-          odometer_reading?: number | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          status?: string
-          updated_at?: string
-          year: number
-        }
-        Update: {
-          assigned_to?: string | null
-          color?: string | null
-          created_at?: string
-          id?: string
-          insurance_expiry?: string | null
-          last_maintenance?: string | null
-          license_expiry?: string | null
-          license_plate?: string
-          make?: string
-          model?: string
-          next_maintenance?: string | null
-          notes?: string | null
-          odometer_reading?: number | null
-          purchase_date?: string | null
-          purchase_price?: number | null
-          status?: string
-          updated_at?: string
-          year?: number
-        }
-        Relationships: []
-      }
-      whatsapp_bulk_message_recipients: {
-        Row: {
-          bulk_message_id: string | null
-          contact_id: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          max_retries: number | null
-          message_id: string | null
-          personalized_content: string | null
-          phone_number: string
-          retry_count: number | null
-          sent_at: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          bulk_message_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          max_retries?: number | null
-          message_id?: string | null
-          personalized_content?: string | null
-          phone_number: string
-          retry_count?: number | null
-          sent_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          bulk_message_id?: string | null
-          contact_id?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          max_retries?: number | null
-          message_id?: string | null
-          personalized_content?: string | null
-          phone_number?: string
-          retry_count?: number | null
-          sent_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_bulk_message_recipients_bulk_message_id_fkey"
-            columns: ["bulk_message_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_bulk_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      whatsapp_bulk_messages: {
-        Row: {
-          button_text: string | null
-          button_url: string | null
-          completed_at: string | null
-          created_at: string | null
-          custom_recipients: Json | null
-          failed_count: number | null
-          gradual_settings: Json | null
-          id: string
-          media_type: string | null
-          media_url: string | null
-          message_content: string
-          message_type: string | null
-          name: string
-          poll_options: Json | null
-          recipient_filters: Json | null
-          recipient_type: string | null
-          scheduled_at: string | null
-          send_type: string | null
-          sent_count: number | null
-          started_at: string | null
-          status: string | null
-          success_rate: number | null
-          template_id: string | null
-          total_recipients: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          button_text?: string | null
-          button_url?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          custom_recipients?: Json | null
-          failed_count?: number | null
-          gradual_settings?: Json | null
-          id?: string
-          media_type?: string | null
-          media_url?: string | null
-          message_content: string
-          message_type?: string | null
-          name: string
-          poll_options?: Json | null
-          recipient_filters?: Json | null
-          recipient_type?: string | null
-          scheduled_at?: string | null
-          send_type?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          success_rate?: number | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          button_text?: string | null
-          button_url?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          custom_recipients?: Json | null
-          failed_count?: number | null
-          gradual_settings?: Json | null
-          id?: string
-          media_type?: string | null
-          media_url?: string | null
-          message_content?: string
-          message_type?: string | null
-          name?: string
-          poll_options?: Json | null
-          recipient_filters?: Json | null
-          recipient_type?: string | null
-          scheduled_at?: string | null
-          send_type?: string | null
-          sent_count?: number | null
-          started_at?: string | null
-          status?: string | null
-          success_rate?: number | null
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      whatsapp_campaigns: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          messages_delivered: number | null
-          messages_failed: number | null
-          messages_sent: number | null
-          name: string
-          scheduled_at: string | null
-          started_at: string | null
-          status: string | null
-          target_audience: Json
-          template_id: string | null
-          total_recipients: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          messages_delivered?: number | null
-          messages_failed?: number | null
-          messages_sent?: number | null
-          name: string
-          scheduled_at?: string | null
-          started_at?: string | null
-          status?: string | null
-          target_audience?: Json
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          messages_delivered?: number | null
-          messages_failed?: number | null
-          messages_sent?: number | null
-          name?: string
-          scheduled_at?: string | null
-          started_at?: string | null
-          status?: string | null
-          target_audience?: Json
-          template_id?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_campaigns_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      whatsapp_contacts: {
-        Row: {
-          company: string | null
-          contact_type: string
-          created_at: string | null
-          email: string | null
-          id: string
-          is_active: boolean | null
-          last_contacted: string | null
-          name: string
-          notes: string | null
-          phone: string
-          tags: Json | null
-          updated_at: string | null
-          whatsapp_number: string | null
-        }
-        Insert: {
-          company?: string | null
-          contact_type?: string
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_contacted?: string | null
-          name: string
-          notes?: string | null
-          phone: string
-          tags?: Json | null
-          updated_at?: string | null
-          whatsapp_number?: string | null
-        }
-        Update: {
-          company?: string | null
-          contact_type?: string
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_contacted?: string | null
-          name?: string
-          notes?: string | null
-          phone?: string
-          tags?: Json | null
-          updated_at?: string | null
-          whatsapp_number?: string | null
-        }
-        Relationships: []
-      }
-      whatsapp_messages: {
-        Row: {
-          additional_data: Json | null
-          api_response: Json | null
-          campaign_id: string | null
-          contact_id: string | null
-          content: string
-          created_at: string | null
-          delivered_at: string | null
-          error_message: string | null
-          id: string
-          media_url: string | null
-          message_type: string
-          phone_number: string
-          sent_at: string | null
-          status: string | null
-          template_id: string | null
-        }
-        Insert: {
-          additional_data?: Json | null
-          api_response?: Json | null
-          campaign_id?: string | null
-          contact_id?: string | null
-          content: string
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string
-          media_url?: string | null
-          message_type?: string
-          phone_number: string
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-        }
-        Update: {
-          additional_data?: Json | null
-          api_response?: Json | null
-          campaign_id?: string | null
-          contact_id?: string | null
-          content?: string
-          created_at?: string | null
-          delivered_at?: string | null
-          error_message?: string | null
-          id?: string
-          media_url?: string | null
-          message_type?: string
-          phone_number?: string
-          sent_at?: string | null
-          status?: string | null
-          template_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_messages_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "whatsapp_messages_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "whatsapp_messages_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      whatsapp_reminders: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          enabled: boolean | null
-          id: string
-          lead_id: string | null
-          remind_at: string
-          stage: string
-          surfaced: boolean | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          enabled?: boolean | null
-          id?: string
-          lead_id?: string | null
-          remind_at: string
-          stage: string
-          surfaced?: boolean | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          enabled?: boolean | null
-          id?: string
-          lead_id?: string | null
-          remind_at?: string
-          stage?: string
-          surfaced?: boolean | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      whatsapp_settings: {
-        Row: {
-          api_key: string
-          created_at: string | null
-          daily_limit: number | null
-          default_footer: string | null
-          id: string
-          is_active: boolean | null
-          rate_limit_per_minute: number | null
-          sender_number: string
-          updated_at: string | null
-        }
-        Insert: {
-          api_key?: string
-          created_at?: string | null
-          daily_limit?: number | null
-          default_footer?: string | null
-          id?: string
-          is_active?: boolean | null
-          rate_limit_per_minute?: number | null
-          sender_number?: string
-          updated_at?: string | null
-        }
-        Update: {
-          api_key?: string
-          created_at?: string | null
-          daily_limit?: number | null
-          default_footer?: string | null
-          id?: string
-          is_active?: boolean | null
-          rate_limit_per_minute?: number | null
-          sender_number?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      whatsapp_templates: {
-        Row: {
-          buttons: Json | null
-          category: string
-          content: string
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          media_url: string | null
-          name: string
-          poll_options: Json | null
-          template_type: string | null
-          updated_at: string | null
-          usage_count: number | null
-        }
-        Insert: {
-          buttons?: Json | null
-          category: string
-          content: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          media_url?: string | null
-          name: string
-          poll_options?: Json | null
-          template_type?: string | null
-          updated_at?: string | null
-          usage_count?: number | null
-        }
-        Update: {
-          buttons?: Json | null
-          category?: string
-          content?: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          media_url?: string | null
-          name?: string
-          poll_options?: Json | null
-          template_type?: string | null
-          updated_at?: string | null
-          usage_count?: number | null
         }
         Relationships: []
       }
     }
     Views: {
-      contact_dashboard: {
-        Row: {
-          activity_count: number | null
-          attachment_count: number | null
-          company: string | null
-          contact_type: string | null
-          created_at: string | null
-          id: string | null
-          last_contact_date: string | null
-          name: string | null
-          next_activity_date: string | null
-          next_contact_date: string | null
-          rating: number | null
-          sla_status: string | null
-          status: string | null
-          tag_count: number | null
-          updated_at: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      add_contact_tags: {
-        Args: { contact_id: string; tag_names: string[] }
-        Returns: Json
-      }
-      advance_workflow_stage: {
-        Args: { service_id_param: string }
-        Returns: boolean
-      }
-      approve_commission: {
-        Args: { commission_id_param: string }
-        Returns: Json
-      }
-      approve_commission_multi: {
-        Args: { commission_id_param: string }
-        Returns: boolean
-      }
-      calculate_and_apply_incentives: {
-        Args: { target_id_param: string }
-        Returns: Json
-      }
-      calculate_bulk_message_success_rate: {
-        Args: { bulk_msg_id: string }
-        Returns: number
-      }
-      calculate_commission_distribution: {
-        Args: { p_commission_id: string }
-        Returns: undefined
-      }
-      calculate_commission_new_system: {
+      create_first_admin: {
         Args: {
-          p_client_name: string
-          p_custom_percentages?: Json
-          p_employee_ids?: string[]
-          p_property_type: string
-          p_total_amount: number
-          p_transaction_type: string
-        }
-        Returns: Json
-      }
-      calculate_deal_commission: {
-        Args: { deal_id_param: string }
-        Returns: Json
-      }
-      calculate_deal_commission_multi: {
-        Args: {
-          deal_id_param: string
-          employee_ids?: string[]
-          employee_percentages?: number[]
-        }
-        Returns: Json
-      }
-      calculate_deal_commission_multi_fixed: {
-        Args: { deal_id_param: string; employee_ids?: string[] }
-        Returns: Json
-      }
-      calculate_lead_score: {
-        Args: { lead_record: Database["public"]["Tables"]["leads"]["Row"] }
-        Returns: number
-      }
-      calculate_service_total_fees: {
-        Args: { service_id_param: string }
-        Returns: number
-      }
-      can_manage_financials: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      can_manage_vehicle_expenses: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      check_module_permission: {
-        Args: {
-          action_type_param: string
-          module_name_param: string
-          user_id_param?: string
-        }
-        Returns: boolean
-      }
-      check_rate_limit: {
-        Args: {
-          identifier: string
-          max_attempts?: number
-          window_minutes?: number
-        }
-        Returns: boolean
-      }
-      check_rate_limit_enhanced: {
-        Args: {
-          max_attempts?: number
-          time_window_minutes?: number
-          user_email: string
-        }
-        Returns: boolean
-      }
-      check_rate_limit_secure: {
-        Args: {
-          max_attempts?: number
-          time_window_minutes?: number
-          user_email: string
-        }
-        Returns: boolean
-      }
-      contact_api_event: {
-        Args: { contact_id: string; data: Json; event_type: string }
-        Returns: undefined
-      }
-      convert_existing_personal_expenses_to_debts: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      convert_lead_to_client: {
-        Args: { lead_id_param: string }
-        Returns: string
-      }
-      create_commission_simple: {
-        Args: {
-          p_amount: number
-          p_client_name: string
-          p_custom_percentages?: Json
-          p_employee_ids: string[]
-          p_transaction_name?: string
-        }
-        Returns: Json
-      }
-      create_debt_installments: {
-        Args: {
-          p_debt_id: string
-          p_frequency: string
-          p_installment_count: number
-          p_start_date: string
-        }
-        Returns: undefined
-      }
-      create_system_notification: {
-        Args:
-          | {
-              p_message: string
-              p_metadata?: Json
-              p_priority?: string
-              p_related_id?: string
-              p_related_table?: string
-              p_scheduled_for?: string
-              p_title: string
-              p_type: string
-              p_user_id: string
-            }
-          | {
-              p_message: string
-              p_metadata?: Json
-              p_priority?: string
-              p_related_id?: string
-              p_related_table?: string
-              p_scheduled_for?: string
-              p_title: string
-              p_type?: string
-            }
-        Returns: string
-      }
-      create_task_notification: {
-        Args: {
-          p_message: string
-          p_notification_type: string
-          p_task_id: string
-          p_title: string
+          p_email: string
+          p_first_name?: string
+          p_last_name?: string
           p_user_id: string
         }
-        Returns: string
-      }
-      delete_vehicle_with_expenses: {
-        Args: { vehicle_id_param: string }
         Returns: Json
       }
-      detect_duplicate_contacts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      export_contacts: {
-        Args: { contact_ids: string[]; export_format: string }
-        Returns: Json
-      }
-      fix_data_integrity: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_contract_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_reference_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_rental_installments: {
-        Args: {
-          p_amount_per_installment: number
-          p_contract_id: string
-          p_frequency: string
-          p_installments_count: number
-          p_start_date: string
-        }
-        Returns: undefined
-      }
-      get_contracts_report: {
-        Args: { p_end_date?: string; p_start_date?: string; p_status?: string }
+      find_user_by_email: {
+        Args: { p_email: string }
         Returns: {
-          contract_id: string
-          contract_number: string
-          contract_status: string
-          end_date: string
-          paid_installments: number
-          pending_installments: number
-          property_title: string
-          rent_amount: number
-          start_date: string
-          tenant_name: string
-          total_installments: number
-          total_paid: number
-          total_pending: number
+          avatar_url: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          phone: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
         }[]
       }
-      get_current_user_role: {
+      get_current_user_profile: {
         Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_employee_commission_statement: {
-        Args: { employee_id_param?: string }
         Returns: {
-          current_total_debts: number
-          employee_email: string
-          employee_id: string
-          employee_name: string
-          total_calculated_commissions: number
-          total_commissions_count: number
-          total_deducted_debts: number
-          total_incentives: number
-          total_net_commissions: number
-          total_paid_commissions: number
-          total_pending_commissions: number
+          avatar_url: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          phone: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
         }[]
       }
-      get_employee_financial_summary: {
-        Args: { employee_user_id: string }
-        Returns: {
-          net_commissions: number
-          recent_activities: Json
-          total_commissions: number
-          total_deals: number
-          total_debts: number
-        }[]
-      }
-      get_monthly_budget_report: {
-        Args: { target_month?: string }
-        Returns: {
-          actual_spent: number
-          category: string
-          monthly_limit: number
-          percentage_used: number
-          remaining_budget: number
-          status: string
-          transaction_count: number
-        }[]
-      }
-      get_unread_system_notifications_count: {
-        Args: { p_user_id: string }
-        Returns: number
-      }
-      get_user_role: {
-        Args: { user_uuid: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
-      has_crm_access: {
+      has_admin_users: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      has_role: {
-        Args:
-          | { _role: Database["public"]["Enums"]["app_role"] }
-          | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
-        Returns: boolean
-      }
-      import_contacts: {
-        Args: { import_data: Json }
-        Returns: Json
-      }
-      import_existing_contacts: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      increment_template_usage: {
-        Args: { template_id: string }
-        Returns: undefined
-      }
-      is_accountant: {
+      is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      is_accountant_or_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_employee: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_manager: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_profile_owner: {
-        Args: { profile_user_id: string }
-        Returns: boolean
-      }
-      link_service_to_accounting: {
-        Args: {
-          expense_amount: number
-          expense_description?: string
-          service_id_param: string
-        }
-        Returns: string
-      }
-      log_auth_attempt: {
-        Args: {
-          attempt_type_param: string
-          error_message_param?: string
-          metadata_param?: Json
-          success_param: boolean
-          user_identifier_param: string
-        }
-        Returns: string
-      }
-      log_financial_activity: {
-        Args: {
-          p_amount: number
-          p_description: string
-          p_metadata?: Json
-          p_operation_type: string
-          p_related_id?: string
-          p_related_table?: string
-          p_source_id: string
-          p_source_table: string
-          p_user_id?: string
-        }
-        Returns: string
-      }
-      log_security_event: {
-        Args: {
-          description: string
-          event_type: string
-          metadata?: Json
-          severity?: string
-          user_id_param?: string
-        }
-        Returns: string
-      }
-      log_whatsapp_activity: {
-        Args: {
-          p_activity_type: string
-          p_description: string
-          p_metadata?: Json
-          p_related_id?: string
-          p_related_table?: string
-        }
-        Returns: string
-      }
-      merge_contacts: {
-        Args: { duplicate_ids: string[]; master_id: string }
-        Returns: Json
-      }
-      pay_commission: {
-        Args: { commission_id_param: string }
-        Returns: Json
-      }
-      process_installment_payment: {
-        Args: {
-          p_installment_id: string
-          p_notes?: string
-          p_payment_amount: number
-          p_payment_method?: string
-        }
-        Returns: boolean
-      }
-      process_rental_payment: {
-        Args: {
-          p_bank_name?: string
-          p_cheque_number?: string
-          p_installment_id: string
-          p_notes?: string
-          p_payment_amount: number
-          p_payment_method?: string
-        }
-        Returns: boolean
-      }
-      remove_contact_tags: {
-        Args: { contact_id: string; tag_names: string[] }
-        Returns: Json
-      }
-      reset_financial_data: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      restore_deleted_record: {
-        Args: { p_audit_log_id: string }
-        Returns: Json
-      }
-      safe_delete_expense: {
-        Args: { expense_id_param: string }
-        Returns: Json
-      }
-      schedule_debt_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      schedule_renewal_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      secure_role_change: {
-        Args:
-          | {
-              new_role: Database["public"]["Enums"]["app_role"]
-              reason?: string
-              target_user_id: string
-            }
-          | {
-              new_role: Database["public"]["Enums"]["app_role"]
-              target_user_id: string
-            }
-        Returns: Json
-      }
-      security_audit_summary: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      send_commission_notification: {
-        Args: {
-          commission_amount: number
-          commission_id_param: string
-          employee_id_param: string
-        }
-        Returns: string
-      }
-      sync_contact_relations: {
-        Args: { relation_type: string; source_id: string; target_id: string }
-        Returns: undefined
-      }
-      sync_debts_with_journal: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      sync_existing_data_to_contacts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      update_bulk_message_stats: {
-        Args: { bulk_msg_id: string }
-        Returns: undefined
-      }
-      update_commission_employee_percentages: {
-        Args: { p_commission_id: string; p_employee_percentages: Json }
-        Returns: Json
-      }
-      update_employee_targets_progress: {
-        Args: { employee_id_param: string }
-        Returns: undefined
-      }
-      update_service_stage: {
-        Args: {
-          notes_param?: string
-          service_id_param: string
-          stage_name_param: string
-          stage_status_param?: string
-        }
-        Returns: boolean
-      }
-      update_whatsapp_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      validate_input_security: {
-        Args: { input_text: string; input_type?: string }
-        Returns: boolean
-      }
-      validate_password_strength: {
-        Args: { password: string }
-        Returns: Json
-      }
-      validate_password_strength_enhanced: {
-        Args: { password: string }
-        Returns: Json
-      }
-      validate_phone_number: {
-        Args: { phone_input: string }
-        Returns: boolean
-      }
-      validate_role_access: {
-        Args: { required_role: Database["public"]["Enums"]["app_role"] }
-        Returns: boolean
-      }
-      validate_session_security: {
-        Args: Record<PropertyKey, never>
+      secure_change_user_role: {
+        Args: { new_role: string; target_user_id: string }
         Returns: boolean
       }
     }
     Enums: {
       app_role: "admin" | "accountant" | "employee"
-      contact_category: "individual" | "company" | "organization"
-      contact_channel_type:
-        | "phone"
-        | "mobile"
-        | "whatsapp"
-        | "email"
-        | "address"
-        | "website"
-        | "social"
-      contact_role:
-        | "client"
-        | "broker"
-        | "owner"
-        | "tenant"
-        | "supplier"
-        | "partner"
-        | "employee"
-      follow_up_status:
-        | "new"
-        | "contacted"
-        | "interested"
-        | "negotiating"
-        | "closed"
-        | "lost"
-        | "inactive"
-      whatsapp_stage: "Lead" | "Negotiation" | "Closing" | "PostSale"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6248,35 +995,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "accountant", "employee"],
-      contact_category: ["individual", "company", "organization"],
-      contact_channel_type: [
-        "phone",
-        "mobile",
-        "whatsapp",
-        "email",
-        "address",
-        "website",
-        "social",
-      ],
-      contact_role: [
-        "client",
-        "broker",
-        "owner",
-        "tenant",
-        "supplier",
-        "partner",
-        "employee",
-      ],
-      follow_up_status: [
-        "new",
-        "contacted",
-        "interested",
-        "negotiating",
-        "closed",
-        "lost",
-        "inactive",
-      ],
-      whatsapp_stage: ["Lead", "Negotiation", "Closing", "PostSale"],
     },
   },
 } as const
