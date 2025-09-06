@@ -20,14 +20,13 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
   global: {
     fetch: async (url, options = {}) => {
-      // Check connection status before making request
+      // التحقق من حالة الاتصال قبل إرسال الطلب
       if (connectionManager.getStatus() === ConnectionStatus.OFFLINE) {
-        // If we're offline, don't even try to make the request
-        throw new Error('You are currently offline. Please check your internet connection and try again.');
+        throw new Error('أنت حالياً غير متصل. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.');
       }
       
       const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const id = setTimeout(() => controller.abort(), 30000); // 30 ثانية timeout
       
       try {
         const response = await fetch(url, {
@@ -43,20 +42,26 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
           },
         });
         
+        clearTimeout(id);
+        
+        // إذا نجح الطلب، تأكد من أن الحالة online
+        if (connectionManager.getStatus() !== ConnectionStatus.ONLINE) {
+          connectionManager.setStatus(ConnectionStatus.ONLINE);
+        }
+        
         return response;
       } catch (error) {
+        clearTimeout(id);
         console.log('Supabase fetch error:', error?.message || error);
-        // Add more detailed error logging
+        
+        // تحليل نوع الخطأ
         if (error instanceof TypeError && error.message === 'Failed to fetch') {
           console.log('Network connection issue detected.');
-          // Update connection status to offline
           connectionManager.setStatus(ConnectionStatus.OFFLINE);
         } else if (error.name === 'AbortError') {
-          console.log('Request timed out after 60 seconds');
+          console.log('Request timed out after 30 seconds');
         }
         throw error;
-      } finally {
-        clearTimeout(id);
       }
     },
   },
