@@ -32,27 +32,47 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
     setError("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password: signInForm.password,
       });
 
       if (error) {
-        setError("فشل في تسجيل الدخول. يرجى التحقق من البيانات والمحاولة مرة أخرى.");
+        console.error("تفاصيل خطأ تسجيل الدخول:", error);
+        
+        if (error.message.includes('Invalid login credentials')) {
+          setError("بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من البريد الإلكتروني وكلمة المرور.");
+        } else if (error.message.includes('Email not confirmed')) {
+          setError("البريد الإلكتروني غير مؤكد. يرجى تأكيد البريد الإلكتروني أولاً.");
+        } else if (error.message.includes('Too many requests')) {
+          setError("محاولات كثيرة جداً. يرجى الانتظار قليلاً والمحاولة مرة أخرى.");
+        } else {
+          setError("فشل في تسجيل الدخول. يرجى التحقق من البيانات والمحاولة مرة أخرى.");
+        }
         return;
       }
       
-      toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: "مرحباً بك في نظام ستار سيتي العقاري",
-      });
-      
-      // انتظار قصير للسماح لـ useAuth بإكمال جلب الملف الشخصي
-      setTimeout(() => {
-        onSuccess();
-      }, 1000);
+      if (data?.user) {
+        toast({
+          title: "تم تسجيل الدخول بنجاح",
+          description: "مرحباً بك في نظام ستار سيتي العقاري",
+        });
+        
+        // انتظار قصير للسماح لـ useAuth بإكمال جلب الملف الشخصي
+        setTimeout(() => {
+          onSuccess();
+        }, 1000);
+      }
     } catch (err: any) {
-      setError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
+      console.error("خطأ في تسجيل الدخول:", err);
+      
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        setError("مشكلة في الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.");
+      } else if (err.message?.includes('net::ERR_NAME_NOT_RESOLVED')) {
+        setError("لا يمكن الوصول إلى الخادم. يرجى التحقق من اتصالك بالإنترنت.");
+      } else {
+        setError("حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +144,26 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
             </Button>
+            
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">بيانات تسجيل الدخول التجريبية:</p>
+              <p className="text-xs font-mono">admin@starcity.ae</p>
+              <p className="text-xs font-mono">admin123</p>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={() => {
+                  setSignInForm({
+                    email: "admin@starcity.ae",
+                    password: "admin123"
+                  });
+                }}
+              >
+                استخدام البيانات التجريبية
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
